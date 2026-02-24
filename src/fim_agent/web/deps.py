@@ -14,17 +14,24 @@ FAST_LLM_MODEL   : Model identifier for the fast model used for DAG step
                     execution (default: falls back to ``LLM_MODEL``).
 LLM_TEMPERATURE  : Default sampling temperature (default: ``0.7``).
 MAX_CONCURRENCY  : Max parallel steps in DAG executor (default: ``5``).
+MCP_SERVERS      : Optional JSON array of MCP server configs.  Each entry
+                    is ``{"name": str, "command": str, "args": [str], "env": {}}``.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import logging
+from typing import TYPE_CHECKING
 
 from fim_agent.core.model import OpenAICompatibleLLM
 from fim_agent.core.model.registry import ModelRegistry
 from fim_agent.core.tool import ToolRegistry
 from fim_agent.core.tool.builtin import discover_builtin_tools
+
+if TYPE_CHECKING:
+    from fim_agent.core.mcp import MCPClient
 
 logger = logging.getLogger(__name__)
 
@@ -121,3 +128,65 @@ def get_user_id() -> str:
     touching endpoint signatures.
     """
     return "default"
+
+
+async def get_mcp_tools(registry: ToolRegistry) -> MCPClient | None:
+    """Connect to MCP servers defined in ``MCP_SERVERS`` and register their tools.
+
+    The ``MCP_SERVERS`` environment variable should be a JSON array of server
+    config objects::
+
+        [
+          {
+            "name": "filesystem",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+            "env": {}
+          }
+        ]
+
+    Each server's tools are discovered and registered in *registry* with
+    names prefixed by the server name (e.g. ``filesystem__read_file``).
+
+    Returns
+    -------
+    MCPClient | None
+        The connected :class:`MCPClient` instance, or ``None`` if
+        ``MCP_SERVERS`` is not set.  The caller is responsible for calling
+        ``await client.disconnect_all()`` on shutdown.
+    """
+    servers_json = os.environ.get("MCP_SERVERS", "")
+    if not servers_json:
+        return None
+
+    try:
+        from fim_agent.core.mcp import MCPClient
+    except ImportError:
+        logger.warning(
+            "MCP_SERVERS is set but the 'mcp' package is not installed. "
+            "Install it with: uv sync --extra mcp"
+        )
+        return None
+
+    servers: list[dict[str, object]] = json.loads(servers_json)
+    client = MCPClient()
+
+    for server in servers:
+        name = str(server["name"])
+        command = str(server["command"])
+        args = [str(a) for a in server.get("args", [])]  # type: ignore[union-attr]
+        env = server.get("env")  # type: ignore[assignment]
+
+        try:
+            tools = await client.connect_stdio(
+                name=name,
+                command=command,
+                args=args,
+                env=env,  # type: ignore[arg-type]
+            )
+            for tool in tools:
+                registry.register(tool)
+        except Exception:
+            logger.exception("Failed to connect to MCP server %r", name)
+
+    return client

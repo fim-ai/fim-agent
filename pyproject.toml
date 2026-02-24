@@ -42,6 +42,9 @@ web = [
     "uvicorn[standard]>=0.34",
     "python-dotenv>=1.0",
 ]
+mcp = [
+    "mcp>=1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/fim-ai/fim-agent"
