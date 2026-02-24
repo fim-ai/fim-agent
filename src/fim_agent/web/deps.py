@@ -24,11 +24,7 @@ import logging
 from fim_agent.core.model import OpenAICompatibleLLM
 from fim_agent.core.model.registry import ModelRegistry
 from fim_agent.core.tool import ToolRegistry
-from fim_agent.core.tool.builtin.calculator import CalculatorTool
-from fim_agent.core.tool.builtin.file_ops import FileOpsTool
-from fim_agent.core.tool.builtin.python_exec import PythonExecTool
-from fim_agent.core.tool.builtin.web_fetch import WebFetchTool
-from fim_agent.core.tool.builtin.web_search import WebSearchTool
+from fim_agent.core.tool.builtin import discover_builtin_tools
 
 logger = logging.getLogger(__name__)
 
@@ -104,13 +100,16 @@ def get_model_registry() -> ModelRegistry:
 
 
 def get_tools() -> ToolRegistry:
-    """Create a :class:`ToolRegistry` pre-loaded with the default tool set."""
+    """Create a :class:`ToolRegistry` pre-loaded with all discovered built-in tools.
+
+    Tools are auto-discovered from the ``fim_agent.core.tool.builtin`` package.
+    To add a new tool, simply drop a module containing a ``BaseTool`` subclass
+    into that package — no manual registration needed.
+    """
     registry = ToolRegistry()
-    registry.register(CalculatorTool())
-    registry.register(FileOpsTool())
-    registry.register(PythonExecTool())
-    registry.register(WebFetchTool())
-    registry.register(WebSearchTool())
+    for tool in discover_builtin_tools():
+        registry.register(tool)
+    logger.info("Registered %d built-in tools: %s", len(registry), registry)
     return registry
 
 

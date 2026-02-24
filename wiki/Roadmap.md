@@ -43,9 +43,11 @@
 - [x] **Right Sidebar Panel**: Persistent right sidebar with expand/collapse toggle (layout flips between ~8/2 and ~2/8 ratio), auto fitView on resize; DAG flow graph + ReAct compact timeline; click-to-scroll from sidebar to main content; responsive (auto-hides < 1024px)
 - [x] **Env-Driven Configuration**: `LLM_TEMPERATURE` and `MAX_CONCURRENCY` configurable via environment variables
 - [x] **Parallel Tool Timing Fix**: Correct elapsed-time measurement for concurrent tool calls in native function-calling mode
-- [ ] **Built-in Tools (remaining)**: Calculator, file ops, code execution sandbox
+- [x] **Calculator Tool**: Safe AST-based math expression evaluation (no eval/exec)
+- [x] **File Ops Tool**: Sandboxed file read/write/list/mkdir in workspace directory with path traversal protection
+- [x] **Python Exec Sandbox**: Restricted builtins whitelist, blocked dangerous modules (subprocess, shutil, ctypes), stderr capture, 100KB output limit
+- [x] **Tool Auto-Discovery**: Convention-based loading via `discover_builtin_tools()` — drop a `BaseTool` subclass in `builtin/` and it auto-registers
 - [ ] **MCP Client**: Model Context Protocol integration for dynamic tool discovery and invocation via standardized servers
-- [ ] **Tool Auto-Discovery**: Convention-based loading (`get_{name}_tool()`) so new tools register without manual wiring
 - [ ] **Tool Categories & Permissions**: Group tools by category, enable/disable per agent
 
 ### v0.4 -- Platform Foundation
