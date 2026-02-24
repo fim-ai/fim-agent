@@ -3,7 +3,7 @@
 **LLM-powered Agent Runtime with Dynamic DAG Planning & Concurrent Execution**
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
-![License](https://img.shields.io/badge/license-Apache%202.0-green)
+![License](https://img.shields.io/badge/license-Source%20Available-orange)
 
 ---
 
@@ -125,21 +125,30 @@ print(analysis.final_answer)
 
 See [`examples/quickstart.py`](examples/quickstart.py) for a complete runnable example.
 
-### Web UI Playground
+### Running
 
 ```bash
-# Install web dependencies
-uv sync --extra web
-
 # Create .env with your LLM credentials
 cp example.env .env
 # Edit .env with your API key
 
-# Start the playground
-uv run python examples/web_ui.py
+# Install dependencies
+uv sync --extra web
+cd frontend && pnpm install && cd ..
+
+# Start (pick one)
+./start.sh            # Web UI demo (lightweight, single process)
+./start.sh portal     # Next.js portal + API backend (full experience)
+./start.sh api        # API only (for custom frontends or testing)
 ```
 
-Then open http://localhost:8000 -- two modes available: **ReAct Agent** (single-query tool loop) and **DAG Planner** (multi-step planning with concurrent execution). Both modes stream progress in real-time via SSE and support KaTeX math rendering.
+| Command | What starts | URL |
+|---------|-------------|-----|
+| `./start.sh` | Inline Web UI demo | http://localhost:8000 |
+| `./start.sh portal` | Next.js + FastAPI | http://localhost:3000 (UI) + :8000 (API) |
+| `./start.sh api` | FastAPI only | http://localhost:8000/api |
+
+Both the Web UI and the Next.js portal offer two modes: **ReAct Agent** (single-query tool loop) and **DAG Planner** (multi-step planning with concurrent execution), with real-time SSE streaming and KaTeX math rendering.
 
 ## Configuration
 
@@ -188,11 +197,14 @@ fim-agent/
       tool/           # Tool protocol, registry, built-in tools
       agent/          # ReAct agent implementation
       planner/        # DAG planner, executor, analyzer
+    web/              # FastAPI backend (app factory, SSE endpoints, deps)
     rag/              # RAG retriever interface
+  frontend/           # Next.js 15 portal (shadcn/ui, TypeScript, Tailwind)
   tests/
   examples/
     quickstart.py     # Runnable quick start example
-    web_ui.py         # Web UI playground with real-time streaming
+    web_ui.py         # Lightweight Web UI demo (inline HTML)
+  start.sh            # Start script (webui / portal / api)
   pyproject.toml
 ```
 
@@ -202,7 +214,7 @@ fim-agent/
 
 **Current (v0.1)**: ReAct Agent, DAG Planning, concurrent execution, Web UI playground, real-time SSE streaming, KaTeX math rendering.
 
-**Next**: Native function calling, conversation memory (v0.2) → MCP integration, tool ecosystem (v0.3) → RAG & knowledge base (v0.4) → Agent builder UI (v0.5) → Multi-agent collaboration (v0.6) → Production platform (v0.7) → Observability (v0.8) → Visual workflow editor / Dify parity (v0.9) → Enterprise & ecosystem (v1.0).
+**Next**: Memory, multi-model, token tracking (v0.2) → MCP, tool auto-discovery, rich tools (v0.3) → RAG & knowledge base (v0.4) → Agent builder, templates, lifecycle (v0.5) → Nested agents, step hooks, HITL (v0.6) → Production platform, DAG visualization (v0.7) → Observability, Langfuse (v0.8) → Visual workflow editor / Dify parity (v0.9) → Enterprise & ecosystem (v1.0).
 
 See the full [Roadmap](https://github.com/fim-ai/fim-agent/wiki/Roadmap) for details.
 
@@ -210,4 +222,12 @@ Contributions and ideas are welcome -- open an issue or submit a PR on [GitHub](
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) for details.
+FIM Agent Source Available License. This is **not** an OSI-approved open source license.
+
+**Permitted**: internal use, modification, distribution with license intact, embedding in your own (non-competing) applications.
+
+**Restricted**: multi-tenant SaaS, competing agent platforms, white-labeling, removing branding.
+
+For commercial licensing inquiries, please open an issue on [GitHub](https://github.com/fim-ai/fim-agent).
+
+See [LICENSE](LICENSE) for full terms.

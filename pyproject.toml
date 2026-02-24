@@ -7,7 +7,7 @@ name = "fim-agent"
 version = "0.1.0"
 description = "LLM-powered Agent Runtime with dynamic DAG planning and concurrent execution"
 readme = "README.md"
-license = "Apache-2.0"
+license = "LicenseRef-FIM-Agent"
 requires-python = ">=3.11"
 authors = [
     { name = "fim-ai", email = "dev@fim.ai" },
@@ -16,7 +16,7 @@ keywords = ["agent", "llm", "dag", "rag", "ai"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -27,7 +27,6 @@ dependencies = [
     "openai>=1.0",
     "httpx>=0.27",
     "pydantic>=2.0",
-    "matplotlib>=3.10.8",
 ]
 
 [project.optional-dependencies]

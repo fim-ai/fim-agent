@@ -1,11 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tail:*)",
-      "Bash(/Users/TaoTao/Desktop/CC/smallCode/fim-agent/.venv/bin/python:*)",
-      "Bash(head:*)",
-      "Bash(.venv/bin/python:*)",
-      "Bash(uv run:*)"
+      "Bash(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Bash(node --version && npm --version 2>&1)",
+      "WebFetch(domain:localhost)"
     ]
   },
   "enableAllProjectMcpServers": true,

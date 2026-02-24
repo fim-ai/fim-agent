@@ -8,278 +8,28 @@ Then open http://localhost:8000 in your browser.
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-import os
-import time
-from typing import Any
-
-logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse
 
 load_dotenv()
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.model import OpenAICompatibleLLM
-from fim_agent.core.planner import DAGExecutor, DAGPlanner, PlanAnalyzer
-from fim_agent.core.tool import ToolRegistry
-from fim_agent.core.tool.builtin.python_exec import PythonExecTool
+from fim_agent.web import create_app  # noqa: E402
 
-app = FastAPI(title="FIM Agent playground")
+logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# LLM + Tools setup
-# ---------------------------------------------------------------------------
-
-llm = OpenAICompatibleLLM(
-    api_key=os.environ.get("LLM_API_KEY", ""),
-    base_url=os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1"),
-    model=os.environ.get("LLM_MODEL", "gpt-4o"),
-)
-
-registry = ToolRegistry()
-registry.register(PythonExecTool())
+app = create_app()
 
 
 # ---------------------------------------------------------------------------
-# SSE helper
-# ---------------------------------------------------------------------------
-
-
-def _sse(event: str, data: Any) -> str:
-    """Format a Server-Sent Event."""
-    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
-
-
-# ---------------------------------------------------------------------------
-# Routes
+# Serve the demo HTML page at /
 # ---------------------------------------------------------------------------
 
 
 @app.get("/", response_class=HTMLResponse)
 async def index() -> str:
     return HTML_PAGE
-
-
-_REACT_DONE = object()  # sentinel to signal the generator to stop
-
-
-@app.get("/api/react")
-async def react_endpoint(q: str) -> StreamingResponse:
-    """Run a ReAct agent query with SSE progress updates."""
-
-    async def generate():
-        t0 = time.time()
-        yield _sse("step", {"type": "thinking", "iteration": 0})
-
-        progress_queue: asyncio.Queue = asyncio.Queue()
-
-        def on_iteration(
-            iteration: int, action: Any, observation: str | None, error: str | None,
-        ) -> None:
-            if action.type == "tool_call":
-                progress_queue.put_nowait(
-                    _sse(
-                        "step",
-                        {
-                            "type": "tool_call",
-                            "iteration": iteration,
-                            "tool_name": action.tool_name,
-                            "tool_args": action.tool_args,
-                            "reasoning": action.reasoning,
-                            "observation": observation,
-                            "error": error,
-                        },
-                    )
-                )
-
-        try:
-            agent = ReActAgent(llm=llm, tools=registry, max_iterations=20)
-
-            async def _run() -> Any:
-                try:
-                    return await agent.run(q, on_iteration=on_iteration)
-                finally:
-                    # Always signal the generator to stop, even on error.
-                    await progress_queue.put(_REACT_DONE)
-
-            run_task = asyncio.create_task(_run())
-
-            # Block on queue.get() — yields each event the instant it arrives.
-            while True:
-                try:
-                    item = await asyncio.wait_for(progress_queue.get(), timeout=30.0)
-                except asyncio.TimeoutError:
-                    # Send keepalive to prevent connection drop during long LLM calls.
-                    yield ": keepalive\n\n"
-                    continue
-                if item is _REACT_DONE:
-                    break
-                yield item
-
-            result = run_task.result()
-
-            elapsed = round(time.time() - t0, 2)
-            yield _sse(
-                "done",
-                {
-                    "answer": result.answer,
-                    "iterations": result.iterations,
-                    "elapsed": elapsed,
-                },
-            )
-        except Exception as exc:
-            logger.exception("ReAct agent failed")
-            elapsed = round(time.time() - t0, 2)
-            yield _sse(
-                "done",
-                {
-                    "answer": f"Agent error: {type(exc).__name__}: {exc}",
-                    "iterations": 0,
-                    "elapsed": elapsed,
-                },
-            )
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-@app.get("/api/dag")
-async def dag_endpoint(q: str) -> StreamingResponse:
-    """Run a DAG planner pipeline with SSE progress updates."""
-
-    async def generate():
-        t0 = time.time()
-
-        # Queue bridges the executor's synchronous callback into the async SSE stream.
-        progress_queue: asyncio.Queue = asyncio.Queue()
-
-        def on_step_progress(step_id: str, event: str, data: dict) -> None:
-            progress_queue.put_nowait(
-                _sse("step_progress", {"step_id": step_id, "event": event, **data})
-            )
-
-        try:
-            # Phase 1: Plan
-            yield _sse("phase", {"name": "planning", "status": "start"})
-            planner = DAGPlanner(llm=llm)
-            plan = await planner.plan(q)
-            yield _sse(
-                "phase",
-                {
-                    "name": "planning",
-                    "status": "done",
-                    "steps": [
-                        {"id": s.id, "task": s.task, "deps": s.dependencies, "tool_hint": s.tool_hint}
-                        for s in plan.steps
-                    ],
-                },
-            )
-
-            # Phase 2: Execute (with real-time step progress)
-            yield _sse("phase", {"name": "executing", "status": "start"})
-            agent = ReActAgent(llm=llm, tools=registry, max_iterations=15)
-            executor = DAGExecutor(agent=agent, max_concurrency=3)
-
-            _DAG_DONE = object()
-
-            async def _exec() -> Any:
-                try:
-                    return await executor.execute(plan, on_progress=on_step_progress)
-                finally:
-                    await progress_queue.put(_DAG_DONE)
-
-            exec_task = asyncio.create_task(_exec())
-
-            while True:
-                try:
-                    item = await asyncio.wait_for(progress_queue.get(), timeout=30.0)
-                except asyncio.TimeoutError:
-                    yield ": keepalive\n\n"
-                    continue
-                if item is _DAG_DONE:
-                    break
-                yield item
-
-            plan = exec_task.result()
-
-            yield _sse(
-                "phase",
-                {
-                    "name": "executing",
-                    "status": "done",
-                    "results": [
-                        {
-                            "id": s.id,
-                            "task": s.task,
-                            "status": s.status,
-                            "result": s.result,
-                            "started_at": s.started_at,
-                            "completed_at": s.completed_at,
-                            "duration": s.duration,
-                        }
-                        for s in plan.steps
-                    ],
-                },
-            )
-
-            # Phase 3: Analyze
-            yield _sse("phase", {"name": "analyzing", "status": "start"})
-            analyzer = PlanAnalyzer(llm=llm)
-            analysis = await analyzer.analyze(plan.goal, plan)
-            elapsed = round(time.time() - t0, 2)
-            yield _sse(
-                "phase",
-                {
-                    "name": "analyzing",
-                    "status": "done",
-                    "achieved": analysis.achieved,
-                    "confidence": analysis.confidence,
-                    "reasoning": analysis.reasoning,
-                },
-            )
-
-            # Build the answer: prefer analyzer's final_answer, fall back to
-            # concatenated step results so users always see something useful.
-            answer = analysis.final_answer
-            if not answer:
-                completed = [
-                    s for s in plan.steps
-                    if s.status == "completed" and s.result
-                ]
-                if completed:
-                    answer = "\n\n---\n\n".join(
-                        f"**{s.id}**: {s.result}" for s in completed
-                    )
-                else:
-                    answer = "(goal not achieved)"
-
-            yield _sse(
-                "done",
-                {
-                    "answer": answer,
-                    "achieved": analysis.achieved,
-                    "confidence": analysis.confidence,
-                    "elapsed": elapsed,
-                },
-            )
-        except Exception as exc:
-            logger.exception("DAG pipeline failed")
-            elapsed = round(time.time() - t0, 2)
-            yield _sse(
-                "done",
-                {
-                    "answer": f"Pipeline error: {type(exc).__name__}: {exc}",
-                    "achieved": False,
-                    "confidence": 0.0,
-                    "elapsed": elapsed,
-                },
-            )
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # ---------------------------------------------------------------------------
