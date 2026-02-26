@@ -51,13 +51,16 @@ Before starting parallel worktree development:
 - Tests alongside features: every new module gets a corresponding `tests/test_*.py`
 - Keep imports in `__init__.py` minimal — only re-export public API
 
-## Post-Feature Checks (automated)
+## Post-Commit Documentation Sync (MANDATORY)
 
-A PostToolUse hook (`scripts/post-commit-check.sh`) runs automatically after every `git commit` and checks:
-- `example.env` vs `.env` key alignment
-- `wiki/` changes that need `./scripts/sync-wiki.sh`
-- Source module additions/removals that may require README Project Structure updates
-- README vs wiki Roadmap sync
-- New built-in tools that should be mentioned in README Key Features
+After every `feat:` commit, you MUST check and update these files before moving on:
 
-No manual checklist needed. The hook will surface warnings when relevant.
+1. **`example.env`** — compare with `.env`, any new key must be added with placeholder and comment
+2. **`wiki/Roadmap.md`** — check off `[ ]` items that this feature completes
+3. **`README.md` Roadmap section** — update Shipped/Next summary if a milestone version was completed
+4. **`README.md` Key Features** — add entry if this is a new user-facing capability
+5. **`README.md` Project Structure** — update if new modules/directories were added under `src/`
+6. **`wiki/` pages** — update if architecture, execution modes, or competitive positioning changed
+7. **Wiki sync** — if any `wiki/*.md` file was modified, run `./scripts/sync-wiki.sh`
+
+Do NOT ask the user whether to do these checks. Just do them silently after each feat commit.
