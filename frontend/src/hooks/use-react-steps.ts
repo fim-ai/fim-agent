@@ -20,11 +20,6 @@ export function useReactSteps(messages: SSEMessage[], isRunning: boolean): StepI
       if (msg.event === "step") {
         const step = msg.data as ReactStepEvent
 
-        // Skip empty thinking steps (no reasoning = just a processing indicator)
-        if (step.type === "thinking" && !step.reasoning) {
-          continue
-        }
-
         // When a tool_call (complete) arrives, merge with its matching tool_start
         if (step.type === "tool_call") {
           const startIdx = result.findIndex(item => {
@@ -67,9 +62,28 @@ export function useReactSteps(messages: SSEMessage[], isRunning: boolean): StepI
 
       result.push({ event: msg.event, data: msg.data, duration, displayIteration, timestamp: msg.timestamp })
     }
+    // When still running after a completed tool_call (no done yet), append a
+    // synthetic "thinking" step so the user sees an active indicator while the
+    // LLM processes tool results.
+    const hasDone = result.some(item => item.event === "done")
+    if (isRunning && !hasDone && result.length > 0) {
+      const last = result[result.length - 1]
+      if (last.event === "step") {
+        const lastStep = last.data as ReactStepEvent
+        if (lastStep.type === "tool_call") {
+          iterCount++
+          result.push({
+            event: "step",
+            data: { type: "thinking", iteration: (lastStep.iteration ?? 0) + 1 } as ReactStepEvent,
+            displayIteration: iterCount,
+            timestamp: Date.now(),
+          })
+        }
+      }
+    }
+
     // When aborted (not running, no done event), convert remaining tool_start
     // items to tool_call so spinners and "Executing..." indicators stop.
-    const hasDone = result.some(item => item.event === "done")
     if (!isRunning && !hasDone && result.length > 0) {
       return result.map(item => {
         if (item.event === "step") {
@@ -79,6 +93,16 @@ export function useReactSteps(messages: SSEMessage[], isRunning: boolean): StepI
           }
         }
         return item
+      })
+    }
+
+    // After completion, drop empty thinking steps — they were only useful as
+    // live animated placeholders during streaming.
+    if (hasDone) {
+      return result.filter(item => {
+        if (item.event !== "step") return true
+        const step = item.data as ReactStepEvent
+        return step.type !== "thinking" || !!step.reasoning
       })
     }
 

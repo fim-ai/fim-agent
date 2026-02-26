@@ -4,6 +4,7 @@ import "./globals.css"
 import { APP_NAME } from "@/lib/constants"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppShell } from "@/components/layout/app-shell"
+import { AuthProvider } from "@/contexts/auth-context"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <TooltipProvider>
-          <AppShell>{children}</AppShell>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <AppShell>{children}</AppShell>
+          </TooltipProvider>
+        </AuthProvider>
       </body>
     </html>
   )

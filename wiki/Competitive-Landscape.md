@@ -38,16 +38,19 @@ Dify / Manus are **replacement products** -- they ask users to move work into a 
 
 ## FIM Agent's Unique Differentiators
 
-### 1. Adapter Protocol
+### 1. Adapter Architecture (MCP + Governance)
 
-```python
-class BaseAdapter:
-    async def connect() -> None
-    async def get_capabilities() -> list[OperationDescriptor]
-    async def get_tools() -> list[Tool]  # Adapter IS a tool factory
+```
+Platform (ReAct / DAG / Portal)
+    ↓
+Adapter SDK (governance: audit, read_only, auth, confirmation gate)
+    ↓
+MCP Protocol (standard transport, process isolation)
+    ↓
+Legacy System (DB / API / message bus)
 ```
 
-The agent doesn't know it's talking to a legacy system. The adapter translates capabilities into standard tools. No other platform in this space has a standardized adapter protocol.
+Adapters are implemented as **MCP Servers** with a governance layer on top. The agent doesn't know it's talking to a legacy system -- adapters surface as ordinary tools in the ToolRegistry. No other platform in this space has a standardized adapter architecture with enterprise governance built in. See [Adapter Architecture](Adapter-Architecture) for the full design.
 
 ### 2. Dual-Mode Delivery
 
@@ -88,7 +91,7 @@ When embedded, the widget reads context from the host page (current contract ID,
 - Visual workflow builder with RAG, agent, and tool nodes
 - Strength: massive community, production-proven, accessible to non-developers
 - Weakness: static DAGs break when requirements change, no legacy system adaptation
-- Our take: learn platform features, don't compete on visual workflow
+- Our take: learn platform features (multi-tenant, agent management, knowledge base), don't compete on visual workflow. Clients' fixed processes already live in their OA/ERP -- they need AI that connects to those systems, not another workflow editor
 
 ### Manus (Category validator)
 
@@ -107,13 +110,14 @@ When embedded, the widget reads context from the host page (current contract ID,
 
 ## The MuleSoft Analogy
 
-FIM Agent's Adapter protocol is conceptually **AI-era MuleSoft**:
+FIM Agent's Adapter architecture is conceptually **AI-era MuleSoft**:
 
-| | MuleSoft | FIM Agent Adapter |
-|-|----------|-------------------|
+| | MuleSoft | FIM Agent |
+|-|----------|-----------|
 | **What** | System-to-system API integration | AI Agent-to-legacy-system adaptation |
-| **How** | Connectors + declarative mapping | Adapter protocol + tool factory |
-| **Standardization** | Anypoint connectors | Level 1 (Python) -> Level 2 (YAML) -> Level 3 (AI-generated) |
+| **How** | Connectors + declarative mapping | MCP Servers + Adapter SDK governance |
+| **Protocol** | Anypoint SDK | MCP (open standard) + governance layer |
+| **Standardization** | Anypoint connectors | Level 1 (Python MCP Server) -> Level 2 (YAML) -> Level 3 (AI-generated) |
 | **Value** | "Connect everything" | "AI that works inside everything" |
 
 This analogy is powerful for enterprise positioning.

@@ -4,13 +4,50 @@
 >
 > Principles: **Provider-agnostic** (no vendor lock-in), **minimal-abstraction**, **protocol-first**, **dual-mode** (standalone + embedded).
 
+## Product Vision
+
+FIM Agent is an **AI Agent engine** that serves three progressive layers:
+
+```
+Layer 1 — Self-use        : Your own AI assistant (Portal mode)
+Layer 2 — Dify alternative : Deploy as a standalone Agent platform for clients
+Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible AI infrastructure
+```
+
+**Layer 3 is the core differentiator.** Enterprise clients have frozen legacy systems -- ERP, CRM, OA, finance, HR -- that cannot be modified. FIM Agent bridges into these systems proactively:
+
+```
+                        ┌───────────────────────────┐
+                        │     FIM Agent Engine       │
+                        │                           │
+                        │  Agent A: Finance Audit    │──→ DB Adapter  ──→ SAP / Kingdee (金蝶) (Oracle/PG)
+                        │  Agent B: Contract Review  │──→ API Adapter ──→ CRM / CLM system (REST)
+                        │  Agent C: Notification     │──→ Msg Adapter ──→ DingTalk (钉钉) / Slack / Teams
+                        │  Agent D: Data Reporting   │──→ DB Adapter  ──→ Business DB (MySQL/PG)
+                        │                           │
+                        └──────────┬────────────────┘
+                                   │
+                   ┌───────────────┼───────────────┐
+                   │               │               │
+              Portal (UI)    API (headless)    iframe (embed)
+              standalone      sidecar mode     injected into
+              deployment      for integration  host pages
+```
+
+**Two integration directions:**
+
+| Direction | When | How |
+|-----------|------|-----|
+| **Agent → Host** (active) | Host system can't be modified (90% of cases) | Agent reads DB / calls API / pushes messages directly |
+| **Host → Agent** (passive) | Host system can be modified | Host calls FIM Agent's `/api/execute` like calling Dify |
+
 ## Delivery Modes (per-project)
 
 | Mode | Description |
 |------|-------------|
-| **Web UI** | Platform's built-in interface (standalone assistant) |
+| **Portal (Web UI)** | Platform's built-in interface (standalone assistant) |
+| **API (headless)** | Pure HTTP/SSE interface; no UI required; for sidecar and programmatic access |
 | **iframe / standalone URL** | Embed into host system pages, authenticate and operate host APIs/databases |
-| **API** | Pure HTTP/SSE interface for programmatic access |
 
 ---
 
@@ -60,16 +97,31 @@
 
 - [x] **HTTP Request Tool**: General-purpose HTTP client (`http_request`) — supports GET/POST/PUT/PATCH/DELETE with custom headers, query params, and body; SSRF protection (private IP blocking), JSON auto-pretty-print, 200KB response limit
 - [x] **Shell Exec Tool**: Sandboxed shell execution (`shell_exec`) — run curl, jq, awk, grep etc. with command blocklist (30+ patterns), env var scrubbing, system path write protection, per-user sandbox directory
-- [ ] **Persistent Storage**: SQLAlchemy ORM + SQLite (tasks, agents, conversations, model configs)
+- [x] **Persistent Storage**: SQLAlchemy ORM + SQLite (conversations, messages, model configs); async engine with WAL mode and StaticPool for concurrency
+- [x] **Conversation Persistence**: Session history stored durably; multi-turn context via `DbMemory` — loads prior turns from DB, smart truncation with CJK-aware token estimation, auto-compact within token budget; both ReAct and DAG modes supported
 - [ ] **Multi-Tenant**: User registration/login (JWT), workspace isolation
 - [ ] **Project & Agent Management**: Create/configure/publish agents; bind tools, model, and prompt per project
-- [ ] **Conversation Persistence**: Session history stored durably, session resume across restarts
 - [ ] **File Upload & Management**: Chat-level file upload with type/size metadata display; upload/download/associate files with tasks and agents
 
-### v0.5 -- RAG & Knowledge
+### v0.5 -- RAG, Knowledge & Memory
 
 > *"Give the Agent memory and knowledge"*
 
+**Memory & Compact**
+- [ ] **LLM Compact**: When conversation history exceeds threshold, use a fast LLM to compress early turns into a summary; retain recent turns verbatim; transparent to the agent
+- [ ] **Conversation Summary Memory**: Automatic rolling summaries that persist across long sessions; hybrid window + summary strategy
+- [ ] **Semantic Memory Store**: Cross-conversation knowledge extraction and retrieval; agent remembers facts/preferences across sessions via embedding-based lookup
+- [ ] **Memory Lifecycle**: TTL-based expiry, importance scoring, explicit forget/remember commands
+
+**DAG Mode Feature Parity** *(avoid falling behind ReAct)*
+- [ ] **DAG Multi-Turn Polish**: Currently injects history as text prefix to planner; upgrade to structured message history so planner can reason about prior tool results and plan evolution
+- [ ] **DAG LLM Compact**: Apply LLM compact to the enriched query before planning; long conversation context can blow up planner input
+- [ ] **DAG Re-Planning**: When a step fails or produces unexpected results, allow the planner to revise the remaining DAG on-the-fly instead of just failing
+- [ ] **DAG Step-Level Memory**: Each step executor sees relevant prior conversation context, not just the step task description
+- [ ] **DAG Streaming Improvements**: Stream planner reasoning (not just step progress); show plan changes in real-time when re-planning occurs
+- [ ] **DAG History Replay**: Frontend replays persisted DAG executions with the flow graph (currently only ReAct timeline replays correctly)
+
+**RAG & Knowledge Base**
 - [ ] **Embedding**: `BaseEmbedding` protocol + OpenAI-compatible implementation
 - [ ] **Vector Store**: LanceDB embedded vector store -- zero external services
 - [ ] **Document Loaders**: PDF, DOCX, Markdown, HTML, CSV
@@ -77,18 +129,29 @@
 - [ ] **Hybrid Retrieval**: Dense vector search + BM25 full-text search
 - [ ] **Knowledge Base Management**: Per-project knowledge base CRUD
 
-### v0.6 -- System Adapter Protocol + Zhihe Integration
+### v0.6 -- System Adapter + Zhihe Integration
 
 > *"The standard protocol for connecting legacy systems"*
 >
 > The universal platform is ready. Now add adaptation capabilities. Zhihe contract system is the first real-world target.
+>
+> **Core insight**: The host system can't be modified. Agent must proactively bridge in -- read their DB, call their API, push to their message bus.
+>
+> **Architecture**: Adapters are MCP Servers with a governance layer (Adapter SDK) on top. The agent sees adapters as ordinary tools -- zero coupling. See [Adapter Architecture](Adapter-Architecture) for the full design.
 
-- [ ] **BaseAdapter Protocol**: `connect()`, `get_capabilities()`, `get_tools()`, `OperationDescriptor` (with `read_only` flag)
-- [ ] **HTTP API Adapter**: Generic REST API connector (httpx-based)
-- [ ] **Database Adapter**: Read-only SQL query tool (async, parameterized queries)
+- [ ] **Adapter SDK**: Governance layer on MCP -- `read_only` enforcement, operation classification, audit hooks, auth passthrough interface
+- [ ] **Database Adapter**: Direct SQL read against host DB (async, parameterized, read-only by default); supports PostgreSQL, MySQL, Oracle, SQL Server
+- [ ] **HTTP API Adapter**: Generic REST/SOAP connector (httpx-based); auto-discover endpoints from Swagger/WSDL when available
+- [ ] **Message Push Adapter**: Send results to DingTalk (钉钉) / WeCom (企微) / Slack / Teams / email / webhook; templated message formatting
 - [ ] **Auth Passthrough**: Proxy host-system authentication; agent acts on behalf of the logged-in user
 - [ ] **Zhihe Contract Adapter**: First concrete implementation -- search / detail / compare / timeline / statistics
-- [ ] **Operation Audit Log**: Every tool call recorded (timestamp, user, tool, params, result)
+- [ ] **Operation Audit Log**: Every tool call recorded (timestamp, user, tool, params, result, source adapter)
+
+**Example scenarios this unlocks:**
+- **ERP / Finance** (SAP, Kingdee/金蝶, Oracle DB): Agent reads financial statements directly from DB, generates analysis reports, pushes to DingTalk (钉钉) / Slack
+- **OA / Workflow** (Seeyon/致远, Weaver/泛微, REST API): Agent calls approval endpoints, AI-assisted classification and routing, writes results back
+- **CRM / Contracts** (Salesforce, custom PG): Agent reads contract clauses, performs risk analysis, generates review opinions
+- **Business DB** (MySQL / PG): Agent periodically scans for anomalies, generates alerts, notifies responsible parties via Teams / WeCom (企微) / email
 
 ### v0.7 -- Human Confirmation + Embeddable UI
 
@@ -142,20 +205,21 @@
 
 | Level | Version | Approach |
 |-------|---------|----------|
-| **Level 1** | v0.6 | Python code: write a class extending `BaseAdapter` |
-| **Level 2** | v0.8 | Declarative: YAML/JSON config, zero Python code |
-| **Level 3** | v1.0 | AI-generated: upload OpenAPI spec, auto-generate config |
+| **Level 1** | v0.6 | Python MCP Server with Adapter SDK governance |
+| **Level 2** | v0.8 | Declarative YAML/JSON config, platform auto-generates MCP Server |
+| **Level 3** | v1.0 | Upload OpenAPI/Swagger spec, AI generates config automatically |
 
 ## Multi-Tenant Model
 
 ```
 Platform (multi-tenant)
-├── Tenant A
-│   ├── Project 1: Zhihe Contract Sidecar [adapter: zhihe + built-in tools]
-│   ├── Project 2: OA Assistant [adapter: oa]
-│   └── Project 3: General AI Assistant [tools: search, browser, code]
-├── Tenant B
-│   └── Project 1: Online Agent [tools: all built-in + MCP]
+├── Tenant A (Manufacturing)
+│   ├── Project 1: SAP Finance Sidecar      [adapter: db(oracle) + msg(dingtalk)]
+│   ├── Project 2: OA Approval Assistant     [adapter: api(seeyon) + built-in tools]
+│   └── Project 3: General AI Assistant      [tools: search, browser, code]
+├── Tenant B (Tech Company)
+│   ├── Project 1: Salesforce CRM Agent      [adapter: api(salesforce) + msg(slack)]
+│   └── Project 2: Internal Knowledge Agent  [tools: rag + built-in + MCP]
 ```
 
 ## Migration from Old Roadmap

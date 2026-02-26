@@ -18,11 +18,25 @@ DAG planning's lasting value is not "helping dumb models decompose tasks" -- it 
 
 The endgame: **models own the "what" (planning intelligence internalizes into the model), frameworks own the "how" (concurrency, retry, monitoring, cost governance)**. A framework's lasting value is not intelligence -- it is governance.
 
+### Why not mirror Dify's workflow editor
+
+A natural question: if DAG covers the flexible case, shouldn't we also build a static workflow editor for the deterministic case?
+
+No. The reasoning:
+
+1. **The workflows already exist elsewhere.** Government and enterprise clients' fixed processes live in their OA, ERP, and legacy systems. They don't want to rebuild those flows in yet another platform -- they want AI that can connect to the systems where those flows already run. The Adapter Protocol (v0.6) solves this directly.
+
+2. **Existing capabilities compose into fixed pipelines.** Scheduled Jobs (v1.0) trigger a DAG agent with a fixed prompt; the DAG dynamically plans the steps; Adapters (v0.6) connect to the target systems. The combination is equivalent to a static pipeline -- but more flexible, because the LLM can adjust its plan based on the data it encounters. No separate pipeline DSL needed.
+
+3. **Investment mismatch.** A production-quality visual workflow editor (canvas, node types, variable passing, debug/replay) is months of dedicated effort. The result would be a low-fidelity copy of what Dify's 120K-star community already maintains. That effort is better spent on the Adapter architecture -- a capability no competitor offers.
+
+The strategic bet: **don't compete on workflow visualization; compete on system integration**. Let Dify own "build AI workflows visually." FIM Agent owns "AI that works inside your existing systems."
+
 ### Where FIM Agent stands
 
 FIM Agent is not an "AGI task scheduler" and not a static workflow engine. It occupies the middle ground: planning capability with constraints, concurrency with observability.
 
-- Compared to **Dify**: more flexible -- runtime DAG generation vs. design-time flowcharts. You do not need to anticipate every execution path in advance.
+- Compared to **Dify**: more flexible -- runtime DAG generation vs. design-time flowcharts. You do not need to anticipate every execution path in advance. Does not compete on visual workflow editing; competes on legacy system integration.
 - Compared to **AutoGPT**: more controlled -- bounded iterations, re-planning limits, with human-in-the-loop on the roadmap. Autonomy within guardrails.
 
 The strategy is straightforward: build the orchestration framework now, and let improving models fill it with capability over time.

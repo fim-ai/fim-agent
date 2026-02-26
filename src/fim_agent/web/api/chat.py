@@ -47,6 +47,12 @@ def _sse(event: str, data: Any) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+def _emit(sse_events: list[dict[str, Any]], event: str, data: Any) -> str:
+    """Accumulate event for persistence and return SSE frame for streaming."""
+    sse_events.append({"event": event, "data": data})
+    return _sse(event, data)
+
+
 # ---------------------------------------------------------------------------
 # ReAct endpoint
 # ---------------------------------------------------------------------------
@@ -77,27 +83,25 @@ async def react_endpoint(
 
     async def generate() -> AsyncGenerator[str, None]:  # noqa: C901
         t0 = time.time()
-        yield _sse("step", {"type": "thinking", "iteration": 0})
+        sse_events: list[dict[str, Any]] = []
+        yield _emit(sse_events, "step", {"type": "thinking", "iteration": 0})
 
         # -- Optional persistence setup ------------------------------------
         db_session = None
         if conversation_id:
             try:
-                from fim_agent.db import get_session
+                from fim_agent.db import create_session
                 from fim_agent.web.models import Message as MessageModel
 
-                async for session in get_session():
-                    db_session = session
-                    break
-                if db_session:
-                    user_msg = MessageModel(
-                        conversation_id=conversation_id,
-                        role="user",
-                        content=q,
-                        message_type="text",
-                    )
-                    db_session.add(user_msg)
-                    await db_session.commit()
+                db_session = create_session()
+                user_msg = MessageModel(
+                    conversation_id=conversation_id,
+                    role="user",
+                    content=q,
+                    message_type="text",
+                )
+                db_session.add(user_msg)
+                await db_session.commit()
             except Exception:
                 logger.warning(
                     "Failed to persist user message for conversation %s",
@@ -138,12 +142,17 @@ async def react_endpoint(
                 }
                 if iter_elapsed is not None:
                     payload["iter_elapsed"] = iter_elapsed
+                sse_events.append({"event": "step", "data": payload})
                 progress_queue.put_nowait(_sse("step", payload))
 
         try:
             llm = get_llm()
             tools = get_tools()
-            agent = ReActAgent(llm=llm, tools=tools, max_iterations=20)
+            memory = None
+            if conversation_id:
+                from fim_agent.core.memory import DbMemory
+                memory = DbMemory(conversation_id=conversation_id)
+            agent = ReActAgent(llm=llm, tools=tools, max_iterations=20, memory=memory)
 
             async def _run() -> Any:
                 try:
@@ -202,9 +211,13 @@ async def react_endpoint(
                     "completion_tokens": result.usage.completion_tokens,
                     "total_tokens": result.usage.total_tokens,
                 }
-            yield _sse("done", done_payload)
+            # Append the done event to sse_events before persisting.
+            sse_events.append({"event": "done", "data": done_payload})
 
-            # -- Persist assistant message ---------------------------------
+            # -- Persist assistant message BEFORE yielding done -----------
+            # The client closes the SSE connection as soon as it receives the
+            # "done" event, which terminates this async generator.  Any code
+            # after the final yield would never execute.
             if db_session and conversation_id:
                 try:
                     from fim_agent.web.models import (
@@ -218,7 +231,7 @@ async def react_endpoint(
                         role="assistant",
                         content=result.answer,
                         message_type="done",
-                        metadata_=done_payload,
+                        metadata_={**done_payload, "sse_events": sse_events},
                     )
                     db_session.add(assistant_msg)
                     if "usage" in done_payload:
@@ -240,6 +253,8 @@ async def react_endpoint(
                         conversation_id,
                         exc_info=True,
                     )
+
+            yield _sse("done", done_payload)
         except Exception as exc:
             logger.exception("ReAct agent failed")
             elapsed = round(time.time() - t0, 2)
@@ -251,6 +266,9 @@ async def react_endpoint(
                     "elapsed": elapsed,
                 },
             )
+        finally:
+            if db_session:
+                await db_session.close()
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -285,26 +303,24 @@ async def dag_endpoint(
 
     async def generate() -> AsyncGenerator[str, None]:  # noqa: C901
         t0 = time.time()
+        sse_events: list[dict[str, Any]] = []
 
         # -- Optional persistence setup ------------------------------------
         db_session = None
         if conversation_id:
             try:
-                from fim_agent.db import get_session
+                from fim_agent.db import create_session
                 from fim_agent.web.models import Message as MessageModel
 
-                async for session in get_session():
-                    db_session = session
-                    break
-                if db_session:
-                    user_msg = MessageModel(
-                        conversation_id=conversation_id,
-                        role="user",
-                        content=q,
-                        message_type="text",
-                    )
-                    db_session.add(user_msg)
-                    await db_session.commit()
+                db_session = create_session()
+                user_msg = MessageModel(
+                    conversation_id=conversation_id,
+                    role="user",
+                    content=q,
+                    message_type="text",
+                )
+                db_session.add(user_msg)
+                await db_session.commit()
             except Exception:
                 logger.warning(
                     "Failed to persist user message for conversation %s",
@@ -313,14 +329,41 @@ async def dag_endpoint(
                 )
                 db_session = None
 
+        # -- Load conversation context for multi-turn DAG planning ----------
+        enriched_query = q
+        dag_memory = None
+        if conversation_id:
+            try:
+                from fim_agent.core.memory import DbMemory
+
+                dag_memory = DbMemory(conversation_id=conversation_id)
+                history = await dag_memory.get_messages()
+                if history:
+                    context_lines = []
+                    for msg in history:
+                        prefix = "User" if msg.role == "user" else "Assistant"
+                        context_lines.append(f"{prefix}: {msg.content}")
+                    context_str = "\n".join(context_lines)
+                    enriched_query = (
+                        f"Previous conversation:\n{context_str}\n\n"
+                        f"Current request: {q}"
+                    )
+            except Exception:
+                logger.warning(
+                    "Failed to load conversation history for DAG planning "
+                    "(conversation %s)",
+                    conversation_id,
+                    exc_info=True,
+                )
+
         # Queue bridges the executor's synchronous callback into the async SSE stream.
         progress_queue: asyncio.Queue[str] = asyncio.Queue()
         done_event = asyncio.Event()
 
         def on_step_progress(step_id: str, event: str, data: dict[str, Any]) -> None:
-            progress_queue.put_nowait(
-                _sse("step_progress", {"step_id": step_id, "event": event, **data})
-            )
+            step_payload = {"step_id": step_id, "event": event, **data}
+            sse_events.append({"event": "step_progress", "data": step_payload})
+            progress_queue.put_nowait(_sse("step_progress", step_payload))
 
         try:
             llm = get_llm()           # Sonnet — planning & analysis
@@ -328,10 +371,11 @@ async def dag_endpoint(
             tools = get_tools()
 
             # Phase 1: Plan (Sonnet)
-            yield _sse("phase", {"name": "planning", "status": "start"})
+            yield _emit(sse_events, "phase", {"name": "planning", "status": "start"})
             planner = DAGPlanner(llm=llm)
-            plan = await planner.plan(q)
-            yield _sse(
+            plan = await planner.plan(enriched_query)
+            yield _emit(
+                sse_events,
                 "phase",
                 {
                     "name": "planning",
@@ -349,8 +393,8 @@ async def dag_endpoint(
             )
 
             # Phase 2: Execute — Haiku (with real-time step progress)
-            yield _sse("phase", {"name": "executing", "status": "start"})
-            agent = ReActAgent(llm=fast_llm, tools=tools, max_iterations=15)
+            yield _emit(sse_events, "phase", {"name": "executing", "status": "start"})
+            agent = ReActAgent(llm=fast_llm, tools=tools, max_iterations=15, memory=dag_memory)
             registry = get_model_registry()
             executor = DAGExecutor(
                 agent=agent,
@@ -400,7 +444,8 @@ async def dag_endpoint(
 
             plan = exec_task.result()
 
-            yield _sse(
+            yield _emit(
+                sse_events,
                 "phase",
                 {
                     "name": "executing",
@@ -427,11 +472,12 @@ async def dag_endpoint(
                 return
 
             # Phase 3: Analyze (Sonnet)
-            yield _sse("phase", {"name": "analyzing", "status": "start"})
+            yield _emit(sse_events, "phase", {"name": "analyzing", "status": "start"})
             analyzer = PlanAnalyzer(llm=llm)
-            analysis = await analyzer.analyze(plan.goal, plan)
+            analysis = await analyzer.analyze(enriched_query, plan)
             elapsed = round(time.time() - t0, 2)
-            yield _sse(
+            yield _emit(
+                sse_events,
                 "phase",
                 {
                     "name": "analyzing",
@@ -476,9 +522,10 @@ async def dag_endpoint(
                     "completion_tokens": total_usage.completion_tokens,
                     "total_tokens": total_usage.total_tokens,
                 }
-            yield _sse("done", dag_done_payload)
+            # Append the done event to sse_events before persisting.
+            sse_events.append({"event": "done", "data": dag_done_payload})
 
-            # -- Persist assistant message ---------------------------------
+            # -- Persist assistant message BEFORE yielding done -----------
             if db_session and conversation_id:
                 try:
                     from fim_agent.web.models import (
@@ -492,7 +539,7 @@ async def dag_endpoint(
                         role="assistant",
                         content=answer,
                         message_type="done",
-                        metadata_=dag_done_payload,
+                        metadata_={**dag_done_payload, "sse_events": sse_events},
                     )
                     db_session.add(assistant_msg)
                     if "usage" in dag_done_payload:
@@ -516,6 +563,8 @@ async def dag_endpoint(
                         conversation_id,
                         exc_info=True,
                     )
+
+            yield _sse("done", dag_done_payload)
         except Exception as exc:
             logger.exception("DAG pipeline failed")
             elapsed = round(time.time() - t0, 2)
@@ -528,5 +577,8 @@ async def dag_endpoint(
                     "elapsed": elapsed,
                 },
             )
+        finally:
+            if db_session:
+                await db_session.close()
 
     return StreamingResponse(generate(), media_type="text/event-stream")

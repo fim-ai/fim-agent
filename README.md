@@ -15,14 +15,41 @@
 
 FIM Agent is a provider-agnostic Python framework for building AI agents that dynamically plan and execute complex tasks. It operates in two modes:
 
-- **Standalone** -- A full-featured AI assistant with dynamic DAG planning, concurrent execution, and real-time streaming. The LLM decomposes goals into dependency-aware DAGs at runtime, runs independent steps in parallel, and re-plans if needed.
-- **Embedded (Sidecar)** -- An embeddable runtime that connects to legacy systems via a standardized Adapter protocol, enabling AI-powered automation without rewriting existing software.
+- **Standalone (Portal)** -- A full-featured AI assistant with dynamic DAG planning, concurrent execution, and real-time streaming. The LLM decomposes goals into dependency-aware DAGs at runtime, runs independent steps in parallel, and re-plans if needed.
+- **Sidecar (Embedded Engine)** -- An embeddable runtime that **proactively bridges into legacy systems** -- reading their databases, calling their APIs, pushing notifications -- without requiring a single line of code change on the host side.
 
 Both modes share the same agent core: ReAct reasoning loops, pluggable tools, and a protocol-first architecture with zero vendor lock-in.
 
-## Philosophy
+## Why FIM Agent
 
-FIM Agent offers two execution modes -- **ReAct Agent** (single-query tool loops) and **DAG Planning** (concurrent multi-step execution) -- letting users choose the right trade-off between simplicity and power. Unlike static workflow engines (Dify, n8n) that require hand-coded DAGs, FIM Agent's planner generates execution graphs at runtime. Unlike fully autonomous agents (Manus, AutoGPT), it keeps humans in the loop with confirmation gates and audit trails.
+Enterprise clients don't want "another system to maintain". Their legacy systems -- ERP (SAP, Kingdee/金蝶, Yonyou/用友), CRM (Salesforce, Fanruan/帆软), OA (Seeyon/致远, Weaver/泛微), finance, HR -- are often **frozen**: untouchable codebases with decades of business logic baked in.
+
+FIM Agent solves this with two integration directions:
+
+```
+┌─ If they CAN'T modify their system (90% of cases) ───────────────┐
+│                                                                    │
+│  FIM Agent ──→ reads their DB directly (bypass app layer)         │
+│            ──→ calls their existing APIs / RPCs                   │
+│            ──→ pushes results to DingTalk (钉钉) / WeCom (企微)   │
+│                 / Slack / Teams / email                            │
+│            ──→ writes back via DB or API when authorized          │
+│                                                                    │
+│  Zero code change on their side. Agent = active "digital worker". │
+└────────────────────────────────────────────────────────────────────┘
+
+┌─ If they CAN modify their system (bonus) ─────────────────────────┐
+│                                                                    │
+│  Their system ──→ calls FIM Agent API (like calling Dify)         │
+│  FIM Agent exposes: /api/execute, /api/stream, /api/kb            │
+│                                                                    │
+│  Standard API integration. We expose, they consume.               │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+**vs Dify / n8n**: Static workflow engines that require the host system to call *their* API. If the host can't be modified, the project stalls. FIM Agent goes the other direction -- the agent reaches into the host.
+
+**vs Manus / AutoGPT**: Single-use autonomous agents with no platform layer. FIM Agent adds multi-tenant management, persistent conversations, knowledge bases, and an Adapter protocol that standardizes how agents connect to external systems.
 
 > Deep dive: [Philosophy](https://github.com/fim-ai/fim-agent/wiki/Philosophy) | [Execution Modes](https://github.com/fim-ai/fim-agent/wiki/Execution-Modes) | [Planning Landscape](https://github.com/fim-ai/fim-agent/wiki/Planning-Landscape)
 
@@ -213,11 +240,11 @@ fim-agent/
 
 ## Roadmap
 
-> Goal: Build a **provider-agnostic Agent Platform** -- from standalone AI assistant to embeddable runtime that modernizes legacy systems.
+> Goal: Build a **provider-agnostic Agent Platform** -- from standalone AI assistant to embeddable sidecar engine that modernizes legacy systems **without modifying them**.
 
-**Shipped**: v0.1 (ReAct Agent, DAG Planning, streaming, KaTeX) → v0.2 (memory, multi-model, token tracking, native function calling) → v0.3 (web/calculator/file tools, MCP client, tool auto-discovery & categories, DAG visualization, sidebar UX, sandbox hardening). **v0.3 polish**: DAG node tool list & timing, frontend token usage display.
+**Shipped**: v0.1 (ReAct Agent, DAG Planning, streaming, KaTeX) → v0.2 (memory, multi-model, token tracking, native function calling) → v0.3 (web/calculator/file tools, MCP client, tool auto-discovery & categories, DAG visualization, sidebar UX, sandbox hardening) → v0.4 (persistence, multi-turn conversation with smart truncation & CJK-aware token estimation, HTTP request & shell exec tools).
 
-**Next**: Platform foundation, multi-tenant, file upload, HTTP request & shell exec tools (v0.4) → RAG & knowledge (v0.5) → System Adapter protocol (v0.6) → Human confirmation + embeddable UI (v0.7) → Declarative adapters (v0.8) → Observability (v0.9) → Enterprise & scale (v1.0).
+**Next**: RAG, knowledge & LLM compact (v0.5) → **System Adapter protocol -- bridge into legacy DBs/APIs/message buses** (v0.6) → Human confirmation + embeddable UI (v0.7) → Declarative adapters (v0.8) → Observability (v0.9) → Enterprise & scale (v1.0).
 
 See the full [Roadmap](https://github.com/fim-ai/fim-agent/wiki/Roadmap) for details.
 
