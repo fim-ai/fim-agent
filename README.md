@@ -83,6 +83,7 @@ FIM Agent solves this with two integration directions:
 - **Pluggable Tool System**: Protocol-based tool interface with auto-discovery. Ships with Python executor, calculator, file ops, web search/fetch (Jina), HTTP request (any REST API), and sandboxed shell exec (curl, jq, etc.).
 - **Multi-Tenant Platform**: JWT auth with token-based SSE authentication, conversation ownership validation, per-user resource isolation.
 - **Agent Management**: Create, configure, and publish agents with bound LLM model, tool categories, and custom instructions. Chat endpoints automatically resolve agent config.
+- **LLM Compact**: Automatic LLM-powered summarisation of long conversation histories to stay within token budgets without losing context.
 - **RAG Ready**: Abstract `BaseRetriever` / `Document` interface for plugging in vector stores and search backends.
 - **Minimal Dependencies**: Only three runtime dependencies: `openai`, `httpx`, `pydantic`.
 
@@ -271,9 +272,9 @@ fim-agent/
 
 > Goal: Build a provider-agnostic Agent Platform, from standalone AI assistant to embeddable sidecar engine that modernizes legacy systems without modifying them.
 
-**Shipped**: v0.1 (ReAct Agent, DAG Planning, streaming, KaTeX) → v0.2 (memory, multi-model, token tracking, native function calling) → v0.3 (web/calculator/file tools, MCP client, tool auto-discovery & categories, DAG visualization, sidebar UX, sandbox hardening) → v0.4 (persistence, multi-turn conversation, JWT auth with SSE token support, agent-aware chat with per-agent model/tools/instructions binding, file upload management, HTTP request & shell exec tools) → v0.5 in progress (LLM Compact for conversation history compression, DAG Re-Planning with automatic retry up to 3 rounds).
+**Shipped**: v0.1 (ReAct Agent, DAG Planning, streaming, KaTeX) → v0.2 (memory, multi-model, token tracking, native function calling) → v0.3 (web/calculator/file tools, MCP client, tool auto-discovery & categories, DAG visualization, sidebar UX, sandbox hardening) → v0.4 (persistence, multi-turn conversation, JWT auth with SSE token support, agent-aware chat with per-agent model/tools/instructions binding, file upload management, HTTP request & shell exec tools) → v0.5 (LLM Compact for conversation history compression, DAG Re-Planning with automatic retry up to 3 rounds).
 
-**Next**: RAG, knowledge base & remaining v0.5 items (semantic memory, conversation summary) → System Adapter protocol for bridging into legacy DBs/APIs/message buses (v0.6) → Human confirmation + embeddable UI (v0.7) → Declarative adapters (v0.8) → Observability (v0.9) → Enterprise & scale (v1.0).
+**Next**: Semantic memory, conversation summary & RAG knowledge base (v0.5 remaining) → System Adapter protocol for bridging into legacy DBs/APIs/message buses (v0.6) → Human confirmation + embeddable UI (v0.7) → Declarative adapters (v0.8) → Observability (v0.9) → Enterprise & scale (v1.0).
 
 See the full [Roadmap](https://github.com/fim-ai/fim-agent/wiki/Roadmap) for details.
 
