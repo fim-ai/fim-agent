@@ -342,6 +342,8 @@ function StepCard({ step, duration, displayIteration }: { step: ReactStepEvent; 
   return null
 }
 
+const ARGS_MD_CLS = "text-xs [&_pre]:my-0 [&_pre]:p-0 [&_pre]:bg-transparent [&_pre]:rounded-none"
+
 function ToolArgsBlock({
   args,
   className,
@@ -354,31 +356,41 @@ function ToolArgsBlock({
     delete rest.code
     const hasRest = Object.keys(rest).length > 0
     return (
-      <div className={className}>
+      <div className={`rounded-md border border-border/50 bg-muted/30 p-3 ${className ?? ""}`}>
+        <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">
+          Arguments
+        </p>
         <CollapsibleBlock>
           <MarkdownContent
             content={`\`\`\`python\n${args.code}\n\`\`\``}
-            className="text-xs [&_pre]:my-0 [&_pre]:p-3"
+            className={ARGS_MD_CLS}
           />
         </CollapsibleBlock>
         {hasRest && (
-          <CollapsibleBlock>
-            <MarkdownContent
-              content={`\`\`\`json\n${JSON.stringify(rest, null, 2)}\n\`\`\``}
-              className="text-xs [&_pre]:my-0 [&_pre]:p-3 mt-2"
-            />
-          </CollapsibleBlock>
+          <div className="mt-2">
+            <CollapsibleBlock>
+              <MarkdownContent
+                content={`\`\`\`json\n${JSON.stringify(rest, null, 2)}\n\`\`\``}
+                className={ARGS_MD_CLS}
+              />
+            </CollapsibleBlock>
+          </div>
         )}
       </div>
     )
   }
   return (
-    <CollapsibleBlock>
-      <MarkdownContent
-        content={`\`\`\`json\n${JSON.stringify(args, null, 2)}\n\`\`\``}
-        className={`text-xs [&_pre]:my-0 [&_pre]:p-3 ${className ?? ""}`}
-      />
-    </CollapsibleBlock>
+    <div className={`rounded-md border border-border/50 bg-muted/30 p-3 ${className ?? ""}`}>
+      <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">
+        Arguments
+      </p>
+      <CollapsibleBlock>
+        <MarkdownContent
+          content={`\`\`\`json\n${JSON.stringify(args, null, 2)}\n\`\`\``}
+          className={ARGS_MD_CLS}
+        />
+      </CollapsibleBlock>
+    </div>
   )
 }
 

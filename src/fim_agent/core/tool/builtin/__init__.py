@@ -52,6 +52,12 @@ _SANDBOX_KWARGS: dict[type, str] = {
     PythonExecTool: "exec_dir",
 }
 
+# Tools that require explicit configuration and should NOT be auto-discovered.
+# They are registered manually when the appropriate config is available.
+_SKIP_AUTO_DISCOVER: set[type] = {
+    GroundedRetrieveTool,  # requires kb_ids — registered by _resolve_tools()
+}
+
 
 def discover_builtin_tools(
     *,
@@ -102,6 +108,7 @@ def discover_builtin_tools(
                 issubclass(obj, BaseTool)
                 and obj is not BaseTool
                 and not inspect.isabstract(obj)
+                and obj not in _SKIP_AUTO_DISCOVER
             ):
                 try:
                     # Pass sandbox path to tools that support it.

@@ -268,7 +268,7 @@ async def _ingest_document(
     chunk_overlap: int,
 ) -> None:
     """Background task: load → chunk → embed → store, then update DB."""
-    from fim_agent.db import get_session as session_factory
+    from fim_agent.db import create_session
 
     try:
         manager = get_kb_manager()
@@ -282,7 +282,8 @@ async def _ingest_document(
             chunk_overlap=chunk_overlap,
         )
 
-        async with session_factory() as db:
+        db = create_session()
+        try:
             result = await db.execute(
                 select(KBDocument).where(KBDocument.id == doc_id)
             )
@@ -310,13 +311,16 @@ async def _ingest_document(
                 )
                 kb.total_chunks = sum_result.scalar_one()
                 await db.commit()
+        finally:
+            await db.close()
 
         logger.info("Document %s ingested: %d chunks", doc_id, chunk_count)
 
     except Exception as exc:
         logger.error("Ingest failed for document %s: %s", doc_id, exc, exc_info=True)
         try:
-            async with session_factory() as db:
+            db = create_session()
+            try:
                 result = await db.execute(
                     select(KBDocument).where(KBDocument.id == doc_id)
                 )
@@ -325,6 +329,8 @@ async def _ingest_document(
                     doc.status = "failed"
                     doc.error_message = str(exc)[:500]
                     await db.commit()
+            finally:
+                await db.close()
         except Exception:
             logger.error("Failed to update document status", exc_info=True)
 

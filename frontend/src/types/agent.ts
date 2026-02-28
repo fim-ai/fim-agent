@@ -17,8 +17,8 @@ export interface AgentResponse {
 
 export interface AgentCreate {
   name: string
-  description?: string
-  instructions?: string
+  description?: string | null
+  instructions?: string | null
   execution_mode?: "react" | "dag"
   model_config_json?: Record<string, unknown>
   tool_categories?: string[]
@@ -29,8 +29,8 @@ export interface AgentCreate {
 
 export interface AgentUpdate {
   name?: string
-  description?: string
-  instructions?: string
+  description?: string | null
+  instructions?: string | null
   execution_mode?: "react" | "dag"
   model_config_json?: Record<string, unknown>
   tool_categories?: string[]

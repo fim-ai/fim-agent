@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { kbApi } from "@/lib/api"
 import {
   Dialog,
   DialogContent,
@@ -62,12 +63,8 @@ export function AgentFormDialog({
 
   useEffect(() => {
     if (!open) return
-    const token = localStorage.getItem("token")
-    if (!token) return
-    fetch("/api/knowledge-bases?size=100", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
+    kbApi
+      .list(1, 100)
       .then((d) => setAvailableKBs(d.items || []))
       .catch(() => setAvailableKBs([]))
   }, [open])
@@ -92,8 +89,8 @@ export function AgentFormDialog({
 
     const data: AgentCreate = {
       name: trimmedName,
-      ...(description.trim() && { description: description.trim() }),
-      ...(instructions.trim() && { instructions: instructions.trim() }),
+      description: description.trim() || null,
+      instructions: instructions.trim() || null,
       execution_mode: executionMode,
       ...(toolCategories.length > 0 && { tool_categories: toolCategories }),
       ...(prompts.length > 0 && { suggested_prompts: prompts }),
@@ -232,20 +229,6 @@ export function AgentFormDialog({
             </div>
           )}
 
-          {/* Suggested Prompts */}
-          <div className="space-y-1.5">
-            <label htmlFor="agent-prompts" className="text-sm font-medium">
-              Suggested Prompts
-            </label>
-            <textarea
-              id="agent-prompts"
-              value={suggestedPrompts}
-              onChange={(e) => setSuggestedPrompts(e.target.value)}
-              placeholder={"One prompt per line\nE.g. Summarize this document\nWhat are the key findings?"}
-              rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-            />
-          </div>
 
           <DialogFooter>
             <Button

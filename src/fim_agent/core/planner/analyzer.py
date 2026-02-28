@@ -19,6 +19,17 @@ from .types import AnalysisResult, ExecutionPlan
 
 logger = logging.getLogger(__name__)
 
+_REFORMAT_PROMPT = """\
+Your previous response could not be parsed as valid JSON. \
+Please respond with ONLY a JSON object in this exact format — \
+no markdown, no explanation, no code fences:
+{
+  "achieved": true or false,
+  "confidence": <float between 0.0 and 1.0>,
+  "final_answer": "<synthesised answer or null>",
+  "reasoning": "<your assessment>"
+}"""
+
 _ANALYSIS_PROMPT = """\
 You are a plan evaluator.  Given a goal and the results of an execution \
 plan that was designed to achieve that goal, you must assess whether the \
@@ -83,14 +94,55 @@ class PlanAnalyzer:
         )
 
         content = result.message.content or ""
+        llm_calls = 1
+        total_usage = result.usage
+
         analysis = self._parse_result(content)
 
-        if result.usage:
+        # Retry once: ask the LLM to reformat as valid JSON.
+        if analysis is None:
+            logger.info("Analyzer JSON parse failed, retrying with reformat prompt")
+            retry_messages = messages + [
+                ChatMessage(role="assistant", content=content),
+                ChatMessage(role="user", content=_REFORMAT_PROMPT),
+            ]
+            retry_result = await self._llm.chat(
+                retry_messages,
+                response_format=response_format,
+            )
+            retry_content = retry_result.message.content or ""
+            llm_calls += 1
+
+            if retry_result.usage:
+                if total_usage:
+                    total_usage = {
+                        k: total_usage.get(k, 0) + retry_result.usage.get(k, 0)
+                        for k in ("prompt_tokens", "completion_tokens", "total_tokens")
+                    }
+                else:
+                    total_usage = retry_result.usage
+
+            analysis = self._parse_result(retry_content)
+
+        # Final fallback after retry exhausted.
+        if analysis is None:
+            logger.warning(
+                "Analyzer LLM returned non-JSON content after retry, "
+                "treating as inconclusive",
+            )
+            preview = content[:300] + "..." if len(content) > 300 else content
+            analysis = AnalysisResult(
+                achieved=False,
+                confidence=0.0,
+                reasoning=f"Could not parse analysis response: {preview}",
+            )
+
+        if total_usage:
             analysis.usage = UsageSummary(
-                prompt_tokens=result.usage.get("prompt_tokens", 0),
-                completion_tokens=result.usage.get("completion_tokens", 0),
-                total_tokens=result.usage.get("total_tokens", 0),
-                llm_calls=1,
+                prompt_tokens=total_usage.get("prompt_tokens", 0),
+                completion_tokens=total_usage.get("completion_tokens", 0),
+                total_tokens=total_usage.get("total_tokens", 0),
+                llm_calls=llm_calls,
             )
 
         return analysis
@@ -161,17 +213,17 @@ class PlanAnalyzer:
         return "\n\n".join(lines)
 
     @staticmethod
-    def _parse_result(content: str) -> AnalysisResult:
+    def _parse_result(content: str) -> AnalysisResult | None:
         """Parse the LLM response into an ``AnalysisResult``.
 
-        Handles malformed JSON gracefully by returning a low-confidence
-        negative result.
+        Returns ``None`` when the content cannot be parsed, allowing the
+        caller to retry before falling back.
 
         Args:
             content: Raw JSON string from the LLM.
 
         Returns:
-            A parsed ``AnalysisResult`` instance.
+            A parsed ``AnalysisResult`` instance, or ``None`` on failure.
         """
         data = extract_json(content)
         if data is None:
@@ -181,16 +233,7 @@ class PlanAnalyzer:
             data = _regex_extract_analysis(content)
 
         if data is None:
-            logger.warning(
-                "Analyzer LLM returned non-JSON content, "
-                "treating as inconclusive",
-            )
-            preview = content[:300] + "..." if len(content) > 300 else content
-            return AnalysisResult(
-                achieved=False,
-                confidence=0.0,
-                reasoning=f"Could not parse analysis response: {preview}",
-            )
+            return None
 
         achieved = bool(data.get("achieved", False))
 

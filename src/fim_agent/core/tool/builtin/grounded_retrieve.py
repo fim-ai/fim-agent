@@ -16,8 +16,9 @@ class GroundedRetrieveTool(BaseTool):
     KB bindings work.
     """
 
-    def __init__(self, kb_ids: list[str] | None = None) -> None:
+    def __init__(self, kb_ids: list[str] | None = None, user_id: str | None = None) -> None:
         self._bound_kb_ids = kb_ids or []
+        self._user_id = user_id
 
     @property
     def name(self) -> str:
@@ -74,7 +75,7 @@ class GroundedRetrieveTool(BaseTool):
             return "[Error] kb_ids is required (no bound knowledge bases)"
 
         top_k: int = int(kwargs.get("top_k", 10))
-        user_id = os.environ.get("_TOOL_USER_ID", "default")
+        user_id = self._user_id or os.environ.get("_TOOL_USER_ID", "default")
 
         try:
             from fim_agent.web.deps import get_embedding, get_fast_llm, get_kb_manager

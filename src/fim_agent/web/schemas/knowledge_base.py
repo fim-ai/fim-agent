@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 class KBCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = None
-    chunk_strategy: Literal["recursive", "fixed", "semantic"] = "recursive"
+    chunk_strategy: Literal["recursive", "fixed", "semantic", "markdown"] = "recursive"
     chunk_size: int = Field(default=1000, ge=100, le=10000)
     chunk_overlap: int = Field(default=200, ge=0, le=5000)
     retrieval_mode: Literal["hybrid", "dense", "fts"] = "hybrid"
@@ -19,7 +19,7 @@ class KBCreate(BaseModel):
 class KBUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    chunk_strategy: Literal["recursive", "fixed", "semantic"] | None = None
+    chunk_strategy: Literal["recursive", "fixed", "semantic", "markdown"] | None = None
     chunk_size: int | None = Field(default=None, ge=100, le=10000)
     chunk_overlap: int | None = Field(default=None, ge=0, le=5000)
     retrieval_mode: Literal["hybrid", "dense", "fts"] | None = None

@@ -15,6 +15,9 @@ class KBRetrieveTool(BaseTool):
     relevant to a query.  Results include the text content and a relevance score.
     """
 
+    def __init__(self, user_id: str | None = None) -> None:
+        self._user_id = user_id
+
     @property
     def name(self) -> str:
         return "kb_retrieve"
@@ -64,7 +67,7 @@ class KBRetrieveTool(BaseTool):
             return "[Error] kb_id is required"
 
         # Get user context from environment (set by the chat endpoint)
-        user_id = os.environ.get("_TOOL_USER_ID", "default")
+        user_id = self._user_id or os.environ.get("_TOOL_USER_ID", "default")
 
         try:
             from fim_agent.web.deps import get_kb_manager

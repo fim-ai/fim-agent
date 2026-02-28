@@ -218,6 +218,7 @@ def _conversation_sandbox_root(conversation_id: str | None) -> Path | None:
 def _resolve_tools(
     agent_cfg: dict[str, Any] | None,
     conversation_id: str | None = None,
+    user_id: str | None = None,
 ) -> ToolRegistry:
     """Build tool registry, optionally scoped to a per-conversation sandbox."""
     sandbox_root = _conversation_sandbox_root(conversation_id)
@@ -225,14 +226,22 @@ def _resolve_tools(
     if agent_cfg and agent_cfg.get("tool_categories"):
         tools = tools.filter_by_category(*agent_cfg["tool_categories"])
 
+    # Inject user_id into the auto-discovered KBRetrieveTool so that
+    # retrieval queries the correct per-user vector store directory.
+    if user_id:
+        from fim_agent.core.tool.builtin.kb_retrieve import KBRetrieveTool
+
+        tools = tools.exclude_by_name("kb_retrieve")
+        tools.register(KBRetrieveTool(user_id=user_id))
+
     # When the agent is bound to knowledge bases, replace the basic kb_retrieve
     # tool with the grounded version.
     kb_ids = agent_cfg.get("kb_ids") if agent_cfg else None
     if kb_ids:
         from fim_agent.core.tool.builtin.grounded_retrieve import GroundedRetrieveTool
 
-        tools = tools.exclude_by_name("kb_retrieve")
-        tools.register(GroundedRetrieveTool(kb_ids=kb_ids))
+        tools = tools.exclude_by_name("kb_retrieve", "grounded_retrieve")
+        tools.register(GroundedRetrieveTool(kb_ids=kb_ids, user_id=user_id))
 
     return tools
 
@@ -320,7 +329,7 @@ async def react_endpoint(
 
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id)
     llm = _resolve_llm(agent_cfg)
-    tools = _resolve_tools(agent_cfg, conversation_id)
+    tools = _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     extra_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     if agent_cfg and agent_cfg.get("kb_ids"):
@@ -593,7 +602,7 @@ async def dag_endpoint(
 
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id)
     llm = _resolve_llm(agent_cfg)
-    tools = _resolve_tools(agent_cfg, conversation_id)
+    tools = _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     extra_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     if agent_cfg and agent_cfg.get("kb_ids"):

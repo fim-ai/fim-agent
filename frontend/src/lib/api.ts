@@ -104,7 +104,9 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.detail || body.error || res.statusText)
+    const detail = body.detail ?? body.error ?? res.statusText
+    const message = typeof detail === "string" ? detail : JSON.stringify(detail)
+    throw new ApiError(res.status, message)
   }
 
   return res.json() as Promise<T>
