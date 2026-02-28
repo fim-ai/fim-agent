@@ -336,9 +336,10 @@ async def react_endpoint(
         grounding_hint = (
             "\n\nYou have access to knowledge bases. When answering questions that "
             "can be found in the knowledge bases, use the grounded_retrieve tool. "
-            "Always cite sources using the exact quotes provided in [N] format. "
+            "Place citation markers [N] at the END of the sentence or claim they support, "
+            "not at the beginning. Example: '\u6536\u8d2d\u4ef7\u683c\u4e3a\u6bcf\u80a13.70\u7f8e\u5143 [1]\u3002'\n"
             "If conflicts are detected between sources, mention them to the user. "
-            "The confidence score indicates evidence quality — mention it for important claims."
+            "The confidence score indicates evidence quality \u2014 mention it for important claims."
         )
         extra_instructions = (extra_instructions or "") + grounding_hint
 
@@ -609,9 +610,10 @@ async def dag_endpoint(
         grounding_hint = (
             "\n\nYou have access to knowledge bases. When answering questions that "
             "can be found in the knowledge bases, use the grounded_retrieve tool. "
-            "Always cite sources using the exact quotes provided in [N] format. "
+            "Place citation markers [N] at the END of the sentence or claim they support, "
+            "not at the beginning. Example: '\u6536\u8d2d\u4ef7\u683c\u4e3a\u6bcf\u80a13.70\u7f8e\u5143 [1]\u3002'\n"
             "If conflicts are detected between sources, mention them to the user. "
-            "The confidence score indicates evidence quality — mention it for important claims."
+            "The confidence score indicates evidence quality \u2014 mention it for important claims."
         )
         extra_instructions = (extra_instructions or "") + grounding_hint
 

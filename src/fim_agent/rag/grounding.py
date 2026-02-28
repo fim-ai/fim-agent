@@ -214,8 +214,7 @@ class GroundingPipeline:
             self._llm is not None
             and self._config["citation_mode"] != "simple"
         )
-
-        for unit in evidence:
+        async def _extract_one(unit: EvidenceUnit) -> None:
             kb_id = unit.kb_id
             doc = unit.chunk
             chunk_id = doc.metadata.get(
@@ -248,6 +247,8 @@ class GroundingPipeline:
                     page_number=page_number,
                 )
             unit.citations = citations
+
+        await asyncio.gather(*[_extract_one(u) for u in evidence])
 
     async def _llm_extract(
         self,

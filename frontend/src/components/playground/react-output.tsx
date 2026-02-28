@@ -13,6 +13,7 @@ import { Loader2, Wrench, Brain, CheckCircle2, AlertCircle, Clock, RefreshCw, Ba
 import { fmtDuration } from "@/lib/utils"
 import type { ReactStepEvent, ReactDoneEvent } from "@/types/api"
 import type { StepItem } from "@/hooks/use-react-steps"
+import { ReferencesSection } from "./references-section"
 
 interface ReactOutputProps {
   items: StepItem[]
@@ -80,7 +81,7 @@ export function ReactOutput({ items }: ReactOutputProps) {
         {/* Done card */}
         {doneItem && (
           <div data-react-idx={items.indexOf(doneItem)}>
-            <DoneCard done={doneItem.data as ReactDoneEvent} />
+            <DoneCard done={doneItem.data as ReactDoneEvent} items={items} />
           </div>
         )}
       </div>
@@ -103,7 +104,7 @@ export function ReactOutput({ items }: ReactOutputProps) {
           const done = item.data as ReactDoneEvent
           return (
             <div key={idx} data-react-idx={idx}>
-              <DoneCard done={done} />
+              <DoneCard done={done} items={items} />
             </div>
           )
         }
@@ -394,7 +395,7 @@ function ToolArgsBlock({
   )
 }
 
-function DoneCard({ done }: { done: ReactDoneEvent }) {
+function DoneCard({ done, items }: { done: ReactDoneEvent; items?: StepItem[] }) {
   return (
     <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 border-green-500/20 py-4">
       <CardHeader className="pb-0">
@@ -426,6 +427,7 @@ function DoneCard({ done }: { done: ReactDoneEvent }) {
           content={done.answer}
           className="prose-sm text-sm text-foreground/90"
         />
+        {items && <ReferencesSection items={items} />}
       </CardContent>
     </Card>
   )

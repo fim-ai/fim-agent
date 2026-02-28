@@ -2,69 +2,10 @@
 
 import { useState } from "react"
 import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { parseEvidence } from "@/lib/evidence-utils"
 
 interface EvidencePanelProps {
   content: string
-}
-
-interface ParsedEvidence {
-  confidence: number
-  sourceCount: number
-  sources: {
-    index: number
-    name: string
-    relevance: number
-    alignment: number
-    quote: string
-    page?: number
-  }[]
-  conflicts: {
-    sourceA: string
-    sourceB: string
-    textA: string
-    textB: string
-  }[]
-}
-
-function parseEvidence(content: string): ParsedEvidence | null {
-  // Match **Evidence** (confidence: XX.X%, N sources):
-  const headerMatch = content.match(/\*\*Evidence\*\*\s*\(confidence:\s*([\d.]+)%,\s*(\d+)\s*sources?\)/)
-  if (!headerMatch) return null
-
-  const confidence = parseFloat(headerMatch[1])
-  const sourceCount = parseInt(headerMatch[2])
-
-  // Match [N] Source: name (relevance: X.XXX, alignment: X.XXX)
-  const sourceRegex = /\[(\d+)\]\s*Source:\s*(.+?)\s*\(relevance:\s*([\d.]+),\s*alignment:\s*([\d.]+)\)\s*\n\s*>\s*"([^"]+)"\s*(?:p\.(\d+))?/g
-  const sources: ParsedEvidence["sources"] = []
-  let match
-  while ((match = sourceRegex.exec(content)) !== null) {
-    sources.push({
-      index: parseInt(match[1]),
-      name: match[2].trim(),
-      relevance: parseFloat(match[3]),
-      alignment: parseFloat(match[4]),
-      quote: match[5],
-      page: match[6] ? parseInt(match[6]) : undefined,
-    })
-  }
-
-  // Match conflicts
-  const conflicts: ParsedEvidence["conflicts"] = []
-  const conflictSection = content.match(/\*\*Conflicts detected:\*\*([\s\S]*?)$/)
-  if (conflictSection) {
-    const conflictRegex = /- (.+?) vs (.+?):\s*\n\s*A: "([^"]+)"\s*\n\s*B: "([^"]+)"/g
-    while ((match = conflictRegex.exec(conflictSection[1])) !== null) {
-      conflicts.push({
-        sourceA: match[1].trim(),
-        sourceB: match[2].trim(),
-        textA: match[3],
-        textB: match[4],
-      })
-    }
-  }
-
-  return { confidence, sourceCount, sources, conflicts }
 }
 
 function ConfidenceBadge({ value }: { value: number }) {
