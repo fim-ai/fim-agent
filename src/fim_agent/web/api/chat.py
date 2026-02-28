@@ -153,7 +153,7 @@ async def _resolve_agent_config(
 
     Resolution priority: explicit ``agent_id`` > conversation's bound agent.
     Returns a dict with ``instructions``, ``tool_categories``,
-    ``model_config_json``, and ``execution_mode``, or ``None``.
+    ``model_config_json``, ``kb_ids``, and ``grounding_config``, or ``None``.
     """
     from fim_agent.db import create_session
     from fim_agent.web.models import Agent, Conversation
@@ -185,7 +185,6 @@ async def _resolve_agent_config(
             "instructions": agent.instructions,
             "tool_categories": agent.tool_categories,
             "model_config_json": agent.model_config_json,
-            "execution_mode": agent.execution_mode,
             "kb_ids": agent.kb_ids,
             "grounding_config": agent.grounding_config,
         }
@@ -241,7 +240,13 @@ def _resolve_tools(
         from fim_agent.core.tool.builtin.grounded_retrieve import GroundedRetrieveTool
 
         tools = tools.exclude_by_name("kb_retrieve", "grounded_retrieve")
-        tools.register(GroundedRetrieveTool(kb_ids=kb_ids, user_id=user_id))
+        grounding_config = agent_cfg.get("grounding_config") or {}
+        confidence_threshold = grounding_config.get("confidence_threshold")
+        tools.register(GroundedRetrieveTool(
+            kb_ids=kb_ids,
+            user_id=user_id,
+            confidence_threshold=confidence_threshold,
+        ))
 
     return tools
 

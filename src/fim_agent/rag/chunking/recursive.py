@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import BaseChunker, Chunk
+from .base import MAX_CHUNK_SIZE, BaseChunker, Chunk
 
 
 class RecursiveCharacterChunker(BaseChunker):
@@ -29,6 +29,10 @@ class RecursiveCharacterChunker(BaseChunker):
     ) -> None:
         if overlap >= chunk_size:
             raise ValueError("overlap must be less than chunk_size")
+        if chunk_size > MAX_CHUNK_SIZE:
+            raise ValueError(
+                f"chunk_size {chunk_size} exceeds MAX_CHUNK_SIZE ({MAX_CHUNK_SIZE})"
+            )
         self._chunk_size = chunk_size
         self._overlap = overlap
         self._separators = separators or self.DEFAULT_SEPARATORS

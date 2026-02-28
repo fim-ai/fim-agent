@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -178,6 +179,13 @@ async def delete_kb(
         await manager.delete_kb(kb_id=kb_id, user_id=current_user.id)
     except Exception:
         logger.warning("Failed to delete vector data for KB %s", kb_id, exc_info=True)
+    # Delete uploaded files from disk
+    try:
+        upload_dir = _UPLOADS_DIR / kb_id
+        if upload_dir.exists():
+            shutil.rmtree(upload_dir)
+    except Exception:
+        logger.warning("Failed to delete upload directory for KB %s", kb_id, exc_info=True)
     # Delete DB records (cascade deletes documents)
     await db.delete(kb)
     await db.commit()
@@ -362,6 +370,17 @@ async def delete_document(
         )
     except Exception:
         logger.warning("Failed to delete vectors for doc %s", doc_id, exc_info=True)
+
+    # Delete uploaded file from disk
+    try:
+        file_path = Path(doc.file_path)
+        file_path.unlink(missing_ok=True)
+        # Remove parent directory if now empty
+        parent = file_path.parent
+        if parent.exists() and not any(parent.iterdir()):
+            parent.rmdir()
+    except Exception:
+        logger.warning("Failed to delete file for doc %s", doc_id, exc_info=True)
 
     # Delete DB record and update counters
     await db.delete(doc)

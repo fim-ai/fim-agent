@@ -1,6 +1,6 @@
 """Text chunking strategies with factory function."""
 
-from .base import BaseChunker, Chunk
+from .base import MAX_CHUNK_SIZE, BaseChunker, Chunk
 from .fixed import FixedSizeChunker
 from .markdown import MarkdownChunker
 from .recursive import RecursiveCharacterChunker
@@ -10,6 +10,7 @@ __all__ = [
     "BaseChunker",
     "Chunk",
     "FixedSizeChunker",
+    "MAX_CHUNK_SIZE",
     "MarkdownChunker",
     "RecursiveCharacterChunker",
     "SemanticChunker",

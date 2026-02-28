@@ -33,12 +33,6 @@ export function AgentCard({
         <div className="flex items-center gap-1.5 shrink-0">
           <Badge
             variant="secondary"
-            className="text-[10px] px-1.5 py-0 h-5"
-          >
-            {agent.execution_mode === "react" ? "ReAct" : agent.execution_mode === "dag" ? "DAG" : agent.execution_mode}
-          </Badge>
-          <Badge
-            variant="secondary"
             className={cn(
               "text-[10px] px-1.5 py-0 h-5",
               isPublished

@@ -16,9 +16,15 @@ class GroundedRetrieveTool(BaseTool):
     KB bindings work.
     """
 
-    def __init__(self, kb_ids: list[str] | None = None, user_id: str | None = None) -> None:
+    def __init__(
+        self,
+        kb_ids: list[str] | None = None,
+        user_id: str | None = None,
+        confidence_threshold: float | None = None,
+    ) -> None:
         self._bound_kb_ids = kb_ids or []
         self._user_id = user_id
+        self._confidence_threshold = confidence_threshold
 
     @property
     def name(self) -> str:
@@ -92,6 +98,16 @@ class GroundedRetrieveTool(BaseTool):
                 config={"top_k": top_k},
             )
             result = await pipeline.ground(query, kb_ids, user_id)
+
+            # Hard gate: if confidence below threshold, refuse to answer with this evidence
+            if self._confidence_threshold is not None and result.confidence < self._confidence_threshold:
+                return (
+                    f"[Evidence insufficient] Confidence {result.confidence:.0%} is below "
+                    f"the threshold {self._confidence_threshold:.0%}. "
+                    f"The retrieved evidence is not reliable enough to answer this question. "
+                    f"Please inform the user that no confident evidence was found in the knowledge base."
+                )
+
             return _format_grounded_result(result)
 
         except Exception as exc:

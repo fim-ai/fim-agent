@@ -10,7 +10,7 @@ from typing import Any
 from fim_agent.core.embedding.base import BaseEmbedding
 from fim_agent.core.reranker.base import BaseReranker
 from fim_agent.rag.base import Document
-from fim_agent.rag.chunking import get_chunker
+from fim_agent.rag.chunking import MAX_CHUNK_SIZE, get_chunker
 from fim_agent.rag.loaders import loader_for_extension
 from fim_agent.rag.retriever.dense import DenseRetriever
 from fim_agent.rag.retriever.hybrid import HybridRetriever
@@ -64,6 +64,15 @@ class KnowledgeBaseManager:
         Returns:
             Tuple of (chunk_count, content_hash).
         """
+        # 0. Clamp chunk_size to hard upper limit
+        if chunk_size > MAX_CHUNK_SIZE:
+            logger.warning(
+                "chunk_size %d exceeds MAX_CHUNK_SIZE (%d), clamping",
+                chunk_size,
+                MAX_CHUNK_SIZE,
+            )
+            chunk_size = MAX_CHUNK_SIZE
+
         # 1. Load
         ext = file_path.suffix.lower()
         loader = loader_for_extension(ext)

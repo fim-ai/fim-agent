@@ -56,7 +56,7 @@ Before starting parallel worktree development:
 After every `feat:` commit, you MUST check and update these files before moving on:
 
 1. **`example.env`** — compare with `.env`, any new key must be added with placeholder and comment
-2. **`wiki/Roadmap.md`** — check off `[ ]` items that this feature completes
+2. **`wiki/Roadmap.md`** — check off `[ ]` items that this feature completes; if the feature has no matching entry, insert a new item under the appropriate version/category and mark it as done
 3. **`README.md` Roadmap section** — update Shipped/Next summary if a milestone version was completed
 4. **`README.md` Key Features** — add entry if this is a new user-facing capability
 5. **`README.md` Project Structure** — update if new modules/directories were added under `src/`

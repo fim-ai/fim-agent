@@ -2,8 +2,9 @@
 
 import pytest
 
-from fim_agent.rag.chunking import get_chunker, Chunk
+from fim_agent.rag.chunking import MAX_CHUNK_SIZE, get_chunker, Chunk
 from fim_agent.rag.chunking.fixed import FixedSizeChunker
+from fim_agent.rag.chunking.markdown import MarkdownChunker
 from fim_agent.rag.chunking.recursive import RecursiveCharacterChunker
 from fim_agent.rag.chunking.semantic import SemanticChunker
 
@@ -98,3 +99,50 @@ async def test_chunk_indexes():
     chunks = await chunker.chunk("A" * 30)
     indexes = [c.index for c in chunks]
     assert indexes == list(range(len(chunks)))
+
+
+# ------------------------------------------------------------------
+# MAX_CHUNK_SIZE validation
+# ------------------------------------------------------------------
+
+
+async def test_max_chunk_size_constant():
+    """MAX_CHUNK_SIZE is 6000 (conservative limit for Jina Embeddings v3)."""
+    assert MAX_CHUNK_SIZE == 6000
+
+
+async def test_fixed_chunker_exceeds_max():
+    with pytest.raises(ValueError, match="exceeds MAX_CHUNK_SIZE"):
+        FixedSizeChunker(chunk_size=MAX_CHUNK_SIZE + 1, overlap=0)
+
+
+async def test_fixed_chunker_at_max():
+    """Exactly MAX_CHUNK_SIZE should be accepted."""
+    chunker = FixedSizeChunker(chunk_size=MAX_CHUNK_SIZE, overlap=0)
+    assert chunker._chunk_size == MAX_CHUNK_SIZE
+
+
+async def test_recursive_chunker_exceeds_max():
+    with pytest.raises(ValueError, match="exceeds MAX_CHUNK_SIZE"):
+        RecursiveCharacterChunker(chunk_size=MAX_CHUNK_SIZE + 1, overlap=0)
+
+
+async def test_recursive_chunker_at_max():
+    chunker = RecursiveCharacterChunker(chunk_size=MAX_CHUNK_SIZE, overlap=0)
+    assert chunker._chunk_size == MAX_CHUNK_SIZE
+
+
+async def test_markdown_chunker_exceeds_max():
+    with pytest.raises(ValueError, match="exceeds MAX_CHUNK_SIZE"):
+        MarkdownChunker(chunk_size=MAX_CHUNK_SIZE + 1, overlap=0)
+
+
+async def test_markdown_chunker_at_max():
+    chunker = MarkdownChunker(chunk_size=MAX_CHUNK_SIZE, overlap=0)
+    assert chunker._chunk_size == MAX_CHUNK_SIZE
+
+
+async def test_get_chunker_factory_exceeds_max():
+    """Factory function propagates the ValueError from the chunker."""
+    with pytest.raises(ValueError, match="exceeds MAX_CHUNK_SIZE"):
+        get_chunker("fixed", chunk_size=MAX_CHUNK_SIZE + 1, overlap=0)

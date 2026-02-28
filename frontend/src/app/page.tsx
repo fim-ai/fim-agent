@@ -148,12 +148,7 @@ export default function PlaygroundPage() {
     }
   }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-sync mode when agent is selected
-  useEffect(() => {
-    if (selectedAgent) {
-      setMode(selectedAgent.execution_mode as AgentMode)
-    }
-  }, [selectedAgent])
+  // (Agent selection no longer overrides mode — user controls mode independently)
 
   const runWithQuery = useCallback(
     async (q: string, imageIds?: string[]) => {
@@ -170,7 +165,7 @@ export default function PlaygroundPage() {
       if (!convId) {
         try {
           const conv = await createConversation(
-            selectedAgent?.execution_mode as "react" | "dag" || mode,
+            mode,
             trimmed.slice(0, 60),
             selectedAgent?.id,
           )
@@ -1019,7 +1014,7 @@ function PlaygroundContent({
               <option value="">No Agent</option>
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name} ({a.execution_mode === "react" ? "ReAct" : "DAG"})
+                  {a.name}
                 </option>
               ))}
             </select>

@@ -6,6 +6,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
+# Hard upper limit for chunk_size (characters).
+# Jina Embeddings v3 accepts up to 8192 tokens; 6000 chars is a conservative
+# ceiling that covers mixed CJK / Latin text.
+MAX_CHUNK_SIZE: int = 6000
+
 
 @dataclass
 class Chunk:

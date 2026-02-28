@@ -33,11 +33,11 @@ export function AgentFormDialog({
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [instructions, setInstructions] = useState("")
-  const [executionMode, setExecutionMode] = useState<"react" | "dag">("react")
   const [toolCategories, setToolCategories] = useState<string[]>([])
   const [suggestedPrompts, setSuggestedPrompts] = useState("")
   const [selectedKBs, setSelectedKBs] = useState<string[]>([])
   const [availableKBs, setAvailableKBs] = useState<{id: string; name: string; document_count: number}[]>([])
+  const [confidenceThreshold, setConfidenceThreshold] = useState<number | null>(null)
 
   // Pre-fill when editing or reset when creating
   useEffect(() => {
@@ -46,18 +46,19 @@ export function AgentFormDialog({
       setName(agent.name)
       setDescription(agent.description || "")
       setInstructions(agent.instructions || "")
-      setExecutionMode(agent.execution_mode as "react" | "dag")
       setToolCategories(agent.tool_categories || [])
       setSuggestedPrompts(agent.suggested_prompts?.join("\n") || "")
       setSelectedKBs(agent.kb_ids || [])
+      const ct = agent.grounding_config?.confidence_threshold
+      setConfidenceThreshold(typeof ct === "number" ? ct : null)
     } else {
       setName("")
       setDescription("")
       setInstructions("")
-      setExecutionMode("react")
       setToolCategories([])
       setSuggestedPrompts("")
       setSelectedKBs([])
+      setConfidenceThreshold(null)
     }
   }, [open, agent])
 
@@ -91,10 +92,12 @@ export function AgentFormDialog({
       name: trimmedName,
       description: description.trim() || null,
       instructions: instructions.trim() || null,
-      execution_mode: executionMode,
       ...(toolCategories.length > 0 && { tool_categories: toolCategories }),
       ...(prompts.length > 0 && { suggested_prompts: prompts }),
       ...(selectedKBs.length > 0 && { kb_ids: selectedKBs }),
+      ...(selectedKBs.length > 0 && confidenceThreshold != null && {
+        grounding_config: { confidence_threshold: confidenceThreshold },
+      }),
     }
 
     await onSubmit(data)
@@ -158,22 +161,6 @@ export function AgentFormDialog({
             />
           </div>
 
-          {/* Execution Mode */}
-          <div className="space-y-1.5">
-            <label htmlFor="agent-mode" className="text-sm font-medium">
-              Execution Mode
-            </label>
-            <select
-              id="agent-mode"
-              value={executionMode}
-              onChange={(e) => setExecutionMode(e.target.value as "react" | "dag")}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="react">ReAct</option>
-              <option value="dag">DAG</option>
-            </select>
-          </div>
-
           {/* Tool Categories */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Tool Categories</label>
@@ -225,6 +212,42 @@ export function AgentFormDialog({
                     </span>
                   </label>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Confidence Threshold - only show when KBs are selected */}
+          {selectedKBs.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Confidence Threshold</label>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {confidenceThreshold != null
+                    ? `${Math.round(confidenceThreshold * 100)}%`
+                    : "Off"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When set, answers with confidence below this threshold will be
+                rejected. Leave off to always show results.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={
+                    confidenceThreshold != null
+                      ? Math.round(confidenceThreshold * 100)
+                      : 0
+                  }
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value)
+                    setConfidenceThreshold(val === 0 ? null : val / 100)
+                  }}
+                  className="flex-1 h-1.5 accent-primary"
+                />
               </div>
             </div>
           )}

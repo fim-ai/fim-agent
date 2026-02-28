@@ -73,7 +73,7 @@ export function KBFormDialog({
 
   const isEditing = kb !== null
   const inputClass =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,15 +116,21 @@ export function KBFormDialog({
             />
           </div>
 
-          {/* Chunk Strategy */}
+          {/* Chunk Settings */}
           <div className="space-y-1.5">
             <label htmlFor="kb-chunk-strategy" className="text-sm font-medium">
-              Chunk Strategy
+              Chunk Strategy {isEditing && <span className="text-xs text-muted-foreground font-normal">(locked)</span>}
             </label>
+            {!isEditing && (
+              <p className="text-xs text-amber-500">
+                Chunk settings cannot be changed after creation.
+              </p>
+            )}
             <select
               id="kb-chunk-strategy"
               value={chunkStrategy}
               onChange={(e) => setChunkStrategy(e.target.value)}
+              disabled={isEditing}
               className={inputClass}
             >
               <option value="recursive">Recursive</option>
@@ -149,29 +155,34 @@ export function KBFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label htmlFor="kb-chunk-size" className="text-sm font-medium">
-                Chunk Size
+                Chunk Size {isEditing && <span className="text-xs text-muted-foreground font-normal">(locked)</span>}
               </label>
               <input
                 id="kb-chunk-size"
                 type="number"
                 min={100}
-                max={10000}
+                max={6000}
                 value={chunkSize}
-                onChange={(e) => setChunkSize(Number(e.target.value))}
+                onChange={(e) => setChunkSize(Math.min(Number(e.target.value), 6000))}
+                disabled={isEditing}
                 className={inputClass}
               />
+              <p className="text-xs text-muted-foreground">
+                Recommended: 1000. Max: 6000 (embedding model limit).
+              </p>
             </div>
             <div className="space-y-1.5">
               <label htmlFor="kb-chunk-overlap" className="text-sm font-medium">
-                Chunk Overlap
+                Chunk Overlap {isEditing && <span className="text-xs text-muted-foreground font-normal">(locked)</span>}
               </label>
               <input
                 id="kb-chunk-overlap"
                 type="number"
                 min={0}
-                max={5000}
+                max={1000}
                 value={chunkOverlap}
                 onChange={(e) => setChunkOverlap(Number(e.target.value))}
+                disabled={isEditing}
                 className={inputClass}
               />
             </div>

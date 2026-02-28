@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .base import BaseChunker, Chunk
+from .base import MAX_CHUNK_SIZE, BaseChunker, Chunk
 
 
 class MarkdownChunker(BaseChunker):
@@ -32,6 +32,10 @@ class MarkdownChunker(BaseChunker):
     def __init__(self, chunk_size: int = 1000, overlap: int = 200) -> None:
         if overlap >= chunk_size:
             raise ValueError("overlap must be less than chunk_size")
+        if chunk_size > MAX_CHUNK_SIZE:
+            raise ValueError(
+                f"chunk_size {chunk_size} exceeds MAX_CHUNK_SIZE ({MAX_CHUNK_SIZE})"
+            )
         self._chunk_size = chunk_size
         self._overlap = overlap
 
