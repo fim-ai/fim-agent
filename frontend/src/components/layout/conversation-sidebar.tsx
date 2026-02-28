@@ -2,11 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { Plus, Trash2, Loader2, Search, Star, MoreHorizontal, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
