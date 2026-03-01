@@ -28,6 +28,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         tool_categories=agent.tool_categories,
         suggested_prompts=agent.suggested_prompts,
         kb_ids=agent.kb_ids,
+        connector_ids=agent.connector_ids,
         grounding_config=agent.grounding_config,
         status=agent.status,
         published_at=(
@@ -70,6 +71,7 @@ async def create_agent(
         tool_categories=body.tool_categories,
         suggested_prompts=body.suggested_prompts,
         kb_ids=body.kb_ids,
+        connector_ids=body.connector_ids,
         grounding_config=body.grounding_config,
         status="draft",
     )

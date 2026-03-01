@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from datetime import datetime
+
+from pydantic import BaseModel, Field, model_validator
+
+
+class OAuthBindingInfo(BaseModel):
+    provider: str
+    email: str | None = None
+    display_name: str | None = None
+    bound_at: datetime
 
 
 class UserInfo(BaseModel):
@@ -11,16 +20,28 @@ class UserInfo(BaseModel):
     display_name: str | None = None
     is_admin: bool
     system_instructions: str | None = None
+    oauth_provider: str | None = None
+    email: str | None = None
+    has_password: bool = False
+    oauth_bindings: list[OAuthBindingInfo] = []
 
 
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=2, max_length=50)
     password: str = Field(min_length=6, max_length=100)
+    email: str = Field(..., max_length=255)
 
 
 class LoginRequest(BaseModel):
-    username: str
+    username: str | None = None
     password: str
+    email: str | None = None
+
+    @model_validator(mode="after")
+    def check_identifier(self):
+        if not self.username and not self.email:
+            raise ValueError("username or email is required")
+        return self
 
 
 class TokenResponse(BaseModel):
@@ -34,11 +55,18 @@ class TokenResponse(BaseModel):
 class UpdateProfileRequest(BaseModel):
     display_name: str | None = Field(None, max_length=50)
     system_instructions: str | None = Field(None, max_length=2000)
+    email: str | None = Field(None, max_length=255)
 
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=6, max_length=100)
+
+
+class SetPasswordRequest(BaseModel):
+    """For OAuth-only users to set an initial password."""
+
+    new_password: str = Field(min_length=8, max_length=100)
 
 
 class RefreshRequest(BaseModel):

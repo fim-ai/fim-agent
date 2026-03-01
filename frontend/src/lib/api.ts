@@ -1,5 +1,5 @@
 import { API_BASE_URL, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from "./constants"
-import type { UserInfo, TokenResponse, LoginRequest, RegisterRequest, ChangePasswordRequest } from "@/types/auth"
+import type { UserInfo, TokenResponse, LoginRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest } from "@/types/auth"
 import type {
   ConversationResponse,
   ConversationDetail,
@@ -20,6 +20,14 @@ import type {
   ChunkUpdate,
   DocumentCreate,
 } from "@/types/kb"
+import type {
+  ConnectorResponse,
+  ConnectorCreate,
+  ConnectorUpdate,
+  ConnectorActionCreate,
+  ConnectorActionUpdate,
+  ConnectorActionResponse,
+} from "@/types/connector"
 
 // --- Auth failure callback ---
 let authFailureCallback: (() => void) | null = null
@@ -143,7 +151,7 @@ export const authApi = {
       body: JSON.stringify({ refresh_token: refreshToken }),
     }),
 
-  updateProfile: (body: { system_instructions?: string | null; display_name?: string | null }) =>
+  updateProfile: (body: { system_instructions?: string | null; display_name?: string | null; email?: string | null }) =>
     apiFetch<ApiResponse<UserInfo>>("/api/auth/profile", {
       method: "PATCH",
       body: JSON.stringify(body),
@@ -154,6 +162,20 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(body),
     }).then((r) => r.data),
+
+  setPassword: (body: SetPasswordRequest) =>
+    apiFetch<ApiResponse<UserInfo>>("/api/auth/set-password", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  unbindOAuth: (provider: string) =>
+    apiFetch<ApiResponse<UserInfo>>(`/api/auth/oauth-bindings/${provider}`, {
+      method: "DELETE",
+    }).then((r) => r.data),
+
+  me: () =>
+    apiFetch<ApiResponse<UserInfo>>("/api/auth/me").then((r) => r.data),
 }
 
 // --- Conversation API ---
@@ -366,4 +388,67 @@ export const kbApi = {
         body: JSON.stringify({ query, top_k: topK }),
       },
     ).then((r) => r.data),
+}
+
+// --- Connector API ---
+export const connectorApi = {
+  list: (page = 1, size = 50) =>
+    apiFetch<PaginatedResponse<ConnectorResponse>>(
+      `/api/connectors?page=${page}&size=${size}`,
+    ),
+
+  create: (body: ConnectorCreate) =>
+    apiFetch<ApiResponse<ConnectorResponse>>("/api/connectors", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  get: (id: string) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}`).then(
+      (r) => r.data,
+    ),
+
+  update: (id: string, body: ConnectorUpdate) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  delete: (id: string) =>
+    apiFetch<ApiResponse<void>>(`/api/connectors/${id}`, { method: "DELETE" }),
+
+  publish: (id: string) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(
+      `/api/connectors/${id}/publish`,
+      { method: "POST" },
+    ).then((r) => r.data),
+
+  unpublish: (id: string) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(
+      `/api/connectors/${id}/unpublish`,
+      { method: "POST" },
+    ).then((r) => r.data),
+
+  // Action CRUD
+  createAction: (connectorId: string, body: ConnectorActionCreate) =>
+    apiFetch<ApiResponse<ConnectorActionResponse>>(
+      `/api/connectors/${connectorId}/actions`,
+      { method: "POST", body: JSON.stringify(body) },
+    ).then((r) => r.data),
+
+  updateAction: (
+    connectorId: string,
+    actionId: string,
+    body: ConnectorActionUpdate,
+  ) =>
+    apiFetch<ApiResponse<ConnectorActionResponse>>(
+      `/api/connectors/${connectorId}/actions/${actionId}`,
+      { method: "PUT", body: JSON.stringify(body) },
+    ).then((r) => r.data),
+
+  deleteAction: (connectorId: string, actionId: string) =>
+    apiFetch<ApiResponse<void>>(
+      `/api/connectors/${connectorId}/actions/${actionId}`,
+      { method: "DELETE" },
+    ),
 }

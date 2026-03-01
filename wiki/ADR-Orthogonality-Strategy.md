@@ -1,0 +1,124 @@
+# ADR: Orthogonality Strategy
+
+> **Status**: Accepted (March 2026)
+>
+> **Context**: As LLM capabilities evolve rapidly, we need a framework to decide where to invest engineering effort and where to hold still.
+
+## Decision
+
+We classify every feature by its relationship to LLM progress, and allocate effort accordingly.
+
+| Category | Strategy | Investment | Examples |
+|----------|----------|------------|---------|
+| **Orthogonal** | Models getting smarter doesn't diminish these — pure engineering/integration problems | Full investment | Connectors, credentials, OAuth, audit, RBAC, security, deployment |
+| **Tailwind** | Models improving makes these *better*, not redundant — symbiotic relationship | Invest (benefits compound) | AI Connector Builder (smarter model = higher quality connector output) |
+| **Frozen** | Already shipped, working well — but models are absorbing these capabilities | Maintain only, no new features | ReAct loop, DAG planning, RAG pipeline, Memory, Grounded Generation |
+| **Consider** | Providers building natively at the platform level — high risk of redundancy | Deferred indefinitely | Multi-Agent orchestration, semantic memory, memory lifecycle |
+
+**Rule of thumb**: If a feature solves *"how to make the model smarter"*, it's being absorbed. If it solves *"how to connect the model to the real world safely"*, it's orthogonal.
+
+## Analysis
+
+### Why Connector Platform is fully orthogonal
+
+Models will never natively:
+- Store and encrypt API credentials (AES-GCM)
+- Manage OAuth flows (authorization page → callback → refresh token)
+- Connect to a client's Kingdee/金蝶 ERP database
+- Push notifications to DingTalk/钉钉 or WeCom/企微
+- Enforce RBAC on who can use which connector
+- Log every tool call for compliance auditing
+
+These are engineering problems, not intelligence problems. A model 10x smarter still can't do these things without infrastructure.
+
+### Why AI Connector Builder is "tailwind" not "being absorbed"
+
+The Builder Agent uses model intelligence to create **managed, persistent Connector entities** — stored in DB, reusable across agents, with credential management and audit trails. The model's improving API understanding makes the Builder produce *better* connectors, not makes the Builder unnecessary.
+
+Analogy: Cursor uses Claude to write code. Claude getting smarter makes Cursor *better*, not *redundant*, because Cursor provides engineering value (project management, file organization, version control) that the model doesn't replace.
+
+### Why v0.1–v0.5 features are "frozen"
+
+| Feature | What's happening in the industry |
+|---------|--------------------------------|
+| ReAct loop | Models have native tool calling (OpenAI, Anthropic). The external reasoning loop adds less value as models internalize it. |
+| DAG Planning | Model reasoning capabilities are improving rapidly. Complex task decomposition that needed external planners is becoming a single-shot capability. |
+| Memory management | Context windows are growing fast (Gemini 2M+, Claude 200K+). The need for external window management, summarization, and compaction is shrinking. |
+| RAG pipeline | Providers are building retrieval into their platforms (OpenAI file_search, Google NotebookLM, Gemini Search Grounding). For public knowledge, the traditional chunk-embed-retrieve pipeline is being replaced. |
+| Grounded Generation | Models are getting better at citing sources natively. The 5-stage grounding pipeline we built adds diminishing value. |
+
+**These features are not bad** — they shipped, they work, they make the product functional today. The decision is simply to stop adding to them and redirect effort.
+
+### Why Multi-Agent Orchestration was deferred
+
+LLM providers are building orchestration natively:
+- **OpenAI Swarm**: Multi-agent framework with handoff protocols
+- **Anthropic Claude Code Teams**: Leader/Worker agent pools with task graphs
+- **Google A2A (Agent-to-Agent)**: Inter-agent communication protocol
+
+Building a competing orchestration layer would mean racing against first-party implementations with deeper model integration. This is not a sustainable differentiator.
+
+### Why Semantic Memory and Memory Lifecycle were deferred
+
+- Context windows are growing rapidly, reducing the need for cross-session memory retrieval
+- Providers are adding native memory features (ChatGPT Memory, Claude Projects)
+- The engineering cost of building a reliable memory system (TTL, importance scoring, semantic retrieval) is high relative to the shrinking gap it fills
+
+## Feature-Level Classification
+
+### Orthogonal (v0.6+)
+
+| Feature | Version | Why orthogonal |
+|---------|---------|---------------|
+| Connector entity + CRUD | v0.6.1 | Enterprise integration, pure engineering |
+| Per-user credentials (AES-GCM) | v0.6.2 | Security infrastructure |
+| Confirmation Gate | v0.6.2 | Safety mechanism for write operations |
+| Connector Export/Import/Fork | v0.7 | Distribution mechanism |
+| OAuth 2.0 | v0.7 | Protocol implementation |
+| MCP Server Export | v0.7 | Interoperability (depends on MCP adoption) |
+| Database Connector | v0.8 | Direct DB access, connection pools |
+| Message Push | v0.8 | Notification channels |
+| RBAC | v0.8 | Access control, governance |
+| Operation Audit Log | v0.8 | Compliance |
+| Sandbox Hardening | v0.9 | Security isolation |
+| Observability (OTel, circuit breaker) | v0.9 | Production operations |
+| Connector Analytics | v0.9 | Usage tracking |
+| Docker Compose | v0.9 | Deployment |
+| Admin Dashboard | v1.0 | Management UI |
+| Scheduled Jobs / Webhooks | v1.0 | Automation triggers |
+| Batch Execution | v1.0 | Enterprise-scale processing |
+| Embeddable Widget / iframe | v1.0 | Delivery mode |
+| Enterprise Security | v1.0 | Compliance (encryption, IP whitelisting) |
+
+### Tailwind
+
+| Feature | Version | Relationship |
+|---------|---------|-------------|
+| AI Connector Builder | v0.6.3 | Smarter models → better builder output |
+| AI Connector Generation (OpenAPI) | v1.0 | Same — models understand API specs better → more accurate auto-generation |
+
+### Frozen (shipped, maintain only)
+
+| Feature | Version | Status |
+|---------|---------|--------|
+| ReAct Agent | v0.1 | Shipped, working |
+| DAG Planning / Re-Planning | v0.1, v0.5 | Shipped, working |
+| Memory (Window, Summary, Compact) | v0.2, v0.5 | Shipped, working |
+| RAG pipeline (embedding, vector store, chunking, hybrid retrieval) | v0.5 | Shipped, working |
+| Grounded Generation | v0.5 | Shipped, working |
+| ContextGuard / Pinned Messages | v0.5 | Shipped, working |
+
+### Consider (deferred indefinitely)
+
+| Feature | Original version | Reason deferred |
+|---------|-----------------|----------------|
+| Multi-Agent Orchestration | v1.0 | Providers building natively |
+| Semantic Memory Store | Backlog | Context windows growing; providers adding native memory |
+| Memory Lifecycle | Backlog | Same as above |
+
+## Implications
+
+1. **Don't go back to v0.5 features.** Bug fixes yes, new capabilities no.
+2. **Connector platform is the core investment.** v0.6–v0.8 should receive the majority of engineering time.
+3. **Enterprise engineering (RBAC, audit, security, deployment) is the moat.** These are boring but defensible.
+4. **Re-evaluate annually.** If model progress stalls or a "frozen" feature turns out to still have significant gaps, reconsider.

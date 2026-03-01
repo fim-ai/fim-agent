@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_agent.db import get_session
@@ -20,11 +20,14 @@ from fim_agent.web.auth import (
     verify_password,
 )
 from fim_agent.web.models import User
+from fim_agent.web.models.oauth_binding import UserOAuthBinding
 from fim_agent.web.schemas.auth import (
     ChangePasswordRequest,
     LoginRequest,
+    OAuthBindingInfo,
     RefreshRequest,
     RegisterRequest,
+    SetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
     UserInfo,
@@ -34,13 +37,37 @@ from fim_agent.web.schemas.common import ApiResponse
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _build_user_info(user: User) -> UserInfo:
+    """Build a UserInfo schema from a User ORM instance, including oauth_bindings."""
+    bindings = [
+        OAuthBindingInfo(
+            provider=b.provider,
+            email=b.email,
+            display_name=b.display_name,
+            bound_at=b.bound_at,
+        )
+        for b in (user.oauth_bindings or [])
+    ]
+    return UserInfo(
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        is_admin=user.is_admin,
+        system_instructions=user.system_instructions,
+        oauth_provider=user.oauth_provider,
+        email=user.email,
+        has_password=user.password_hash is not None,
+        oauth_bindings=bindings,
+    )
+
+
 def _build_token_response(user: User, access: str, refresh: str) -> TokenResponse:
     return TokenResponse(
         access_token=access,
         refresh_token=refresh,
         token_type="bearer",
         expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserInfo(id=user.id, username=user.username, display_name=user.display_name, is_admin=user.is_admin, system_instructions=user.system_instructions),
+        user=_build_user_info(user),
     )
 
 
@@ -56,9 +83,20 @@ async def register(
             detail="Username already taken",
         )
 
+    # Check email uniqueness
+    email_result = await db.execute(
+        select(User).where(User.email == body.email)
+    )
+    if email_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
     user = User(
         username=body.username,
         password_hash=hash_password(body.password),
+        email=body.email,
     )
     db.add(user)
     await db.flush()
@@ -80,12 +118,14 @@ async def login(
     body: LoginRequest,
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> TokenResponse:
-    result = await db.execute(select(User).where(User.username == body.username))
-    user = result.scalar_one_or_none()
-    if user is None or not verify_password(body.password, user.password_hash):
+    if body.email:
+        user = await db.scalar(select(User).where(User.email == body.email))
+    else:
+        user = await db.scalar(select(User).where(User.username == body.username))
+    if user is None or user.password_hash is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
+            detail="Invalid credentials",
         )
 
     access = create_access_token(user.id, user.username)
@@ -159,15 +199,7 @@ async def refresh_token(
 async def me(
     current_user: User = Depends(get_current_user),  # noqa: B008
 ) -> ApiResponse:
-    return ApiResponse(
-        data=UserInfo(
-            id=current_user.id,
-            username=current_user.username,
-            display_name=current_user.display_name,
-            is_admin=current_user.is_admin,
-            system_instructions=current_user.system_instructions,
-        ).model_dump()
-    )
+    return ApiResponse(data=_build_user_info(current_user).model_dump())
 
 
 @router.patch("/profile", response_model=ApiResponse)
@@ -182,17 +214,25 @@ async def update_profile(
         user.display_name = body.display_name or None
     if body.system_instructions is not None:
         user.system_instructions = body.system_instructions or None
+    if body.email is not None:
+        if not body.email or not body.email.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email cannot be empty",
+            )
+        # Check email uniqueness (exclude current user)
+        email_result = await db.execute(
+            select(User).where(User.email == body.email, User.id != user.id)
+        )
+        if email_result.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered",
+            )
+        user.email = body.email
     await db.commit()
     await db.refresh(user)
-    return ApiResponse(
-        data=UserInfo(
-            id=user.id,
-            username=user.username,
-            display_name=user.display_name,
-            is_admin=user.is_admin,
-            system_instructions=user.system_instructions,
-        ).model_dump()
-    )
+    return ApiResponse(data=_build_user_info(user).model_dump())
 
 
 @router.post("/change-password", response_model=ApiResponse)
@@ -203,6 +243,11 @@ async def change_password(
 ) -> ApiResponse:
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one()
+    if user.password_hash is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change password for OAuth accounts",
+        )
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -211,3 +256,75 @@ async def change_password(
     user.password_hash = hash_password(body.new_password)
     await db.commit()
     return ApiResponse(data={"message": "Password changed successfully"})
+
+
+@router.post("/set-password", response_model=ApiResponse)
+async def set_password(
+    body: SetPasswordRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Allow OAuth-only users to set an initial password."""
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+    if user.password_hash is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password already set. Use change-password instead.",
+        )
+    user.password_hash = hash_password(body.new_password)
+    await db.commit()
+    await db.refresh(user)
+    return ApiResponse(data=_build_user_info(user).model_dump())
+
+
+@router.delete("/oauth-bindings/{provider}", response_model=ApiResponse)
+async def unbind_oauth(
+    provider: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Unbind an OAuth provider from the current user."""
+    # Find the binding for this user + provider
+    result = await db.execute(
+        select(UserOAuthBinding).where(
+            UserOAuthBinding.user_id == current_user.id,
+            UserOAuthBinding.provider == provider,
+        )
+    )
+    binding = result.scalar_one_or_none()
+    if binding is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No OAuth binding found for provider '{provider}'",
+        )
+
+    # Safety check: prevent unbinding if it's the user's only login method
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+
+    binding_count_result = await db.execute(
+        select(func.count())
+        .select_from(UserOAuthBinding)
+        .where(UserOAuthBinding.user_id == user.id)
+    )
+    binding_count = binding_count_result.scalar_one()
+
+    has_password = user.password_hash is not None
+    if not has_password and binding_count <= 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot unbind the only login method. Set a password first.",
+        )
+
+    # Delete the binding
+    await db.delete(binding)
+
+    # Clear legacy columns if the unbound provider matches
+    if user.oauth_provider == provider:
+        user.oauth_provider = None
+        user.oauth_id = None
+
+    await db.commit()
+    await db.refresh(user)
+    return ApiResponse(data=_build_user_info(user).model_dump())

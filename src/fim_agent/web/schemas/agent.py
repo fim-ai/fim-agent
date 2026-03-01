@@ -13,6 +13,7 @@ class AgentCreate(BaseModel):
     tool_categories: list[str] | None = None
     suggested_prompts: list[str] | None = None
     kb_ids: list[str] | None = None
+    connector_ids: list[str] | None = None
     grounding_config: dict | None = None
 
 
@@ -24,6 +25,7 @@ class AgentUpdate(BaseModel):
     tool_categories: list[str] | None = None
     suggested_prompts: list[str] | None = None
     kb_ids: list[str] | None = None
+    connector_ids: list[str] | None = None
     grounding_config: dict | None = None
 
 
@@ -36,6 +38,7 @@ class AgentResponse(BaseModel):
     tool_categories: list[str] | None
     suggested_prompts: list[str] | None
     kb_ids: list[str] | None
+    connector_ids: list[str] | None
     grounding_config: dict | None
     status: str
     published_at: str | None

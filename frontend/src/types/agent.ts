@@ -7,6 +7,7 @@ export interface AgentResponse {
   tool_categories: string[] | null
   suggested_prompts: string[] | null
   kb_ids: string[] | null
+  connector_ids: string[] | null
   grounding_config: Record<string, unknown> | null
   status: string
   published_at: string | null
@@ -22,6 +23,7 @@ export interface AgentCreate {
   tool_categories?: string[]
   suggested_prompts?: string[]
   kb_ids?: string[]
+  connector_ids?: string[]
   grounding_config?: Record<string, unknown>
 }
 
@@ -33,5 +35,6 @@ export interface AgentUpdate {
   tool_categories?: string[]
   suggested_prompts?: string[]
   kb_ids?: string[]
+  connector_ids?: string[]
   grounding_config?: Record<string, unknown>
 }

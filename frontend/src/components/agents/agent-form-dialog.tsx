@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { kbApi } from "@/lib/api"
+import { kbApi, connectorApi } from "@/lib/api"
+import type { ConnectorResponse } from "@/types/connector"
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import type { AgentCreate, AgentResponse } from "@/types/agent"
 
-const TOOL_CATEGORIES = ["computation", "web", "filesystem", "knowledge", "mcp", "general"]
+const TOOL_CATEGORIES = ["computation", "web", "filesystem", "knowledge", "mcp", "connector", "general"]
 
 interface AgentFormDialogProps {
   open: boolean
@@ -37,6 +38,8 @@ export function AgentFormDialog({
   const [suggestedPrompts, setSuggestedPrompts] = useState("")
   const [selectedKBs, setSelectedKBs] = useState<string[]>([])
   const [availableKBs, setAvailableKBs] = useState<{id: string; name: string; document_count: number}[]>([])
+  const [availableConnectors, setAvailableConnectors] = useState<ConnectorResponse[]>([])
+  const [selectedConnectors, setSelectedConnectors] = useState<string[]>([])
   const [confidenceThreshold, setConfidenceThreshold] = useState<number | null>(null)
 
   // Pre-fill when editing or reset when creating
@@ -49,6 +52,7 @@ export function AgentFormDialog({
       setToolCategories(agent.tool_categories || [])
       setSuggestedPrompts(agent.suggested_prompts?.join("\n") || "")
       setSelectedKBs(agent.kb_ids || [])
+      setSelectedConnectors(agent.connector_ids || [])
       const ct = agent.grounding_config?.confidence_threshold
       setConfidenceThreshold(typeof ct === "number" ? ct : null)
     } else {
@@ -58,6 +62,7 @@ export function AgentFormDialog({
       setToolCategories([])
       setSuggestedPrompts("")
       setSelectedKBs([])
+      setSelectedConnectors([])
       setConfidenceThreshold(null)
     }
   }, [open, agent])
@@ -68,6 +73,10 @@ export function AgentFormDialog({
       .list(1, 100)
       .then((d) => setAvailableKBs(d.items || []))
       .catch(() => setAvailableKBs([]))
+    connectorApi
+      .list(1, 100)
+      .then((d) => setAvailableConnectors(d.items || []))
+      .catch(() => setAvailableConnectors([]))
   }, [open])
 
   const toggleCategory = (cat: string) => {
@@ -95,6 +104,7 @@ export function AgentFormDialog({
       tool_categories: toolCategories,
       ...(prompts.length > 0 && { suggested_prompts: prompts }),
       ...(selectedKBs.length > 0 && { kb_ids: selectedKBs }),
+      ...(selectedConnectors.length > 0 && { connector_ids: selectedConnectors }),
       ...(selectedKBs.length > 0 && confidenceThreshold != null && {
         grounding_config: { confidence_threshold: confidenceThreshold },
       }),
@@ -209,6 +219,40 @@ export function AgentFormDialog({
                     />
                     <span className="text-muted-foreground">
                       {kb.name} ({kb.document_count} docs)
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Connectors */}
+          {availableConnectors.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Connectors</label>
+              <p className="text-xs text-muted-foreground">
+                Bind connectors to give the agent access to external API actions
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {availableConnectors.map((conn) => (
+                  <label
+                    key={conn.id}
+                    className="flex items-center gap-1.5 text-sm cursor-pointer select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedConnectors.includes(conn.id)}
+                      onChange={() =>
+                        setSelectedConnectors((prev) =>
+                          prev.includes(conn.id)
+                            ? prev.filter((id) => id !== conn.id)
+                            : [...prev, conn.id]
+                        )
+                      }
+                      className="h-3.5 w-3.5 rounded border-input accent-primary"
+                    />
+                    <span className="text-muted-foreground">
+                      {conn.name} ({conn.actions.length} actions)
                     </span>
                   </label>
                 ))}

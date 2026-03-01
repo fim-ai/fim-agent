@@ -18,8 +18,8 @@ src/fim_agent/
 │   ├── model/       # BaseLLM, OpenAICompatibleLLM, ModelRegistry, retry, rate limiting, usage tracking
 │   ├── planner/     # DAGPlanner → DAGExecutor → PlanAnalyzer
 │   ├── memory/      # WindowMemory, SummaryMemory
-│   └── tools/       # Tool base classes
-├── web/             # FastAPI backend API
+│   └── tools/       # Tool base classes, ConnectorToolAdapter
+├── web/             # FastAPI backend API (agents, connectors, KB, chat)
 frontend/            # Next.js portal (shadcn/ui)
 ```
 
@@ -50,6 +50,13 @@ Before starting parallel worktree development:
 - Production builds use a separate dir: `.next-build` (configured via `distDir` in `next.config.ts`)
 - To build: just run `cd frontend && pnpm build` — the build script handles cleaning `.next-build`
 - **NEVER run `rm -rf .next && next build`** — use `pnpm build` which only cleans `.next-build`
+
+## Frontend UI Conventions
+
+- **NEVER use native browser dialogs** (`window.confirm()`, `window.alert()`, `window.prompt()`). Always use shadcn/ui components instead:
+  - Confirmations → `AlertDialog` (`@/components/ui/alert-dialog`)
+  - Notifications → Toast or inline feedback
+  - Input prompts → `Dialog` (`@/components/ui/dialog`)
 
 ## Code Conventions
 

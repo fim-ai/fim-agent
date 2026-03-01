@@ -20,10 +20,10 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
                         ┌───────────────────────────┐
                         │     FIM Agent Engine       │
                         │                           │
-                        │  Agent A: Finance Audit    │──→ DB Adapter  ──→ SAP / Kingdee (金蝶) (Oracle/PG)
-                        │  Agent B: Contract Review  │──→ API Adapter ──→ CRM / CLM system (REST)
-                        │  Agent C: Notification     │──→ Msg Adapter ──→ DingTalk (钉钉) / Slack / Teams
-                        │  Agent D: Data Reporting   │──→ DB Adapter  ──→ Business DB (MySQL/PG)
+                        │  Agent A: Finance Audit    │──→ DB Connector  ──→ SAP / Kingdee (金蝶) (Oracle/PG)
+                        │  Agent B: Contract Review  │──→ API Connector ──→ CRM / CLM system (REST)
+                        │  Agent C: Notification     │──→ Msg Connector ──→ DingTalk (钉钉) / Slack / Teams
+                        │  Agent D: Data Reporting   │──→ DB Connector  ──→ Business DB (MySQL/PG)
                         │                           │
                         └──────────┬────────────────┘
                                    │
@@ -93,7 +93,7 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
 
 > *"From playground to a real platform"*
 >
-> Multi-tenancy, persistence, agent management -- supports both standalone usage and the adapter model that comes later.
+> Multi-tenancy, persistence, agent management -- supports both standalone usage and the connector model that comes later.
 
 - [x] **HTTP Request Tool**: General-purpose HTTP client (`http_request`) — supports GET/POST/PUT/PATCH/DELETE with custom headers, query params, and body; SSRF protection (private IP blocking), JSON auto-pretty-print, 200KB response limit
 - [x] **Shell Exec Tool**: Sandboxed shell execution (`shell_exec`) — run curl, jq, awk, grep etc. with command blocklist (30+ patterns), env var scrubbing, system path write protection, per-user sandbox directory
@@ -144,67 +144,129 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
 **Personal Center**
 - [x] **Global User Instructions**: Per-user system instructions that inject into every agent conversation; PATCH `/api/auth/profile` to save; merged with agent-specific instructions (user instructions first, agent instructions after for higher LLM priority)
 
-### v0.6 -- System Adapter & Sandbox Hardening
+### v0.6 -- Connector Platform
 
-> *"The standard protocol for connecting legacy systems"*
+> *"Connect any system through conversation"*
 >
-> The universal platform is ready. Now add adaptation capabilities so FIM Agent can bridge into any host system without modifying it.
+> The universal platform is ready. Now add connection capabilities so FIM Agent can bridge into any host system. The core differentiator.
 >
-> **Core insight**: The host system can't be modified. Agent must proactively bridge in -- read their DB, call their API, push to their message bus.
->
-> **Architecture**: Adapters are MCP Servers with a governance layer (Adapter SDK) on top. The agent sees adapters as ordinary tools -- zero coupling. See [Adapter Architecture](Adapter-Architecture) for the full design.
+> **Architecture**: Virtual Connector model — definitions stored in DB, runtime HTTP/SQL proxy (no MCP protocol overhead), export to standalone MCP Server for distribution/fork.
 
-**Execution Sandbox Hardening**
+#### v0.6.1 — Connector Entity & Manual Builder
+
+**Backend**
+- [ ] Connector + ConnectorAction ORM models
+- [ ] Connector CRUD API: `/api/connectors`
+- [ ] ConnectorAction CRUD API: `/api/connectors/{id}/actions`
+- [ ] `ConnectorToolAdapter` (like MCPToolAdapter): Action → BaseTool; `run()` builds HTTP request → `base_url + path` → returns response
+- [ ] Agent model `connector_ids: JSON` field
+- [ ] `_resolve_tools()` extension: load agent-bound connectors → register actions as tools
+- [ ] Database migration
+
+**Frontend**
+- [ ] Connector management page (list + create/edit form)
+- [ ] Action editor (method, path, parameters schema)
+- [ ] Agent form Connector multi-select (like KB binding)
+- [ ] Tool category `"connector"` in sidebar
+
+**Validation**: GitHub Connector (PAT bearer auth) → list_repos / get_issue → bind to Agent → use in conversation.
+
+#### v0.6.2 — Per-User Credentials
+
+**Backend**
+- [ ] ConnectorCredential model (AES-GCM encrypted)
+- [ ] Credential CRUD API: `/api/connectors/{id}/credentials`
+- [ ] Runtime credential injection: `ConnectorToolAdapter.run()` loads current user credential → injects HTTP header
+- [ ] Target system error passthrough: 4xx/5xx returned to Agent as-is
+- [ ] Auth type support: api_key (custom header), bearer, basic, none
+- [ ] Token exchange: app_id + secret → access_token (for services like Feishu/Lark that need two-step auth)
+
+**Frontend**
+- [ ] Connector detail page + "Connect" button
+- [ ] Credential input dialog (dynamic fields based on auth_type)
+- [ ] Connection status indicator (connected / not connected / expired)
+
+**Validation**:
+1. GitHub: two users with separate PATs → same Connector → each sees own repos → 403 passthrough on no permission
+2. Feishu Connector: docs/messages/calendar APIs → user connects via Feishu app credentials → chat queries own Feishu docs and messages
+3. Confirmation Gate: Agent attempts POST to GitHub → user sees confirmation dialog → approve/reject → result returned
+
+**Safety**
+- [ ] **Confirmation Gate**: Write operations (POST/PUT/DELETE) require user confirmation before execution; SSE event `confirmation_required`; configurable per-action (some reads may also need confirmation for sensitive data)
+- [ ] **Dry-run Mode**: Preview operation effects without actual execution
+
+#### v0.6.3 — AI-Assisted Connector Builder
+
+**Backend**
+- [ ] OpenAPI Spec import: upload/URL → parse → auto-generate Actions
+- [ ] Connector Builder Agent (built-in) with dedicated tools: `create_connector_draft` / `add_action` / `test_action` / `import_openapi` / `publish_connector`
+- [ ] API probing: test endpoints with provided credentials
+- [ ] Natural language → Action conversion
+
+**Frontend**
+- [ ] Builder conversation entry (reuse Chat UI + built-in Builder Agent)
+- [ ] OpenAPI import entry
+
+**Validation**: Create Zhihe contract system Connector via conversation — provide API docs → Agent generates actions → test → publish.
+
+**Example scenarios Connectors unlock:**
+- **ERP / Finance** (SAP, Kingdee/金蝶, Oracle DB): Agent reads financial statements via DB Connector, generates analysis reports, pushes to DingTalk (钉钉) / Slack
+- **OA / Workflow** (Seeyon/致远, Weaver/泛微, REST API): Agent calls approval endpoints via API Connector, AI-assisted classification and routing, writes results back
+- **CRM / Contracts** (Salesforce, custom PG): Agent reads contract clauses via API Connector, performs risk analysis, generates review opinions
+- **Business DB** (MySQL / PG): Agent scans for anomalies via DB Connector, generates alerts, notifies responsible parties via Teams / WeCom (企微) / email
+
+### v0.7 -- Connector Distribution & OAuth
+
+> *"Build once, distribute to many"*
+
+- [ ] **Connector Export/Import**: Export JSON/YAML (without credentials), others can import
+- [ ] **Fork Mechanism**: Create a copy from a published Connector, freely modify actions
+- [ ] **OAuth 2.0 Support**:
+  - OAuth configuration (client_id, client_secret, auth_url, token_url, scopes)
+  - User clicks "Connect" → OAuth authorization page → callback → store refresh_token
+  - Automatic token refresh (silent refresh before expiry)
+- [ ] **Connector Versioning**: Track changes, support rollback
+- [ ] **Official Connector Library**: GitHub, Feishu, DingTalk and other preset connectors
+- [ ] **MCP Server Export**: Generate standalone FastMCP Server code from Connector; users can run independently or fork
+
+### v0.8 -- Database Connector, Message Push & Access Control
+
+> *"Not just APIs — databases, notifications, and who can do what"*
+
+**Connector Types**
+- [ ] **Database Connector Type**:
+  - Support PostgreSQL, MySQL (asyncpg / aiomysql)
+  - Schema introspection: AI browses table structure, suggests useful queries
+  - Action = parameterized SQL query (read-only by default, writes require confirmation)
+  - Connection pool management, query timeout protection
+- [ ] **Message Push Connector Type**:
+  - Send results to DingTalk / Feishu / WeCom / Slack / email / webhook
+  - Templated message formatting
+  - Can serve as Agent's "output channel"
+
+**Access Control & Governance**
+- [ ] **RBAC (Role-Based Access Control)**: Roles (admin / editor / viewer) with granular permissions on agents, connectors, and knowledge bases; platform admin can manage users and roles; replaces current flat JWT auth with hierarchical access model
+- [ ] **Operation Audit Log**: Every tool call recorded (timestamp, user, Connector, Action, params, result); filterable audit trail UI in admin panel
+
+**Reference Implementation**
+- [ ] **Zhihe Contract System Reference Connector**: First official business connector — search / detail / compare / timeline / statistics
+
+### v0.9 -- Sandbox Hardening + Observability
+
+> *"Production-ready"*
+
+**Sandbox Hardening**
 - [ ] **Per-User Virtual Environment**: Each conversation spawns an isolated Python venv; user code executes via subprocess in the venv, not the host interpreter; prevents cross-session state leakage and module pollution
 - [ ] **Resource Limits**: CPU time and memory caps via `resource.setrlimit()` (Unix) for both Python exec and shell exec; prevents OOM and infinite-loop DoS
 - [ ] **File I/O Sandboxing**: Replace whitelisted `open()` in python_exec with path-validated wrapper; all file access confined to conversation sandbox directory
 - [ ] **Shell Exec Allowlist Mode**: Optional switch from command blocklist (regex-bypassable) to strict allowlist (`curl`, `grep`, `jq`, `awk`, `sed`, etc.); defense-in-depth against variable expansion / command substitution bypass
 
-**System Adapter**
-- [ ] **Adapter SDK**: Governance layer on MCP -- `read_only` enforcement, operation classification, audit hooks, auth passthrough interface
-- [ ] **Database Adapter**: Direct SQL read against host DB (async, parameterized, read-only by default); supports PostgreSQL, MySQL, Oracle, SQL Server
-- [ ] **HTTP API Adapter**: Generic REST/SOAP connector (httpx-based); auto-discover endpoints from Swagger/WSDL when available
-- [ ] **Message Push Adapter**: Send results to DingTalk (钉钉) / WeCom (企微) / Slack / Teams / email / webhook; templated message formatting
-- [ ] **Auth Passthrough**: Proxy host-system authentication; agent acts on behalf of the logged-in user; scoped permissions (DB read-only vs API full-access) per adapter
-- [ ] **Reference Adapter**: First concrete implementation targeting a real-world contract/business management system -- search / detail / compare / timeline / statistics
-- [ ] **Operation Audit Log**: Every tool call recorded (timestamp, user, tool, params, result, source adapter)
-
-**Example scenarios this unlocks:**
-- **ERP / Finance** (SAP, Kingdee/金蝶, Oracle DB): Agent reads financial statements directly from DB, generates analysis reports, pushes to DingTalk (钉钉) / Slack
-- **OA / Workflow** (Seeyon/致远, Weaver/泛微, REST API): Agent calls approval endpoints, AI-assisted classification and routing, writes results back
-- **CRM / Contracts** (Salesforce, custom PG): Agent reads contract clauses, performs risk analysis, generates review opinions
-- **Business DB** (MySQL / PG): Agent periodically scans for anomalies, generates alerts, notifies responsible parties via Teams / WeCom (企微) / email
-
-### v0.7 -- Human Confirmation + Embeddable UI
-
-> *"Safely operate legacy systems + injectable delivery"*
-
-- [ ] **Confirmation Gate**: Write operations require human approval; SSE event `confirmation_required`; configurable policy
-- [ ] **Dry-run Mode**: Preview operation effects without actual execution
-- [ ] **Adapter Write Operations**: Approval, commenting, status changes on host system (all require confirmation)
-- [ ] **Embeddable Widget**: Lightweight JS bundle (<100KB), inject via `<script>` tag into host pages
-- [ ] **Page Context Injection**: Read current context from host page (contract ID, page URL, DOM selector)
-- [ ] **iframe / Standalone URL Mode**: Authenticated standalone access for embedding
-
-### v0.8 -- Declarative Adapter + Multi-System
-
-> *"From writing code to filling config" (Standardization Level 2)*
-
-- [ ] **Declarative Adapter Engine**: Define adapters in YAML/JSON, auto-generate Tools
-- [ ] **Adapter Testing Harness**: Mock host system for testing without a live connection
-- [ ] **Schema Introspection**: Runtime adapter self-description capabilities
-- [ ] **Multi-Adapter Routing**: Single instance connects to multiple host systems; agent auto-routes
-- [ ] **Second Adapter**: Adapt a second system to validate protocol generality
-- [ ] **`create_adapter` CLI**: Scaffolding tool for new adapter projects
-
-### v0.9 -- Observability + Production
-
-> *"See what the Agent is doing"*
-
-- [ ] **OpenTelemetry Tracing**: Full-chain tracing for LLM calls, tool execution, and adapter invocations
+**Observability**
+- [ ] **OpenTelemetry Tracing**: Full-chain tracing for LLM calls, tool execution, and Connector invocations
 - [ ] **Cost Dashboard**: Token usage aggregation by user / project / agent / model
-- [ ] **Circuit Breaker**: Adapter connection circuit breaker with graceful degradation
-- [ ] **Health Check**: `/api/health` endpoint (LLM + adapter + vector store connectivity)
+- [ ] **Connector Analytics**: Per-connector call volume, error rate, p95 latency, uptime tracking; surface unhealthy connectors and usage trends
+- [ ] **Circuit Breaker**: Connector connection circuit breaker with graceful degradation
+- [ ] **Health Check**: `/api/health` endpoint (LLM + Connector + vector store connectivity)
 - [ ] **Execution Replay**: Complete execution trace replay for debugging and auditing
 - [ ] **Docker Compose**: API + SQLite + optional Langfuse, production-ready
 
@@ -212,41 +274,44 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
 
 > *"Enterprise-ready"*
 
-- [ ] **AI Adapter Generation**: Upload Swagger/OpenAPI spec -> auto-generate adapter config (Standardization Level 3)
-- [ ] **Plugin System**: Pip-installable adapter packages with entry-point auto-registration
-- [ ] **Admin Dashboard**: Audit logs, adapter management, health monitoring, usage/cost analytics
-- [ ] **Multi-Agent Orchestration** *(inspired by Claude Code Teams)*:
-  - [ ] Agent Pool: Dynamic agent lifecycle — spawn on demand, shut down when done; each agent runs isolated ReAct loop with its own context window
-  - [ ] Task Graph: `blockedBy` / `blocks` dependency edges between tasks; orchestrator dispatches newly-unblocked tasks as predecessors complete (dynamic DAG over message-passing)
-  - [ ] Leader / Worker roles: Leader decomposes plan into tasks, assigns to Workers, monitors progress, re-assigns on failure
-  - [ ] Inter-Agent Messaging: Direct messages + broadcast; Workers report results back to Leader
-  - [ ] Graceful shutdown: Leader sends shutdown requests, Workers confirm or reject
-  - [ ] Token economics awareness: Track per-agent token cost; expose total cost as `N agents × per-agent tokens`
-- [ ] **Scheduled Jobs**: Cron triggers, webhook triggers
+**Connector Ecosystem**
+- [ ] **AI Connector Generation**: Upload Swagger/OpenAPI spec → AI auto-generates complete Connector (auth, Actions, tests)
+- [ ] **Connector Marketplace**: In-platform connector market — search, install, rate
+- [ ] **Plugin System**: Pip-installable Connector packages with entry-point auto-registration
+
+**Enterprise Operations**
+- [ ] **Admin Dashboard**: Audit logs, Connector management, health monitoring, usage/cost analytics
+- [ ] **Scheduled Jobs**: Cron triggers, webhook triggers — run agents on schedule or in response to external events
+- [ ] **Batch Execution**: Run an agent against multiple inputs in one job (e.g., review 100 contracts, audit 50 invoices); progress tracking, partial failure handling, result aggregation
 - [ ] **Enterprise Security**: Data encryption, IP whitelisting, SOC2 audit logging
 - [ ] **PostgreSQL**: Optional for large-scale deployments
 - [ ] **i18n**: Chinese / English
 
+**Embeddable Delivery**
+- [ ] **Embeddable Widget**: Lightweight JS bundle (<100KB), inject via `<script>` tag into host pages
+- [ ] **Page Context Injection**: Read current context from host page (contract ID, page URL, DOM selector)
+- [ ] **iframe / Standalone URL Mode**: Authenticated standalone access for embedding
+
 ---
 
-## Adapter Standardization Levels
+## Connector Standardization Levels
 
 | Level | Version | Approach |
 |-------|---------|----------|
-| **Level 1** | v0.6 | Python MCP Server with Adapter SDK governance |
-| **Level 2** | v0.8 | Declarative YAML/JSON config, platform auto-generates MCP Server |
-| **Level 3** | v1.0 | Upload OpenAPI/Swagger spec, AI generates config automatically |
+| **Level 1** | v0.6 | Manual/AI-created Connector, DB storage, runtime HTTP proxy |
+| **Level 2** | v0.7 | Export/Import + Fork, MCP Server export |
+| **Level 3** | v1.0 | Upload OpenAPI spec, AI auto-generates complete Connector |
 
 ## Multi-Tenant Model
 
 ```
 Platform (multi-tenant)
 ├── Tenant A (Manufacturing)
-│   ├── Project 1: SAP Finance Sidecar      [adapter: db(oracle) + msg(dingtalk)]
-│   ├── Project 2: OA Approval Assistant     [adapter: api(seeyon) + built-in tools]
+│   ├── Project 1: SAP Finance Sidecar      [connector: db(oracle) + msg(dingtalk)]
+│   ├── Project 2: OA Approval Assistant     [connector: api(seeyon) + built-in tools]
 │   └── Project 3: General AI Assistant      [tools: search, browser, code]
 ├── Tenant B (Tech Company)
-│   ├── Project 1: Salesforce CRM Agent      [adapter: api(salesforce) + msg(slack)]
+│   ├── Project 1: Salesforce CRM Agent      [connector: api(salesforce) + msg(slack)]
 │   └── Project 2: Internal Knowledge Agent  [tools: rag + built-in + MCP]
 ```
 
@@ -259,19 +324,28 @@ Platform (multi-tenant)
 | v0.5 Agent Builder | Visual agent creation | **Simplified** -> v0.4 Project/Agent management | Code + config over drag-and-drop |
 | v0.6 Multi-Agent + HITL | Nested agents, approval gates | **Split** | HITL -> v0.7; Multi-Agent -> v1.0 |
 | v0.7 Production Platform | User management, persistence | **Moved earlier** to v0.4 | Platform basics needed sooner |
-| v0.8 Observability | Tracing, cost, monitoring | **Moved** to v0.9 | Adapter features take priority |
+| v0.8 Observability | Tracing, cost, monitoring | **Moved** to v0.9 | Connector features take priority |
 | v0.9 Workflow Engine | Dify-style visual orchestration | **Removed** | Not pursuing Dify parity |
-| -- | -- | **New** v0.6 System Adapter | Core differentiator |
+| -- | -- | **New** v0.6 System Connector | Core differentiator |
 | -- | -- | **New** v0.7 Embeddable UI | Sidecar delivery mode |
-| -- | -- | **New** v0.8 Declarative Adapter | Standardization at scale |
+| -- | -- | **New** v0.8 Declarative Connector | Standardization at scale |
+| v0.6–v1.0 | System Adapter → Connector Platform | **Restructured** | Adapter SDK evolved into Connector entity model; per-user credentials; AI Builder; Sandbox Hardening moved to v0.9; Embeddable UI moved to v1.0 |
+| v1.0 | Multi-Agent Orchestration | **Moved** to Consider | LLM providers building natively (OpenAI Swarm, Claude Teams, A2A); competing is not sustainable |
+| Backlog | Semantic Memory Store, Memory Lifecycle | **Moved** to Consider | Context windows growing rapidly; providers adding native memory features |
 
 ### Backlog
 
 > Items deprioritized from earlier versions. May be revisited when relevant.
 
 - [ ] **Conversation Summary Memory**: Automatic rolling summaries that persist across long sessions; hybrid window + summary strategy *(deprioritized from v0.5 — largely overlaps with LLM Compact)*
-- [ ] **Semantic Memory Store**: Cross-conversation knowledge extraction and retrieval; agent remembers facts/preferences across sessions via embedding-based lookup
-- [ ] **Memory Lifecycle**: TTL-based expiry, importance scoring, explicit forget/remember commands
+
+### Consider
+
+> Deferred indefinitely. These capabilities are increasingly being absorbed by LLM providers at the model/platform level. Building them in-house carries high risk of becoming redundant. Re-evaluate only if the landscape changes significantly.
+
+- [ ] **Multi-Agent Orchestration**: Leader/Worker agent pool, task graph with dependency edges, inter-agent messaging, graceful shutdown, token economics tracking. *Reason: LLM providers are building this natively — OpenAI Swarm, Anthropic Claude Code Teams, Google A2A protocol. The orchestration layer is commoditizing at the provider level; competing with first-party implementations is not a sustainable differentiator.*
+- [ ] **Semantic Memory Store**: Cross-conversation knowledge extraction and retrieval; agent remembers facts/preferences across sessions via embedding-based lookup. *Reason: Model context windows are growing rapidly (Gemini 2M+, Claude 200K+), reducing the need for external memory management. Meanwhile, providers are adding native memory/personalization features (ChatGPT Memory, Claude Projects). The gap that semantic memory fills is shrinking with each model generation.*
+- [ ] **Memory Lifecycle**: TTL-based expiry, importance scoring, explicit forget/remember commands. *Reason: Same as Semantic Memory Store — as models gain longer context and native memory capabilities, building a custom memory lifecycle system risks becoming redundant engineering effort.*
 
 ---
 

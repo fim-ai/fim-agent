@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bot, Library, Loader2, MessagesSquare, PanelLeftClose, PanelLeftOpen, Plus, Search } from "lucide-react"
+import { Bot, Library, Loader2, MessagesSquare, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { APP_NAME } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -108,8 +108,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Login page: no sidebar, full-width content
-  if (pathname === "/login") {
+  // Public pages: no sidebar, full-width content
+  if (pathname === "/login" || pathname === "/auth/callback") {
     return <main className="h-screen bg-background">{children}</main>
   }
 
@@ -129,18 +129,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             collapsed ? "w-16" : "w-60",
           )}
         >
-          {/* Logo area */}
-          <div className={cn("flex h-14 items-center gap-2 shrink-0", collapsed ? "justify-center px-2" : "px-4")}>
-            <img
-              src="/fim-mark.svg"
-              alt="FIM"
-              className="h-6 w-auto shrink-0"
-            />
+          {/* Logo area + collapse toggle */}
+          <div className={cn("flex h-14 items-center shrink-0", collapsed ? "justify-center px-2" : "justify-between px-4")}>
             {!collapsed && (
-              <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-                {APP_NAME}
-              </span>
+              <div className="flex items-center gap-2">
+                <img
+                  src="/fim-mark.svg"
+                  alt="FIM"
+                  className="h-6 w-auto shrink-0"
+                />
+                <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
+                  {APP_NAME}
+                </span>
+              </div>
             )}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
           </div>
 
           <Separator />
@@ -179,6 +188,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {!collapsed && <span>Knowledge</span>}
             </Link>
             <Link
+              href="/connectors"
+              className={cn(
+                "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                pathname === "/connectors"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+                collapsed && "justify-center px-0"
+              )}
+              title="Connectors"
+            >
+              <Plug className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Connectors</span>}
+            </Link>
+            <Link
               href="/chats"
               className={cn(
                 "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
@@ -203,29 +226,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Bottom area */}
           <div className={cn("shrink-0 pb-3", collapsed ? "px-2" : "px-3")}>
             <Separator className="mb-2" />
-            {collapsed ? (
-              <div className="flex flex-col items-center gap-2">
-                <UserMenu collapsed={collapsed} />
-                <button
-                  onClick={() => setCollapsed(!collapsed)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <PanelLeftOpen className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <div className="flex-1 min-w-0">
-                  <UserMenu collapsed={collapsed} />
-                </div>
-                <button
-                  onClick={() => setCollapsed(!collapsed)}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+            <UserMenu collapsed={collapsed} />
           </div>
         </aside>
 

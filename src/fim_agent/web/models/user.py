@@ -5,28 +5,36 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, String, Text
+from sqlalchemy import Boolean, DateTime, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fim_agent.db.base import Base, TimestampMixin, UUIDPKMixin
 
 if TYPE_CHECKING:
     from .agent import Agent
+    from .connector import Connector
     from .conversation import Conversation
     from .knowledge_base import KnowledgeBase
     from .model_config import ModelConfig
+    from .oauth_binding import UserOAuthBinding
 
 
 class User(UUIDPKMixin, TimestampMixin, Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("oauth_provider", "oauth_id", name="uq_user_oauth"),
+    )
 
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     refresh_token: Mapped[str | None] = mapped_column(String(500), nullable=True)
     refresh_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     system_instructions: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    oauth_provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    oauth_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     conversations: Mapped[list[Conversation]] = relationship(back_populates="user", lazy="selectin")
     agents: Mapped[list[Agent]] = relationship(back_populates="user", lazy="selectin")
@@ -34,3 +42,7 @@ class User(UUIDPKMixin, TimestampMixin, Base):
         back_populates="user", lazy="selectin"
     )
     model_configs: Mapped[list[ModelConfig]] = relationship(back_populates="user", lazy="selectin")
+    connectors: Mapped[list[Connector]] = relationship(back_populates="user", lazy="selectin")
+    oauth_bindings: Mapped[list[UserOAuthBinding]] = relationship(
+        back_populates="user", lazy="selectin"
+    )

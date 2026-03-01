@@ -23,7 +23,7 @@ import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -87,8 +87,166 @@ async def init_db() -> None:
 
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if is_sqlite:
+            await _migrate_user_password_nullable(conn)
+            await _migrate_user_oauth_columns(conn)
+            await _migrate_oauth_bindings(conn)
+            await _migrate_agent_columns(conn)
 
     logger.info("Database initialized successfully")
+
+
+async def _migrate_user_password_nullable(conn) -> None:
+    """Make users.password_hash nullable for OAuth users who have no password.
+
+    SQLite does not support ``ALTER COLUMN``, so we check whether the column is
+    already nullable.  If not, we recreate the table with the corrected schema
+    while preserving all existing data.
+    """
+    result = await conn.execute(text("PRAGMA table_info(users)"))
+    columns = result.fetchall()
+
+    # PRAGMA table_info columns: (cid, name, type, notnull, dflt_value, pk)
+    for col in columns:
+        if col[1] == "password_hash":
+            notnull = col[3]
+            if not notnull:
+                return  # Already nullable, nothing to do
+            break
+    else:
+        return  # Column doesn't exist yet (will be created by create_all)
+
+    logger.info("Migrating users.password_hash to nullable (recreating table)")
+
+    # Gather current column definitions from PRAGMA
+    col_names = [c[1] for c in columns]
+    col_list = ", ".join(col_names)
+
+    # Build CREATE TABLE statement with the same columns but password_hash nullable
+    col_defs = []
+    for c in columns:
+        cid, name, ctype, notnull, dflt, pk = c
+        parts = [name, ctype or "TEXT"]
+        if pk:
+            parts.append("PRIMARY KEY")
+        if notnull and name != "password_hash":
+            parts.append("NOT NULL")
+        if dflt is not None:
+            parts.append(f"DEFAULT {dflt}")
+        col_defs.append(" ".join(parts))
+
+    create_sql = f"CREATE TABLE users_new ({', '.join(col_defs)})"
+
+    await conn.execute(text(create_sql))
+    await conn.execute(text(f"INSERT INTO users_new ({col_list}) SELECT {col_list} FROM users"))
+    await conn.execute(text("DROP TABLE users"))
+    await conn.execute(text("ALTER TABLE users_new RENAME TO users"))
+
+    # Recreate indexes that were dropped with the old table
+    await conn.execute(
+        text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_username ON users(username)")
+    )
+    await conn.execute(
+        text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_user_oauth "
+            "ON users(oauth_provider, oauth_id)"
+        )
+    )
+    logger.info("users.password_hash is now nullable")
+
+
+async def _migrate_user_oauth_columns(conn) -> None:
+    """Add OAuth-related columns to the users table if they don't exist.
+
+    SQLite does not support ``ALTER TABLE ... ADD COLUMN IF NOT EXISTS``, so we
+    inspect the table via ``PRAGMA table_info`` first.
+    """
+    result = await conn.execute(text("PRAGMA table_info(users)"))
+    existing_columns = {row[1] for row in result.fetchall()}
+
+    migrations = [
+        ("oauth_provider", "ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(20)"),
+        ("oauth_id", "ALTER TABLE users ADD COLUMN oauth_id VARCHAR(255)"),
+        ("email", "ALTER TABLE users ADD COLUMN email VARCHAR(255)"),
+    ]
+
+    for col_name, ddl in migrations:
+        if col_name not in existing_columns:
+            logger.info("Adding column users.%s", col_name)
+            await conn.execute(text(ddl))
+
+    # Create the unique index for the (oauth_provider, oauth_id) pair.
+    await conn.execute(
+        text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_user_oauth "
+            "ON users(oauth_provider, oauth_id)"
+        )
+    )
+
+
+async def _migrate_oauth_bindings(conn) -> None:
+    """Migrate existing User.oauth_provider/oauth_id data into the bindings table.
+
+    Runs once: if the user_oauth_bindings table is empty AND there are users
+    with oauth_provider set, copy those rows into UserOAuthBinding records.
+    """
+    import uuid as _uuid
+
+    result = await conn.execute(text("SELECT COUNT(*) FROM user_oauth_bindings"))
+    count = result.scalar()
+    if count and count > 0:
+        return  # already migrated
+
+    result = await conn.execute(
+        text(
+            "SELECT id, oauth_provider, oauth_id, email, display_name "
+            "FROM users WHERE oauth_provider IS NOT NULL AND oauth_id IS NOT NULL"
+        )
+    )
+    rows = result.fetchall()
+    if not rows:
+        return
+
+    logger.info("Migrating %d existing OAuth users into user_oauth_bindings", len(rows))
+    for row in rows:
+        user_id, provider, oauth_id, email, display_name = row
+        binding_id = str(_uuid.uuid4())
+        await conn.execute(
+            text(
+                "INSERT INTO user_oauth_bindings (id, user_id, provider, oauth_id, email, display_name) "
+                "VALUES (:id, :user_id, :provider, :oauth_id, :email, :display_name)"
+            ),
+            {
+                "id": binding_id,
+                "user_id": user_id,
+                "provider": provider,
+                "oauth_id": oauth_id,
+                "email": email,
+                "display_name": display_name,
+            },
+        )
+    logger.info("OAuth bindings migration complete")
+
+
+async def _migrate_agent_columns(conn) -> None:
+    """Add new columns to the agents table if they don't exist.
+
+    Covers columns added after the initial table creation: ``kb_ids``,
+    ``connector_ids``, and ``grounding_config`` (all JSON, nullable).
+    """
+    result = await conn.execute(text("PRAGMA table_info(agents)"))
+    existing_columns = {row[1] for row in result.fetchall()}
+
+    migrations = [
+        ("kb_ids", "ALTER TABLE agents ADD COLUMN kb_ids JSON"),
+        ("connector_ids", "ALTER TABLE agents ADD COLUMN connector_ids JSON"),
+        ("grounding_config", "ALTER TABLE agents ADD COLUMN grounding_config JSON"),
+    ]
+
+    for col_name, ddl in migrations:
+        if col_name not in existing_columns:
+            logger.info("Adding column agents.%s", col_name)
+            await conn.execute(text(ddl))
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

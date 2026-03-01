@@ -203,6 +203,7 @@ async def _resolve_agent_config(
             "tool_categories": agent.tool_categories,
             "model_config_json": agent.model_config_json,
             "kb_ids": agent.kb_ids,
+            "connector_ids": agent.connector_ids,
             "grounding_config": agent.grounding_config,
         }
 
@@ -231,7 +232,7 @@ def _conversation_sandbox_root(conversation_id: str | None) -> Path | None:
     return _PROJECT_ROOT / "tmp" / "conversations" / conversation_id
 
 
-def _resolve_tools(
+async def _resolve_tools(
     agent_cfg: dict[str, Any] | None,
     conversation_id: str | None = None,
     user_id: str | None = None,
@@ -265,6 +266,49 @@ def _resolve_tools(
             user_id=user_id,
             confidence_threshold=confidence_threshold,
         ))
+
+    # Load connector tools when the agent has bound connectors.
+    connector_ids = agent_cfg.get("connector_ids") if agent_cfg else None
+    if connector_ids:
+        from fim_agent.core.tool.connector import ConnectorToolAdapter
+        from fim_agent.db import create_session
+        from fim_agent.web.models.connector import Connector as ConnectorModel
+
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        try:
+            async with create_session() as session:
+                result = await session.execute(
+                    select(ConnectorModel)
+                    .options(selectinload(ConnectorModel.actions))
+                    .where(ConnectorModel.id.in_(connector_ids))
+                )
+                connectors = result.scalars().all()
+                for conn in connectors:
+                    for action in (conn.actions or []):
+                        adapter = ConnectorToolAdapter(
+                            connector_name=conn.name,
+                            connector_base_url=conn.base_url,
+                            connector_auth_type=conn.auth_type,
+                            connector_auth_config=conn.auth_config,
+                            action_name=action.name,
+                            action_description=action.description or "",
+                            action_method=action.method,
+                            action_path=action.path,
+                            action_parameters_schema=action.parameters_schema,
+                            action_request_body_template=action.request_body_template,
+                            action_response_extract=action.response_extract,
+                            action_requires_confirmation=action.requires_confirmation,
+                        )
+                        tools.register(adapter)
+                logger.info(
+                    "Loaded %d connector tools from %d connectors",
+                    sum(len(c.actions or []) for c in connectors),
+                    len(connectors),
+                )
+        except Exception:
+            logger.warning("Failed to load connector tools", exc_info=True)
 
     return tools
 
@@ -352,7 +396,7 @@ async def react_endpoint(
 
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id)
     llm = _resolve_llm(agent_cfg)
-    tools = _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
+    tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     # Merge user personal instructions + agent-specific instructions
@@ -634,7 +678,7 @@ async def dag_endpoint(
 
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id)
     llm = _resolve_llm(agent_cfg)
-    tools = _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
+    tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     # Merge user personal instructions + agent-specific instructions
