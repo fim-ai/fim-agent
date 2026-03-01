@@ -48,7 +48,7 @@ export function ReactOutput({ items }: ReactOutputProps) {
         <button
           type="button"
           onClick={() => setStepsExpanded((v) => !v)}
-          className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
+          className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
         >
           <Wrench className="h-3.5 w-3.5 shrink-0" />
           <span>
@@ -68,11 +68,10 @@ export function ReactOutput({ items }: ReactOutputProps) {
         {/* Expanded step cards */}
         {stepsExpanded && (
           <div className="space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
-            {stepItems.map((item) => {
-              const originalIdx = items.indexOf(item)
+            {stepItems.map((item, idx) => {
               const step = item.data as ReactStepEvent
               return (
-                <div key={originalIdx} data-react-idx={originalIdx}>
+                <div key={idx}>
                   <StepCard step={step} duration={item.duration} displayIteration={item.displayIteration} />
                 </div>
               )
@@ -82,7 +81,7 @@ export function ReactOutput({ items }: ReactOutputProps) {
 
         {/* Done card */}
         {doneItem && (
-          <div data-react-idx={items.indexOf(doneItem)}>
+          <div>
             <DoneCard done={doneItem.data as ReactDoneEvent} items={items} />
           </div>
         )}
@@ -97,7 +96,7 @@ export function ReactOutput({ items }: ReactOutputProps) {
         if (item.event === "step") {
           const step = item.data as ReactStepEvent
           return (
-            <div key={idx} data-react-idx={idx}>
+            <div key={idx}>
               <StepCard step={step} duration={item.duration} displayIteration={item.displayIteration} />
             </div>
           )
@@ -105,7 +104,7 @@ export function ReactOutput({ items }: ReactOutputProps) {
         if (item.event === "done") {
           const done = item.data as ReactDoneEvent
           return (
-            <div key={idx} data-react-idx={idx}>
+            <div key={idx}>
               <DoneCard done={done} items={items} />
             </div>
           )

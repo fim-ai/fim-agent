@@ -52,6 +52,9 @@ export function DagFlowGraph({ planSteps, stepStates, mode = "inline", expanded,
   const dagreCentersRef = useRef(dagreCenters)
   dagreCentersRef.current = dagreCenters
 
+  // Timer ref for debouncing fitView after dimension changes
+  const fitAfterDimTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Intercept dimension changes to center-align nodes based on measured height
   const handleNodesChange = useCallback(
     (changes: NodeChange<StepFlowNode>[]) => {
@@ -73,6 +76,13 @@ export function DagFlowGraph({ planSteps, stepStates, mode = "inline", expanded,
           changed = true
           return { ...node, position: { ...node.position, y: newY } }
         })
+        if (changed) {
+          // Debounce fitView after positions settle
+          if (fitAfterDimTimer.current) clearTimeout(fitAfterDimTimer.current)
+          fitAfterDimTimer.current = setTimeout(() => {
+            fitViewFn.current?.({ duration: 200 })
+          }, 50)
+        }
         return changed ? next : currentNodes
       })
     },
@@ -214,6 +224,7 @@ export function DagFlowGraph({ planSteps, stepStates, mode = "inline", expanded,
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
+          onInit={(instance) => { fitViewFn.current = instance.fitView }}
           fitView
           colorMode={rfColorMode}
           proOptions={{ hideAttribution: true }}

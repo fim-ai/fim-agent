@@ -1,13 +1,16 @@
 "use client"
 
+import { ExternalLink } from "lucide-react"
 import { MarkdownContent } from "@/lib/markdown"
-import { CollapsibleBlock } from "./collapsible-block"
 
 interface ToolArgsBlockProps {
   args: Record<string, unknown>
   size?: "default" | "compact"
-  defaultCollapsed?: boolean
   className?: string
+}
+
+function isUrl(v: unknown): v is string {
+  return typeof v === "string" && /^https?:\/\//.test(v)
 }
 
 const DEFAULT_MD_CLS = "text-xs [&_pre]:my-0 [&_pre]:p-0 [&_pre]:bg-transparent [&_pre]:rounded-none"
@@ -16,7 +19,6 @@ const COMPACT_MD_CLS = "text-[11px] [&_pre]:my-0 [&_pre]:p-2"
 export function ToolArgsBlock({
   args,
   size = "default",
-  defaultCollapsed = false,
   className,
 }: ToolArgsBlockProps) {
   const isCompact = size === "compact"
@@ -35,35 +37,43 @@ export function ToolArgsBlock({
     return (
       <div className={`${containerCls} ${className ?? ""}`}>
         <p className={labelCls}>Arguments</p>
-        <CollapsibleBlock defaultExpanded={!defaultCollapsed}>
-          <MarkdownContent
-            content={`\`\`\`python\n${args.code}\n\`\`\``}
-            className={mdCls}
-          />
-        </CollapsibleBlock>
+        <MarkdownContent
+          content={`\`\`\`python\n${args.code}\n\`\`\``}
+          className={mdCls}
+        />
         {hasRest && (
           <div className={isCompact ? "mt-1" : "mt-2"}>
-            <CollapsibleBlock defaultExpanded={!defaultCollapsed}>
-              <MarkdownContent
-                content={`\`\`\`json\n${JSON.stringify(rest, null, 2)}\n\`\`\``}
-                className={mdCls}
-              />
-            </CollapsibleBlock>
+            <MarkdownContent
+              content={`\`\`\`json\n${JSON.stringify(rest, null, 2)}\n\`\`\``}
+              className={mdCls}
+            />
           </div>
         )}
       </div>
     )
   }
 
+  const urlValue = args.url
+  const hasUrl = isUrl(urlValue)
+
   return (
     <div className={`${containerCls} ${className ?? ""}`}>
       <p className={labelCls}>Arguments</p>
-      <CollapsibleBlock defaultExpanded={!defaultCollapsed}>
-        <MarkdownContent
-          content={`\`\`\`json\n${JSON.stringify(args, null, 2)}\n\`\`\``}
-          className={mdCls}
-        />
-      </CollapsibleBlock>
+      {hasUrl && (
+        <a
+          href={urlValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 underline underline-offset-2 transition-colors mb-1.5 break-all"
+        >
+          <ExternalLink className="h-3 w-3 shrink-0" />
+          {urlValue}
+        </a>
+      )}
+      <MarkdownContent
+        content={`\`\`\`json\n${JSON.stringify(args, null, 2)}\n\`\`\``}
+        className={mdCls}
+      />
     </div>
   )
 }

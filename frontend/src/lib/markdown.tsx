@@ -152,6 +152,19 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
               </strong>
             )
           },
+          a({ children, href, ...props }) {
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                {...props}
+              >
+                {children}
+              </a>
+            )
+          },
         }}
       >
         {content}

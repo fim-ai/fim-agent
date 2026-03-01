@@ -47,7 +47,6 @@ import { ReactOutput } from "@/components/playground/react-output"
 import { DagOutput } from "@/components/playground/dag-output"
 import { Examples } from "@/components/playground/examples"
 import { RightSidebar } from "@/components/playground/right-sidebar"
-import { ReactSidebarTimeline } from "@/components/playground/react-sidebar-timeline"
 import { DagFlowGraph } from "@/components/dag/dag-flow-graph"
 import { HistoryMessages } from "@/components/playground/history-messages"
 import { reconstructSSEMessages } from "@/lib/sse-utils"
@@ -533,8 +532,8 @@ function PlaygroundContent({
 
   const hasRichHistory = !hasLiveMessages && allHistoryTurns !== null
 
-  // Sidebar only shown during live streaming (history shows all turns -- sidebar would mismatch)
-  const showSidebar = hasLiveMessages && sidebarOpen && isWideScreen
+  // Sidebar only shown during live streaming in DAG mode (React mode no longer needs the timeline sidebar)
+  const showSidebar = hasLiveMessages && sidebarOpen && isWideScreen && mode === "dag"
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -644,9 +643,6 @@ function PlaygroundContent({
     scrollInViewport(`[data-step-id="${stepId}"]`)
   }, [scrollInViewport])
 
-  const scrollToReactItem = useCallback((idx: number) => {
-    scrollInViewport(`[data-react-idx="${idx}"]`)
-  }, [scrollInViewport])
 
   // Fetch published agents on mount
   useEffect(() => {
@@ -793,7 +789,7 @@ function PlaygroundContent({
                 </span>
               )}
               <div className="flex-1" />
-              {hasLiveMessages && isWideScreen && (
+              {hasLiveMessages && isWideScreen && mode === "dag" && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -901,30 +897,26 @@ function PlaygroundContent({
           {/* Right sidebar */}
           {showSidebar && (
             <RightSidebar
-              title={mode === "dag" ? "Execution Plan" : "Steps Timeline"}
-              badge={mode === "dag" ? dagData.planSteps?.length : reactItems.filter(i => i.event === "step" || i.event === "done").length}
+              title="Execution Plan"
+              badge={dagData.planSteps?.length}
               expanded={sidebarExpanded}
               onToggleExpand={() => { setSidebarExpanded(!sidebarExpanded); setCustomRatio(null) }}
               className={cn(!isDragging && "transition-all duration-300")}
               style={{ flex: `${currentRatio} 1 0%`, minWidth: 0 }}
             >
-              {mode === "dag" ? (
-                dagData.planSteps && dagData.planSteps.length > 0 ? (
-                  <DagFlowGraph
-                    planSteps={dagData.planSteps}
-                    stepStates={dagData.stepStates}
-                    mode="sidebar"
-                    expanded={sidebarExpanded}
-                    resizeKey={resizeKey}
-                    onStepClick={scrollToStep}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                    Waiting for plan...
-                  </div>
-                )
+              {dagData.planSteps && dagData.planSteps.length > 0 ? (
+                <DagFlowGraph
+                  planSteps={dagData.planSteps}
+                  stepStates={dagData.stepStates}
+                  mode="sidebar"
+                  expanded={sidebarExpanded}
+                  resizeKey={resizeKey}
+                  onStepClick={scrollToStep}
+                />
               ) : (
-                <ReactSidebarTimeline items={reactItems} isRunning={isRunning} onItemClick={scrollToReactItem} />
+                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                  Waiting for plan...
+                </div>
               )}
             </RightSidebar>
           )}
