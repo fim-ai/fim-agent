@@ -17,14 +17,14 @@ Dify / Manus are **replacement products** -- they ask users to move work into a 
 | Dimension | Dify | Manus | Coze | FIM Agent |
 |-----------|------|-------|------|-----------|
 | **Approach** | Visual DAG workflow builder | Autonomous consumer agent | Visual builder + agent space | Agent platform + system adapter |
-| **Delivery** | Standalone platform | Cloud SaaS | Cloud SaaS + self-hosted | Platform / iframe / Widget / API |
+| **Delivery** | Standalone platform | Cloud SaaS + API | Cloud SaaS + self-hosted (Coze Studio) | Platform / API |
 | **Planning** | Human-designed static DAGs | Multi-agent Chain-of-Thought | Static workflows + dynamic agents | LLM DAG planning + ReAct loops |
-| **Legacy system integration** | API nodes (manual wiring) | None | Lark/Feishu integration | Adapter protocol (standardized) |
-| **Embeddable** | No | No | Lark bot only | Yes (Widget, iframe, script injection) |
+| **Legacy system integration** | API nodes (manual wiring) | None | Plugin marketplace | Adapter protocol (standardized) |
+| **Embeddable** | iframe + script embed | API only | Chat SDK + 10+ channels | API (Widget planned) |
 | **Human confirmation** | No | No | No | Yes (pre-execution gate) |
-| **Self-hosted** | Yes | No | Partial (Coze Studio OSS) | Yes |
-| **License** | Apache 2.0 | Proprietary | Partial Apache 2.0 | Source Available |
-| **Traction** | 121K+ stars | Acquired by Meta ($2-3B) | ByteDance backed | Early stage |
+| **Self-hosted** | Yes (Docker Compose) | No | Yes (Coze Studio, Apache 2.0) | Yes (single process) |
+| **License** | Apache 2.0 | Proprietary | Apache 2.0 (Coze Studio) | Source Available |
+| **Traction** | 121K+ stars | Acquired by Meta ($2B+, China regulatory review) | ByteDance backed, 20K+ stars (Studio) | Early stage |
 
 ## Benchmarking Strategy
 
@@ -95,18 +95,19 @@ When embedded, the widget reads context from the host page (current contract ID,
 
 ### Manus (Category validator)
 
-- Acquired by Meta for $2-3B (Dec 2025)
-- Consumer-facing autonomous agent (SaaS only)
-- Topped GAIA benchmark
+- Acquired by Meta for $2B+ (Dec 2025); deal under China MOFCOM regulatory review since Jan 2026
+- Consumer-facing autonomous agent (Cloud SaaS + REST API at open.manus.im)
+- Topped GAIA benchmark; Browser Operator extension allows agent to use user's local browser sessions
 - Key insight from their blog: **context engineering** (not model capability) drives performance
 - Our take: validates the category; their context engineering insights inform our architecture
 
 ### Coze (ByteDance)
 
 - Visual builder + Coze Space agents
-- Coze Studio / Loop open-sourced (July 2025)
-- Strength: ByteDance resources, Lark/Feishu integration
-- Our take: watch for enterprise integration patterns
+- Coze Studio (20K+ stars) / Loop open-sourced (July 2025, Apache 2.0); fully self-hostable via Docker
+- Chat SDK + 10+ deployment channels (Discord, Telegram, Slack, LINE, WhatsApp, WeChat, etc.)
+- Strength: ByteDance resources, broad channel ecosystem, open-source momentum
+- Our take: strongest embedding/channel coverage; watch for enterprise integration patterns
 
 ## The MuleSoft Analogy
 

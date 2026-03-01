@@ -76,9 +76,9 @@ FIM Agent solves this with two integration directions:
 |--|------|-------|------|-----------|
 | **Approach** | Visual workflow builder | Autonomous agent | Builder + agent space | Agent platform + system adapter |
 | **Planning** | Human-designed static DAGs | Multi-agent CoT | Static + dynamic | LLM DAG planning + ReAct |
-| **Legacy Integration** | API nodes (manual) | ❌ | Lark only | ✅ Adapter protocol |
-| **Embeddable** | ❌ | ❌ | Lark bot only | ✅ Widget / iframe / API |
-| **Self-hosted** | ✅ | ❌ | Partial | ✅ |
+| **Legacy Integration** | API nodes (manual) | ❌ | Plugin marketplace | ✅ Adapter protocol |
+| **Human Confirmation** | ❌ | ❌ | ❌ | ✅ Pre-execution gate |
+| **Self-hosted** | ✅ Docker stack | ❌ | ✅ Coze Studio | ✅ Single process |
 
 > Deep dive: [Philosophy](https://github.com/fim-ai/fim-agent/wiki/Philosophy) | [Execution Modes](https://github.com/fim-ai/fim-agent/wiki/Execution-Modes) | [Planning Landscape](https://github.com/fim-ai/fim-agent/wiki/Planning-Landscape)
 
@@ -113,7 +113,7 @@ FIM Agent solves this with two integration directions:
 #### ⚡ Context & Memory
 - **LLM Compact** — Automatic LLM-powered summarization to stay within token budgets.
 - **ContextGuard + Pinned Messages** — Token budget manager; pinned messages are protected from compaction.
-- **Minimal Dependencies** — Only `openai`, `httpx`, `pydantic` at runtime.
+- **Single-Process Deployment** — No Redis, no PostgreSQL, no message queue. One process + SQLite.
 
 ## 🏗️ Architecture
 
