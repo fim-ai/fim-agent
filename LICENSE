@@ -1,7 +1,8 @@
 FIM Agent Source Available License
-Version 1.0, February 2025
+Version 1.1, March 2026
 
-Copyright 2024-2025 fim-ai
+Copyright 2024-2026 FIM AI / Beijing Feimu Network Technology Co., Ltd.
+(北京飞沐网络科技有限公司)
 
 https://github.com/fim-ai/fim-agent
 
@@ -14,8 +15,14 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 "License" shall mean the terms and conditions for use, reproduction, and
 distribution as defined in this document.
 
-"Licensor" shall mean fim-ai or the entity authorized by fim-ai that is
-granting this License.
+"Licensor" shall mean Beijing Feimu Network Technology Co., Ltd.
+(北京飞沐网络科技有限公司), doing business as FIM AI, or the entity
+authorized by it that is granting this License.
+
+"Affiliate" shall mean any entity that directly or indirectly controls, is
+controlled by, or is under common control with You, where "control" means
+ownership of more than fifty percent (50%) of the voting equity or equivalent
+governing interest.
 
 "Software" shall mean the FIM Agent software, including all source code,
 object code, documentation, and associated files made available under this
@@ -41,7 +48,8 @@ the Software.
 Subject to the terms and conditions of this License, Licensor hereby grants
 You a non-exclusive, worldwide, royalty-free license to:
 
-(a) Use the Software for internal purposes within Your organization;
+(a) Use the Software for internal purposes within Your organization and
+    Affiliates;
 
 (b) Modify the Software and create Derivative Works;
 
@@ -66,9 +74,16 @@ The following restrictions apply to Your use of the Software:
     - Reselling access to the Software's functionality as a cloud service.
 
     Exception: You MAY deploy the Software for a single customer in a
-    dedicated, single-tenant environment, provided that (i) the deployment
-    serves only that one customer, (ii) the Software is not shared across
-    multiple tenants, and (iii) all FIM Agent branding remains intact.
+    dedicated, single-tenant environment, provided that:
+    (i)   the deployment serves only that one customer exclusively;
+    (ii)  the customer does not grant access to, or share the deployment
+          with, any other third party;
+    (iii) the Software is used solely for that customer's internal business
+          operations and is not offered as a reusable platform service
+          across multiple customers;
+    (iv)  the Software is not shared across multiple tenants; and
+    (v)   all FIM Agent trademarks, product names, copyright notices, and
+          branding remain visible and unaltered.
 
 (b) COMPETING PRODUCT RESTRICTION. You may NOT use the Software, in whole
     or in part, to develop, distribute, or operate a Competing Product.
@@ -84,7 +99,16 @@ The following restrictions apply to Your use of the Software:
     license verification, feature gating, or entitlement checks present
     in the Software.
 
-4. Commercial Licensing.
+4. Trademarks.
+
+"FIM Agent" and the FIM Agent logo are registered trademarks of the Licensor.
+This License does not grant any right to use the Licensor's trademarks, trade
+names, service marks, or logos, except as reasonably necessary to describe the
+origin of the Software in compliance with Section 3(c). In particular, You may
+not use the Licensor's marks in any manner that suggests endorsement,
+sponsorship, or affiliation with the Licensor without prior written consent.
+
+5. Commercial Licensing.
 
 If Your intended use falls outside the permissions granted in Section 2 or
 is restricted by Section 3, You may contact Licensor to obtain a commercial
@@ -93,18 +117,20 @@ white-labeling, and other use cases not covered by this License.
 
 Contact: github.com/fim-ai/fim-agent (via Issues or Discussions)
 
-5. Patent License.
+6. Patent License.
 
 Subject to the terms and conditions of this License, Licensor hereby grants
 You a perpetual, worldwide, non-exclusive, royalty-free patent license to
 make, have made, use, and otherwise transfer the Software, where such
 license applies only to those patent claims licensable by Licensor that are
-necessarily infringed by the Software. If You institute patent litigation
+necessarily infringed by the Software. This patent license does not extend to
+patent claims infringed solely by Your modifications or combinations with
+other software. If You institute patent litigation
 against any entity alleging that the Software constitutes patent
 infringement, then any patent licenses granted to You under this License
 shall terminate as of the date such litigation is filed.
 
-6. Disclaimer of Warranty.
+7. Disclaimer of Warranty.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -114,7 +140,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
 FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 
-7. Limitation of Liability.
+8. Limitation of Liability.
 
 IN NO EVENT SHALL LICENSOR BE LIABLE TO YOU FOR ANY INDIRECT, INCIDENTAL,
 SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO
@@ -122,7 +148,7 @@ THIS LICENSE OR THE USE OF THE SOFTWARE, REGARDLESS OF THE THEORY OF
 LIABILITY, EVEN IF LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGES.
 
-8. Termination.
+9. Termination.
 
 (a) This License is effective until terminated. Your rights under this
     License will terminate automatically if You fail to comply with any
@@ -130,14 +156,16 @@ DAMAGES.
 
 (b) Upon discovering a violation, Licensor shall provide You with written
     notice specifying the violation. You shall have thirty (30) days from
-    receipt of such notice to cure the violation. If the violation is not
-    cured within the 30-day period, this License shall terminate
-    permanently.
+    receipt of such notice to cure the violation. If cured within that
+    period, Your rights are reinstated retroactively.
 
-(c) Upon termination, You must cease all use and distribution of the
+(c) A second violation after reinstatement results in immediate and
+    permanent termination with no further cure period.
+
+(d) Upon termination, You must cease all use and distribution of the
     Software and destroy all copies in Your possession.
 
-9. General.
+10. General.
 
 (a) This License constitutes the entire agreement between You and Licensor
     regarding the Software and supersedes all prior agreements.
@@ -148,5 +176,15 @@ DAMAGES.
 (c) This License shall be governed by and construed in accordance with the
     laws of the People's Republic of China, without regard to conflict of
     law principles.
+
+(d) Any dispute arising out of or in connection with this License shall be
+    submitted to the China International Economic and Trade Arbitration
+    Commission (CIETAC) for arbitration in accordance with its then
+    effective arbitration rules. The seat of arbitration shall be
+    Beijing, China. The arbitral award shall be final and binding upon
+    both parties.
+
+(e) Failure by the Licensor to enforce any provision of this License does
+    not constitute a waiver of that provision.
 
 END OF TERMS AND CONDITIONS

@@ -14,30 +14,32 @@
 
 ---
 
-## Table of Contents
+## 📑 Table of Contents
 
-- [Overview](#overview)
-- [Why FIM Agent](#why-fim-agent)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Roadmap](#roadmap)
-- [Star History](#star-history)
-- [Contributors](#contributors)
-- [License](#license)
+- [📖 Overview](#-overview)
+- [💡 Why FIM Agent](#-why-fim-agent)
+- [✨ Key Features](#-key-features)
+- [🏗️ Architecture](#%EF%B8%8F-architecture)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Configuration](#%EF%B8%8F-configuration)
+- [🛠️ Development](#%EF%B8%8F-development)
+- [🗺️ Roadmap](#%EF%B8%8F-roadmap)
+- [⭐ Star History](#-star-history)
+- [👥 Contributors](#-contributors)
+- [📄 License](#-license)
 
-## Overview
+## 📖 Overview
 
 FIM Agent is a provider-agnostic Python framework for building AI agents that dynamically plan and execute complex tasks. It operates in two modes:
 
-- **Standalone (Portal)**: A full-featured AI assistant with dynamic DAG planning, concurrent execution, and real-time streaming. The LLM decomposes goals into dependency-aware DAGs at runtime, runs independent steps in parallel, and re-plans if needed.
-- **Sidecar (Embedded Engine)**: An embeddable runtime that proactively bridges into legacy systems, reading their databases, calling their APIs, and pushing notifications, all without requiring a single line of code change on the host side.
+- 🖥️ **Standalone (Portal)**: A full-featured AI assistant with dynamic DAG planning, concurrent execution, and real-time streaming. The LLM decomposes goals into dependency-aware DAGs at runtime, runs independent steps in parallel, and re-plans if needed.
+- 🔗 **Sidecar (Embedded Engine)**: An embeddable runtime that proactively bridges into legacy systems, reading their databases, calling their APIs, and pushing notifications, all without requiring a single line of code change on the host side.
 
 Both modes share the same agent core: ReAct reasoning loops, pluggable tools, and a protocol-first architecture with zero vendor lock-in.
 
-## Why FIM Agent
+## 💡 Why FIM Agent
+
+> 🏷️ **Dify**: "Build AI workflows visually" · **Manus**: "Your AI that does the work" · **FIM Agent**: "AI that works *inside* your existing systems"
 
 Enterprise clients don't want "another system to maintain". Their legacy systems (ERP such as SAP, Kingdee/金蝶, Yonyou/用友; CRM such as Salesforce, Fanruan/帆软; OA such as Seeyon/致远, Weaver/泛微; finance; HR) are often **frozen**: untouchable codebases with decades of business logic baked in.
 
@@ -68,30 +70,59 @@ FIM Agent solves this with two integration directions:
 
 **vs Manus / AutoGPT**: Single-use autonomous agents with no platform layer. FIM Agent adds multi-tenant management, persistent conversations, knowledge bases, and an Adapter protocol that standardizes how agents connect to external systems.
 
+### 🔍 Competitive Positioning
+
+|  | Dify | Manus | Coze | FIM Agent |
+|--|------|-------|------|-----------|
+| **Approach** | Visual workflow builder | Autonomous agent | Builder + agent space | Agent platform + system adapter |
+| **Planning** | Human-designed static DAGs | Multi-agent CoT | Static + dynamic | LLM DAG planning + ReAct |
+| **Legacy Integration** | API nodes (manual) | ❌ | Lark only | ✅ Adapter protocol |
+| **Embeddable** | ❌ | ❌ | Lark bot only | ✅ Widget / iframe / API |
+| **Self-hosted** | ✅ | ❌ | Partial | ✅ |
+
 > Deep dive: [Philosophy](https://github.com/fim-ai/fim-agent/wiki/Philosophy) | [Execution Modes](https://github.com/fim-ai/fim-agent/wiki/Execution-Modes) | [Planning Landscape](https://github.com/fim-ai/fim-agent/wiki/Planning-Landscape)
 
-## Key Features
+## ✨ Key Features
 
-- **Dynamic DAG Planning**: The LLM decomposes goals into dependency graphs at runtime with tool-name-aware planning (planner receives the available tool list to constrain `tool_hint`). No hard-coded workflows.
-- **DAG Visualization**: Interactive flow graph (@xyflow/react) in an expand/collapse right sidebar with real-time step status, dependency edges, click-to-scroll navigation, and auto fitView. ReAct mode shows a compact step timeline.
-- **DAG Re-Planning**: When the goal is not achieved, the planner automatically revises the plan using step results as context and retries, up to 3 rounds.
-- **Concurrent Execution**: Independent DAG steps run in parallel via `asyncio`, bounded by a configurable concurrency limit.
-- **Real-time Streaming**: Portal streams reasoning steps and tool calls as they happen via SSE, with KaTeX math rendering support.
-- **ReAct Agent**: Structured reasoning-and-acting loop with JSON-based tool calls, automatic error recovery, and iteration limits.
-- **OpenAI-Compatible**: Works with any provider exposing the `/v1/chat/completions` interface (OpenAI, DeepSeek, Qwen, Ollama, vLLM, and others).
-- **Pluggable Tool System**: Protocol-based tool interface with auto-discovery. Ships with Python executor, calculator, file ops, web search/fetch (Jina), HTTP request (any REST API), and sandboxed shell exec (curl, jq, etc.).
-- **Multi-Tenant Platform**: JWT auth with token-based SSE authentication, conversation ownership validation, per-user resource isolation. Conversation starring, batch delete, title rename, and Cmd+K chat search command palette.
-- **Agent Management**: Create, configure, and publish agents with bound LLM model, tool categories, and custom instructions. Chat endpoints automatically resolve agent config.
-- **Personal Center**: Per-user global system instructions that inject into every agent conversation. Set once, applies everywhere — agent-specific instructions take higher priority when both exist.
-- **Dark / Light / System Theme**: Full theme support with system-preference detection, manual toggle in Appearance settings, and consistent theming across all portal components.
-- **LLM Compact**: Automatic LLM-powered summarisation of long conversation histories to stay within token budgets without losing context.
-- **ContextGuard + Pinned Messages**: Unified context window budget manager -- checks token counts against model limits, applies hint-specific LLM compaction (ReAct iteration, planner input, step dependency), truncates oversized messages, and falls back to smart truncation. Pinned messages (task descriptions, critical context) are protected from compaction so agents never "forget what they're doing" during long tool-call loops. Configurable via `LLM_CONTEXT_SIZE` / `LLM_MAX_OUTPUT_TOKENS` env vars.
-- **RAG & Knowledge Base**: Full RAG pipeline -- Jina embedding + LanceDB vector store + native FTS + RRF hybrid retrieval + Jina reranker. Document loaders for PDF, DOCX, Markdown, HTML, CSV. Fixed-size, recursive, and semantic chunking. KB management UI with document upload, background ingest, and Markdown document creation. KB detail page with document table and chunk browser supporting chunk-level CRUD (view, edit, delete individual chunks). Agent `kb_retrieve` tool for autonomous knowledge lookup.
-- **Grounded Generation**: Evidence-anchored RAG with claim-level citations. When an agent is bound to knowledge bases, retrieval automatically upgrades to `grounded_retrieve` -- a 5-stage pipeline (multi-KB parallel retrieval, LLM citation extraction, query-chunk alignment scoring, cross-document conflict detection, score-based confidence). Produces inline `[N]` citation markers linked to a structured References section (confidence badge, source names, page numbers, exact quotes), detects contradictions between sources, and computes explainable confidence scores (no LLM self-evaluation). Agent form UI supports KB multi-select binding.
-- **Connector Platform**: Connect any third-party system (API/Database) via Connectors. Each Connector defines a base URL, auth config, and multiple Actions (HTTP endpoints). Actions are auto-registered as agent tools (`ConnectorToolAdapter`). Agents bind connectors via `connector_ids` (like KB binding). Full CRUD management UI with action editor, method/path/schema configuration, and auth type support (bearer with configurable prefix, API key with custom header name, basic auth). Default credentials can be set per-connector for testing; per-user credentials take priority when available.
-- **Minimal Dependencies**: Only three runtime dependencies: `openai`, `httpx`, `pydantic`.
+#### 🧠 Intelligent Planning & Execution
+- **Dynamic DAG Planning** — LLM decomposes goals into dependency graphs at runtime. No hard-coded workflows.
+- **Concurrent Execution** — Independent steps run in parallel via asyncio.
+- **DAG Re-Planning** — Auto-revises the plan up to 3 rounds when goals aren't met.
+- **ReAct Agent** — Structured reasoning-and-acting loop with automatic error recovery.
 
-## Architecture
+#### 🔌 Tools & Connectors
+- **Pluggable Tool System** — Auto-discovery; ships with Python executor, calculator, web search/fetch, HTTP request, shell exec, and more.
+- **Connector Platform** — Connect any third-party API/Database. Actions auto-register as agent tools with auth injection.
+- **OpenAI-Compatible** — Works with any `/v1/chat/completions` provider (OpenAI, DeepSeek, Qwen, Ollama, vLLM…).
+
+#### 📚 RAG & Knowledge
+- **Full RAG Pipeline** — Jina embedding + LanceDB + FTS + RRF hybrid retrieval + reranker. Supports PDF, DOCX, Markdown, HTML, CSV.
+- **Grounded Generation** — Evidence-anchored RAG with inline `[N]` citations, conflict detection, and explainable confidence scores.
+
+#### 🖥️ Portal & UX
+- **Real-time Streaming** — SSE with KaTeX math rendering and tool step folding.
+- **DAG Visualization** — Interactive flow graph with live status, dependency edges, and click-to-scroll.
+- **🌗 Dark / Light / System Theme** — Full theme support with system-preference detection.
+- **⌘K Command Palette** — Conversation search, starring, batch operations, and title rename.
+
+#### 🏢 Platform & Multi-Tenant
+- **JWT Auth** — Token-based SSE auth, conversation ownership, per-user resource isolation.
+- **Agent Management** — Create, configure, and publish agents with bound models, tools, and instructions.
+- **Personal Center** — Per-user global system instructions, applied across all conversations.
+
+#### ⚡ Context & Memory
+- **LLM Compact** — Automatic LLM-powered summarization to stay within token budgets.
+- **ContextGuard + Pinned Messages** — Token budget manager; pinned messages are protected from compaction.
+- **Minimal Dependencies** — Only `openai`, `httpx`, `pydantic` at runtime.
+
+## 🏗️ Architecture
+
+FIM Agent provides two execution modes:
+
+| Mode | Best for | How it works |
+|------|----------|-------------|
+| 🔄 **ReAct** | Single complex queries | Reason → Act → Observe loop with tools |
+| 🔀 **DAG Planning** | Multi-step parallel tasks | LLM generates dependency graph, independent steps run concurrently |
 
 ```
 User Query
@@ -122,7 +153,7 @@ User Query
  Final Answer
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -162,7 +193,7 @@ Open http://localhost:3000 — that's it.
 
 The portal offers two modes: **ReAct Agent** (single-query tool loop) and **DAG Planner** (multi-step planning with concurrent execution), with real-time SSE streaming, DAG visualization, and KaTeX math rendering.
 
-## Configuration
+## ⚙️ Configuration
 
 ### Recommended Setup
 
@@ -210,7 +241,7 @@ Copy `example.env` to `.env` and fill in your values:
 cp example.env .env
 ```
 
-## Development
+## 🛠️ Development
 
 ```bash
 # Install all dependencies (including dev extras)
@@ -229,21 +260,21 @@ ruff check src/ tests/
 mypy src/
 ```
 
-## Roadmap
+## 🗺️ Roadmap
 
 See the full [Roadmap](https://github.com/fim-ai/fim-agent/wiki/Roadmap) for version history and what's next.
 
 Contributions and ideas are welcome. Open an issue or submit a PR on [GitHub](https://github.com/fim-ai/fim-agent).
 
-## Star History
+## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=fim-ai/fim-agent&type=Date)](https://star-history.com/#fim-ai/fim-agent&Date)
 
-## Contributors
+## 👥 Contributors
 
 [![Contributors](https://contrib.rocks/image?repo=fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/graphs/contributors)
 
-## License
+## 📄 License
 
 FIM Agent Source Available License. This is **not** an OSI-approved open source license.
 

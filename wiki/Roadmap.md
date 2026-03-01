@@ -274,6 +274,9 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
 - [ ] **Execution Replay**: Complete execution trace replay for debugging and auditing
 - [ ] **Docker Compose**: API + SQLite + optional Langfuse, production-ready
 
+**i18n**
+- [ ] **Chinese / English**: Frontend + backend error messages; locale auto-detection + manual switch
+
 ### v1.0 -- Enterprise & Scale
 
 > *"Enterprise-ready"*
@@ -289,7 +292,6 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
 - [ ] **Batch Execution**: Run an agent against multiple inputs in one job (e.g., review 100 contracts, audit 50 invoices); progress tracking, partial failure handling, result aggregation
 - [ ] **Enterprise Security**: Data encryption, IP whitelisting, SOC2 audit logging
 - [ ] **PostgreSQL**: Optional for large-scale deployments
-- [ ] **i18n**: Chinese / English
 
 **Embeddable Delivery**
 - [ ] **Embeddable Widget**: Lightweight JS bundle (<100KB), inject via `<script>` tag into host pages

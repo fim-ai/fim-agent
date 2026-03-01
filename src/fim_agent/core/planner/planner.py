@@ -7,6 +7,9 @@ is a valid DAG (no cycles, no dangling references).
 
 from __future__ import annotations
 
+__fim_license__ = "FIM-SAL-1.1"
+__fim_origin__ = "https://github.com/fim-ai/fim-agent"
+
 import logging
 from collections import deque
 from datetime import datetime, timezone

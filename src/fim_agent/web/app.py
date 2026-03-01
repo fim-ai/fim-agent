@@ -9,11 +9,15 @@ Usage::
 
 from __future__ import annotations
 
+__fim_license__ = "FIM-SAL-1.1"
+__fim_origin__ = "https://github.com/fim-ai/fim-agent"
+
 import logging
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -62,7 +66,21 @@ def create_app() -> FastAPI:
     FastAPI
         A fully-configured FastAPI instance ready to be served by Uvicorn.
     """
+    # -- License notice (stderr — cannot be silenced by log config) ----------
+    print(
+        "FIM Agent v0.6 — Licensed under FIM Agent Source Available License\n"
+        "Copyright 2024-2026 Beijing Feimu Network Technology Co., Ltd.",
+        file=sys.stderr,
+    )
+
     app = FastAPI(title="FIM Agent API", lifespan=lifespan)
+
+    # -- X-Powered-By header ------------------------------------------------
+    @app.middleware("http")
+    async def add_powered_by_header(request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Powered-By"] = "FIM-Agent"
+        return response
 
     # -- CORS ---------------------------------------------------------------
     app.add_middleware(
