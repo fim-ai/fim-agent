@@ -152,6 +152,9 @@ Layer 3 — Sidecar engine  : Embed into enterprise legacy systems as invisible 
 >
 > **Architecture**: Virtual Connector model — definitions stored in DB, runtime HTTP/SQL proxy (no MCP protocol overhead), export to standalone MCP Server for distribution/fork.
 
+**Portal UX**
+- [x] **Dark / Light / System Theme**: `next-themes` provider with system-preference detection, manual toggle (Appearance settings page), and full component theming across DAG visualization, playground, connectors, and KB pages; light-mode logo variant
+
 #### v0.6.1 — Connector Entity & Manual Builder (shipped)
 
 **Backend**
