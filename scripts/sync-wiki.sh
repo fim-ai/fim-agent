@@ -28,7 +28,13 @@ else
   git clone --quiet "$WIKI_REPO" "$WIKI_DIR"
 fi
 
-# Copy all markdown files
+# Remove files in wiki repo that no longer exist locally, then copy
+for f in "$WIKI_DIR"/*.md; do
+  base="$(basename "$f")"
+  if [ ! -f "$WIKI_SRC/$base" ]; then
+    rm "$f"
+  fi
+done
 cp "$WIKI_SRC"/*.md "$WIKI_DIR/"
 
 # Check for changes
