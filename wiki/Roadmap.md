@@ -20,7 +20,7 @@ Hub          → Central cross-system orchestration (Portal / API)
                         ┌───────────────────────────┐
                         │     FIM Agent Hub          │
                         │                            │
- ERP (SAP/Kingdee) ────│►  Agent A: Finance Audit   │───► DingTalk / Slack
+ ERP (SAP/Kingdee) ────│►  Agent A: Finance Audit   │───► Lark / Slack
  CRM (Salesforce)  ────│►  Agent B: Contract Review  │───► Email / WeCom
  OA (Seeyon/Weaver) ───│►  Agent C: Approval Assist  │───► Teams / Webhook
  Custom DB (PG/MySQL) ──│►  Agent D: Data Reporting   │───► Any API
@@ -213,7 +213,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 **Validation**: Create Zhihe contract system Connector via conversation — provide API docs → Agent generates actions → test → publish.
 
 **Example scenarios Connectors unlock:**
-- **ERP / Finance** (SAP, Kingdee/金蝶, Oracle DB): Agent reads financial statements via DB Connector, generates analysis reports, pushes to DingTalk (钉钉) / Slack
+- **ERP / Finance** (SAP, Kingdee/金蝶, Oracle DB): Agent reads financial statements via DB Connector, generates analysis reports, pushes to Lark (飞书) / Slack
 - **OA / Workflow** (Seeyon/致远, Weaver/泛微, REST API): Agent calls approval endpoints via API Connector, AI-assisted classification and routing, writes results back
 - **CRM / Contracts** (Salesforce, custom PG): Agent reads contract clauses via API Connector, performs risk analysis, generates review opinions
 - **Business DB** (MySQL / PG): Agent scans for anomalies via DB Connector, generates alerts, notifies responsible parties via Teams / WeCom (企微) / email
@@ -229,7 +229,7 @@ Hub          → Central cross-system orchestration (Portal / API)
   - User clicks "Connect" → OAuth authorization page → callback → store refresh_token
   - Automatic token refresh (silent refresh before expiry)
 - [ ] **Connector Versioning**: Track changes, support rollback
-- [ ] **Official Connector Library**: GitHub, Feishu, DingTalk and other preset connectors
+- [ ] **Official Connector Library**: GitHub, Lark, Slack and other preset connectors
 - [ ] **MCP Server Export**: Generate standalone FastMCP Server code from Connector; users can run independently or fork
 
 ### v0.8 -- Database Connector, Message Push & Access Control
@@ -243,7 +243,7 @@ Hub          → Central cross-system orchestration (Portal / API)
   - Action = parameterized SQL query (read-only by default, writes require confirmation)
   - Connection pool management, query timeout protection
 - [ ] **Message Push Connector Type**:
-  - Send results to DingTalk / Feishu / WeCom / Slack / email / webhook
+  - Send results to Lark / WeCom / Slack / email / webhook
   - Templated message formatting
   - Can serve as Agent's "output channel"
 
@@ -312,7 +312,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 ```
 Platform (multi-tenant)
 ├── Tenant A (Manufacturing)
-│   ├── Project 1: SAP Finance Copilot      [connector: db(oracle) + msg(dingtalk)]
+│   ├── Project 1: SAP Finance Copilot      [connector: db(oracle) + msg(lark)]
 │   ├── Project 2: OA Approval Assistant     [connector: api(seeyon) + built-in tools]
 │   └── Project 3: General AI Assistant      [tools: search, browser, code]
 ├── Tenant B (Tech Company)

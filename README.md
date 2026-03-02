@@ -43,7 +43,7 @@ FIM Agent is a provider-agnostic Python framework for building AI agents that dy
             ┌──────────────────────────┐
  ERP ──────►│                          │◄────── CRM
  Database ──►│    FIM Agent Hub         │◄────── OA
- DingTalk ──►│    (AI orchestration)   │◄────── Custom API
+ Lark ──────►│    (AI orchestration)   │◄────── Custom API
             └──────────────────────────┘
 ```
 
@@ -55,7 +55,7 @@ The core is always the same: ReAct reasoning loops, dynamic DAG planning with co
 
 Start by embedding a **Copilot** into one system — say, your ERP. Users interact with AI right inside their familiar interface: query financial data, generate reports, get answers without leaving the page.
 
-When the value is proven, set up a **Hub** — a central portal that connects all your systems together. The ERP Copilot keeps running embedded; the Hub adds cross-system orchestration: query contracts in CRM, check approvals in OA, notify stakeholders on DingTalk — all from one place.
+When the value is proven, set up a **Hub** — a central portal that connects all your systems together. The ERP Copilot keeps running embedded; the Hub adds cross-system orchestration: query contracts in CRM, check approvals in OA, notify stakeholders on Lark — all from one place.
 
 Copilot proves value inside one system. Hub unlocks value across all systems.
 
@@ -147,7 +147,7 @@ FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Co
                         ┌───────────────────────────┐
                         │     FIM Agent Hub          │
                         │                            │
- ERP (SAP/Kingdee) ────│►  Agent A: Finance Audit   │───► DingTalk / Slack
+ ERP (SAP/Kingdee) ────│►  Agent A: Finance Audit   │───► Lark / Slack
  CRM (Salesforce)  ────│►  Agent B: Contract Review  │───► Email / WeCom
  OA (Seeyon/Weaver) ───│►  Agent C: Approval Assist  │───► Teams / Webhook
  Custom DB (PG/MySQL) ──│►  Agent D: Data Reporting   │───► Any API

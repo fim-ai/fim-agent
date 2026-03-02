@@ -15,7 +15,7 @@ Copilot (embedded)                  Hub (central portal)
 │  ┌─────────────────┐   │        │   (Portal / API)         │
 │  │  FIM Agent       │   │        │                          │
 │  │  Copilot         │───│──►DB   │───►ERP  ───►CRM          │
-│  │  (iframe/widget) │───│──►API  │───►OA   ───►DingTalk     │
+│  │  (iframe/widget) │───│──►API  │───►OA   ───►Lark     │
 │  └─────────────────┘   │        │───►DB   ───►Custom API    │
 │                         │        │                          │
 └─────────────────────────┘        └──────────────────────────┘
@@ -98,8 +98,8 @@ Everything runs in a single Docker Compose deployment. The client installs nothi
 │  │  Connector         │    ┌─ MCP Server: OA System ─────┐   │
 │  │  Governance        │───→│  REST API calls              │───│──→ Client's Seeyon OA
 │  │                    │    └──────────────────────────────┘   │
-│  │                    │    ┌─ MCP Server: DingTalk ───────┐   │
-│  │                    │───→│  Webhook notifications       │───│──→ DingTalk API
+│  │                    │    ┌─ MCP Server: Lark ──────────┐   │
+│  │                    │───→│  Webhook notifications       │───│──→ Lark API
 │  └────────────────────┘    └──────────────────────────────┘   │
 │                                                                │
 │  All provided by FIM Agent. Client provides only:              │
@@ -124,7 +124,7 @@ The agent sees connectors as ordinary tools. It does not know or care whether a 
 
 ```
 Agent's tool list:
-  [web_search, calculator, contract_query, finance_report, dingtalk_push]
+  [web_search, calculator, contract_query, finance_report, lark_push]
    ~~~~~~~~~~  ~~~~~~~~~~  ~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~  ~~~~~~~~~~~~~
    built-in    built-in    connector       connector       connector
 ```
@@ -147,13 +147,13 @@ Enterprise deployments are "implement once, run for months" -- hot-plug is a v1.
 
 ## Data Flow Example
 
-User: "Check all overdue contracts from the finance system and push a summary to DingTalk."
+User: "Check all overdue contracts from the finance system and push a summary to Lark."
 
 ```
 1. User sends message via Portal / API
 
 2. FIM Agent (ReAct mode):
-   Think: I need to query the finance DB for overdue contracts, then push to DingTalk.
+   Think: I need to query the finance DB for overdue contracts, then push to Lark.
 
 3. Act: contract_query(status="overdue", days_past_due=">30")
    → Connector Governance: audit log, read_only check (pass)
@@ -163,13 +163,13 @@ User: "Check all overdue contracts from the finance system and push a summary to
 
 4. Think: Found 7 overdue contracts. I'll summarize and push.
 
-5. Act: dingtalk_push(message="7 overdue contracts found: ...")
+5. Act: lark_push(message="7 overdue contracts found: ...")
    → Connector Governance: audit log, write operation → confirmation gate
    → User approves via Portal
-   → MCP Server: POST to DingTalk webhook
+   → MCP Server: POST to Lark webhook
    ← Push successful
 
-6. Answer: "Found 7 overdue contracts. Summary pushed to DingTalk group."
+6. Answer: "Found 7 overdue contracts. Summary pushed to Lark group."
 ```
 
 ## Connector Standardization Levels

@@ -8,7 +8,7 @@ FIM Agent operates in three modes, determined by how the agent is deployed and u
 |------|-----------|----------|---------|
 | **Standalone** | General-purpose AI assistant | Portal | Chat, search, code execution, knowledge base Q&A |
 | **Copilot** | AI embedded in a host system | iframe / widget / embed | "Finance Copilot" embedded in ERP web UI |
-| **Hub** | Central cross-system orchestration | Portal / API | Agent queries ERP, checks OA approvals, notifies via DingTalk |
+| **Hub** | Central cross-system orchestration | Portal / API | Agent queries ERP, checks OA approvals, notifies via Lark |
 
 The progression is natural: start standalone, embed into a host system as a Copilot, then set up a Hub for cross-system orchestration. The Copilot keeps running embedded; the Hub adds a central orchestration layer.
 
@@ -35,7 +35,7 @@ Embed FIM Agent into a host system's web UI. The agent works alongside users in 
 │                                                │
 │   ┌──────────────────────────┐                 │
 │   │   FIM Agent Copilot      │                 │
-│   │   (iframe / widget)      │─── Connectors ──│──► DB, API, DingTalk...
+│   │   (iframe / widget)      │─── Connectors ──│──► DB, API, Lark...
 │   └──────────────────────────┘                 │
 │                                                │
 └────────────────────────────────────────────────┘
@@ -56,12 +56,12 @@ The Hub is a standalone portal (or API) that serves as the central intelligence 
             ┌──────────────────────────┐
  ERP ──────►│                          │◄────── CRM
  Database ──►│    FIM Agent Hub         │◄────── OA
- DingTalk ──►│    (AI orchestration)   │◄────── Custom API
+ Lark ──────►│    (AI orchestration)   │◄────── Custom API
             └──────────────────────────┘
 ```
 
 Examples:
-- "Check overdue contracts in CRM, cross-reference with ERP payments, notify finance team on DingTalk"
+- "Check overdue contracts in CRM, cross-reference with ERP payments, notify finance team on Lark"
 - "When OA approval completes, update contract status in CRM and log to audit database"
 - "Query sales data from Salesforce, generate forecast using business DB, email summary to management"
 

@@ -25,7 +25,7 @@ Models will never natively:
 - Store and encrypt API credentials (AES-GCM)
 - Manage OAuth flows (authorization page → callback → refresh token)
 - Connect to a client's Kingdee/金蝶 ERP database
-- Push notifications to DingTalk/钉钉 or WeCom/企微
+- Push notifications to Lark/飞书 or WeCom/企微
 - Enforce RBAC on who can use which connector
 - Log every tool call for compliance auditing
 
