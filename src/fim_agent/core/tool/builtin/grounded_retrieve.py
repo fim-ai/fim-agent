@@ -117,9 +117,12 @@ class GroundedRetrieveTool(BaseTool):
 
                 db = create_session()
                 try:
-                    rows = await db.execute(
-                        select(KBModel.id, KBModel.name).where(KBModel.id.in_(kb_ids))
+                    stmt = select(KBModel.id, KBModel.name).where(
+                        KBModel.id.in_(kb_ids)
                     )
+                    if user_id:
+                        stmt = stmt.where(KBModel.user_id == user_id)
+                    rows = await db.execute(stmt)
                     kb_names = {row.id: row.name for row in rows}
                 finally:
                     await db.close()

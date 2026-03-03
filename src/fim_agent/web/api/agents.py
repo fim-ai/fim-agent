@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fim_agent.db import get_session
 from fim_agent.web.auth import get_current_user
 from fim_agent.web.models import Agent, User
+from fim_agent.web.models.connector import Connector
+from fim_agent.web.models.knowledge_base import KnowledgeBase
 from fim_agent.web.schemas.agent import AgentCreate, AgentResponse, AgentUpdate
 from fim_agent.web.schemas.common import ApiResponse, PaginatedResponse
 
@@ -56,12 +58,54 @@ async def _get_owned_agent(
     return agent
 
 
+async def _validate_binding_ownership(
+    user_id: str,
+    db: AsyncSession,
+    connector_ids: list[str] | None = None,
+    kb_ids: list[str] | None = None,
+) -> None:
+    """Verify that all referenced connector_ids and kb_ids belong to the user.
+
+    Raises HTTP 403 if any referenced resource is not owned by the user.
+    """
+    if connector_ids:
+        result = await db.execute(
+            select(func.count())
+            .select_from(Connector)
+            .where(Connector.id.in_(connector_ids), Connector.user_id == user_id)
+        )
+        owned_count = result.scalar_one()
+        if owned_count != len(connector_ids):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="One or more connector_ids do not belong to the current user",
+            )
+
+    if kb_ids:
+        result = await db.execute(
+            select(func.count())
+            .select_from(KnowledgeBase)
+            .where(KnowledgeBase.id.in_(kb_ids), KnowledgeBase.user_id == user_id)
+        )
+        owned_count = result.scalar_one()
+        if owned_count != len(kb_ids):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="One or more kb_ids do not belong to the current user",
+            )
+
+
 @router.post("", response_model=ApiResponse)
 async def create_agent(
     body: AgentCreate,
     current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
+    await _validate_binding_ownership(
+        current_user.id, db,
+        connector_ids=body.connector_ids,
+        kb_ids=body.kb_ids,
+    )
     agent = Agent(
         user_id=current_user.id,
         name=body.name,
@@ -134,6 +178,11 @@ async def update_agent(
     agent = await _get_owned_agent(agent_id, current_user.id, db)
 
     update_data = body.model_dump(exclude_unset=True)
+    await _validate_binding_ownership(
+        current_user.id, db,
+        connector_ids=update_data.get("connector_ids"),
+        kb_ids=update_data.get("kb_ids"),
+    )
     for field, value in update_data.items():
         setattr(agent, field, value)
 
