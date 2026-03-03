@@ -167,36 +167,18 @@ Hub          → Central cross-system orchestration (Portal / API)
 
 **Validation**: GitHub Connector (PAT bearer auth) → list_repos / get_issue → bind to Agent → use in conversation.
 
-#### v0.6.2 — Per-User Credentials
+#### v0.6.2 — AI-Assisted Connector Builder (shipped)
 
 **Backend**
-- [ ] ConnectorCredential model (AES-GCM encrypted)
-- [ ] Credential CRUD API: `/api/connectors/{id}/credentials`
-- [ ] Runtime credential injection: `ConnectorToolAdapter.run()` loads current user credential → injects HTTP header
-- [ ] Target system error passthrough: 4xx/5xx returned to Agent as-is
-- [ ] Auth type support: api_key (custom header), bearer, basic, none
-- [ ] Token exchange: app_id + secret → access_token (for services like Feishu/Lark that need two-step auth)
-
-**Frontend**
-- [ ] Connector detail page + "Connect" button
-- [ ] Credential input dialog (dynamic fields based on auth_type)
-- [ ] Connection status indicator (connected / not connected / expired)
-
-**Validation**:
-1. GitHub: two users with separate PATs → same Connector → each sees own repos → 403 passthrough on no permission
-2. Feishu Connector: docs/messages/calendar APIs → user connects via Feishu app credentials → chat queries own Feishu docs and messages
-
-#### v0.6.3 — AI-Assisted Connector Builder
-
-**Backend**
-- [ ] OpenAPI Spec import: upload/URL → parse → auto-generate Actions
+- [x] OpenAPI Spec import: paste/URL → parse → auto-generate Connector + Actions (one-shot and add-to-existing modes)
+- [x] Natural language → Action conversion: AI generate-actions and refine-action endpoints powered by fast LLM
 - [ ] Connector Builder Agent (built-in) with dedicated tools: `create_connector_draft` / `add_action` / `test_action` / `import_openapi` / `publish_connector`
 - [ ] API probing: test endpoints with provided credentials
-- [ ] Natural language → Action conversion
 
 **Frontend**
+- [x] OpenAPI import dialog (paste YAML/JSON or URL, reusable for both create and add-actions modes)
+- [x] AI Action Panel: inline collapsible chat panel in action editor (generate → refine flow)
 - [ ] Builder conversation entry (reuse Chat UI + built-in Builder Agent)
-- [ ] OpenAPI import entry
 
 **Validation**: Create Zhihe contract system Connector via conversation — provide API docs → Agent generates actions → test → publish.
 
@@ -227,11 +209,14 @@ Hub          → Central cross-system orchestration (Portal / API)
 
 > *"Who uses what — then distribute everywhere"*
 >
-> Organization is the foundation for enterprise deployment. Admin configures connectors, agents, and knowledge bases, then publishes to org members. Combined with connector distribution and OAuth, this version makes FIM Agent deployable to enterprise teams — like OpenAI / Anthropic Console's org model.
+> Organization is the foundation for enterprise deployment. Admin configures connectors, agents, and knowledge bases, then publishes to org members. Per-user credentials let each member authenticate to shared connectors with their own identity. Combined with connector distribution and OAuth, this version makes FIM Agent deployable to enterprise teams — like OpenAI / Anthropic Console's org model.
 
 **Organization & Resource Sharing**
 - [ ] **Organization Model**: Org CRUD (create, rename, delete); member invite (email or invite link) and remove; two roles — **admin** (full configuration: create/edit/publish connectors, agents, KBs, manage members) and **member** (use published resources, manage own conversations and credentials). Replaces current flat JWT auth with org-scoped access.
-- [ ] **Resource Visibility**: Connector / Agent / KB gain `org_id` + `visibility` field (`personal` | `org-shared`). Admin publishes resources to org; members see org-shared resources alongside their personal ones. Published resources are read-only for members (use, not edit).
+- [ ] **Resource Visibility (3-tier)**: Connector / Agent / KB gain `org_id` + `visibility` field with three levels:
+  - `personal` — only creator can see/use (default)
+  - `org-shared` — all org members can use (admin publishes; read-only for members)
+  - `public` — **Agent and Connector only, KB excluded**. Agent public = template marketplace (users clone and bind their own KB/Connector credentials; cannot use another user's agent instance directly). Connector public = cross-org distribution (API definitions contain no user data, natural fit for sharing). KB contains enterprise documents — global sharing is a security risk, org-shared is sufficient.
 - [ ] **KB Tags**: Tag-based categorization for knowledge bases; org members can filter/discover KBs by tag (e.g., "contract", "finance", "HR", "regulations"); tags managed by admin, displayed as filterable chips in KB list
 - [ ] **Frontend — Organization Management**: Org settings page (name, logo, invite link), member list with role badges, invite flow, resource publish/unpublish toggle on Connector/Agent/KB detail pages; org switcher in top nav (for users in multiple orgs)
 
@@ -241,6 +226,23 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [ ] **Connector Versioning**: Track changes, support rollback
 - [ ] **Official Connector Library**: GitHub, Lark, Slack and other preset connectors
 - [ ] **MCP Server Export**: Generate standalone FastMCP Server code from Connector; users can run independently or fork
+
+**Per-User Credentials**
+
+> *Connectors are now org-shared — each member needs their own credentials to access the target system.*
+
+- [ ] **ConnectorCredential Model**: Per-user credential storage (AES-GCM encrypted at rest); unique constraint `(user_id, connector_id)`; status tracking (connected / expired / error)
+- [ ] **Credential CRUD API**: `PUT /api/connectors/{id}/credentials` (upsert, encrypt), `GET` (status + masked preview, no plaintext), `DELETE` (disconnect), `POST .../credentials/test` (connectivity check)
+- [ ] **Runtime Credential Injection**: `_get_tools()` loads current user's credential → decrypts → passes to `ConnectorToolAdapter(auth_credentials=...)`; falls back to connector default `auth_config` if no user credential
+- [ ] **Target System Error Passthrough**: 4xx/5xx from target API returned to Agent as-is (status code + error body)
+- [ ] **Token Exchange**: Support `oauth_app` auth type — store `app_id + app_secret + token_url`; runtime POST to exchange for access_token; cache until expiry (e.g., Feishu/Lark `tenant_access_token`)
+- [ ] **Connector Detail Page**: `/connectors/[id]` — connector info, action list, **"Connect" button** to bind user credentials
+- [ ] **Credential Input Dialog**: Dynamic form fields based on `auth_type` (bearer → token, api_key → key + header, basic → username + password, oauth_app → app_id + secret)
+- [ ] **Connection Status Indicator**: Badge on ConnectorCard and detail page — `connected` (green) / `not connected` (gray) / `expired` (yellow)
+
+**Validation**:
+1. GitHub: two users with separate PATs → same org-shared Connector → each sees own repos → 403 passthrough on no permission
+2. Feishu: docs/messages/calendar APIs → user connects via Feishu app credentials → chat queries own Feishu data
 
 **OAuth 2.0**
 - [ ] **OAuth 2.0 Support**:

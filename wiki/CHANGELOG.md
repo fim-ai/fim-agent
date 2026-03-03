@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **OpenAPI Spec Import**: One-shot connector creation from OpenAPI 3.x specs (JSON/YAML); paste, URL, or parsed dict input; auto-extracts connector name, base_url, and description from spec info/servers; parses all operations into actions with parameters_schema, method, path, and requires_confirmation; resolves local `$ref` pointers
+- **Add Actions from OpenAPI**: Import actions from OpenAPI spec into an existing connector; optional "replace existing" mode
+- **AI Action Generation**: LLM-powered action creation from natural language instructions; connector context + existing actions fed to fast LLM; per-action Pydantic validation with partial success reporting
+- **AI Action Refinement**: LLM-powered action editing via create/update/delete operations; supports targeted single-action or bulk refinement
+- **AI Action Panel**: Inline collapsible chat panel in the action editor; first message generates, follow-ups refine; live result display (created/updated/deleted counts)
+- **OpenAPI Import Dialog**: Reusable dialog with Paste/URL tabs; two modes — "create" (one-shot) and "add-actions" (to existing connector)
 - **Citation Badges & References Redesign**: Inline `[N]` citation badges as styled `<sup>` elements in markdown; references section with card layout and collapse/expand toggle
 - **KB Document Retry**: Failed document ingestion can be retried; frontend retry button with error tooltip
 - **Chunk Text Search**: Search/filter chunks within KB drawer with debounced input and match highlighting

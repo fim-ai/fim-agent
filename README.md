@@ -109,7 +109,7 @@ FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Co
 #### Connector Platform (the core)
 - **Connector Hub Architecture** — Standalone assistant, embedded Copilot, or central Hub — same agent core, different delivery.
 - **Any System, One Pattern** — Connect APIs, databases, and message buses. Actions auto-register as agent tools with auth injection (Bearer, API Key, Basic).
-- **AI-Assisted Builder** — Natural language → Connector. OpenAPI import → auto-generated actions. Test and publish from conversation.
+- **AI-Assisted Builder** — Import OpenAPI specs (YAML/JSON/URL) to auto-generate connectors and actions. AI chat panel for natural language action generation and refinement.
 
 #### Intelligent Planning & Execution
 - **Dynamic DAG Planning** — LLM decomposes goals into dependency graphs at runtime. No hard-coded workflows.
