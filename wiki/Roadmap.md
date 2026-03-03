@@ -60,7 +60,6 @@ Hub          → Central cross-system orchestration (Portal / API)
 ### v0.2 -- Core Enhancements (shipped)
 
 - [x] **Native Function Calling**: Support OpenAI-style `tool_choice` / `parallel_tool_calls` alongside the ReAct JSON mode
-- [x] **Streaming Agent Output**: ~~Yield intermediate reasoning and tool results as they happen via `AsyncIterator`~~ -- Shipped in v0.1: real-time SSE streaming with async queue bridge and `on_iteration` callbacks for both ReAct and DAG modes
 - [x] **Conversation Memory**: Short-term message window + conversation summary for multi-turn agent sessions
 - [x] **Retry & Rate Limiting**: Configurable retry with exponential backoff + token-bucket rate limiter respecting provider quotas
 - [x] **Token Usage Tracking**: Count and aggregate prompt / completion tokens across all LLM calls; expose per-task cost summary
@@ -77,7 +76,6 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] **DAG Visualization**: Interactive @xyflow/react flow graph with real-time step status (pending/running/completed/failed), dependency edges, duration, and iteration details
 - [x] **Right Sidebar Panel**: Persistent right sidebar with expand/collapse toggle (layout flips between ~8/2 and ~2/8 ratio), auto fitView on resize; DAG flow graph + ReAct compact timeline; click-to-scroll from sidebar to main content; responsive (auto-hides < 1024px)
 - [x] **Env-Driven Configuration**: `LLM_TEMPERATURE` and `MAX_CONCURRENCY` configurable via environment variables
-- [x] **Parallel Tool Timing Fix**: Correct elapsed-time measurement for concurrent tool calls in native function-calling mode
 - [x] **Calculator Tool**: Safe AST-based math expression evaluation (no eval/exec)
 - [x] **File Ops Tool**: Sandboxed file read/write/list/mkdir in workspace directory with path traversal protection
 - [x] **Python Exec Sandbox**: Restricted builtins whitelist, blocked dangerous modules (subprocess, shutil, ctypes), stderr capture, 100KB output limit
@@ -109,17 +107,14 @@ Hub          → Central cross-system orchestration (Portal / API)
 
 **Memory & Compact**
 - [x] **LLM Compact**: When conversation history exceeds threshold, use a fast LLM to compress early turns into a summary; retain recent turns verbatim; transparent to the agent
-- [x] **ContextGuard**: Unified context window budget manager -- checks message token counts against model limits (`LLM_CONTEXT_SIZE` / `LLM_MAX_OUTPUT_TOKENS`), applies hint-specific LLM compaction (react_iteration, planner_input, step_dependency), truncates oversized messages, falls back to smart truncation; wired into ReAct agent and DAG executor
-- [x] **Pinned Messages**: `ChatMessage.pinned` flag protects critical messages (task description, user corrections) from compaction — ContextGuard and CompactUtils perform three-way split (system / pinned / compactable), pinned messages never enter the "old" pool for summarisation; ReAct pins the initial user message; DAG steps receive `original_goal` context so agents don't "forget what they're doing" during long tool-call loops; also fixes model_hint agents missing `context_guard` and `extra_instructions`
+- [x] **ContextGuard**: Unified context window budget manager — automatically compacts or truncates messages to stay within model token limits; wired into both ReAct and DAG execution
+- [x] **Pinned Messages**: Critical messages (task description, user corrections) protected from compaction; pinned messages never summarized during LLM Compact
 
 **DAG Mode Feature Parity** *(avoid falling behind ReAct)*
-- [x] **DAG Multi-Turn Polish**: Currently injects history as text prefix to planner; upgrade to structured message history so planner can reason about prior tool results and plan evolution
-- [x] **DAG LLM Compact**: Apply LLM compact to the enriched query before planning; long conversation context can blow up planner input
-- [x] **DAG Re-Planning**: When the analyzer determines the goal was not achieved (confidence < 0.5), the pipeline automatically re-plans using previous step results as context and retries, up to 3 rounds; new SSE phase event `replanning`; done payload includes `rounds` count
-- [x] **Tool-Name-Aware Planning**: Planner `tool_hint` constrained to available tool names; prevents hallucinated tool references in generated plans
-- [x] **DAG Step-Level ReAct**: Each DAG step runs a full ReAct agent loop (multi-step reasoning + tool use) instead of a single LLM call; enables complex sub-tasks within a DAG node — the minimal viable unit of Multi-Agent capability, reusing existing DAG infrastructure
-- [x] **DAG Step-Level Memory**: Each step executor sees relevant prior conversation context, not just the step task description
-- [x] **DAG History Replay**: Frontend replays persisted DAG executions with the flow graph (currently only ReAct timeline replays correctly)
+- [x] **DAG Multi-Turn & Compact**: Structured message history for planner (replaces text prefix) with LLM compaction to keep planner input within token budget
+- [x] **DAG Re-Planning**: When the analyzer determines the goal was not achieved (confidence < 0.5), the pipeline automatically re-plans using previous step results as context and retries, up to 3 rounds
+- [x] **DAG Step-Level ReAct**: Each DAG step runs a full ReAct agent loop (multi-step reasoning + tool use) instead of a single LLM call; enables complex sub-tasks within a DAG node
+- [x] **DAG History Replay**: Frontend replays persisted DAG executions with the flow graph
 
 **RAG & Knowledge Base**
 - [x] **Embedding**: `BaseEmbedding` protocol + OpenAI-compatible implementation (Jina jina-embeddings-v3)
@@ -128,7 +123,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] **Chunking Strategies**: Fixed-size, recursive, and semantic chunking
 - [x] **Hybrid Retrieval**: Dense vector search + LanceDB native FTS + RRF fusion + Jina reranker
 - [x] **Knowledge Base Management**: Full KB CRUD with document upload, background ingest, and agent `kb_retrieve` tool
-- [x] **Grounded Generation**: Evidence-anchored RAG — when an agent is bound to KBs, `kb_retrieve` auto-upgrades to `grounded_retrieve` with 5-stage pipeline: multi-KB parallel retrieval, LLM citation extraction (exact quotes), query-chunk alignment scoring, cross-document conflict detection, and score-based confidence (pure math, no LLM self-eval). Agent model gains `kb_ids` + `grounding_config` fields; agent form UI supports KB multi-select binding; frontend evidence panel with collapsible citations and conflict warnings; inline `[N]` citation markers with structured References section (confidence badge, source names, page numbers, exact quotes)
+- [x] **Grounded Generation**: Evidence-anchored RAG — auto-upgrades to grounded retrieval with citation extraction, alignment scoring, conflict detection, and confidence computation; inline citation markers with structured References panel
 - [x] **Chunk-Level CRUD**: View, edit, and delete individual chunks within a knowledge base document; inline chunk editor with content preview
 - [x] **KB Detail Page**: Dedicated knowledge base detail page with document table and chunk browser; navigate from KB list to full document/chunk management
 - [x] **Markdown Document Creation**: Create markdown documents directly from the KB UI; content authored in-browser and ingested into the knowledge base
@@ -140,7 +135,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] **Conversation Rename**: Inline rename conversations directly from the sidebar
 
 **Personal Center**
-- [x] **Global User Instructions**: Per-user system instructions that inject into every agent conversation; PATCH `/api/auth/profile` to save; merged with agent-specific instructions (user instructions first, agent instructions after for higher LLM priority)
+- [x] **Global User Instructions**: Per-user system instructions that inject into every agent conversation; merged with agent-specific instructions
 
 ### v0.6 -- Connector Platform
 
@@ -151,27 +146,24 @@ Hub          → Central cross-system orchestration (Portal / API)
 > **Architecture**: Virtual Connector model — definitions stored in DB, runtime HTTP/SQL proxy (no MCP protocol overhead), export to standalone MCP Server for distribution/fork.
 
 **Portal UX**
-- [x] **Dark / Light / System Theme**: `next-themes` provider with system-preference detection, manual toggle (Appearance settings page), and full component theming across DAG visualization, playground, connectors, and KB pages; light-mode logo variant
-- [x] **Suggested Follow-ups**: After agent completes (ReAct/DAG), fast LLM generates 2-3 follow-up questions displayed as clickable chips below the answer; click to auto-submit as new query; ephemeral — not persisted to DB, disappears on page refresh
-- [x] **Conversational Interrupt**: Send messages while the agent is running — injected at the next iteration boundary without interrupting execution. Backend async queue per conversation; ReAct drains between iterations (JSON mode) or after tool results (native mode); DAG drains between phases. Messages persist as `message_type="inject"` for history replay. Frontend: input box switches to inject mode during execution (Send = inject, empty + click = Stop); optimistic UI with SSE confirmation and recall support
+- [x] **Dark / Light / System Theme**: `next-themes` provider with system-preference detection, manual toggle (Appearance settings page), and full component theming
+- [x] **Suggested Follow-ups**: Fast LLM generates 2-3 follow-up questions as clickable chips after agent completes
+- [x] **Conversational Interrupt**: Send messages while agent is running; inject mode with Stop button; messages persist for replay
+- [x] **DAG Interrupt Skip**: Skip running/pending DAG steps during conversational interrupt
+- [x] **MarkItDown Integration**: DOCX/XLSX/PPTX document loading via MarkItDown library
+- [x] **Env-Driven Execution Limits**: Configurable `MAX_REACT_ITERATIONS` and `MAX_DAG_STEPS` via environment variables
 
 #### v0.6.1 — Connector Entity & Manual Builder (shipped)
 
-**Backend**
-- [x] Connector + ConnectorAction ORM models
-- [x] Connector CRUD API: `/api/connectors`
-- [x] ConnectorAction CRUD API: `/api/connectors/{id}/actions`
-- [x] `ConnectorToolAdapter` (like MCPToolAdapter): Action → BaseTool; `run()` builds HTTP request → `base_url + path` → returns response; auth injection (bearer with configurable prefix, API key with custom header, basic auth) with default credential fallback from `auth_config`
-- [x] Agent model `connector_ids: JSON` field
-- [x] `_resolve_tools()` extension: load agent-bound connectors → register actions as tools
-- [x] Database migration
-
-**Frontend**
-- [x] Connector management page (list + create/edit form)
-- [x] Action editor (method, path, parameters schema)
-- [x] Agent form Connector multi-select (like KB binding)
-- [x] Tool category `"connector"` in sidebar
-- [x] Per-auth-type config UI (bearer token prefix + default token, API key header name + default key, basic auth username/password)
+- [x] **Connector CRUD**: Create, edit, delete connectors with actions; full REST API (`/api/connectors`)
+- [x] **Connector Tool Adapter**: Actions registered as Agent tools; HTTP proxy with auth injection (bearer, API key, basic auth) and default credential fallback
+- [x] **Agent Connector Binding**: Bind connectors to agents (like KB binding); agent resolves connector actions as tools at runtime
+- [x] **Connector Management UI**: Connector list, create/edit form, action editor (method, path, parameters), per-auth-type config
+- [x] **Agent Form Connector Selector**: Multi-select connector binding in agent configuration form
+- [x] **Connector Smart Truncation**: JSON-aware response truncation with env-configurable array item limit and character limit
+- [x] **KB Document Retry**: Failed document ingestion can be retried; frontend retry button with error tooltip
+- [x] **Chunk Search & Filter**: Text search/filter for chunks within the KB chunk drawer
+- [x] **Observation JSON Highlighting**: Auto-detect and syntax-highlight JSON in tool output
 
 **Validation**: GitHub Connector (PAT bearer auth) → list_repos / get_issue → bind to Agent → use in conversation.
 

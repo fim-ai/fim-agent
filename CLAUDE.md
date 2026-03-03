@@ -77,14 +77,27 @@ Before starting parallel worktree development:
 
 ## Post-Commit Documentation Sync (MANDATORY)
 
-After every `feat:` commit, you MUST check and update these files before moving on:
+After every commit, you MUST update documentation before moving on. Do NOT ask the user — just do it silently.
 
-1. **`example.env`** — compare with `.env`, any new key must be added with placeholder and comment
-2. **`wiki/Roadmap.md`** — check off `[ ]` items that this feature completes; if the feature has no matching entry, insert a new item under the appropriate version/category and mark it as done
-3. **`README.md` Roadmap section** — update Shipped/Next summary if a milestone version was completed
-4. **`README.md` Key Features** — add entry if this is a new user-facing capability
-5. **`README.md` Project Structure** — update if new modules/directories were added under `src/`
-6. **`wiki/` pages** — update if architecture, execution modes, or competitive positioning changed
+### Every commit (feat / fix / refactor / all types)
+
+1. **`wiki/CHANGELOG.md`** — append the change under `[Unreleased]` in the correct section (`### Added` / `### Changed` / `### Fixed` / `### Removed`). Follow [Keep a Changelog](https://keepachangelog.com/) format.
+
+### Additionally after `feat:` commits
+
+2. **`wiki/Roadmap.md`** — check off `[ ]` items that this feature completes. If the feature has no matching entry **and is user-facing**, insert a new item under the **current version** section and mark it done. Never retroactively add to already-shipped older versions.
+3. **`example.env`** — compare with `.env`, any new key must be added with placeholder and comment.
+4. **`README.md` Key Features** — add entry if this is a new user-facing capability.
+5. **`README.md` Project Structure** — update if new modules/directories were added under `src/`.
+6. **`wiki/` pages** — update if architecture, execution modes, or competitive positioning changed.
+
+### Always at the end
+
 7. **Wiki sync** — if any `wiki/*.md` file was modified, run `./scripts/sync-wiki.sh`
 
-Do NOT ask the user whether to do these checks. Just do them silently after each feat commit.
+### Version Alignment Rules
+
+- **CHANGELOG and Roadmap versions must be strictly aligned.** Both use the same version numbers (e.g., v0.6.1).
+- The current development version = the latest shipped Roadmap version (e.g., if v0.6.1 is shipped, `[Unreleased]` in CHANGELOG will become v0.6.2 or remain under the current version when shipped).
+- When a Roadmap version is marked as shipped, move CHANGELOG `[Unreleased]` items into a new versioned section matching that Roadmap version.
+- Never place new features under already-shipped Roadmap versions retroactively.
