@@ -179,7 +179,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] Conversational Connector Settings: chat-based form for creating and editing connectors and actions through dialogue
 - [x] User Language Preference: `preferred_language` setting (auto/en/zh) with language directive injection across all LLM interactions; language selector in user dropdown
 - [x] Conversational Agent Settings: port the conversational settings pattern to agent create/edit (same chat-based CRUD approach)
-- [ ] Agent Quick Chat Link: "Start Chat" shortcut on agent cards/detail page → navigates to `/new?agent={id}` with the agent pre-selected
+- [x] Agent Quick Chat Link: "Start Chat" shortcut on agent cards/detail page → navigates to `/new?agent={id}` with the agent pre-selected
 
 **Validation**: Create Zhihe contract system Connector via conversation — provide API docs → Agent generates actions → test → publish.
 

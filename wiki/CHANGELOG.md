@@ -26,6 +26,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **RETRIEVAL_MODE Config**: Switch between grounding pipeline and basic RAG via `RETRIEVAL_MODE` env var (grounding | simple); simple mode uses `kb_retrieve` for basic RAG, grounding mode uses `grounded_retrieve` for full 5-stage pipeline; `KBRetrieveTool` supports bound kb_ids with multi-KB merge; frontend `parseSimpleEvidence()` for simple mode references
 - **Agent Quick Chat Link**: "Start Chat" button on agent cards and detail page for published agents; auto-selects agent from `?agent=` URL param in chat interface
 - **Documentation i18n (Roadmap)**: Added Chinese translation for README, Wiki, and GitHub pages as a v1.0 i18n milestone
+- **Iteration Duration Tracking**: Server-side per-iteration elapsed timing (`iter_elapsed`) in DAG executor; frontend displays duration on completed iterations with client-side fallback
+- **Elapsed Timer for Running Steps**: Real-time running clock on active DAG step cards
 
 ### Changed
 - **Roadmap v1.1 restructured**: Renamed from "Enterprise & Scale" to "Agent as a Service" — added Agent Publishing (published pages, API endpoints, API keys, version snapshots, custom branding), 3 delivery channels (Web App / API / Embed), access control (visitor modes, rate limiting, domain/IP restrictions), and usage analytics (per-agent dashboard, conversation logs, cost attribution); existing Connector Ecosystem and Enterprise Operations items retained
@@ -39,6 +41,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - KB detail page "Search" tab renamed to "Retrieve Test"
 - Inject recall button now always visible (not hidden on success)
 - **ThinkingCard Loading**: Simplified to single "Processing..." label with shiny-text shimmer animation; removed fake rotating THINKING_HINTS
+- **Monospace Font**: Switched to JetBrains Mono for `--font-mono` (replaces Inter)
+- **Sidebar Layout**: Width w-60→w-72; logo clickable (links to /new); collapsed mode keeps only search button; "New chat" icon restyled with background container
+- **Step Collapsible Groups**: DAG and ReAct step cards rendered inside the collapsible summary container (no longer floating below the toggle bar)
+- **Result Drawer**: Step result display changed from inline collapsible to right-side Sheet drawer for full-width markdown rendering
+- **History Step Cards**: Completed DAG turns in history hide individual step cards, showing only the summary bar
+- **ThinkingCard Layout**: Icon moved from circular wrapper into inline Badge; removed excess left padding
 
 ### Fixed
 - IME composition handling in chat input (Chinese/Japanese input no longer triggers premature submit)
