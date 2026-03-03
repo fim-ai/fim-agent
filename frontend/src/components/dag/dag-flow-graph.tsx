@@ -201,7 +201,7 @@ export function DagFlowGraph({ planSteps, stepStates, mode = "inline", expanded,
   const graphHeight = Math.max(380, Math.min(planSteps.length * 120 + 100, 600))
 
   return (
-    <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 rounded-lg border border-green-500/20 bg-card overflow-hidden">
+    <div className="rounded-lg border border-green-500/20 bg-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30">
         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500/10">

@@ -415,7 +415,7 @@ function HistoryTurn({ userContent, userMetadata, sseMessages, mode, hideDagGrap
   return (
     <>
       {userContent && (
-        <div className="flex items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+        <div className="flex items-center gap-3">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <User className="h-3.5 w-3.5 text-primary" />
           </div>
@@ -902,7 +902,7 @@ function PlaygroundContent({
                   )}
                   {/* Current turn: user message + live output */}
                   {pendingQuery && (
-                    <div className="flex items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center gap-3">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <User className="h-3.5 w-3.5 text-primary" />
                       </div>
@@ -950,7 +950,7 @@ function PlaygroundContent({
                       )
                     })
                     .map((msg) => (
-                    <div key={msg.ts} className={`group flex items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${msg.id ? "inject-breathe" : "animate-pulse"}`}>
+                    <div key={msg.ts} className={`group flex items-center gap-3 ${msg.id ? "inject-breathe" : "animate-pulse"}`}>
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <User className="h-3.5 w-3.5 text-primary" />
                       </div>

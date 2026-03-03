@@ -81,7 +81,7 @@ export function DagOutput({
         <button
           type="button"
           onClick={() => setStepsExpanded((v) => !v)}
-          className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
+          className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
         >
           <Wrench className="h-3.5 w-3.5 shrink-0" />
           <span>{summaryParts.join(" \u00b7 ")}</span>
@@ -94,7 +94,7 @@ export function DagOutput({
 
         {/* Inject messages — always visible */}
         {injectEvents.map((evt, i) => (
-          <div key={`inject-${i}`} className="flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+          <div key={`inject-${i}`} className="flex gap-3">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
               <User className="h-3.5 w-3.5 text-primary" />
             </div>
@@ -106,7 +106,7 @@ export function DagOutput({
 
         {/* Expanded: DAG graph + step cards + analysis */}
         {stepsExpanded && (
-          <div className="space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <div className="space-y-3">
             {!hideDagGraph && planSteps && planSteps.length > 0 && (
               <DagFlowGraph planSteps={planSteps} stepStates={stepStates} />
             )}
@@ -130,7 +130,7 @@ export function DagOutput({
     <div className="space-y-3 min-w-0 w-full">
       {/* Planning spinner */}
       {currentPhase === "planning" && !planSteps && (
-        <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 border-amber-500/20 py-4">
+        <Card className="border-amber-500/20 py-4">
           <CardContent className="flex items-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
             <span className="text-sm shiny-text">
@@ -144,7 +144,7 @@ export function DagOutput({
 
       {/* Re-planning spinner (between analyze and next planning:start) */}
       {currentPhase === "replanning" && (
-        <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 border-amber-500/20 py-4">
+        <Card className="border-amber-500/20 py-4">
           <CardContent className="flex items-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
             <span className="text-sm shiny-text">
@@ -170,7 +170,7 @@ export function DagOutput({
 
       {/* Inject messages */}
       {injectEvents.map((evt, i) => (
-        <div key={`inject-${i}`} className="flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+        <div key={`inject-${i}`} className="flex gap-3">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <User className="h-3.5 w-3.5 text-primary" />
           </div>
@@ -356,7 +356,7 @@ function ResultBlock({ content }: { content: string }) {
 
 function AnalysisCard({ phase }: { phase: DagPhaseEvent }) {
   return (
-    <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 border-purple-500/20 py-4">
+    <Card className="border-purple-500/20 py-4">
       <CardContent className="flex items-start gap-3">
         <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/10">
           <BarChart3 className="h-3.5 w-3.5 text-purple-500" />
@@ -395,7 +395,7 @@ function AnalysisCard({ phase }: { phase: DagPhaseEvent }) {
 
 function DagDoneCard({ done, onSuggestionSelect }: { done: DagDoneEvent; onSuggestionSelect?: (query: string) => void }) {
   return (
-    <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 border-green-500/20 py-4">
+    <Card className="border-green-500/20 py-4">
       <CardHeader className="pb-0">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500/10">

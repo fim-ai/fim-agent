@@ -19,7 +19,7 @@ interface RightSidebarProps {
 export function RightSidebar({ title, subtitle, badge, expanded, onToggleExpand, children, className, style }: RightSidebarProps) {
   return (
     <div className={cn(
-      "flex flex-col rounded-lg border border-border/50 bg-muted/10 overflow-hidden animate-in slide-in-from-right-2 duration-300",
+      "flex flex-col rounded-lg border border-border/50 bg-muted/10 overflow-hidden",
       className
     )} style={style}>
       {/* Header */}

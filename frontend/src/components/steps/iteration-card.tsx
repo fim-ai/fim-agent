@@ -70,7 +70,7 @@ export function IterationCard({
     return (
       <>
         <Card
-          className={`animate-in fade-in-0 slide-in-from-bottom-2 duration-200 border-amber-500/20 py-2 transition-colors ${hasDetail ? "cursor-pointer group hover:bg-muted/20" : ""}`}
+          className={`border-amber-500/20 py-2 transition-colors ${hasDetail ? "cursor-pointer group hover:bg-muted/20" : ""}`}
           onClick={handleClick}
         >
           <CardContent className="py-0">{inner}</CardContent>
