@@ -9,7 +9,7 @@ import type {
 export interface StepState {
   step_id: string
   task?: string
-  status: "pending" | "running" | "completed"
+  status: "pending" | "running" | "completed" | "skipped"
   result?: string
   duration?: number
   started_at?: number
@@ -108,7 +108,7 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
           state.status = "running"
           if (sp.started_at != null) state.started_at = sp.started_at
         } else if (sp.event === "completed") {
-          state.status = "completed"
+          state.status = sp.status === "skipped" ? "skipped" : "completed"
           if (sp.result) state.result = sp.result
           if (sp.duration) state.duration = sp.duration
           if (sp.started_at != null) state.started_at = sp.started_at

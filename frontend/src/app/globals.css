@@ -350,6 +350,20 @@ code,
   scrollbar-color: oklch(0.65 0.008 65 / 40%) transparent;
 }
 
+/* Inject message breathing fade in/out */
+@keyframes inject-breathe {
+  0%, 100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.inject-breathe {
+  animation: inject-breathe 2.4s ease-in-out infinite;
+}
+
 .shiny-text {
   background: linear-gradient(
     120deg,

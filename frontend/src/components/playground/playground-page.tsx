@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Loader2, PanelRightOpen, PanelRightClose, ArrowDown, Square, Zap, GitBranch, User, Paperclip, X, Plus, ChevronsUpDown, Check } from "lucide-react"
+import { Send, Loader2, PanelRightOpen, PanelRightClose, ArrowDown, Square, Zap, GitBranch, User, Paperclip, X, Plus, ChevronsUpDown, Check, Undo2 } from "lucide-react"
 import { useSSE } from "@/hooks/use-sse"
 import { useDagSteps } from "@/hooks/use-dag-steps"
 import { useReactSteps } from "@/hooks/use-react-steps"
@@ -415,11 +415,11 @@ function HistoryTurn({ userContent, userMetadata, sseMessages, mode, hideDagGrap
   return (
     <>
       {userContent && (
-        <div className="flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+        <div className="flex items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <User className="h-3.5 w-3.5 text-primary" />
           </div>
-          <div className="flex-1 pt-0.5">
+          <div className="flex-1">
             <p className="text-sm text-foreground">{userContent}</p>
             {Array.isArray(userMetadata?.images) && userMetadata.images.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-2">
@@ -514,6 +514,8 @@ function PlaygroundContent({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isNearBottomRef = useRef(true)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
+  const composingRef = useRef(false)
+  const [composing, setComposing] = useState(false)
 
   // Auto-focus textarea on new chat
   useEffect(() => {
@@ -591,9 +593,19 @@ function PlaygroundContent({
   // Sidebar only shown during live DAG streaming (React mode no longer uses sidebar)
   const showSidebar = hasLiveMessages && sidebarOpen && isWideScreen && mode === "dag"
 
+  // Scroll the ScrollArea viewport to bottom (avoids scrollIntoView cascading to parent containers)
+  const scrollViewportToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const root = scrollAreaRef.current
+    if (!root) return
+    const viewport = root.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]")
+    if (!viewport) return
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior })
+  }, [])
+
   const handleSuggestionSelect = useCallback((q: string) => {
     onRunWithQuery(q)
-  }, [onRunWithQuery])
+    requestAnimationFrame(() => scrollViewportToBottom())
+  }, [onRunWithQuery, scrollViewportToBottom])
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -643,15 +655,6 @@ function PlaygroundContent({
     viewport.addEventListener("scroll", handleScroll, { passive: true })
     return () => viewport.removeEventListener("scroll", handleScroll)
   }, [hasMessages])
-
-  // Scroll the ScrollArea viewport to bottom (avoids scrollIntoView cascading to parent containers)
-  const scrollViewportToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const root = scrollAreaRef.current
-    if (!root) return
-    const viewport = root.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]")
-    if (!viewport) return
-    viewport.scrollTo({ top: viewport.scrollHeight, behavior })
-  }, [])
 
   // Auto-scroll only when user is already near bottom.
   const msgCountRef = useRef(messages.length)
@@ -794,7 +797,8 @@ function PlaygroundContent({
     setAttachedFiles([])
 
     onRunWithQuery(finalQuery, imageIds.length > 0 ? imageIds : undefined)
-  }, [attachedFiles, query, onRunWithQuery])
+    requestAnimationFrame(() => scrollViewportToBottom())
+  }, [attachedFiles, query, onRunWithQuery, scrollViewportToBottom])
 
   const handleKeyDownWithFiles = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -898,11 +902,11 @@ function PlaygroundContent({
                   )}
                   {/* Current turn: user message + live output */}
                   {pendingQuery && (
-                    <div className="flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <User className="h-3.5 w-3.5 text-primary" />
                       </div>
-                      <div className="flex-1 pt-0.5">
+                      <div className="flex-1">
                         <p className="text-sm text-foreground">{pendingQuery}</p>
                         {pendingImages.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
@@ -946,22 +950,26 @@ function PlaygroundContent({
                       )
                     })
                     .map((msg) => (
-                    <div key={msg.ts} className="group flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+                    <div key={msg.ts} className={`group flex items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${msg.id ? "inject-breathe" : "animate-pulse"}`}>
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <User className="h-3.5 w-3.5 text-primary" />
                       </div>
-                      <div className="flex-1 pt-0.5">
+                      <div className="flex-1">
                         <p className="text-sm text-foreground">{msg.content}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {msg.id ? (
                             <button
                               onClick={() => onRecallInject(msg)}
-                              className="hidden group-hover:inline text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+                              className="hidden group-hover:inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                             >
+                              <Undo2 className="h-2.5 w-2.5" />
                               Recall
                             </button>
                           ) : (
-                            <span className="text-[10px] text-muted-foreground/50">Queued</span>
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+                              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                              Queued...
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1077,6 +1085,8 @@ function PlaygroundContent({
             ref={textareaRef}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
+            onCompositionStart={() => { composingRef.current = true; setComposing(true) }}
+            onCompositionEnd={(e) => { composingRef.current = false; setComposing(false); onQueryChange(e.currentTarget.value) }}
             onKeyDown={handleKeyDownWithFiles}
             onPaste={handlePaste}
             placeholder={
@@ -1089,12 +1099,12 @@ function PlaygroundContent({
             className="min-h-[72px] max-h-[160px] resize-none"
           />
           <Button
-            onClick={isRunning ? (query.trim() ? handleRunWithFiles : onAbort) : handleRunWithFiles}
-            disabled={!isRunning && !query.trim()}
+            onClick={isRunning ? ((query.trim() || composing) ? handleRunWithFiles : onAbort) : handleRunWithFiles}
+            disabled={!isRunning && !query.trim() && !composing}
             className="h-[72px] w-16 shrink-0"
-            variant={isRunning && !query.trim() ? "destructive" : "default"}
+            variant={isRunning && !query.trim() && !composing ? "destructive" : "default"}
           >
-            {isRunning && !query.trim() ? (
+            {isRunning && !query.trim() && !composing ? (
               <Square className="h-4 w-4" />
             ) : (
               <Send className="h-4 w-4" />

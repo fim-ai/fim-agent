@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
   User,
+  SkipForward,
 } from "lucide-react"
 import type {
   DagPhaseEvent,
@@ -194,39 +195,49 @@ export function DagOutput({
 
 function StepProgressCard({ state }: { state: StepState }) {
   const StatusIcon =
-    state.status === "completed"
-      ? CheckCircle2
-      : state.status === "running"
-        ? Loader2
-        : CircleDashed
+    state.status === "skipped"
+      ? SkipForward
+      : state.status === "completed"
+        ? CheckCircle2
+        : state.status === "running"
+          ? Loader2
+          : CircleDashed
 
   const cardBorderClass =
-    state.status === "completed"
-      ? "border-green-500/20"
-      : state.status === "running"
-        ? "border-amber-500/20"
-        : "border-zinc-500/20"
+    state.status === "skipped"
+      ? "border-zinc-500/20 opacity-50"
+      : state.status === "completed"
+        ? "border-green-500/20"
+        : state.status === "running"
+          ? "border-amber-500/20"
+          : "border-zinc-500/20"
 
   const iconBgClass =
-    state.status === "completed"
-      ? "bg-green-500/10"
-      : state.status === "running"
-        ? "bg-amber-500/10"
-        : "bg-zinc-500/10"
+    state.status === "skipped"
+      ? "bg-zinc-500/10"
+      : state.status === "completed"
+        ? "bg-green-500/10"
+        : state.status === "running"
+          ? "bg-amber-500/10"
+          : "bg-zinc-500/10"
 
   const iconTextClass =
-    state.status === "completed"
-      ? "text-green-500"
+    state.status === "skipped"
+      ? "text-zinc-500"
+      : state.status === "completed"
+        ? "text-green-500"
       : state.status === "running"
         ? "text-amber-500"
         : "text-zinc-500"
 
   const badgeBorderClass =
-    state.status === "completed"
-      ? "border-green-500/30 text-green-500"
-      : state.status === "running"
-        ? "border-amber-500/30 text-amber-500"
-        : "border-zinc-500/30 text-zinc-500"
+    state.status === "skipped"
+      ? "border-zinc-500/30 text-zinc-500 line-through"
+      : state.status === "completed"
+        ? "border-green-500/30 text-green-500"
+        : state.status === "running"
+          ? "border-amber-500/30 text-amber-500"
+          : "border-zinc-500/30 text-zinc-500"
 
   return (
     <Card
@@ -299,11 +310,22 @@ function StepProgressCard({ state }: { state: StepState }) {
 /*  Shared components                                                  */
 /* ------------------------------------------------------------------ */
 
+function stripInlineMarkdown(s: string): string {
+  return s
+    .replace(/^#+\s*/, "")              // headings
+    .replace(/\*\*(.*?)\*\*/g, "$1")    // bold
+    .replace(/\*(.*?)\*/g, "$1")        // italic
+    .replace(/~~(.*?)~~/g, "$1")        // strikethrough
+    .replace(/`(.*?)`/g, "$1")          // inline code
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1") // links
+    .trim()
+}
+
 function ResultBlock({ content }: { content: string }) {
   const [expanded, setExpanded] = useState(false)
 
-  // First non-empty line as preview (strip markdown)
-  const preview = content.split("\n").find((l) => l.trim())?.replace(/^#+\s*/, "").trim() ?? ""
+  // First non-empty line as preview (strip all markdown syntax)
+  const preview = stripInlineMarkdown(content.split("\n").find((l) => l.trim()) ?? "")
   const shortPreview = preview.length > 40 ? preview.slice(0, 40) + "…" : preview
 
   return (

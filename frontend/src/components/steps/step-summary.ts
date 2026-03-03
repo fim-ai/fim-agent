@@ -18,9 +18,9 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
 export function getToolDisplayName(tool_name: string): string {
   if (TOOL_DISPLAY_NAMES[tool_name]) return TOOL_DISPLAY_NAMES[tool_name]
 
-  // Connector: connector__action → "Connector"
+  // Connector: connector__action → "Connector Name"
   if (tool_name.includes("__") && !tool_name.startsWith("mcp__")) {
-    return tool_name.split("__")[0].replace(/^\w/, (c) => c.toUpperCase())
+    return tool_name.split("__")[0].replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   }
 
   // MCP: mcp__service__action → "Service"
