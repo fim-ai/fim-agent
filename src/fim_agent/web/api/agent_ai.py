@@ -50,8 +50,8 @@ available knowledge bases and connectors, generate a complete agent configuratio
 as a JSON object.
 
 The JSON object MUST have these fields:
-- "name": string — a short, descriptive agent name (max 200 chars). \
-MUST start with a single relevant emoji followed by a space (e.g. "🗣️ English Coach", "🔬 Research Assistant")
+- "name": string — a short, descriptive agent name (max 200 chars), plain text without emoji
+- "icon": string — a single emoji that represents this agent (e.g. "🗣️", "🔬", "🤖")
 - "description": string|null — what the agent does
 - "instructions": string|null — system instructions for the agent
 - "tool_categories": list[string]|null — from: computation, web, filesystem, knowledge, mcp, connector, general
@@ -77,6 +77,7 @@ and a user instruction, output a JSON object with ONLY the fields that should ch
 
 Updatable fields:
 - "name": string
+- "icon": string — a single emoji
 - "description": string|null
 - "instructions": string|null
 - "tool_categories": list[string]|null — from: computation, web, filesystem, knowledge, mcp, connector, general
@@ -190,6 +191,7 @@ def _build_agent_context(agent: Agent) -> str:
     """Describe the current agent configuration."""
     lines = [
         f"Agent: {agent.name}",
+        f"Icon: {agent.icon or 'N/A'}",
         f"Description: {agent.description or 'N/A'}",
         f"Instructions: {agent.instructions or 'N/A'}",
         f"Tool categories: {json.dumps(agent.tool_categories)}",
@@ -246,9 +248,14 @@ async def ai_create_agent(
         kb_ids=kb_ids,
     )
 
+    icon = data.get("icon")
+    if isinstance(icon, str):
+        icon = icon[:100]
+
     agent = Agent(
         user_id=current_user.id,
         name=str(data.get("name", "New Agent"))[:200],
+        icon=icon,
         description=data.get("description"),
         instructions=data.get("instructions"),
         tool_categories=tool_categories,
@@ -299,7 +306,7 @@ async def ai_refine_agent(
         )
 
     updatable_fields = {
-        "name", "description", "instructions", "tool_categories",
+        "name", "icon", "description", "instructions", "tool_categories",
         "suggested_prompts", "kb_ids", "connector_ids", "grounding_config",
     }
 

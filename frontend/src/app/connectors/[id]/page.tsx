@@ -96,7 +96,11 @@ export default function ConnectorEditorPage() {
           <TooltipContent side="right" sideOffset={5}>Back to Connectors</TooltipContent>
         </Tooltip>
         <h1 className="text-sm font-semibold text-foreground truncate flex items-center gap-2">
-          <Plug className="h-4 w-4 shrink-0" />
+          {connector?.icon ? (
+            <span className="text-base leading-none shrink-0">{connector.icon}</span>
+          ) : (
+            <Plug className="h-4 w-4 shrink-0" />
+          )}
           {isNew ? "New Connector" : connector?.name || "Connector"}
         </h1>
       </div>

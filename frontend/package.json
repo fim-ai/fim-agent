@@ -14,6 +14,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "dagre": "^0.8.5",
+    "frimousse": "^0.3.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.33",
     "lucide-react": "^0.575.0",

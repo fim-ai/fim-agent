@@ -1,6 +1,6 @@
 "use client"
 
-import { Pencil, Trash2, Globe, GlobeLock } from "lucide-react"
+import { Bot, Pencil, Trash2, Globe, GlobeLock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,12 @@ export function AgentCard({
     <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-accent/5">
       {/* Header: name + badges */}
       <div className="flex items-start gap-2 mb-2">
-        <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground">
+        <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground flex items-center gap-1.5">
+          {agent.icon ? (
+            <span className="shrink-0 text-base leading-none">{agent.icon}</span>
+          ) : (
+            <Bot className="h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
           {agent.name}
         </h3>
         <div className="flex items-center gap-1.5 shrink-0">

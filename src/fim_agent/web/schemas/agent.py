@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class AgentCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    icon: str | None = None
     description: str | None = None
     instructions: str | None = None
     model_config_json: dict | None = None
@@ -19,6 +20,7 @@ class AgentCreate(BaseModel):
 
 class AgentUpdate(BaseModel):
     name: str | None = None
+    icon: str | None = None
     description: str | None = None
     instructions: str | None = None
     model_config_json: dict | None = None
@@ -32,6 +34,7 @@ class AgentUpdate(BaseModel):
 class AgentResponse(BaseModel):
     id: str
     name: str
+    icon: str | None
     description: str | None
     instructions: str | None
     model_config_json: dict | None

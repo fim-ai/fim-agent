@@ -83,7 +83,11 @@ export default function AgentEditorPage() {
           <TooltipContent side="right" sideOffset={5}>Back to Agents</TooltipContent>
         </Tooltip>
         <h1 className="text-sm font-semibold text-foreground truncate flex items-center gap-2">
-          <Bot className="h-4 w-4 shrink-0" />
+          {agent?.icon ? (
+            <span className="text-base leading-none shrink-0">{agent.icon}</span>
+          ) : (
+            <Bot className="h-4 w-4 shrink-0" />
+          )}
           {isNew ? "New Agent" : agent?.name || "Agent"}
         </h1>
       </div>

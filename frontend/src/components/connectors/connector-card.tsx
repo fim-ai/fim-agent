@@ -1,6 +1,6 @@
 "use client"
 
-import { Pencil, Trash2, Globe } from "lucide-react"
+import { Pencil, Plug, Trash2, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ConnectorResponse } from "@/types/connector"
@@ -29,7 +29,12 @@ export function ConnectorCard({
 
       {/* Header: name + badges */}
       <div className="flex items-start gap-2 mb-2">
-        <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground">
+        <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground flex items-center gap-1.5">
+          {connector.icon ? (
+            <span className="shrink-0 text-base leading-none">{connector.icon}</span>
+          ) : (
+            <Plug className="h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
           {connector.name}
         </h3>
         <span className="shrink-0 text-[10px] px-1.5 py-0 h-5 inline-flex items-center rounded-full bg-amber-500/10 text-amber-500 font-medium">

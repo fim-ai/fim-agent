@@ -79,13 +79,22 @@ For "delete" (delete an existing action):
 
 For "update_connector" (update connector settings):
 - "data": object with connector fields to change. Allowed fields: \
-name, description, base_url, auth_type, auth_config
+name, icon, description, base_url, auth_type, auth_config
+- icon is a single emoji that represents this connector (e.g. "🐙", "📮", "🔍")
 - auth_type must be one of: "none", "bearer", "api_key", "basic"
 - auth_config is a JSON object whose shape depends on auth_type:
   - bearer: {"token": "..."}
   - api_key: {"key": "...", "header": "X-API-Key"} (header is optional, defaults to X-API-Key)
   - basic: {"username": "...", "password": "..."}
   - none: null or omit
+
+Examples:
+- User says "change the icon to 🚀" → [{"op": "update_connector", "data": {"icon": "🚀"}}]
+- User says "rename to Weather API" → [{"op": "update_connector", "data": {"name": "Weather API"}}]
+- User says "add a search endpoint" → [{"op": "create", "data": {"name": "search", ...}}]
+
+IMPORTANT: To change connector-level properties (name, icon, description, base_url, auth), \
+you MUST use "update_connector" — NOT "update" (which is for actions only).
 
 Output ONLY a valid JSON array of operations. No markdown, no commentary."""
 
@@ -96,8 +105,9 @@ You are an API connector creation assistant. Analyze the user's instruction and 
    {"mode": "openapi_import", "url": "<the URL>"}
 
 2. Otherwise, generate the connector configuration from the description → output:
-   {"mode": "generate", "connector": {"name": "...", "description": "...", "base_url": "...", "auth_type": "none", "auth_config": null}, "actions": [<array of action objects>]}
-   The connector "name" MUST start with a single relevant emoji followed by a space (e.g. "🐙 GitHub", "📮 Slack API", "🔍 Google Search").
+   {"mode": "generate", "connector": {"name": "...", "icon": "...", "description": "...", "base_url": "...", "auth_type": "none", "auth_config": null}, "actions": [<array of action objects>]}
+   The connector "name" should be plain text without emoji (e.g. "GitHub", "Slack API", "Google Search").
+   The connector "icon" is a single emoji that represents this connector (e.g. "🐙", "📮", "🔍").
 
 For generated actions, each action object MUST have:
 - "name": string (snake_case)
@@ -129,6 +139,7 @@ def _build_connector_context(connector: Connector) -> str:
     """Build a context string describing the connector and its existing actions."""
     lines = [
         f"Connector: {connector.name}",
+        f"Icon: {connector.icon or 'N/A'}",
         f"Description: {connector.description or 'N/A'}",
         f"Base URL: {connector.base_url}",
         f"Auth: {connector.auth_type}",
@@ -280,9 +291,13 @@ async def ai_create_connector(
 
     elif mode == "generate":
         conn_data = plan.get("connector", {})
+        conn_icon = conn_data.get("icon")
+        if isinstance(conn_icon, str):
+            conn_icon = conn_icon[:100]
         connector = Connector(
             user_id=current_user.id,
             name=str(conn_data.get("name", "New Connector"))[:200],
+            icon=conn_icon,
             description=conn_data.get("description"),
             type="api",
             base_url=str(conn_data.get("base_url", "https://api.example.com")),
@@ -526,7 +541,7 @@ async def ai_refine_action(
             elif op == "update_connector":
                 data = op_item.get("data", {})
                 connector_updatable = {
-                    "name", "description", "base_url",
+                    "name", "icon", "description", "base_url",
                     "auth_type", "auth_config",
                 }
                 for field, value in data.items():

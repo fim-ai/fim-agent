@@ -24,6 +24,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
     return AgentResponse(
         id=agent.id,
         name=agent.name,
+        icon=agent.icon,
         description=agent.description,
         instructions=agent.instructions,
         model_config_json=agent.model_config_json,
@@ -109,6 +110,7 @@ async def create_agent(
     agent = Agent(
         user_id=current_user.id,
         name=body.name,
+        icon=body.icon,
         description=body.description,
         instructions=body.instructions,
         model_config_json=body.model_config_json,

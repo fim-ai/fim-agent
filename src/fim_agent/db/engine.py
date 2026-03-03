@@ -241,6 +241,7 @@ async def _migrate_agent_columns(conn) -> None:
         ("kb_ids", "ALTER TABLE agents ADD COLUMN kb_ids JSON"),
         ("connector_ids", "ALTER TABLE agents ADD COLUMN connector_ids JSON"),
         ("grounding_config", "ALTER TABLE agents ADD COLUMN grounding_config JSON"),
+        ("icon", "ALTER TABLE agents ADD COLUMN icon VARCHAR(100)"),
     ]
 
     for col_name, ddl in migrations:

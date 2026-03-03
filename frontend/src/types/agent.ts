@@ -2,6 +2,7 @@ export interface AgentResponse {
   id: string
   name: string
   description: string | null
+  icon: string | null
   instructions: string | null
   model_config_json: Record<string, unknown> | null
   tool_categories: string[] | null
@@ -18,6 +19,7 @@ export interface AgentResponse {
 export interface AgentCreate {
   name: string
   description?: string | null
+  icon?: string | null
   instructions?: string | null
   model_config_json?: Record<string, unknown>
   tool_categories?: string[]
@@ -30,6 +32,7 @@ export interface AgentCreate {
 export interface AgentUpdate {
   name?: string
   description?: string | null
+  icon?: string | null
   instructions?: string | null
   model_config_json?: Record<string, unknown>
   tool_categories?: string[]

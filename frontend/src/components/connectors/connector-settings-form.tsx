@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plug } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 import { connectorApi } from "@/lib/api"
 import type { ConnectorCreate, ConnectorResponse } from "@/types/connector"
 
@@ -20,6 +21,7 @@ export function ConnectorSettingsForm({
   onDirtyChange,
 }: ConnectorSettingsFormProps) {
   const [name, setName] = useState("")
+  const [icon, setIcon] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [baseUrl, setBaseUrl] = useState("")
   const [authType, setAuthType] = useState("none")
@@ -38,6 +40,7 @@ export function ConnectorSettingsForm({
   useEffect(() => {
     if (connector) {
       setName(connector.name)
+      setIcon(connector.icon || null)
       setDescription(connector.description || "")
       setBaseUrl(connector.base_url)
       setAuthType(connector.auth_type)
@@ -50,6 +53,7 @@ export function ConnectorSettingsForm({
       setDefaultPassword(typeof cfg.default_password === "string" ? cfg.default_password : "")
     } else {
       setName("")
+      setIcon(null)
       setDescription("")
       setBaseUrl("")
       setAuthType("none")
@@ -73,6 +77,7 @@ export function ConnectorSettingsForm({
     const cfg = connector.auth_config || {}
     const dirty =
       name !== connector.name ||
+      icon !== (connector.icon || null) ||
       description !== (connector.description || "") ||
       baseUrl !== connector.base_url ||
       authType !== connector.auth_type ||
@@ -83,7 +88,7 @@ export function ConnectorSettingsForm({
       defaultUsername !== (typeof cfg.default_username === "string" ? cfg.default_username : "") ||
       defaultPassword !== (typeof cfg.default_password === "string" ? cfg.default_password : "")
     onDirtyChange(dirty)
-  }, [connector, name, description, baseUrl, authType, tokenPrefix, headerName, defaultToken, defaultApiKey, defaultUsername, defaultPassword, onDirtyChange])
+  }, [connector, name, icon, description, baseUrl, authType, tokenPrefix, headerName, defaultToken, defaultApiKey, defaultUsername, defaultPassword, onDirtyChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,6 +119,7 @@ export function ConnectorSettingsForm({
 
       const data: ConnectorCreate = {
         name: trimmedName,
+        icon: icon || null,
         description: description.trim() || null,
         type: "api",
         base_url: trimmedUrl,
@@ -147,20 +153,27 @@ export function ConnectorSettingsForm({
     <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
       <ScrollArea className="flex-1">
         <div className="space-y-4 pl-0.5 pr-4">
-          {/* Name */}
+          {/* Name + Icon */}
           <div className="space-y-1.5">
             <label htmlFor="connector-name" className="text-sm font-medium">
               Name <span className="text-destructive">*</span>
             </label>
-            <input
-              id="connector-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="GitHub API"
-              required
-              className={inputClass}
-            />
+            <div className="flex items-center gap-2">
+              <EmojiPickerPopover
+                value={icon}
+                onChange={setIcon}
+                fallbackIcon={<Plug className="h-5 w-5" />}
+              />
+              <input
+                id="connector-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="GitHub API"
+                required
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {/* Description */}

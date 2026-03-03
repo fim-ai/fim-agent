@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Check, Loader2 } from "lucide-react"
+import { Bot, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 import { agentApi, kbApi, connectorApi } from "@/lib/api"
 import type { AgentCreate, AgentResponse } from "@/types/agent"
 import type { ConnectorResponse } from "@/types/connector"
@@ -23,6 +24,7 @@ export function AgentSettingsForm({
   onDirtyChange,
 }: AgentSettingsFormProps) {
   const [name, setName] = useState("")
+  const [icon, setIcon] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [instructions, setInstructions] = useState("")
   const [toolCategories, setToolCategories] = useState<string[]>([])
@@ -39,6 +41,7 @@ export function AgentSettingsForm({
   useEffect(() => {
     if (agent) {
       setName(agent.name)
+      setIcon(agent.icon || null)
       setDescription(agent.description || "")
       setInstructions(agent.instructions || "")
       setToolCategories(agent.tool_categories || [])
@@ -49,6 +52,7 @@ export function AgentSettingsForm({
       setConfidenceThreshold(typeof ct === "number" ? ct : null)
     } else {
       setName("")
+      setIcon(null)
       setDescription("")
       setInstructions("")
       setToolCategories([])
@@ -81,6 +85,7 @@ export function AgentSettingsForm({
     }
     const dirty =
       name !== agent.name ||
+      icon !== (agent.icon || null) ||
       description !== (agent.description || "") ||
       instructions !== (agent.instructions || "") ||
       JSON.stringify(toolCategories) !== JSON.stringify(agent.tool_categories || []) ||
@@ -93,7 +98,7 @@ export function AgentSettingsForm({
         return confidenceThreshold !== origCt
       })()
     onDirtyChange(dirty)
-  }, [agent, name, description, instructions, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, onDirtyChange])
+  }, [agent, name, icon, description, instructions, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, onDirtyChange])
 
   const toggleCategory = (cat: string) => {
     setToolCategories((prev) =>
@@ -117,6 +122,7 @@ export function AgentSettingsForm({
 
       const data: AgentCreate = {
         name: trimmedName,
+        icon: icon || null,
         description: description.trim() || null,
         instructions: instructions.trim() || null,
         tool_categories: toolCategories,
@@ -153,20 +159,27 @@ export function AgentSettingsForm({
     <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
       <ScrollArea className="flex-1">
         <div className="space-y-4 pl-0.5 pr-4">
-          {/* Name */}
+          {/* Name + Icon */}
           <div className="space-y-1.5">
             <label htmlFor="agent-name" className="text-sm font-medium">
               Name <span className="text-destructive">*</span>
             </label>
-            <input
-              id="agent-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My Agent"
-              required
-              className={inputClass}
-            />
+            <div className="flex items-center gap-2">
+              <EmojiPickerPopover
+                value={icon}
+                onChange={setIcon}
+                fallbackIcon={<Bot className="h-5 w-5" />}
+              />
+              <input
+                id="agent-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="My Agent"
+                required
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {/* Description */}

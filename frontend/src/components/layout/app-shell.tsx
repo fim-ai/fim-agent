@@ -265,7 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href="/agents"
                 className={cn(
                   "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                  pathname === "/agents"
+                  pathname === "/agents" || pathname.startsWith("/agents/")
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
                   collapsed && "h-9 w-9 justify-center px-0"
@@ -295,7 +295,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href="/connectors"
                 className={cn(
                   "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                  pathname === "/connectors"
+                  pathname === "/connectors" || pathname.startsWith("/connectors/")
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
                   collapsed && "h-9 w-9 justify-center px-0"
