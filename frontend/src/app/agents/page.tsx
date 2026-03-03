@@ -146,6 +146,7 @@ export default function AgentsPage() {
               <AgentCard
                 key={agent.id}
                 agent={agent}
+                onStartChat={(agent) => router.push(`/new?agent=${agent.id}`)}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onPublish={handlePublish}

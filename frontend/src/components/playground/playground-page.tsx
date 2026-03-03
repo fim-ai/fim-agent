@@ -87,6 +87,9 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
   const [injectedMessages, setInjectedMessages] = useState<{id?: string; content: string; ts: number}[]>([])
   const failedInjectRef = useRef<string | null>(null)
 
+  // Read agent param from URL for quick chat link
+  const agentParam = isNewChat ? searchParams.get("agent") : null
+
   // Ref to track conversation IDs we created ourselves (via send),
   // so the "switch conversation" effect doesn't reset SSE for them.
   const selfCreatedIdRef = useRef<string | null>(null)
@@ -321,6 +324,7 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
         onAbort={abort}
         onExampleSelect={handleExampleSelect}
         isNewChat={isNewChat}
+        initialAgentId={agentParam}
       />
 
       {/* Mode switch confirmation dialog */}
@@ -494,6 +498,7 @@ interface PlaygroundContentProps {
   onAbort: () => void
   onExampleSelect: (example: string) => void
   isNewChat?: boolean
+  initialAgentId?: string | null
 }
 
 function PlaygroundContent({
@@ -516,6 +521,7 @@ function PlaygroundContent({
   onAbort,
   onExampleSelect,
   isNewChat,
+  initialAgentId,
 }: PlaygroundContentProps) {
   const modeMatches = sourceMode === mode
   const hasLiveMessages = modeMatches && messages.length > 0
@@ -725,6 +731,16 @@ function PlaygroundContent({
       setAgentsLoaded(true)
     }).catch(() => setAgentsLoaded(true))
   }, [agentsLoaded])
+
+  // Auto-select agent from URL param
+  useEffect(() => {
+    if (!initialAgentId || !agentsLoaded || agents.length === 0) return
+    if (selectedAgent?.id === initialAgentId) return // already selected
+    const found = agents.find(a => a.id === initialAgentId)
+    if (found) {
+      onAgentChange(found)
+    }
+  }, [initialAgentId, agentsLoaded, agents, selectedAgent, onAgentChange])
 
   // Shared upload logic for both file input and paste
   const uploadFiles = useCallback(async (files: File[]) => {

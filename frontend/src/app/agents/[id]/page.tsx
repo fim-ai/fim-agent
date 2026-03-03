@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, Bot } from "lucide-react"
+import { ArrowLeft, Loader2, Bot, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts/auth-context"
@@ -90,6 +90,23 @@ export default function AgentEditorPage() {
           )}
           {isNew ? "New Agent" : agent?.name || "Agent"}
         </h1>
+        <div className="flex-1" />
+        {agent && agent.status === "published" && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(`/new?agent=${agent.id}`)}
+                className="gap-1.5 text-muted-foreground hover:text-primary"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Start Chat
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Start a new conversation with this agent</TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Main content: left AI chat + right form */}

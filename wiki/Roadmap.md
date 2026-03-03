@@ -172,16 +172,14 @@ Hub          → Central cross-system orchestration (Portal / API)
 **Backend**
 - [x] OpenAPI Spec import: paste/URL → parse → auto-generate Connector + Actions (one-shot and add-to-existing modes)
 - [x] Natural language → Action conversion: AI generate-actions and refine-action endpoints powered by fast LLM
-- [ ] Connector Builder Agent (built-in) with dedicated tools: `create_connector_draft` / `add_action` / `test_action` / `import_openapi` / `publish_connector`
-- [ ] API probing: test endpoints with provided credentials
 
 **Frontend**
 - [x] OpenAPI import dialog (paste YAML/JSON or URL, reusable for both create and add-actions modes)
 - [x] AI Action Panel: inline collapsible chat panel in action editor (generate → refine flow)
-- [ ] Builder conversation entry (reuse Chat UI + built-in Builder Agent)
 - [x] Conversational Connector Settings: chat-based form for creating and editing connectors and actions through dialogue
 - [x] User Language Preference: `preferred_language` setting (auto/en/zh) with language directive injection across all LLM interactions; language selector in user dropdown
-- [ ] Conversational Agent Settings: port the conversational settings pattern to agent create/edit (same chat-based CRUD approach)
+- [x] Conversational Agent Settings: port the conversational settings pattern to agent create/edit (same chat-based CRUD approach)
+- [ ] Agent Quick Chat Link: "Start Chat" shortcut on agent cards/detail page → navigates to `/new?agent={id}` with the agent pre-selected
 
 **Validation**: Create Zhihe contract system Connector via conversation — provide API docs → Agent generates actions → test → publish.
 

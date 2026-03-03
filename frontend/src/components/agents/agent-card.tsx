@@ -1,6 +1,6 @@
 "use client"
 
-import { Bot, Pencil, Trash2, Globe, GlobeLock } from "lucide-react"
+import { Bot, Pencil, Trash2, Globe, GlobeLock, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ interface AgentCardProps {
   onDelete: (id: string) => void
   onPublish: (id: string) => void
   onUnpublish: (id: string) => void
+  onStartChat?: (agent: AgentResponse) => void
 }
 
 export function AgentCard({
@@ -21,6 +22,7 @@ export function AgentCard({
   onDelete,
   onPublish,
   onUnpublish,
+  onStartChat,
 }: AgentCardProps) {
   const isPublished = agent.status === "published"
 
@@ -58,6 +60,21 @@ export function AgentCard({
 
       {/* Action buttons */}
       <div className="flex items-center gap-1 -ml-1">
+        {isPublished && onStartChat && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => onStartChat(agent)}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={5}>Start Chat</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
