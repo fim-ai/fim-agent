@@ -458,6 +458,7 @@ function HistoryTurn({ userContent, userMetadata, sseMessages, mode, hideDagGrap
           currentRound={dagData.currentRound}
           injectEvents={dagData.injectEvents}
           hideDagGraph={hideDagGraph}
+          hideStepCards
         />
       )}
     </>

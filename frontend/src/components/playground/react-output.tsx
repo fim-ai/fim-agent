@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
 import { useState } from "react"
-import { Loader2, Wrench, Brain, CheckCircle2, Clock, RefreshCw, BarChart3, ChevronDown, ChevronUp, Sparkles, User } from "lucide-react"
+import { Loader2, Wrench, Brain, CheckCircle2, Clock, RefreshCw, BarChart3, ChevronDown, ChevronUp, User } from "lucide-react"
 import { fmtDuration } from "@/lib/utils"
 import type { ReactStepEvent, ReactDoneEvent } from "@/types/api"
 import type { StepItem } from "@/hooks/use-react-steps"
@@ -41,39 +41,41 @@ export function ReactOutput({ items, onSuggestionSelect }: ReactOutputProps) {
   if (hasDone && toolCallCount > 0) {
     return (
       <div className="space-y-3 min-w-0 w-full">
-        {/* Collapsible summary bar */}
-        <button
-          type="button"
-          onClick={() => setStepsExpanded((v) => !v)}
-          className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
-        >
-          <Wrench className="h-3.5 w-3.5 shrink-0" />
-          <span>
-            {toolCallCount} tool call{toolCallCount !== 1 ? "s" : ""}
-            {" \u00b7 "}
-            {fmtDuration(elapsed)}
-          </span>
-          {stepsExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 ml-auto shrink-0" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5 ml-auto shrink-0" />
-          )}
-        </button>
+        {/* Collapsible tool call group */}
+        <div className="rounded-lg border border-border/40 bg-muted/20">
+          <button
+            type="button"
+            onClick={() => setStepsExpanded((v) => !v)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground rounded-lg"
+          >
+            <Wrench className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              {toolCallCount} tool call{toolCallCount !== 1 ? "s" : ""}
+              {" \u00b7 "}
+              {fmtDuration(elapsed)}
+            </span>
+            {stepsExpanded ? (
+              <ChevronUp className="h-3.5 w-3.5 ml-auto shrink-0" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 ml-auto shrink-0" />
+            )}
+          </button>
 
-        {/* Expanded step cards (inject events always visible outside) */}
-        {stepsExpanded && (
-          <div className="space-y-3">
-            {stepItems.map((item) => {
-              const originalIdx = items.indexOf(item)
-              const step = item.data as ReactStepEvent
-              return (
-                <div key={originalIdx} data-react-idx={originalIdx}>
-                  <StepCard step={step} duration={item.duration} displayIteration={item.displayIteration} />
-                </div>
-              )
-            })}
-          </div>
-        )}
+          {/* Expanded step cards — nested inside the collapsible group */}
+          {stepsExpanded && (
+            <div className="space-y-3 px-4 pt-1 pb-3">
+              {stepItems.map((item) => {
+                const originalIdx = items.indexOf(item)
+                const step = item.data as ReactStepEvent
+                return (
+                  <div key={originalIdx} data-react-idx={originalIdx}>
+                    <StepCard step={step} duration={item.duration} displayIteration={item.displayIteration} />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Inject events — always visible (they are user messages) */}
         {items.filter((i) => i.event === "inject").map((item) => {
@@ -147,17 +149,11 @@ function ThinkingCard({ iterLabel, duration, reasoning }: { iterLabel: number; d
     <Card className="border-amber-500/20 py-4">
       <CardContent className="space-y-2">
         <div className="flex items-center gap-3">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
-            {isWaiting ? (
-              <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-            ) : (
-              <Brain className="h-3.5 w-3.5 text-amber-500" />
-            )}
-          </div>
           <Badge
             variant="outline"
-            className="border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-wider"
+            className="border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-wider gap-1"
           >
+            <Brain className="h-3 w-3" />
             Thinking
           </Badge>
           <span className="text-xs text-muted-foreground">
@@ -171,13 +167,13 @@ function ThinkingCard({ iterLabel, duration, reasoning }: { iterLabel: number; d
           )}
         </div>
         {isWaiting && (
-          <p className="text-xs text-muted-foreground leading-relaxed pl-9">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             <Loader2 className="inline h-3 w-3 animate-spin mr-1.5 align-text-bottom" />
             <span className="shiny-text">Processing...</span>
           </p>
         )}
         {reasoning && (
-          <p className="text-xs italic text-muted-foreground leading-relaxed pl-9">
+          <p className="text-xs italic text-muted-foreground leading-relaxed">
             {reasoning}
           </p>
         )}

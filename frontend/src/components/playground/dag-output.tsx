@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
 import { fmtDuration } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Loader2,
   Wrench,
@@ -22,6 +22,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   User,
   SkipForward,
 } from "lucide-react"
@@ -35,6 +36,13 @@ import { IterationCard } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import { SuggestedFollowups } from "./suggested-followups"
 import { stripCitations } from "@/lib/evidence-utils"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface DagOutputProps {
   planSteps: DagPhaseEvent["steps"]
@@ -44,6 +52,7 @@ interface DagOutputProps {
   currentPhase: string | null
   currentRound?: number
   hideDagGraph?: boolean
+  hideStepCards?: boolean
   injectEvents?: Array<{ content: string; phase?: string; timestamp: number }>
   onSuggestionSelect?: (query: string) => void
 }
@@ -56,6 +65,7 @@ export function DagOutput({
   currentPhase,
   currentRound = 1,
   hideDagGraph,
+  hideStepCards,
   injectEvents = [],
   onSuggestionSelect,
 }: DagOutputProps) {
@@ -78,20 +88,37 @@ export function DagOutput({
 
     return (
       <div className="space-y-3 min-w-0 w-full">
-        {/* Collapsible summary bar */}
-        <button
-          type="button"
-          onClick={() => setStepsExpanded((v) => !v)}
-          className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border/40 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
-        >
-          <Wrench className="h-3.5 w-3.5 shrink-0" />
-          <span>{summaryParts.join(" \u00b7 ")}</span>
-          {stepsExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 ml-auto shrink-0" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5 ml-auto shrink-0" />
+        {/* Collapsible step group */}
+        <div className="rounded-lg border border-border/40 bg-muted/20">
+          <button
+            type="button"
+            onClick={() => setStepsExpanded((v) => !v)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground rounded-lg"
+          >
+            <Wrench className="h-3.5 w-3.5 shrink-0" />
+            <span>{summaryParts.join(" \u00b7 ")}</span>
+            {stepsExpanded ? (
+              <ChevronUp className="h-3.5 w-3.5 ml-auto shrink-0" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 ml-auto shrink-0" />
+            )}
+          </button>
+
+          {/* Expanded: DAG graph + step cards + analysis — nested inside */}
+          {stepsExpanded && (
+            <div className="space-y-3 px-4 pb-3">
+              {!hideDagGraph && planSteps && planSteps.length > 0 && (
+                <DagFlowGraph planSteps={planSteps} stepStates={stepStates} />
+              )}
+              {!hideStepCards && stepStates.map((state) => (
+                <div key={state.step_id} data-step-id={state.step_id}>
+                  <StepProgressCard state={state} />
+                </div>
+              ))}
+              {!hideStepCards && analysisPhase && <AnalysisCard phase={analysisPhase} />}
+            </div>
           )}
-        </button>
+        </div>
 
         {/* Inject messages — always visible */}
         {injectEvents.map((evt, i) => (
@@ -104,21 +131,6 @@ export function DagOutput({
             </div>
           </div>
         ))}
-
-        {/* Expanded: DAG graph + step cards + analysis */}
-        {stepsExpanded && (
-          <div className="space-y-3">
-            {!hideDagGraph && planSteps && planSteps.length > 0 && (
-              <DagFlowGraph planSteps={planSteps} stepStates={stepStates} />
-            )}
-            {stepStates.map((state) => (
-              <div key={state.step_id} data-step-id={state.step_id}>
-                <StepProgressCard state={state} />
-              </div>
-            ))}
-            {analysisPhase && <AnalysisCard phase={analysisPhase} />}
-          </div>
-        )}
 
         {/* Done card — always visible */}
         <DagDoneCard done={doneEvent} onSuggestionSelect={onSuggestionSelect} />
@@ -276,6 +288,9 @@ function StepProgressCard({ state }: { state: StepState }) {
               {fmtDuration(state.duration)}
             </span>
           )}
+          {state.status === "running" && state.started_at != null && (
+            <ElapsedTimer startedAt={state.started_at} />
+          )}
         </div>
       </CardHeader>
 
@@ -293,6 +308,7 @@ function StepProgressCard({ state }: { state: StepState }) {
               observation: iter.observation,
               error: iter.error,
               loading: iter.loading,
+              duration: iter.duration,
             }
             return (
               <IterationCard
@@ -315,6 +331,20 @@ function StepProgressCard({ state }: { state: StepState }) {
   )
 }
 
+function ElapsedTimer({ startedAt }: { startedAt: number }) {
+  const [elapsed, setElapsed] = useState(() => Date.now() / 1000 - startedAt)
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Date.now() / 1000 - startedAt), 500)
+    return () => clearInterval(id)
+  }, [startedAt])
+  return (
+    <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+      <Clock className="h-2.5 w-2.5" />
+      {fmtDuration(elapsed)}
+    </span>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /*  Shared components                                                  */
 /* ------------------------------------------------------------------ */
@@ -330,8 +360,8 @@ function stripInlineMarkdown(s: string): string {
     .trim()
 }
 
-function ResultBlock({ content }: { content: string }) {
-  const [expanded, setExpanded] = useState(false)
+export function ResultBlock({ content }: { content: string }) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Strip orphan citation markers [1], [10] etc. — DAG mode has no References panel
   const cleanContent = stripCitations(content)
@@ -341,28 +371,56 @@ function ResultBlock({ content }: { content: string }) {
   const shortPreview = preview.length > 40 ? preview.slice(0, 40) + "…" : preview
 
   return (
-    <div className="rounded-md border border-border/30 bg-muted/20 p-2.5">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-2 text-left cursor-pointer group"
+    <>
+      <div
+        className="rounded-md border border-border/30 bg-muted/20 px-2.5 py-2 cursor-pointer group hover:bg-muted/30 transition-colors"
+        onClick={() => setDrawerOpen(true)}
       >
-        <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
-        <span className="font-medium text-foreground text-xs">Result</span>
-        {!expanded && shortPreview && (
-          <span className="text-[10px] text-muted-foreground truncate min-w-0">{shortPreview}</span>
-        )}
-        <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} />
-      </button>
-      {expanded && (
-        <div className="mt-2">
-          <MarkdownContent
-            content={cleanContent}
-            className="text-xs text-foreground/80 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_h4]:text-xs [&_p]:text-xs [&_li]:text-xs [&_td]:text-xs [&_th]:text-xs [&_table]:text-xs"
-          />
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+          <span className="font-medium text-foreground text-xs">Result</span>
+          {shortPreview && (
+            <span className="text-[10px] text-muted-foreground truncate min-w-0">{shortPreview}</span>
+          )}
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-auto group-hover:text-foreground transition-colors" />
         </div>
-      )}
-    </div>
+      </div>
+      <ResultDetailDrawer
+        content={drawerOpen ? cleanContent : null}
+        onClose={() => setDrawerOpen(false)}
+      />
+    </>
+  )
+}
+
+function ResultDetailDrawer({ content, onClose }: { content: string | null; onClose: () => void }) {
+  return (
+    <Sheet open={!!content} onOpenChange={(v) => { if (!v) onClose() }}>
+      <SheetContent side="right" className="sm:max-w-2xl w-full flex flex-col p-0 gap-0">
+        {content && (
+          <>
+            <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
+              <SheetHeader className="gap-1">
+                <SheetTitle className="flex items-center gap-2.5 text-base">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-500/10">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  </div>
+                  <span className="font-semibold">Step Result</span>
+                </SheetTitle>
+              </SheetHeader>
+            </div>
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="px-6 py-4">
+                <MarkdownContent
+                  content={content}
+                  className="prose-sm text-sm text-foreground/90"
+                />
+              </div>
+            </ScrollArea>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   )
 }
 

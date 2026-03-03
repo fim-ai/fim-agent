@@ -1,14 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { X, Clock, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react"
+import { X, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MarkdownContent } from "@/lib/markdown"
 import { cn, fmtDuration } from "@/lib/utils"
 import { IterationCard } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import type { StepState } from "@/hooks/use-dag-steps"
+import { ResultBlock } from "@/components/playground/dag-output"
 
 interface StepDetailPanelProps {
   state: StepState | null
@@ -16,8 +15,6 @@ interface StepDetailPanelProps {
 }
 
 export function StepDetailPanel({ state, onClose }: StepDetailPanelProps) {
-  const [resultOpen, setResultOpen] = useState(false)
-
   return (
     <div
       className={cn(
@@ -84,27 +81,9 @@ export function StepDetailPanel({ state, onClose }: StepDetailPanelProps) {
                 )
               })}
 
-              {/* Result — collapsed by default */}
+              {/* Result — opens drawer on click */}
               {state.result && (
-                <div className="rounded-md border border-border/30 bg-muted/20 p-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setResultOpen((v) => !v)}
-                    className="flex w-full items-center gap-2 text-left cursor-pointer"
-                  >
-                    <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
-                    <span className="font-medium text-foreground text-xs">Result</span>
-                    <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 ml-auto transition-transform ${resultOpen ? "rotate-180" : ""}`} />
-                  </button>
-                  {resultOpen && (
-                    <div className="mt-2">
-                      <MarkdownContent
-                        content={state.result}
-                        className="prose-sm text-xs text-foreground/90"
-                      />
-                    </div>
-                  )}
-                </div>
+                <ResultBlock content={state.result} />
               )}
 
               {state.iterations.length === 0 && !state.result && (
