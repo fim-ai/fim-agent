@@ -84,8 +84,9 @@ class DAGPlanner:
         llm: The language model to use for planning.
     """
 
-    def __init__(self, llm: BaseLLM) -> None:
+    def __init__(self, llm: BaseLLM, *, language_directive: str | None = None) -> None:
         self._llm = llm
+        self._language_directive = language_directive
 
     async def plan(
         self,
@@ -153,14 +154,14 @@ class DAGPlanner:
         """
         now_dt = datetime.now(timezone.utc)
         now = now_dt.strftime("%Y-%m-%d %H:%M UTC")
+        system_content = _PLANNING_PROMPT.format(
+            current_datetime=now,
+            current_year=now_dt.year,
+        )
+        if self._language_directive:
+            system_content += f"\n\n{self._language_directive}"
         messages: list[ChatMessage] = [
-            ChatMessage(
-                role="system",
-                content=_PLANNING_PROMPT.format(
-                    current_datetime=now,
-                    current_year=now_dt.year,
-                ),
-            ),
+            ChatMessage(role="system", content=system_content),
         ]
 
         user_content = f"Goal: {goal}"

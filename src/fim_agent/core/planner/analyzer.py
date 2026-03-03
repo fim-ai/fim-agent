@@ -75,8 +75,9 @@ class PlanAnalyzer:
         llm: The language model to use for analysis.
     """
 
-    def __init__(self, llm: BaseLLM) -> None:
+    def __init__(self, llm: BaseLLM, *, language_directive: str | None = None) -> None:
         self._llm = llm
+        self._language_directive = language_directive
 
     async def analyze(
         self,
@@ -179,8 +180,11 @@ class PlanAnalyzer:
             f"Execution plan (round {plan.current_round}):\n{step_summaries}"
         )
 
+        system_content = _ANALYSIS_PROMPT
+        if self._language_directive:
+            system_content += f"\n\n{self._language_directive}"
         return [
-            ChatMessage(role="system", content=_ANALYSIS_PROMPT),
+            ChatMessage(role="system", content=system_content),
             ChatMessage(role="user", content=user_content),
         ]
 

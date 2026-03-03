@@ -50,7 +50,7 @@ from fim_agent.core.planner import (
 )
 from fim_agent.core.memory.context_guard import ContextGuard
 from fim_agent.core.tool import ToolRegistry
-from fim_agent.core.utils import extract_json_value
+from fim_agent.core.utils import extract_json_value, get_language_directive
 
 from ..deps import (
     get_context_budget,
@@ -191,6 +191,7 @@ async def _generate_suggestions(
     answer: str,
     *,
     count: int = 3,
+    preferred_language: str | None = None,
 ) -> list[str]:
     """Generate follow-up question suggestions based on query and answer.
 
@@ -204,6 +205,11 @@ async def _generate_suggestions(
     try:
         truncated_answer = answer[:1500]
 
+        lang_directive = get_language_directive(preferred_language)
+        lang_rule = (
+            f"- {lang_directive}\n" if lang_directive
+            else "- Match the language of the original query (e.g. Chinese query -> Chinese questions).\n"
+        )
         system_prompt = (
             "You generate concise follow-up questions that a user might naturally ask "
             "after receiving an answer. The questions should explore different angles: "
@@ -211,7 +217,7 @@ async def _generate_suggestions(
             "Rules:\n"
             f"- Return EXACTLY {count} questions.\n"
             "- Each question must be a single sentence, under 80 characters.\n"
-            "- Match the language of the original query (e.g. Chinese query -> Chinese questions).\n"
+            f"{lang_rule}"
             "- Return ONLY a JSON array of strings, no other text."
         )
         user_content = (
@@ -242,13 +248,16 @@ async def _generate_suggestions(
 # ---------------------------------------------------------------------------
 
 
-async def _resolve_user(token: str | None) -> tuple[str | None, str | None]:
-    """Validate a JWT query-param token and return (user_id, system_instructions), or (None, None).
+async def _resolve_user(
+    token: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """Validate a JWT query-param token and return (user_id, system_instructions, preferred_language).
 
+    Returns ``(None, None, None)`` when *token* is not provided.
     Raises HTTPException(401) on invalid/expired tokens.
     """
     if not token:
-        return None, None
+        return None, None, None
 
     from fim_agent.web.auth import decode_token
 
@@ -257,23 +266,27 @@ async def _resolve_user(token: str | None) -> tuple[str | None, str | None]:
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
-    # Fetch user's system_instructions
+    # Fetch user's system_instructions and preferred_language
     system_instructions: str | None = None
+    preferred_language: str | None = None
     try:
         from fim_agent.db import create_session
         from fim_agent.web.models import User
 
         async with create_session() as session:
             result = await session.execute(
-                sa_select(User.system_instructions).where(User.id == user_id)
+                sa_select(User.system_instructions, User.preferred_language).where(
+                    User.id == user_id
+                )
             )
-            row = result.scalar_one_or_none()
+            row = result.one_or_none()
             if row:
-                system_instructions = row
+                system_instructions = row[0]
+                preferred_language = row[1]
     except Exception:
         logger.warning("Failed to load user system_instructions", exc_info=True)
 
-    return user_id, system_instructions
+    return user_id, system_instructions, preferred_language
 
 
 async def _validate_conversation_ownership(
@@ -285,7 +298,7 @@ async def _validate_conversation_ownership(
 
     async with create_session() as session:
         result = await session.execute(
-            sa_select(Conversation).where(
+            sa_select(Conversation.id).where(
                 Conversation.id == conversation_id,
                 Conversation.user_id == user_id,
             )
@@ -607,7 +620,7 @@ async def react_endpoint(
         for vision model processing.
     """
     # -- Pre-stream resolution (before StreamingResponse) -------------------
-    current_user_id, user_system_instructions = await _resolve_user(token)
+    current_user_id, user_system_instructions, preferred_language = await _resolve_user(token)
     if conversation_id and current_user_id:
         await _validate_conversation_ownership(conversation_id, current_user_id)
 
@@ -623,6 +636,11 @@ async def react_endpoint(
     if agent_instructions:
         parts.append(agent_instructions)
     extra_instructions = "\n\n".join(parts) if parts else None
+
+    # Prepend language directive when user has an explicit language preference
+    lang_directive = get_language_directive(preferred_language)
+    if lang_directive:
+        extra_instructions = f"{lang_directive}\n\n{extra_instructions}" if extra_instructions else lang_directive
 
     if agent_cfg and agent_cfg.get("kb_ids"):
         grounding_hint = (
@@ -866,7 +884,9 @@ async def react_endpoint(
                     )
 
             # ephemeral: generate AFTER persist, inject BEFORE yield
-            suggestions = await _generate_suggestions(get_fast_llm(), q, result.answer)
+            suggestions = await _generate_suggestions(
+                get_fast_llm(), q, result.answer, preferred_language=preferred_language,
+            )
             if suggestions:
                 done_payload["suggestions"] = suggestions
 
@@ -924,7 +944,7 @@ async def dag_endpoint(
         for vision model processing.
     """
     # -- Pre-stream resolution ----------------------------------------------
-    current_user_id, user_system_instructions = await _resolve_user(token)
+    current_user_id, user_system_instructions, preferred_language = await _resolve_user(token)
     if conversation_id and current_user_id:
         await _validate_conversation_ownership(conversation_id, current_user_id)
 
@@ -940,6 +960,11 @@ async def dag_endpoint(
     if agent_instructions:
         parts.append(agent_instructions)
     extra_instructions = "\n\n".join(parts) if parts else None
+
+    # Prepend language directive when user has an explicit language preference
+    lang_directive = get_language_directive(preferred_language)
+    if lang_directive:
+        extra_instructions = f"{lang_directive}\n\n{extra_instructions}" if extra_instructions else lang_directive
 
     if agent_cfg and agent_cfg.get("kb_ids"):
         grounding_hint = (
@@ -1131,7 +1156,7 @@ async def dag_endpoint(
                     return
 
                 tool_names = [t.name for t in tools.list_tools()]
-                planner = DAGPlanner(llm=llm)
+                planner = DAGPlanner(llm=llm, language_directive=lang_directive)
                 plan = await planner.plan(
                     enriched_query,
                     context=replan_context,
@@ -1288,7 +1313,7 @@ async def dag_endpoint(
                     logger.info("Client disconnected before analysis round %d", round_num)
                     return
 
-                analyzer = PlanAnalyzer(llm=llm)
+                analyzer = PlanAnalyzer(llm=llm, language_directive=lang_directive)
                 analysis = await analyzer.analyze(enriched_query, plan)
                 yield _emit(
                     sse_events,
@@ -1454,7 +1479,9 @@ async def dag_endpoint(
                     )
 
             # ephemeral: generate AFTER persist, inject BEFORE yield
-            dag_suggestions = await _generate_suggestions(fast_llm, q, answer)
+            dag_suggestions = await _generate_suggestions(
+                fast_llm, q, answer, preferred_language=preferred_language,
+            )
             if dag_suggestions:
                 dag_done_payload["suggestions"] = dag_suggestions
 

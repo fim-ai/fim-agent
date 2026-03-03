@@ -9,8 +9,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from fim_agent.core.model.types import ChatMessage
+from fim_agent.core.utils import get_language_directive
 from fim_agent.db import get_session
 from fim_agent.web.auth import get_current_user
 from fim_agent.web.deps import get_fast_llm
@@ -19,11 +21,16 @@ from fim_agent.web.models.user import User
 from fim_agent.web.schemas.common import ApiResponse
 from fim_agent.web.schemas.connector import (
     AIActionResult,
+    AICreateConnectorRequest,
+    AICreateConnectorResult,
     AIGenerateActionsRequest,
     AIRefineActionRequest,
     ActionResponse,
+    ConnectorResponse,
+    OpenAPIImportRequest,
 )
-from fim_agent.web.api.connectors import _get_owned_connector, _action_to_response, _connector_to_response
+from fim_agent.web.api.connectors import _get_owned_connector, _action_to_response, _connector_to_response, _resolve_openapi_spec
+from fim_agent.core.tool.connector.openapi_parser import parse_openapi_spec
 
 router = APIRouter(prefix="/api/connectors", tags=["connector-ai"])
 
@@ -82,6 +89,40 @@ name, description, base_url, auth_type, auth_config
 
 Output ONLY a valid JSON array of operations. No markdown, no commentary."""
 
+_CREATE_SYSTEM_PROMPT = """\
+You are an API connector creation assistant. Analyze the user's instruction and determine the best approach:
+
+1. If the user provides an OpenAPI/Swagger spec URL → output:
+   {"mode": "openapi_import", "url": "<the URL>"}
+
+2. Otherwise, generate the connector configuration from the description → output:
+   {"mode": "generate", "connector": {"name": "...", "description": "...", "base_url": "...", "auth_type": "none", "auth_config": null}, "actions": [<array of action objects>]}
+
+For generated actions, each action object MUST have:
+- "name": string (snake_case)
+- "description": string
+- "method": string (GET/POST/PUT/PATCH/DELETE)
+- "path": string (relative path)
+- "parameters_schema": object|null
+- "requires_confirmation": boolean (true for destructive actions)
+
+Optional action fields:
+- "request_body_template": object|null
+- "response_extract": string|null
+
+auth_type must be one of: "none", "bearer", "api_key", "basic"
+auth_config shape depends on auth_type:
+  - bearer: {"token": "..."}
+  - api_key: {"key": "...", "header": "X-API-Key"} (header is optional, defaults to X-API-Key)
+  - basic: {"username": "...", "password": "..."}
+  - none: null or omit
+
+Choose the appropriate auth_type based on what the API typically uses. \
+If the user mentions a token or API key, set the auth_type accordingly and leave \
+placeholder values (e.g. "your-api-key-here") in auth_config for the user to fill in.
+
+Output ONLY valid JSON. No markdown, no commentary."""
+
 
 def _build_connector_context(connector: Connector) -> str:
     """Build a context string describing the connector and its existing actions."""
@@ -119,11 +160,24 @@ def _extract_json(text: str) -> Any:
     return json.loads(text)
 
 
-async def _llm_call(system: str, user_msg: str, retry_context: str | None = None) -> Any:
+async def _llm_call(
+    system: str,
+    user_msg: str,
+    retry_context: str | None = None,
+    *,
+    language_directive: str | None = None,
+) -> Any:
     """Call the fast LLM and parse JSON from response. Auto-retries once on parse failure."""
     llm = get_fast_llm()
+    sys_content = system
+    if language_directive:
+        sys_content += (
+            f"\n\n{language_directive} "
+            "This applies to natural-language fields only. "
+            "Keep JSON keys and technical fields in English."
+        )
     messages: list[ChatMessage] = [
-        ChatMessage(role="system", content=system),
+        ChatMessage(role="system", content=sys_content),
         ChatMessage(role="user", content=user_msg),
     ]
     if retry_context:
@@ -152,12 +206,135 @@ async def _llm_call(system: str, user_msg: str, retry_context: str | None = None
             f"Your previous response was not valid JSON. Error: {exc}\n"
             "Please output ONLY a valid JSON array, no markdown or commentary."
         )
-        return await _llm_call(system, user_msg, retry_context=feedback)
+        return await _llm_call(system, user_msg, retry_context=feedback, language_directive=language_directive)
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.post("/ai/create", response_model=ApiResponse)
+async def ai_create_connector(
+    body: AICreateConnectorRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Create a new connector using AI from natural language or OpenAPI URL."""
+    lang_directive = get_language_directive(current_user.preferred_language)
+    plan = await _llm_call(_CREATE_SYSTEM_PROMPT, body.instruction, language_directive=lang_directive)
+    if not isinstance(plan, dict):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="LLM did not return a JSON object",
+        )
+
+    mode = plan.get("mode")
+
+    if mode == "openapi_import":
+        url = plan.get("url", "")
+        if not url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="LLM extracted openapi_import mode but no URL",
+            )
+        spec = await _resolve_openapi_spec(OpenAPIImportRequest(spec_url=url))
+        info = spec.get("info", {})
+        servers = spec.get("servers", [])
+        base_url = servers[0]["url"] if servers else ""
+        if not base_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OpenAPI spec must have at least one server URL",
+            )
+
+        connector = Connector(
+            user_id=current_user.id,
+            name=info.get("title", "Imported API")[:200],
+            description=info.get("description"),
+            type="api",
+            base_url=base_url,
+            auth_type="none",
+            status="published",
+        )
+        db.add(connector)
+        await db.flush()
+
+        action_dicts = parse_openapi_spec(spec)
+        for ad in action_dicts:
+            action = ConnectorAction(
+                connector_id=connector.id,
+                name=ad["name"],
+                description=ad.get("description"),
+                method=ad.get("method", "GET"),
+                path=ad.get("path", "/"),
+                parameters_schema=ad.get("parameters_schema"),
+                request_body_template=ad.get("request_body_template"),
+                requires_confirmation=ad.get("requires_confirmation", False),
+            )
+            db.add(action)
+
+        await db.commit()
+        msg = f"Imported {len(action_dicts)} action(s) from OpenAPI spec."
+
+    elif mode == "generate":
+        conn_data = plan.get("connector", {})
+        connector = Connector(
+            user_id=current_user.id,
+            name=str(conn_data.get("name", "New Connector"))[:200],
+            description=conn_data.get("description"),
+            type="api",
+            base_url=str(conn_data.get("base_url", "https://api.example.com")),
+            auth_type=str(conn_data.get("auth_type", "none")),
+            auth_config=conn_data.get("auth_config"),
+            status="published",
+        )
+        db.add(connector)
+        await db.flush()
+
+        actions_data = plan.get("actions", [])
+        created_count = 0
+        for item in actions_data:
+            try:
+                action = ConnectorAction(
+                    connector_id=connector.id,
+                    name=str(item["name"]),
+                    description=item.get("description"),
+                    method=str(item.get("method", "GET")).upper(),
+                    path=str(item["path"]),
+                    parameters_schema=item.get("parameters_schema"),
+                    request_body_template=item.get("request_body_template"),
+                    response_extract=item.get("response_extract"),
+                    requires_confirmation=bool(item.get("requires_confirmation", False)),
+                )
+                db.add(action)
+                created_count += 1
+            except Exception as exc:
+                logger.warning("Failed to create action from AI output: %s", exc)
+
+        await db.commit()
+        msg = f"Created connector with {created_count} action(s)."
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"LLM returned unknown mode: {mode}",
+        )
+
+    # Reload with actions
+    result = await db.execute(
+        select(Connector)
+        .options(selectinload(Connector.actions))
+        .where(Connector.id == connector.id)
+    )
+    connector = result.scalar_one()
+
+    return ApiResponse(
+        data=AICreateConnectorResult(
+            connector=_connector_to_response(connector),
+            message=msg,
+        ).model_dump()
+    )
 
 
 @router.post("/{connector_id}/ai/generate-actions", response_model=ApiResponse)
@@ -169,13 +346,14 @@ async def ai_generate_actions(
 ) -> ApiResponse:
     """Generate new actions for a connector using AI."""
     connector = await _get_owned_connector(connector_id, current_user.id, db)
+    lang_directive = get_language_directive(current_user.preferred_language)
 
     connector_ctx = _build_connector_context(connector)
     user_msg = f"{connector_ctx}\n\nUser instruction: {body.instruction}"
     if body.context:
         user_msg += f"\n\nAPI documentation context:\n{body.context}"
 
-    raw_actions = await _llm_call(_GENERATE_SYSTEM_PROMPT, user_msg)
+    raw_actions = await _llm_call(_GENERATE_SYSTEM_PROMPT, user_msg, language_directive=lang_directive)
     if not isinstance(raw_actions, list):
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -205,7 +383,11 @@ async def ai_generate_actions(
             )
             db.add(action)
             await db.flush()
-            await db.refresh(action)
+            # Re-query to get server-generated defaults
+            result = await db.execute(
+                select(ConnectorAction).where(ConnectorAction.id == action.id)
+            )
+            action = result.scalar_one()
             created.append(_action_to_response(action))
         except Exception as exc:
             failed.append(f"Action #{i}: {exc}")
@@ -234,6 +416,7 @@ async def ai_refine_action(
 ) -> ApiResponse:
     """Refine connector actions using AI instructions."""
     connector = await _get_owned_connector(connector_id, current_user.id, db)
+    lang_directive = get_language_directive(current_user.preferred_language)
 
     connector_ctx = _build_connector_context(connector)
     user_msg = f"{connector_ctx}\n\nUser instruction: {body.instruction}"
@@ -252,7 +435,7 @@ async def ai_refine_action(
             f"({target.method} {target.path})"
         )
 
-    operations = await _llm_call(_REFINE_SYSTEM_PROMPT, user_msg)
+    operations = await _llm_call(_REFINE_SYSTEM_PROMPT, user_msg, language_directive=lang_directive)
     if not isinstance(operations, list):
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -284,7 +467,11 @@ async def ai_refine_action(
                 )
                 db.add(action)
                 await db.flush()
-                await db.refresh(action)
+                # Re-query to get server-generated defaults
+                result = await db.execute(
+                    select(ConnectorAction).where(ConnectorAction.id == action.id)
+                )
+                action = result.scalar_one()
                 created.append(_action_to_response(action))
 
             elif op == "update":
@@ -313,7 +500,11 @@ async def ai_refine_action(
                         setattr(action, field, value)
 
                 await db.flush()
-                await db.refresh(action)
+                # Re-query to get updated values
+                result = await db.execute(
+                    select(ConnectorAction).where(ConnectorAction.id == action.id)
+                )
+                action = result.scalar_one()
                 updated.append(_action_to_response(action))
 
             elif op == "delete":
@@ -354,7 +545,12 @@ async def ai_refine_action(
     # Build connector_updated response if connector settings were changed
     connector_updated_resp = None
     if connector_changed:
-        await db.refresh(connector, attribute_names=["actions"])
+        result = await db.execute(
+            select(Connector)
+            .options(selectinload(Connector.actions))
+            .where(Connector.id == connector.id)
+        )
+        connector = result.scalar_one()
         connector_updated_resp = _connector_to_response(connector)
 
     parts: list[str] = []
