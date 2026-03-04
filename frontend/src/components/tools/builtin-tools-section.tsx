@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import {
   Calculator,
+  Clock,
   Code2,
   Globe,
   Search,
@@ -13,6 +15,9 @@ import {
   Library,
   Database,
   Sparkles,
+  Plug,
+  Server,
+  ArrowRight,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -29,6 +34,16 @@ interface ToolCategory {
 }
 
 const BUILTIN_TOOLS: ToolCategory[] = [
+  {
+    category: "General",
+    tools: [
+      {
+        name: "datetime",
+        description: "Get the current date, time, and weekday. Supports any IANA timezone (e.g. UTC, Asia/Shanghai).",
+        category: "General",
+      },
+    ],
+  },
   {
     category: "Computation",
     tools: [
@@ -104,10 +119,11 @@ const BUILTIN_TOOLS: ToolCategory[] = [
 
 const ALL_TOOLS: ToolEntry[] = BUILTIN_TOOLS.flatMap((g) => g.tools)
 
-const CATEGORIES = ["All", "Computation", "Web", "Filesystem", "Knowledge"] as const
+const CATEGORIES = ["All", "General", "Computation", "Web", "Filesystem", "Knowledge", "Connector", "MCP"] as const
 type CategoryFilter = (typeof CATEGORIES)[number]
 
 const TOOL_ICONS: Record<string, LucideIcon> = {
+  datetime: Clock,
   calculator: Calculator,
   python_exec: Code2,
   web_fetch: Globe,
@@ -121,6 +137,7 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
 }
 
 const CATEGORY_ICON_COLOR: Record<string, string> = {
+  General: "text-muted-foreground",
   Computation: "text-blue-500",
   Web: "text-green-500",
   Filesystem: "text-orange-500",
@@ -156,12 +173,73 @@ function ToolCard({ tool }: { tool: ToolEntry }) {
   )
 }
 
-export function BuiltinToolsSection() {
+function ConnectorLinkCard() {
+  return (
+    <Link href="/connectors" className="block group">
+      <div className="rounded-lg border border-dashed border-border bg-card p-4 flex flex-col gap-2 hover:border-primary/50 hover:bg-accent/30 transition-colors">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Plug className="h-4 w-4 shrink-0 text-cyan-500" />
+            <Badge variant="secondary" className="shrink-0 text-xs font-mono">
+              connector
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
+              Connector
+            </Badge>
+            <ArrowRight className="h-3 w-3 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Custom HTTP API actions bound to this agent. Managed on the Connectors page.
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+function MCPLinkCard({ onSwitch }: { onSwitch: () => void }) {
+  return (
+    <button onClick={onSwitch} className="text-left w-full group">
+      <div className="rounded-lg border border-dashed border-border bg-card p-4 flex flex-col gap-2 hover:border-primary/50 hover:bg-accent/30 transition-colors">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Server className="h-4 w-4 shrink-0 text-indigo-500" />
+            <Badge variant="secondary" className="shrink-0 text-xs font-mono">
+              mcp
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
+              MCP
+            </Badge>
+            <ArrowRight className="h-3 w-3 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Tools provided by external MCP servers. Configure them in the MCP Servers tab.
+        </p>
+      </div>
+    </button>
+  )
+}
+
+interface BuiltinToolsSectionProps {
+  onSwitchToMCP: () => void
+}
+
+export function BuiltinToolsSection({ onSwitchToMCP }: BuiltinToolsSectionProps) {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("All")
 
+  const showConnector = activeCategory === "All" || activeCategory === "Connector"
+  const showMCP = activeCategory === "All" || activeCategory === "MCP"
+
   const filteredTools =
-    activeCategory === "All"
-      ? ALL_TOOLS
+    activeCategory === "All" || activeCategory === "Connector" || activeCategory === "MCP"
+      ? activeCategory === "All"
+        ? ALL_TOOLS
+        : []
       : ALL_TOOLS.filter((t) => t.category === activeCategory)
 
   return (
@@ -188,6 +266,8 @@ export function BuiltinToolsSection() {
         {filteredTools.map((tool) => (
           <ToolCard key={tool.name} tool={tool} />
         ))}
+        {showConnector && <ConnectorLinkCard />}
+        {showMCP && <MCPLinkCard onSwitch={onSwitchToMCP} />}
       </div>
     </div>
   )

@@ -16,6 +16,7 @@ export default function ToolsPage() {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
+  const [activeTab, setActiveTab] = useState("builtin")
   const [servers, setServers] = useState<MCPServerResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -91,7 +92,7 @@ export default function ToolsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="builtin" className="flex flex-col flex-1 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 overflow-hidden">
         <div className="px-6 pt-4 shrink-0">
           <TabsList>
             <TabsTrigger value="builtin">Built-in</TabsTrigger>
@@ -101,7 +102,7 @@ export default function ToolsPage() {
 
         {/* Built-in tab */}
         <TabsContent value="builtin" className="flex-1 overflow-y-auto px-6 py-4 mt-0">
-          <BuiltinToolsSection />
+          <BuiltinToolsSection onSwitchToMCP={() => setActiveTab("mcp")} />
         </TabsContent>
 
         {/* MCP Servers tab */}
