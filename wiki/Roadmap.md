@@ -197,6 +197,10 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] **SSE Transport**: `MCPClient.connect_sse()` for remote MCP servers; `MCPClient.disconnect()` for individual session removal
 - [x] **Per-Request MCP Lifecycle**: Active user MCP servers connect on-demand in `_resolve_tools()` and disconnect after SSE stream ends; system-level `MCP_SERVERS` env var remains supported in parallel
 - [x] **Tools Page (`/tools`)**: Built-in tool catalog (read-only, grouped by category) + MCP server management grid with add/edit/delete; transport-aware dialog (STDIO: command+args+env, SSE: URL)
+- [x] **Streamable HTTP Transport**: MCP 2025-03-26 spec; `MCPClient.connect_streamable_http()` via `mcp.client.streamable_http`; 3rd transport toggle in dialog
+- [x] **HTTP Headers for SSE/Streamable HTTP**: `headers` JSON field stored per server; passed at connect time; key-value editor in dialog (e.g. Authorization bearer tokens)
+- [x] **STDIO Working Directory**: `working_dir` field → `StdioServerParameters.cwd`; optional input in dialog
+- [x] **ALLOW_STDIO_MCP**: Env var guard blocking STDIO subprocess servers in SaaS mode; `GET /capabilities` endpoint for frontend feature detection
 
 ---
 

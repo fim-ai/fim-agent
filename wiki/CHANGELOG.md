@@ -7,6 +7,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Streamable HTTP MCP Transport**: MCP servers can now use the MCP 2025-03-26 Streamable HTTP transport (`transport: "streamable_http"`); `MCPClient.connect_streamable_http()` using `mcp.client.streamable_http`; UI shows a 3rd transport option with HTTP-aware URL placeholder
+- **MCP HTTP Headers**: SSE and Streamable HTTP servers support `headers` (dict of HTTP headers, e.g. `Authorization: Bearer token`); stored as JSON column, passed at connect time; HTTP Headers key-value editor in the MCP server dialog
+- **STDIO Working Directory**: STDIO MCP servers now accept `working_dir`; passed as `cwd` to `StdioServerParameters`; optional field in dialog and schema
+- **ALLOW_STDIO_MCP Guard**: New `ALLOW_STDIO_MCP` env var (default `true`); set to `false` in SaaS deployments to block subprocess MCP servers; `GET /api/mcp-servers/capabilities` endpoint exposes the flag to the frontend; STDIO option disabled with warning when false
 - **MCP Server Management UI**: New `/tools` page with per-user MCP server CRUD (name, transport STDIO/SSE, command/args/env or URL); servers connect on-demand during agent execution and disconnect after the SSE stream ends; system-level `MCP_SERVERS` env var continues to work alongside user-defined servers
 - **MCPClient SSE Transport**: `MCPClient.connect_sse()` for remote MCP servers over HTTP/SSE transport, alongside existing `connect_stdio()`; `MCPClient.disconnect()` for single-server session removal
 - **Built-in Tools Catalog**: Read-only tools reference in `/tools` page showing Computation, Web, Filesystem, and Knowledge categories
