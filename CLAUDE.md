@@ -68,6 +68,112 @@ Before starting parallel worktree development:
   - Notifications → Toast or inline feedback
   - Input prompts → `Dialog` (`@/components/ui/dialog`)
 
+- **Navigation elements MUST use `<Link>` instead of `<button onClick={router.push()}>`**. If clicking something navigates to a URL, it must be a semantic `<a>` tag (Next.js `<Link>`) so users can middle-click / Cmd+Click to open in a new tab. Side effects (e.g. `selectConversation()`) go in the `onClick` handler — they run for normal clicks but are safely skipped for new-tab opens since the URL drives initial state.
+  - Plain elements: `<Link href={url} onClick={sideEffect}>`
+  - shadcn `<Button>`: use `asChild` + `<Link>` inside
+
+## Toast Feedback Convention (MANDATORY)
+
+- **Every modal/dialog/drawer/sheet with a submit action MUST show toast feedback** for both success and failure.
+  - Success → `toast.success("Action completed")` (use sonner)
+  - Failure → `toast.error(errMsg(err))` or `toast.error("Failed to ...")` (use sonner)
+- This applies to: create, update, delete, upload, publish/unpublish, reset password, toggle operations — any API call triggered from a modal/drawer.
+- **NEVER silently close a dialog** after an API call — the user must see confirmation.
+- **NEVER use only `console.error()`** for user-facing errors — always show `toast.error()`.
+- Inline error display (e.g. `setError(msg)`) is acceptable in addition to toast, but toast is the minimum.
+
+## Dirty State Protection Convention
+
+Modal/drawer forms with meaningful user input MUST protect against accidental close.
+
+**Applies to**:
+- Modal/Drawer/Sheet forms: create, edit, upload, write
+- Full-page editor forms (e.g. agent settings page) — intercept navigation instead of backdrop
+
+**Does NOT apply to**: Read-only drawers, search dialogs, inline panels (ActionManager, ChunkDrawer, IterationDetailDrawer).
+
+### Standard implementation pattern
+
+```typescript
+// 1. isDirty — truthy when user has entered something worth protecting
+const isDirty = name.trim().length > 0 || /* other fields */
+
+// 2. Confirm state
+const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+
+// 3. Unified close handler (X button + Cancel button both call this)
+const handleClose = (open: boolean) => {
+  if (!open && isDirty) { setShowCloseConfirm(true); return }
+  onOpenChange(open)
+}
+
+// 4. DialogContent — use onInteractOutside only (covers pointer + focus)
+//    When dirty: prevent auto-close AND show the same confirm dialog
+//    When not dirty: do nothing → Dialog closes normally
+<DialogContent
+  onInteractOutside={(e) => {
+    if (isDirty) { e.preventDefault(); setShowCloseConfirm(true) }
+  }}
+>
+
+// 5. AlertDialog placed OUTSIDE (sibling, not nested) the Dialog
+<AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+  <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+  <AlertDialogCancel>Keep editing</AlertDialogCancel>
+  <AlertDialogAction
+    onClick={() => onOpenChange(false)}
+    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+  >
+    Discard & close
+  </AlertDialogAction>
+</AlertDialog>
+```
+
+**Key rules for Modal/Drawer**:
+- Empty form (not dirty) → backdrop click closes directly, no confirmation
+- Dirty form → backdrop click shows the same AlertDialog as X button (consistent UX)
+- **NEVER silently block backdrop clicks** — always show the confirm dialog when dirty
+- Use `onInteractOutside` only, not `onPointerDownOutside` (avoids duplicate triggers)
+- AlertDialog must be a sibling of Dialog, never nested inside DialogContent
+
+### Full-page form pattern
+
+For full-page editor pages (e.g. `/agents/[id]`), there is no backdrop — instead intercept navigation:
+
+```typescript
+// 1. Track dirty state via onDirtyChange prop from child form
+const [formDirty, setFormDirty] = useState(false)
+const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+
+// 2. Warn on browser refresh / tab close
+useEffect(() => {
+  if (!formDirty) return
+  const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+  window.addEventListener("beforeunload", handler)
+  return () => window.removeEventListener("beforeunload", handler)
+}, [formDirty])
+
+// 3. Back button — swap Link for button when dirty
+{formDirty ? (
+  <Button onClick={() => setShowLeaveDialog(true)}><ArrowLeft /></Button>
+) : (
+  <Button asChild><Link href="/parent"><ArrowLeft /></Link></Button>
+)}
+
+// 4. AlertDialog for leave confirmation
+<AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+  <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+  <AlertDialogDescription>Leaving this page will discard them.</AlertDialogDescription>
+  <AlertDialogCancel>Stay</AlertDialogCancel>
+  <AlertDialogAction onClick={() => router.push("/parent")}
+    className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+    Discard & Leave
+  </AlertDialogAction>
+</AlertDialog>
+```
+
+**Key difference from modal**: Full-page forms use `beforeunload` + navigation interception (not `onInteractOutside`). The child form component exposes an `onDirtyChange` callback to propagate dirty state up to the page.
+
 ## Code Conventions
 
 - Type hints on all public functions
