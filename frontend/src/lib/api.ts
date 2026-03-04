@@ -33,6 +33,8 @@ import type {
   AIActionResult,
   AICreateConnectorResult,
 } from "@/types/connector"
+import type { AdminUser } from "@/types/admin"
+import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate } from "@/types/mcp-server"
 
 // --- Auth failure callback ---
 let authFailureCallback: (() => void) | null = null
@@ -526,4 +528,69 @@ export const chatApi = {
       method: "POST",
       body: JSON.stringify({ conversation_id: conversationId, inject_id: injectId }),
     }),
+}
+
+// --- Admin API ---
+export const adminApi = {
+  listUsers: (page = 1, size = 20, q?: string) => {
+    let url = `/api/admin/users?page=${page}&size=${size}`
+    if (q) url += `&q=${encodeURIComponent(q)}`
+    return apiFetch<PaginatedResponse<AdminUser>>(url)
+  },
+
+  createUser: (body: { username: string; password: string; email?: string; display_name?: string; is_admin?: boolean }) =>
+    apiFetch<AdminUser>("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateUser: (userId: string, body: { display_name?: string | null; email?: string | null }) =>
+    apiFetch<AdminUser>(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  toggleAdmin: (userId: string, isAdmin: boolean) =>
+    apiFetch<AdminUser>(`/api/admin/users/${userId}/admin`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_admin: isAdmin }),
+    }),
+
+  toggleActive: (userId: string, isActive: boolean) =>
+    apiFetch<AdminUser>(`/api/admin/users/${userId}/active`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: isActive }),
+    }),
+
+  resetPassword: (userId: string, newPassword: string) =>
+    apiFetch<AdminUser>(`/api/admin/users/${userId}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ new_password: newPassword }),
+    }),
+}
+
+// --- MCP Server API ---
+export const mcpServerApi = {
+  list: (page = 1, size = 50) =>
+    apiFetch<PaginatedResponse<MCPServerResponse>>(
+      `/api/mcp-servers?page=${page}&size=${size}`,
+    ),
+
+  create: (body: MCPServerCreate) =>
+    apiFetch<ApiResponse<MCPServerResponse>>("/api/mcp-servers", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  get: (id: string) =>
+    apiFetch<ApiResponse<MCPServerResponse>>(`/api/mcp-servers/${id}`).then((r) => r.data),
+
+  update: (id: string, body: MCPServerUpdate) =>
+    apiFetch<ApiResponse<MCPServerResponse>>(`/api/mcp-servers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  delete: (id: string) =>
+    apiFetch<ApiResponse<void>>(`/api/mcp-servers/${id}`, { method: "DELETE" }),
 }

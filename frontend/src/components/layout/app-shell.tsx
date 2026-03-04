@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bot, Library, Loader2, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun } from "lucide-react"
+import { Bot, Library, Loader2, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun, Wrench } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { APP_NAME } from "@/lib/constants"
 import { Separator } from "@/components/ui/separator"
@@ -44,8 +44,10 @@ function SidebarTooltip({
 function SidebarNewChat({ collapsed }: { collapsed: boolean }) {
   const { clearActive } = useConversation()
   const router = useRouter()
+  const pathname = usePathname()
   const [searchOpen, setSearchOpen] = useState(false)
   const [isMac, setIsMac] = useState(true) // default to Mac to avoid flash
+  const isActive = pathname === "/new"
 
   useEffect(() => {
     const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
@@ -88,16 +90,22 @@ function SidebarNewChat({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className="px-3 py-2 shrink-0">
-      <button
+      <Link
+        href="/new"
         onClick={handleNewChat}
-        className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+        className={cn(
+          "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+          isActive
+            ? "bg-accent text-accent-foreground"
+            : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+        )}
       >
         <span className="flex h-5 w-5 items-center justify-center rounded-md bg-foreground/10 text-foreground">
           <Plus className="h-3.5 w-3.5" />
         </span>
         <span>New chat</span>
         <kbd className="ml-auto text-xs text-muted-foreground/40 font-normal tracking-[0.1em] opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>{isMac ? "⇧⌘O" : "Ctrl+Shift+O"}</kbd>
-      </button>
+      </Link>
       <button
         onClick={() => setSearchOpen(true)}
         className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
@@ -311,6 +319,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Plug className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>Connectors</span>}
+              </Link>
+            </SidebarTooltip>
+            <SidebarTooltip label="Tools" collapsed={collapsed}>
+              <Link
+                href="/tools"
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                  pathname === "/tools"
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+                  collapsed && "h-9 w-9 justify-center px-0"
+                )}
+              >
+                <Wrench className="h-4 w-4" />
+                {!collapsed && <span>Tools</span>}
               </Link>
             </SidebarTooltip>
             <SidebarTooltip label="All Chats" collapsed={collapsed}>
