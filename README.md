@@ -139,6 +139,7 @@ FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Co
 - **Agent Management** — Create, configure, and publish agents with bound models, tools, and instructions.
 - **Personal Center** — Per-user global system instructions, applied across all conversations.
 - **Language Preference** — Per-user language setting (auto/en/zh) that directs all LLM responses to the chosen language.
+- **First-Run Setup Wizard** — Auto-redirects to admin account creation when the database is empty; one-time setup, then permanently hidden.
 
 #### Context & Memory
 - **LLM Compact** — Automatic LLM-powered summarization to stay within token budgets.

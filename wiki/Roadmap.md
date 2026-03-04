@@ -152,6 +152,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] **DAG Interrupt Skip**: Skip running/pending DAG steps during conversational interrupt
 - [x] **MarkItDown Integration**: DOCX/XLSX/PPTX document loading via MarkItDown library
 - [x] **Env-Driven Execution Limits**: Configurable `MAX_REACT_ITERATIONS` and `MAX_DAG_STEPS` via environment variables
+- [x] **First-Run Admin Setup Wizard**: When the database has no users, `/login` redirects to `/setup` for initial admin account creation; `/setup` permanently redirects to `/login` once the admin exists
 
 #### v0.6.1 — Connector Entity & Manual Builder (shipped)
 

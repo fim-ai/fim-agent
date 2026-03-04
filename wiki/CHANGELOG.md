@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Documentation i18n (Roadmap)**: Added Chinese translation for README, Wiki, and GitHub pages as a v1.0 i18n milestone
 - **Iteration Duration Tracking**: Server-side per-iteration elapsed timing (`iter_elapsed`) in DAG executor; frontend displays duration on completed iterations with client-side fallback
 - **Elapsed Timer for Running Steps**: Real-time running clock on active DAG step cards
+- **First-Run Admin Setup Wizard**: When the database is empty, visitors are redirected from `/login` to `/setup` to create the initial admin account (`is_admin=True`); once created, `/setup` permanently redirects to `/login`
 
 ### Changed
 - **Login Page Redesign**: Split layout with left brand panel (dark, mesh gradient, tagline) and right form panel (theme-aware); removed Satoshi font, kept Cabinet Grotesk
