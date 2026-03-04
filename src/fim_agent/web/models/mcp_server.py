@@ -1,0 +1,34 @@
+"""MCPServer ORM model."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from fim_agent.db.base import Base, TimestampMixin, UUIDPKMixin
+
+if TYPE_CHECKING:
+    from .user import User
+
+__all__ = ["MCPServer"]
+
+
+class MCPServer(UUIDPKMixin, TimestampMixin, Base):
+    __tablename__ = "mcp_servers"
+
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    transport: Mapped[str] = mapped_column(String(10), default="stdio")
+    command: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    args: Any = Column(JSON, nullable=True)
+    env: Any = Column(JSON, nullable=True)
+    url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    tool_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    user: Mapped[User] = relationship(back_populates="mcp_servers", lazy="raise")

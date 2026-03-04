@@ -30,6 +30,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .api.admin import router as admin_router
 from .api.agents import router as agents_router
 from .api.auth import router as auth_router
 from .api.chat import router as chat_router
@@ -38,6 +39,7 @@ from .api.agent_ai import router as agent_ai_router
 from .api.connector_ai import router as connector_ai_router
 from .api.connectors import router as connectors_router
 from .api.conversations import router as conversations_router
+from .api.mcp_servers import router as mcp_servers_router
 from .api.files import router as files_router
 from .api.knowledge_bases import router as kb_router
 from .api.models import router as models_router
@@ -109,6 +111,7 @@ def create_app() -> FastAPI:
     )
 
     # -- Routers ------------------------------------------------------------
+    app.include_router(admin_router)
     app.include_router(chat_router)
     app.include_router(auth_router)
     app.include_router(oauth_router)
@@ -116,6 +119,7 @@ def create_app() -> FastAPI:
     app.include_router(agents_router)
     app.include_router(connectors_router)
     app.include_router(connector_ai_router)
+    app.include_router(mcp_servers_router)
     app.include_router(agent_ai_router)
     app.include_router(files_router)
     app.include_router(kb_router)

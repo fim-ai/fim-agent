@@ -5,6 +5,7 @@ from __future__ import annotations
 from .agent import Agent
 from .connector import Connector, ConnectorAction
 from .conversation import Conversation
+from .mcp_server import MCPServer
 from .knowledge_base import KBDocument, KnowledgeBase
 from .message import Message
 from .model_config import ModelConfig
@@ -18,6 +19,7 @@ __all__ = [
     "Conversation",
     "KBDocument",
     "KnowledgeBase",
+    "MCPServer",
     "Message",
     "ModelConfig",
     "User",

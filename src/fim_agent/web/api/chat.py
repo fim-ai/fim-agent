@@ -472,6 +472,59 @@ async def _resolve_tools(
         except Exception:
             logger.warning("Failed to load connector tools", exc_info=True)
 
+    # Load user-defined MCP servers
+    if user_id:
+        try:
+            from fim_agent.core.mcp import MCPClient as _MCPClient
+            from fim_agent.db import create_session as _create_session
+            from fim_agent.web.models.mcp_server import MCPServer as _MCPServerModel
+            from sqlalchemy import true as _true
+
+            async with _create_session() as _mcp_db:
+                _stmt = sa_select(_MCPServerModel).where(
+                    _MCPServerModel.user_id == user_id,
+                    _MCPServerModel.is_active == _true(),
+                )
+                _result = await _mcp_db.execute(_stmt)
+                _user_servers = _result.scalars().all()
+
+            if _user_servers:
+                _mcp_client = _MCPClient()
+                _loaded = 0
+                for _srv in _user_servers:
+                    try:
+                        if _srv.transport == "stdio" and _srv.command:
+                            _mcp_tools = await _mcp_client.connect_stdio(
+                                name=_srv.name,
+                                command=_srv.command,
+                                args=_srv.args or [],
+                                env=_srv.env,
+                            )
+                        elif _srv.transport == "sse" and _srv.url:
+                            _mcp_tools = await _mcp_client.connect_sse(
+                                name=_srv.name,
+                                url=_srv.url,
+                            )
+                        else:
+                            continue
+                        for _t in _mcp_tools:
+                            tools.register(_t)
+                        _loaded += len(_mcp_tools)
+                    except Exception:
+                        logger.warning(
+                            "Failed to connect user MCP server %r",
+                            _srv.name,
+                            exc_info=True,
+                        )
+                logger.info(
+                    "Loaded %d tools from %d user MCP servers",
+                    _loaded,
+                    len(_user_servers),
+                )
+                tools._user_mcp_client = _mcp_client  # type: ignore[attr-defined]
+        except Exception:
+            logger.warning("Failed to load user MCP servers", exc_info=True)
+
     return tools
 
 
@@ -672,6 +725,7 @@ async def react_endpoint(
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
     llm = _resolve_llm(agent_cfg)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
+    user_mcp_client = getattr(tools, "_user_mcp_client", None)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     # Merge user personal instructions + agent-specific instructions
@@ -947,6 +1001,8 @@ async def react_endpoint(
                 },
             )
         finally:
+            if user_mcp_client:
+                await user_mcp_client.disconnect_all()
             if conversation_id:
                 unregister_interrupt_queue(conversation_id)
             if db_session:
@@ -995,6 +1051,7 @@ async def dag_endpoint(
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
     llm = _resolve_llm(agent_cfg)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
+    dag_user_mcp_client = getattr(tools, "_user_mcp_client", None)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     # Merge user personal instructions + agent-specific instructions
@@ -1539,6 +1596,8 @@ async def dag_endpoint(
                 },
             )
         finally:
+            if dag_user_mcp_client:
+                await dag_user_mcp_client.disconnect_all()
             if conversation_id:
                 unregister_interrupt_queue(conversation_id)
             if db_session:
