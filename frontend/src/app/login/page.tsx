@@ -146,7 +146,7 @@ function LoginPageInner() {
           <div className="mx-auto mb-2 flex items-center gap-2">
             <img src="/fim-mark-light.svg" alt="FIM" className="h-8 w-auto dark:hidden" />
             <img src="/fim-mark.svg" alt="FIM" className="h-8 w-auto hidden dark:block" />
-            <span className="text-lg font-bold">{APP_NAME}</span>
+            <span className="text-lg font-bold" style={{ fontFamily: '"Cabinet Grotesk", sans-serif' }}>{APP_NAME}</span>
           </div>
           <CardTitle className="text-xl">Welcome</CardTitle>
           <CardDescription>Sign in to your account or create a new one</CardDescription>
