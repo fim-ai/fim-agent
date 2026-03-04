@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { authApi, ApiError } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
-import { ACCESS_TOKEN_KEY, API_BASE_URL } from "@/lib/constants"
+import { ACCESS_TOKEN_KEY, getApiDirectUrl } from "@/lib/constants"
 import type { UserInfo } from "@/types/auth"
 
 const MIN_PASSWORD_LENGTH = 8
@@ -237,7 +237,7 @@ export function AccountSettings() {
   const handleConnect = (provider: string) => {
     const token = localStorage.getItem(ACCESS_TOKEN_KEY)
     if (!token) return
-    window.location.href = `${API_BASE_URL}/api/auth/oauth/${provider}/authorize?action=bind&token=${token}`
+    window.location.href = `${getApiDirectUrl()}/api/auth/oauth/${provider}/authorize?action=bind&token=${token}`
   }
 
   // Email state

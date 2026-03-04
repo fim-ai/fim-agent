@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
-import { APP_NAME, API_BASE_URL } from "@/lib/constants"
+import { APP_NAME, getApiBaseUrl, getApiDirectUrl } from "@/lib/constants"
 
 function LoginPageInner() {
   const { user, isLoading: authLoading, login, register } = useAuth()
@@ -54,7 +54,7 @@ function LoginPageInner() {
 
   // Fetch available OAuth providers
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/auth/oauth/providers`)
+    fetch(`${getApiBaseUrl()}/api/auth/oauth/providers`)
       .then((res) => {
         if (res.ok) return res.json()
         return { providers: [] }
@@ -166,7 +166,7 @@ function LoginPageInner() {
                     variant="outline"
                     className="w-full"
                     onClick={() => {
-                      window.location.href = `${API_BASE_URL}/api/auth/oauth/github/authorize`
+                      window.location.href = `${getApiDirectUrl()}/api/auth/oauth/github/authorize`
                     }}
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -180,7 +180,7 @@ function LoginPageInner() {
                     variant="outline"
                     className="w-full"
                     onClick={() => {
-                      window.location.href = `${API_BASE_URL}/api/auth/oauth/google/authorize`
+                      window.location.href = `${getApiDirectUrl()}/api/auth/oauth/google/authorize`
                     }}
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

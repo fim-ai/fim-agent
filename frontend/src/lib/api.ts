@@ -1,4 +1,4 @@
-import { API_BASE_URL, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from "./constants"
+import { getApiBaseUrl, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from "./constants"
 import type { UserInfo, TokenResponse, LoginRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest } from "@/types/auth"
 import type {
   ConversationResponse,
@@ -68,7 +68,7 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
     const rt = getRefreshToken()
     if (!rt) return null
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh_token: rt }),
@@ -113,13 +113,13 @@ export async function apiFetch<T>(
   }
   if (token) headers["Authorization"] = `Bearer ${token}`
 
-  let res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+  let res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers })
 
   if (res.status === 401 && token) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
       headers["Authorization"] = `Bearer ${refreshed.access_token}`
-      res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+      res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers })
     } else {
       authFailureCallback?.()
       throw new ApiError(401, "Session expired")
@@ -286,7 +286,7 @@ export const fileApi = {
     formData.append("file", file)
     const headers: Record<string, string> = {}
     if (token) headers["Authorization"] = `Bearer ${token}`
-    const res = await fetch(`${API_BASE_URL}/api/files/upload`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/files/upload`, {
       method: "POST",
       headers,
       body: formData,
@@ -350,7 +350,7 @@ export const kbApi = {
     const headers: Record<string, string> = {}
     if (token) headers["Authorization"] = `Bearer ${token}`
     const res = await fetch(
-      `${API_BASE_URL}/api/knowledge-bases/${kbId}/documents`,
+      `${getApiBaseUrl()}/api/knowledge-bases/${kbId}/documents`,
       { method: "POST", headers, body: formData },
     )
     if (!res.ok) {
