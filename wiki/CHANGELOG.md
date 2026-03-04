@@ -32,6 +32,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Elapsed Timer for Running Steps**: Real-time running clock on active DAG step cards
 
 ### Changed
+- **Login Page Redesign**: Split layout with left brand panel (dark, mesh gradient, tagline) and right form panel (theme-aware); removed Satoshi font, kept Cabinet Grotesk
+- **Sidebar Logo Font**: Increased from `text-sm` to `text-base`
 - **Frontend API Proxy**: Migrated all frontend API calls to Next.js proxy rewrites (`getApiBaseUrl` for client-side proxy, `getApiDirectUrl` for server-side direct access); eliminates CORS issues and hides backend URL from browser
 - **Roadmap v1.1 restructured**: Renamed from "Enterprise & Scale" to "Agent as a Service" — added Agent Publishing (published pages, API endpoints, API keys, version snapshots, custom branding), 3 delivery channels (Web App / API / Embed), access control (visitor modes, rate limiting, domain/IP restrictions), and usage analytics (per-agent dashboard, conversation logs, cost attribution); existing Connector Ecosystem and Enterprise Operations items retained
 - Sidebar "New Chat" and "Search" restyled as minimal plain buttons with hover keyboard shortcut hints (⇧⌘O / ⌘K)
@@ -52,6 +54,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **ThinkingCard Layout**: Icon moved from circular wrapper into inline Badge; removed excess left padding
 
 ### Fixed
+- **DAG SSE Streaming**: EventSource now connects directly to backend, bypassing Next.js rewrite proxy that buffered SSE events (caused DAG progress to arrive in batches instead of frame-by-frame)
+- **ReAct Interrupt Queue**: Added missing `await` to `InterruptQueue.drain()` calls in ReAct agent; without await, coroutine objects were returned instead of message lists, breaking mid-stream injection
 - **DAG Early Stop**: Explicitly cancel all in-flight DAG step tasks when user hits Stop, preventing orphaned LLM calls and tool executions
 - **Async Concurrency Hardening**: Added `asyncio.Lock` to `InterruptQueue` and `UsageSummary` aggregation; converted `DbMemory` to async-with sessions; re-raised `CancelledError` instead of suppressing; narrowed exception handling; bounded SSE queues to `maxsize=1000`; added `step_timeout` to `DAGExecutor`
 - IME composition handling in chat input (Chinese/Japanese input no longer triggers premature submit)
