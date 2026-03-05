@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Multi-Provider Web Search**: `core/web/search/` module with `BaseWebSearch` protocol and three backends — `JinaSearch` (default, no key needed), `TavilySearch`, `BraveSearch`; provider auto-selected by `WEB_SEARCH_PROVIDER` env var or presence of `TAVILY_API_KEY`/`BRAVE_API_KEY`; `format_results()` renders structured `SearchResult` objects as Markdown
+- **Multi-Provider Web Fetch**: `core/web/fetch/` module with `BaseWebFetch` protocol — `JinaFetch` (Jina Reader, clean Markdown) and `HttpxFetch` (stdlib `html.parser` extraction, zero extra dependencies); provider via `WEB_FETCH_PROVIDER` or auto-detect from `JINA_API_KEY`
+- **CohereReranker**: New `core/reranker/cohere.py` — Cohere Rerank API v2 with retry; selectable via `RERANKER_PROVIDER=cohere` or `COHERE_API_KEY` auto-detect
+- **OpenAIReranker**: New `core/reranker/openai.py` — bi-encoder cosine similarity using any OpenAI-compatible embedding endpoint; fallback when cross-encoder rerankers are unavailable; selectable via `RERANKER_PROVIDER=openai`
+
+### Changed
+- **WebSearchTool / WebFetchTool**: Refactored to delegate to `get_web_searcher()` / `get_web_fetcher()` factories; identical public interface — zero breaking changes
+- **get_reranker()**: Widened return type to `BaseReranker | None`; supports `RERANKER_PROVIDER` env var for selecting jina / cohere / openai backends
+
 - **MCP Hub — Smithery Registry Search & One-Click Install**: New "Browse Hub" button in the MCP Servers tab opens a searchable dialog powered by the Smithery Registry public API; remote servers install directly via Streamable HTTP transport; local servers pre-fill the MCPServerDialog with `npx @smithery/cli` args; backend proxies the registry search at `GET /api/mcp-servers/hub/search` (auth-guarded)
 - **Admin Panel**: System stats dashboard (total users, conversations, messages, tokens, agents, KBs) with recharts bar chart (14-day activity) and donut chart (model usage distribution); user management with search, pagination, create user, edit profile, reset password, toggle admin role, and enable/disable account; admin-only access via `get_current_admin` dependency
 - **Role-Based Access Control**: `is_admin` and `is_active` fields on User model; first registered user auto-promoted to admin; disabled accounts blocked from login, token refresh, and API access; `get_current_admin` FastAPI dependency for admin-only endpoints
