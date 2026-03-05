@@ -134,6 +134,13 @@
   [tabindex]:not([tabindex="-1"]) {
     cursor: pointer;
   }
+
+  /* Radix UI panels get tabIndex for a11y but are not clickable */
+  [role="tabpanel"][tabindex],
+  [role="dialog"][tabindex],
+  [role="region"][tabindex] {
+    cursor: auto;
+  }
 }
 
 /* Login mesh gradient animation */
