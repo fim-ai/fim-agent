@@ -44,9 +44,13 @@ export function setAuthFailureCallback(cb: (() => void) | null) {
 }
 
 // --- Maintenance mode callback ---
-let maintenanceCallback: (() => void) | null = null
+let _isMaintenance = false
+let _maintenanceCallback: (() => void) | null = null
+
 export function setMaintenanceCallback(cb: (() => void) | null) {
-  maintenanceCallback = cb
+  _maintenanceCallback = cb
+  // If 503 already fired before this callback was registered, activate immediately
+  if (_isMaintenance && cb) cb()
 }
 
 // --- Token helpers ---
@@ -136,8 +140,9 @@ export async function apiFetch<T>(
   }
 
   if (res.status === 503) {
-    maintenanceCallback?.()
-    throw new ApiError(503, "System is under maintenance")
+    _isMaintenance = true
+    _maintenanceCallback?.()
+    return new Promise<T>(() => {}) // silently hang — maintenance overlay covers the UI
   }
 
   if (!res.ok) {
