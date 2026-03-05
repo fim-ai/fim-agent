@@ -243,10 +243,10 @@ Hub          → Central cross-system orchestration (Portal / API)
 > SaaS deployment means untrusted code from multiple users runs on shared infrastructure. The in-process python_exec sandbox (module blocklist + timeout) is a critical security gap — container-level or microVM isolation is required. Meanwhile, hardcoded service providers (Jina Search/Fetch) must become pluggable for global availability and provider flexibility.
 
 **Sandbox Execution Backend**
-- [ ] **Code Execution Sandbox**: Replace in-process `exec()` with container/microVM isolation for SaaS deployment; each execution runs in an isolated environment with its own filesystem and network stack; configurable backend via `CODE_EXEC_BACKEND` env var (`local` for self-hosted backward compatibility, `e2b` for SaaS via E2B Python SDK); `local` mode retains current in-process sandbox for zero-dependency self-hosted deployments
+- [x] **Code Execution Sandbox**: Pluggable `SandboxBackend` Protocol with `LocalBackend` (in-process, zero dependencies) and `DockerBackend` (OS-level isolation via Docker containers — `--network=none`, `--memory=256m`, `--cpus=0.5`); configured via `CODE_EXEC_BACKEND=local|docker`; `DOCKER_PYTHON_IMAGE`, `DOCKER_NODE_IMAGE`, `DOCKER_SHELL_IMAGE` to override default images
 - [ ] **Sandbox Lifecycle Management**: Sandbox pooling and reuse within a conversation session; idle timeout and cleanup; resource limits (CPU, memory, execution time) configurable per agent
-- [ ] **Shell Exec Sandboxing**: Route `shell_exec` tool through the same sandbox backend; SaaS mode executes shell commands inside sandbox, not on host
-- [ ] **Multi-Language Execution**: Sandbox kernels support Python, JavaScript, TypeScript, Bash; expose language selection in code execution tool (extend beyond Python-only)
+- [x] **Shell Exec Sandboxing**: `shell_exec` routes through the sandbox backend; Docker mode executes shell commands inside an isolated container, not on the host
+- [x] **Multi-Language Execution**: `node_exec` tool adds JavaScript/Node.js execution (local: `node -e`; Docker: `node:20-slim`); Python and shell already covered; TypeScript planned
 
 **Service Provider Abstraction**
 - [ ] **Web Search Adapter**: `BaseWebSearch` protocol with pluggable implementations — Jina Search (default, free tier), Tavily, Google Custom Search, Brave Search; configured via `SEARCH_PROVIDER` + provider-specific env vars; graceful fallback chain

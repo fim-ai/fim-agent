@@ -7,6 +7,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Docker Sandbox Backend**: `CODE_EXEC_BACKEND=docker` routes `python_exec`, `node_exec`, and `shell_exec` through Docker containers with `--network=none`, `--memory=256m`, `--cpus=0.5` for OS-level isolation; volume-mounts an exec_dir per run; `DOCKER_PYTHON_IMAGE`, `DOCKER_NODE_IMAGE`, `DOCKER_SHELL_IMAGE` env vars to override default images
+- **`node_exec` Tool**: JavaScript/Node.js code execution; local mode runs `node -e`; Docker mode uses `node:20-slim` container; category `computation`, auto-discovered via `discover_builtin_tools()`
+- **Pluggable `SandboxBackend` Protocol**: `core/tool/sandbox/` module — `SandboxResult`, `SandboxBackend` Protocol, `LocalBackend`, `DockerBackend` implementations; `get_sandbox_backend()` factory reads `CODE_EXEC_BACKEND` env var; `python_exec` and `shell_exec` delegate to the selected backend; 18 new tests
 - **Multi-Provider Web Search**: `core/web/search/` module with `BaseWebSearch` protocol and three backends — `JinaSearch` (default, no key needed), `TavilySearch`, `BraveSearch`; provider auto-selected by `WEB_SEARCH_PROVIDER` env var or presence of `TAVILY_API_KEY`/`BRAVE_API_KEY`; `format_results()` renders structured `SearchResult` objects as Markdown
 - **Multi-Provider Web Fetch**: `core/web/fetch/` module with `BaseWebFetch` protocol — `JinaFetch` (Jina Reader, clean Markdown) and `HttpxFetch` (stdlib `html.parser` extraction, zero extra dependencies); provider via `WEB_FETCH_PROVIDER` or auto-detect from `JINA_API_KEY`
 - **CohereReranker**: New `core/reranker/cohere.py` — Cohere Rerank API v2 with retry; selectable via `RERANKER_PROVIDER=cohere` or `COHERE_API_KEY` auto-detect
