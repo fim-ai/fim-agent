@@ -590,7 +590,7 @@ async def list_users(
             has_active_session=(
                 u.refresh_token is not None
                 and u.refresh_token_expires_at is not None
-                and u.refresh_token_expires_at > now
+                and u.refresh_token_expires_at.replace(tzinfo=timezone.utc) > now
             ),
             monthly_tokens=monthly_tokens_map.get(u.id, 0),
             token_quota=u.token_quota,
@@ -800,6 +800,8 @@ async def toggle_user_active(
 SETTING_MAINTENANCE_MODE = "maintenance_mode"
 SETTING_ANNOUNCEMENT_ENABLED = "announcement_enabled"
 SETTING_ANNOUNCEMENT_TEXT = "announcement_text"
+SETTING_REGISTRATION_MODE = "registration_mode"
+SETTING_DEFAULT_TOKEN_QUOTA = "default_token_quota"
 
 
 async def write_audit(
@@ -833,28 +835,39 @@ async def write_audit(
 
 class SystemSettingsResponse(BaseModel):
     registration_enabled: bool
+    registration_mode: str
     maintenance_mode: bool
     announcement_enabled: bool
     announcement_text: str
+    default_token_quota: int
 
 
 class UpdateSystemSettingsRequest(BaseModel):
     registration_enabled: bool | None = None
+    registration_mode: str | None = None
     maintenance_mode: bool | None = None
     announcement_enabled: bool | None = None
     announcement_text: str | None = None
+    default_token_quota: int | None = None
 
 
 async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
     reg = await get_setting(db, SETTING_REGISTRATION_ENABLED, default="true")
+    reg_mode = await get_setting(db, SETTING_REGISTRATION_MODE, default="")
     maint = await get_setting(db, SETTING_MAINTENANCE_MODE, default="false")
     ann_en = await get_setting(db, SETTING_ANNOUNCEMENT_ENABLED, default="false")
     ann_txt = await get_setting(db, SETTING_ANNOUNCEMENT_TEXT, default="")
+    quota_str = await get_setting(db, SETTING_DEFAULT_TOKEN_QUOTA, default="0")
+    # Derive registration_mode: prefer explicit setting, fall back to legacy boolean
+    if not reg_mode:
+        reg_mode = "open" if reg.lower() != "false" else "disabled"
     return SystemSettingsResponse(
         registration_enabled=reg.lower() != "false",
+        registration_mode=reg_mode,
         maintenance_mode=maint.lower() == "true",
         announcement_enabled=ann_en.lower() == "true",
         announcement_text=ann_txt,
+        default_token_quota=int(quota_str) if quota_str.isdigit() else 0,
     )
 
 
@@ -878,6 +891,14 @@ async def update_system_settings(
     if body.registration_enabled is not None:
         await set_setting(db, SETTING_REGISTRATION_ENABLED, "true" if body.registration_enabled else "false")
         changed.append(f"registration_enabled={body.registration_enabled}")
+    if body.registration_mode is not None:
+        if body.registration_mode not in ("open", "invite", "disabled"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "registration_mode must be open, invite, or disabled")
+        await set_setting(db, SETTING_REGISTRATION_MODE, body.registration_mode)
+        changed.append(f"registration_mode={body.registration_mode}")
+    if body.default_token_quota is not None:
+        await set_setting(db, SETTING_DEFAULT_TOKEN_QUOTA, str(body.default_token_quota))
+        changed.append(f"default_token_quota={body.default_token_quota}")
     if body.maintenance_mode is not None:
         await set_setting(db, SETTING_MAINTENANCE_MODE, "true" if body.maintenance_mode else "false")
         changed.append(f"maintenance_mode={body.maintenance_mode}")
@@ -1094,18 +1115,25 @@ async def get_system_health(
         detail=fast_model if fast_model else None,
     ))
 
+    jina_key = os.environ.get("JINA_API_KEY", "")
     emb_model = os.environ.get("EMBEDDING_MODEL", "")
+    # Jina is the default embedding provider; JINA_API_KEY alone is sufficient
+    emb_configured = bool(emb_model) or bool(jina_key)
+    emb_detail = emb_model if emb_model else ("jina (default)" if jina_key else None)
     checks.append(IntegrationHealth(
         key="embedding", label="Embedding",
-        configured=bool(emb_model),
-        detail=emb_model if emb_model else None,
+        configured=emb_configured,
+        detail=emb_detail,
     ))
 
     reranker = os.environ.get("RERANKER_PROVIDER", "")
+    # Jina reranker works with JINA_API_KEY even without explicit RERANKER_PROVIDER
+    reranker_configured = bool(reranker) or bool(jina_key)
+    reranker_detail = reranker if reranker else ("jina (default)" if jina_key else None)
     checks.append(IntegrationHealth(
         key="reranker", label="Reranker",
-        configured=bool(reranker),
-        detail=reranker if reranker else None,
+        configured=reranker_configured,
+        detail=reranker_detail,
     ))
 
     search_provider = os.environ.get("WEB_SEARCH_PROVIDER", "jina")
