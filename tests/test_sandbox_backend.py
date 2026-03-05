@@ -52,6 +52,9 @@ class TestLocalBackendPython:
         assert result.exit_code == 0
         assert not result.timed_out
         assert result.error is None
+        assert result.script_path is not None
+        assert result.script_path.exists()
+        assert result.script_path.suffix == ".py"
 
     @pytest.mark.asyncio
     async def test_exception_traceback(self) -> None:
@@ -60,6 +63,8 @@ class TestLocalBackendPython:
         )
         assert "ValueError" in result.stdout
         assert "boom" in result.stdout
+        assert result.script_path is not None
+        assert result.script_path.exists()
 
     @pytest.mark.asyncio
     async def test_blocked_module(self) -> None:
@@ -67,6 +72,8 @@ class TestLocalBackendPython:
             "import subprocess", language="python", exec_dir=self.exec_dir, timeout=10
         )
         assert "blocked" in result.stdout.lower() or "ImportError" in result.stdout
+        assert result.script_path is not None
+        assert result.script_path.exists()
 
     @pytest.mark.asyncio
     async def test_timeout(self) -> None:
@@ -154,6 +161,10 @@ class TestDockerBackendErrorHandling:
         assert result.exit_code == -1
         assert result.error is not None
         assert "docker" in result.error.lower()
+        # Script file should still be written even when docker is unavailable
+        assert result.script_path is not None
+        assert result.script_path.exists()
+        assert result.script_path.suffix == ".py"
 
     @pytest.mark.asyncio
     async def test_docker_not_found_run_shell(self, monkeypatch: pytest.MonkeyPatch) -> None:

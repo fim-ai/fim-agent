@@ -87,26 +87,33 @@ class DockerBackend:
                 error=f"Unsupported language '{language}' in docker backend.",
             )
 
-        entrypoint = self._entrypoints[language]
+        ext = "py" if language == "python" else "js"
         exec_dir.mkdir(parents=True, exist_ok=True)
+        script_name = f"script_{uuid.uuid4().hex[:8]}.{ext}"
+        script_path = exec_dir / script_name
+        script_path.write_text(code, encoding="utf-8")
+
+        entrypoint = self._entrypoints[language]
         container_name = f"fim-sandbox-{uuid.uuid4().hex[:8]}"
 
         cmd = [
-            "docker", "run", "--rm", "-i",
+            "docker", "run", "--rm",
             "--name", container_name,
             "--network=none",
             "--memory=256m", "--cpus=0.5",
             "-v", f"{exec_dir}:/workspace",
             "-w", "/workspace",
-            image, *entrypoint,
+            image, *entrypoint, f"/workspace/{script_name}",
         ]
 
         logger.debug(
-            "docker run_code: container=%s image=%s language=%s exec_dir=%s timeout=%ds",
-            container_name, image, language, exec_dir, timeout,
+            "docker run_code: container=%s image=%s language=%s exec_dir=%s script=%s timeout=%ds",
+            container_name, image, language, exec_dir, script_name, timeout,
         )
-        return await self._run_container(cmd, stdin_data=code, timeout=timeout,
-                                         container_name=container_name)
+        result = await self._run_container(cmd, stdin_data="", timeout=timeout,
+                                           container_name=container_name)
+        result.script_path = script_path
+        return result
 
     async def run_shell(
         self,

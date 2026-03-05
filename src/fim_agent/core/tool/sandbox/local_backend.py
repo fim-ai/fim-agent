@@ -18,6 +18,7 @@ import logging
 import os
 import sys
 import traceback
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -184,6 +185,10 @@ class LocalBackend:
     ) -> SandboxResult:
         """Run Python code in-process with restricted sandbox."""
         logger.debug("local run_python: exec_dir=%s timeout=%ds pid=%d", exec_dir, timeout, _os.getpid())
+        exec_dir.mkdir(parents=True, exist_ok=True)
+        script = exec_dir / f"script_{uuid.uuid4().hex[:8]}.py"
+        script.write_text(code, encoding="utf-8")
+
         try:
             output: str = await asyncio.wait_for(
                 asyncio.to_thread(self._execute_python_sync, code, exec_dir),
@@ -197,7 +202,9 @@ class LocalBackend:
         # _execute_python_sync returns either stdout or a traceback string
         # (stderr is mixed into stdout for legacy compat; exit_code derived)
         exit_code = 0 if not output.startswith("Traceback") else 1
-        return SandboxResult(stdout=output, stderr="", exit_code=exit_code)
+        result = SandboxResult(stdout=output, stderr="", exit_code=exit_code)
+        result.script_path = script
+        return result
 
     def _execute_python_sync(self, code: str, exec_dir: Path) -> str:
         """Synchronous in-process Python execution (called from thread pool)."""
@@ -256,12 +263,15 @@ class LocalBackend:
     async def _run_node(
         self, code: str, *, exec_dir: Path, timeout: int
     ) -> SandboxResult:
-        """Run JavaScript code via ``node -e``."""
+        """Run JavaScript code via ``node <script_file>``."""
         logger.debug("local run_node: exec_dir=%s timeout=%ds", exec_dir, timeout)
         exec_dir.mkdir(parents=True, exist_ok=True)
+        script = exec_dir / f"script_{uuid.uuid4().hex[:8]}.js"
+        script.write_text(code, encoding="utf-8")
+
         try:
             proc = await asyncio.create_subprocess_exec(
-                "node", "-e", code,
+                "node", str(script),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(exec_dir),
@@ -290,11 +300,13 @@ class LocalBackend:
                 ),
             )
 
-        return SandboxResult(
+        result = SandboxResult(
             stdout=stdout_bytes.decode("utf-8", errors="replace"),
             stderr=stderr_bytes.decode("utf-8", errors="replace"),
             exit_code=proc.returncode or 0,
         )
+        result.script_path = script
+        return result
 
 
 # -----------------------------------------------------------------------

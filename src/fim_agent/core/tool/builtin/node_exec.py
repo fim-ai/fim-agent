@@ -110,4 +110,6 @@ class NodeExecTool(BaseTool):
         output = result.stdout
         if result.stderr:
             output = output + "[stderr]\n" + result.stderr
+        if result.script_path is not None:
+            output = f"[Script: {result.script_path.name}]\n" + output
         return _truncate_output(output)

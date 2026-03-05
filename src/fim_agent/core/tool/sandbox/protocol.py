@@ -23,6 +23,7 @@ class SandboxResult:
     exit_code: int
     timed_out: bool = False
     error: str | None = None  # infra-level error message (not user code errors)
+    script_path: Path | None = None  # path to the written script file (if applicable)
 
 
 @runtime_checkable
