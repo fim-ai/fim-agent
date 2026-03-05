@@ -226,6 +226,14 @@ Hub          → Central cross-system orchestration (Portal / API)
 - [x] **Tokens by Agent Chart**: Per-agent token consumption bar chart in admin overview dashboard
 - [x] **Eager model_name Resolution**: Conversation `model_name` resolved at creation time (fixes "Unknown" in admin stats)
 
+#### v0.6.6 — MCP Hub: Smithery Registry Search & One-Click Install (shipped)
+
+- [x] **Smithery Registry Proxy**: `GET /api/mcp-servers/hub/search` proxies the public Smithery Registry API with auth guard, pagination, and optional keyword query
+- [x] **MCPHubDialog**: Searchable dialog (400ms debounce) listing community MCP servers with verified badge, remote/local pill, install count, and icon
+- [x] **Remote One-Click Install**: Remote (Smithery-hosted) servers install directly via Streamable HTTP transport (`https://server.smithery.ai/{qualifiedName}/mcp`)
+- [x] **Local Pre-Fill Install**: Local (stdio) servers close the Hub dialog and pre-fill MCPServerDialog with `npx @smithery/cli@latest run {qualifiedName}` args
+- [x] **Browse Hub Button**: Added to the MCP Servers tab header in `/tools` page, left of the existing "Add Server" button
+
 ---
 
 ### v0.7 -- SaaS Runtime & Provider Abstraction

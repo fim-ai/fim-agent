@@ -7,6 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **MCP Hub — Smithery Registry Search & One-Click Install**: New "Browse Hub" button in the MCP Servers tab opens a searchable dialog powered by the Smithery Registry public API; remote servers install directly via Streamable HTTP transport; local servers pre-fill the MCPServerDialog with `npx @smithery/cli` args; backend proxies the registry search at `GET /api/mcp-servers/hub/search` (auth-guarded)
 - **Admin Panel**: System stats dashboard (total users, conversations, messages, tokens, agents, KBs) with recharts bar chart (14-day activity) and donut chart (model usage distribution); user management with search, pagination, create user, edit profile, reset password, toggle admin role, and enable/disable account; admin-only access via `get_current_admin` dependency
 - **Role-Based Access Control**: `is_admin` and `is_active` fields on User model; first registered user auto-promoted to admin; disabled accounts blocked from login, token refresh, and API access; `get_current_admin` FastAPI dependency for admin-only endpoints
 - **Agent Execution Mode**: Per-agent `execution_mode` field (react/dag) stored in DB; sets default mode for new conversations; frontend mode toggle (Standard/Planner) with icon and description in agent settings form
