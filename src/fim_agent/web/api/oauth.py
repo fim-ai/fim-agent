@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from fim_agent.db import get_session
-from fim_agent.web.api.admin import SETTING_REGISTRATION_ENABLED, get_setting
+from fim_agent.web.api.admin import SETTING_REGISTRATION_ENABLED, SETTING_REGISTRATION_MODE, get_setting
 from fim_agent.web.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -287,11 +287,19 @@ async def _handle_login(
             user = email_result.scalar_one_or_none()
 
         if user is None:
-            # 3. No email match -- create new user, but check registration setting first
-            reg_value = await get_setting(db, SETTING_REGISTRATION_ENABLED, default="true")
-            if reg_value.lower() == "false":
+            # 3. No email match -- create new user, but check registration_mode first
+            reg_mode = await get_setting(db, SETTING_REGISTRATION_MODE, default="")
+            if not reg_mode:
+                # Backward compat: fall back to legacy boolean
+                reg_value = await get_setting(db, SETTING_REGISTRATION_ENABLED, default="true")
+                reg_mode = "open" if reg_value.lower() != "false" else "disabled"
+
+            if reg_mode in ("disabled", "invite"):
+                # "invite" mode blocks OAuth new-user creation — no way to supply an invite
+                # code through the OAuth redirect flow, so the only safe option is to block.
                 logger.warning(
-                    "OAuth new-user creation blocked: registration disabled (provider=%s email=%s)",
+                    "OAuth new-user creation blocked: registration_mode=%s (provider=%s email=%s)",
+                    reg_mode,
                     provider_name,
                     user_info.email,
                 )
