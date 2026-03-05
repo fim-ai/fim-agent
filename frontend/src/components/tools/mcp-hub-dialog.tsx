@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { mcpServerApi } from "@/lib/api"
+import { mcpServerApi, apiFetch } from "@/lib/api"
 import { toast } from "sonner"
 import type { MCPServerResponse } from "@/types/mcp-server"
 import type { MCPServerInitialValues } from "./mcp-server-dialog"
@@ -62,11 +62,9 @@ export function MCPHubDialog({ open, onOpenChange, onSuccess, onInstallLocal }: 
     try {
       const params = new URLSearchParams({ page: String(p), page_size: "20" })
       if (q) params.set("q", q)
-      const resp = await fetch(`/api/mcp-servers/hub/search?${params}`, {
-        credentials: "include",
-      })
-      if (!resp.ok) throw new Error("Failed to fetch hub servers")
-      const data = await resp.json()
+      const data = await apiFetch<{ servers: SmitheryServer[]; pagination: HubPagination }>(
+        `/api/mcp-servers/hub/search?${params}`
+      )
       setServers(data.servers ?? [])
       setPagination(data.pagination ?? null)
     } catch {
