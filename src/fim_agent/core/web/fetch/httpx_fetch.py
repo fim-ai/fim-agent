@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 from html.parser import HTMLParser
 
 import httpx
@@ -42,7 +41,7 @@ class _TextExtractor(HTMLParser):
 
 def _strip_html(raw_html: str) -> str:
     parser = _TextExtractor()
-    parser.feed(html.unescape(raw_html))
+    parser.feed(raw_html)
     return "\n".join(parser.parts)
 
 
