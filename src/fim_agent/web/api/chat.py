@@ -58,9 +58,11 @@ from ..deps import (
     get_dag_max_replan_rounds,
     get_dag_replan_stop_confidence,
     get_dag_step_max_iterations,
+    get_effective_llm,
     get_fast_context_budget,
     get_fast_llm,
     get_llm,
+    get_llm_by_config_id,
     get_llm_from_config,
     get_max_concurrency,
     get_model_registry,
@@ -368,13 +370,25 @@ async def _resolve_agent_config(
         }
 
 
-def _resolve_llm(agent_cfg: dict[str, Any] | None) -> BaseLLM:
-    """Build an LLM from agent config or fall back to global default."""
-    if agent_cfg and agent_cfg.get("model_config_json"):
-        llm = get_llm_from_config(agent_cfg["model_config_json"])
-        if llm is not None:
-            return llm
-    return get_llm()
+async def _resolve_llm(
+    agent_cfg: dict[str, Any] | None,
+    db: AsyncSession,
+) -> BaseLLM:
+    """Build an LLM with priority: agent config id > inline config > system default > ENV."""
+    if agent_cfg:
+        cfg = agent_cfg.get("model_config_json") or {}
+        model_config_id = cfg.get("model_config_id") if isinstance(cfg, dict) else None
+        if model_config_id:
+            llm = await get_llm_by_config_id(db, model_config_id)
+            if llm is not None:
+                return llm
+        # Inline custom parameters (legacy path, kept for compatibility)
+        if cfg and isinstance(cfg, dict):
+            llm = get_llm_from_config(cfg)
+            if llm is not None:
+                return llm
+    # System default -> ENV fallback
+    return await get_effective_llm(db)
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -792,7 +806,9 @@ async def react_endpoint(
         await _validate_conversation_ownership(conversation_id, current_user_id)
 
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
-    llm = _resolve_llm(agent_cfg)
+    from fim_agent.db import create_session as _create_session
+    async with _create_session() as _llm_db:
+        llm = await _resolve_llm(agent_cfg, _llm_db)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
@@ -1151,7 +1167,9 @@ async def dag_endpoint(
         await _validate_conversation_ownership(conversation_id, current_user_id)
 
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
-    llm = _resolve_llm(agent_cfg)
+    from fim_agent.db import create_session as _create_session
+    async with _create_session() as _llm_db:
+        llm = await _resolve_llm(agent_cfg, _llm_db)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 

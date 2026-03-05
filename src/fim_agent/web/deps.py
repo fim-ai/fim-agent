@@ -45,6 +45,8 @@ from fim_agent.rag.manager import KnowledgeBaseManager
 from fim_agent.rag.store.lancedb import LanceDBVectorStore
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from fim_agent.core.mcp import MCPClient
 
 logger = logging.getLogger(__name__)
@@ -231,6 +233,67 @@ def get_llm_from_config(config: dict[str, object]) -> OpenAICompatibleLLM | None
         default_temperature=float(config.get("temperature", 0) or _temperature()),
         default_max_tokens=int(config.get("max_output_tokens", 0) or _main_max_output()),
     )
+
+
+async def get_llm_by_config_id(
+    db: "AsyncSession",
+    config_id: str,
+) -> OpenAICompatibleLLM | None:
+    """Look up a ModelConfig by id and build an LLM instance."""
+    from sqlalchemy import select
+    from fim_agent.web.models.model_config import ModelConfig as ModelConfigORM
+
+    stmt = select(ModelConfigORM).where(
+        ModelConfigORM.id == config_id,
+        ModelConfigORM.is_active == True,  # noqa: E712
+    )
+    result = await db.execute(stmt)
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        return None
+    return OpenAICompatibleLLM(
+        api_key=cfg.api_key or _api_key(),
+        base_url=cfg.base_url or _base_url(),
+        model=cfg.model_name,
+        default_temperature=cfg.temperature if cfg.temperature is not None else _temperature(),
+        default_max_tokens=cfg.max_output_tokens or _main_max_output(),
+    )
+
+
+async def get_system_default_llm(
+    db: "AsyncSession",
+) -> OpenAICompatibleLLM | None:
+    """Query the system-level default model config (user_id=NULL, is_default=True)."""
+    from sqlalchemy import select
+    from fim_agent.web.models.model_config import ModelConfig as ModelConfigORM
+
+    stmt = (
+        select(ModelConfigORM)
+        .where(
+            ModelConfigORM.user_id == None,  # noqa: E711
+            ModelConfigORM.category == "llm",
+            ModelConfigORM.is_default == True,  # noqa: E712
+            ModelConfigORM.is_active == True,  # noqa: E712
+        )
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        return None
+    return OpenAICompatibleLLM(
+        api_key=cfg.api_key or _api_key(),
+        base_url=cfg.base_url or _base_url(),
+        model=cfg.model_name,
+        default_temperature=cfg.temperature if cfg.temperature is not None else _temperature(),
+        default_max_tokens=cfg.max_output_tokens or _main_max_output(),
+    )
+
+
+async def get_effective_llm(db: "AsyncSession") -> OpenAICompatibleLLM:
+    """System default model -> ENV fallback."""
+    llm = await get_system_default_llm(db)
+    return llm if llm is not None else get_llm()
 
 
 def get_user_id() -> str:
