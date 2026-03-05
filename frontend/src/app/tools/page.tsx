@@ -130,11 +130,11 @@ export default function ToolsPage() {
               MCP Servers
             </h2>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setHubOpen(true)}>
+              <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setHubOpen(true)}>
                 <Search className="h-4 w-4" />
                 Browse Hub
               </Button>
-              <Button size="sm" className="gap-1.5" onClick={() => handleAdd()}>
+              <Button size="sm" className="gap-1.5 h-8" onClick={() => handleAdd()}>
                 <Plus className="h-4 w-4" />
                 Add Server
               </Button>

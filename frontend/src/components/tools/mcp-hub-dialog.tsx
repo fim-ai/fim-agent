@@ -60,12 +60,12 @@ export function MCPHubDialog({ open, onOpenChange, onSuccess, onInstallLocal }: 
   const fetchServers = useCallback(async (q: string, p: number) => {
     setIsLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(p), page_size: "20" })
+      const params = new URLSearchParams({ page: String(p), page_size: "100" })
       if (q) params.set("q", q)
       const data = await apiFetch<{ servers: SmitheryServer[]; pagination: HubPagination }>(
         `/api/mcp-servers/hub/search?${params}`
       )
-      setServers(data.servers ?? [])
+      setServers((data.servers ?? []).filter((s) => !s.remote))
       setPagination(data.pagination ?? null)
     } catch {
       toast.error("Failed to load MCP Hub")

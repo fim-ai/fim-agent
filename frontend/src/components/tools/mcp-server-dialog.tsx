@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Loader2, Plus, X } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Loader2, Plus, X, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -68,6 +68,20 @@ export function MCPServerDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
 
+  // Detect Smithery-sourced servers and derive the registry URL for guidance
+  const smitheryUrl = useMemo(() => {
+    // Remote: https://server.smithery.ai/{qualifiedName}/mcp
+    const urlMatch = url.match(/^https:\/\/server\.smithery\.ai\/(.+?)\/mcp/)
+    if (urlMatch) return `https://smithery.ai/server/${urlMatch[1]}`
+    // Local: args = "-y, @smithery/cli@latest, run, qualifiedName"
+    if (args.includes("@smithery/cli")) {
+      const parts = args.split(",").map((s) => s.trim())
+      const runIdx = parts.findIndex((p) => p === "run")
+      if (runIdx >= 0 && parts[runIdx + 1]) return `https://smithery.ai/server/${parts[runIdx + 1]}`
+    }
+    return null
+  }, [url, args])
+
   // Reset form when dialog opens or server changes
   useEffect(() => {
     if (open) {
@@ -100,7 +114,7 @@ export function MCPServerDialog({
         setWorkingDir("")
         setEnvPairs([])
         setHeaderPairs([])
-        setIsActive(true)
+        setIsActive(false)
       }
     }
   }, [open, server])
@@ -420,6 +434,19 @@ export function MCPServerDialog({
                 <p className="text-xs text-muted-foreground">e.g. Authorization: Bearer token</p>
               </div>
             </>
+          )}
+
+          {/* Smithery docs link */}
+          {smitheryUrl && (
+            <a
+              href={smitheryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              View configuration guide on Smithery
+            </a>
           )}
 
           {/* Active toggle */}

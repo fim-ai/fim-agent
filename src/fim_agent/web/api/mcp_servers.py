@@ -82,7 +82,7 @@ async def get_capabilities():
 async def hub_search(
     q: str = "",
     page: int = 1,
-    page_size: int = 20,
+    page_size: int = 100,
     current_user: User = Depends(get_current_user),  # noqa: B008
 ) -> dict:
     """Proxy Smithery Registry search. Returns normalized server list."""
