@@ -7,7 +7,7 @@ import {
   useCallback,
   useEffect,
 } from "react"
-import { conversationApi } from "@/lib/api"
+import { conversationApi, ApiError } from "@/lib/api"
 import { useAuth } from "./auth-context"
 import type {
   ConversationResponse,
@@ -79,8 +79,14 @@ export function ConversationProvider({
       const detail = await conversationApi.get(id)
       setActiveConversation(detail)
     } catch (err) {
-      console.error("Failed to load conversation:", err)
       setActiveId(null)
+      setActiveConversation(null)
+      if (err instanceof ApiError && err.status === 404) {
+        // Conversation was deleted — prune stale entry from sidebar list
+        setConversations((prev) => prev.filter((c) => c.id !== id))
+      } else {
+        console.error("Failed to load conversation:", err)
+      }
     } finally {
       setIsLoadingDetail(false)
     }
