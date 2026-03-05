@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Loader2, Wrench, Server } from "lucide-react"
+import { Plus, Loader2, Wrench, Server, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
@@ -10,6 +10,7 @@ import { mcpServerApi } from "@/lib/api"
 import { BuiltinToolsSection } from "@/components/tools/builtin-tools-section"
 import { MCPServerCard } from "@/components/tools/mcp-server-card"
 import { MCPServerDialog, type MCPServerInitialValues } from "@/components/tools/mcp-server-dialog"
+import { MCPHubDialog } from "@/components/tools/mcp-hub-dialog"
 import type { MCPServerResponse } from "@/types/mcp-server"
 
 export default function ToolsPage() {
@@ -21,6 +22,7 @@ export default function ToolsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [allowStdio, setAllowStdio] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [hubOpen, setHubOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<MCPServerResponse | null>(null)
   const [dialogInitialValues, setDialogInitialValues] = useState<MCPServerInitialValues | null>(null)
 
@@ -127,10 +129,16 @@ export default function ToolsPage() {
               <Server className="h-4 w-4" />
               MCP Servers
             </h2>
-            <Button size="sm" className="gap-1.5" onClick={() => handleAdd()}>
-              <Plus className="h-4 w-4" />
-              Add Server
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setHubOpen(true)}>
+                <Search className="h-4 w-4" />
+                Browse Hub
+              </Button>
+              <Button size="sm" className="gap-1.5" onClick={() => handleAdd()}>
+                <Plus className="h-4 w-4" />
+                Add Server
+              </Button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -213,6 +221,15 @@ export default function ToolsPage() {
         initialValues={dialogInitialValues}
         onSuccess={handleSuccess}
         allowStdio={allowStdio}
+      />
+      <MCPHubDialog
+        open={hubOpen}
+        onOpenChange={setHubOpen}
+        onSuccess={handleSuccess}
+        onInstallLocal={(initial) => {
+          setHubOpen(false)
+          handleAdd(initial)
+        }}
       />
     </div>
   )

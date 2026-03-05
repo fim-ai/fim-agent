@@ -6,6 +6,8 @@ import logging
 import math
 import os
 
+import httpx
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,6 +76,30 @@ async def _get_owned_server(
 async def get_capabilities():
     allow_stdio = os.environ.get("ALLOW_STDIO_MCP", "true").lower() != "false"
     return {"allow_stdio": allow_stdio}
+
+
+@router.get("/hub/search")
+async def hub_search(
+    q: str = "",
+    page: int = 1,
+    page_size: int = 20,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> dict:
+    """Proxy Smithery Registry search. Returns normalized server list."""
+    params: dict = {"pageSize": page_size, "page": page}
+    if q:
+        params["q"] = q
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            "https://registry.smithery.ai/servers",
+            params=params,
+        )
+        resp.raise_for_status()
+    data = resp.json()
+    return {
+        "servers": data.get("servers", []),
+        "pagination": data.get("pagination", {}),
+    }
 
 
 # ---------------------------------------------------------------------------
