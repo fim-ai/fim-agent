@@ -53,6 +53,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Enhanced Admin Overview Stats**: Admin stats endpoint now includes KB document/chunk counts, total connector count, today's conversation count, and tokens-by-agent breakdown for the recharts dashboard
 - **Admin Connectors Tab**: New "Connectors" tab in the admin panel showing connector call metrics (total calls, success rate, avg latency, last called) alongside the existing Overview and Users tabs
 - **Tokens by Agent Chart**: Admin overview dashboard displays a tokens-by-agent bar chart for per-agent token consumption visibility
+- **Fast LLM Token Tracking**: All fast LLM calls (compact, context guard, grounding, suggestions) now record token consumption via per-request `UsageTracker`; `fast_llm_tokens` column on Conversation model with SQLite auto-migration and Alembic migration; admin dashboard pie chart shows separate "Fast LLM" slice and Total Tokens card shows secondary "Fast LLM: X.XK" line
 
 ### Changed
 - **Navigation Links**: All navigation buttons replaced with Next.js `<Link>` components for proper middle-click/Cmd+Click new-tab behavior across agent cards, connector cards, KB cards, sidebar conversations, chats page, and all "New" buttons
