@@ -50,6 +50,12 @@ class MCPToolAdapter(BaseTool):
         return self._name
 
     @property
+    def display_name(self) -> str:
+        server = self._name.split("__")[0].replace("_", " ").title()
+        action = self._original_name.replace("_", " ").title()
+        return f"{server}: {action}"
+
+    @property
     def category(self) -> str:
         return "mcp"
 

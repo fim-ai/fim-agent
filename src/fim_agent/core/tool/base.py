@@ -26,6 +26,11 @@ class Tool(Protocol):
         ...
 
     @property
+    def display_name(self) -> str:
+        """Human-friendly display name."""
+        ...
+
+    @property
     def parameters_schema(self) -> dict[str, Any]:
         """JSON Schema for tool parameters."""
         ...
@@ -49,6 +54,10 @@ class BaseTool:
     @property
     def category(self) -> str:
         return "general"
+
+    @property
+    def display_name(self) -> str:
+        return self.name.replace("_", " ").title()
 
     @property
     def parameters_schema(self) -> dict[str, Any]:

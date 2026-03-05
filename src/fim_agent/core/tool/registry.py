@@ -89,6 +89,18 @@ class ToolRegistry:
                 filtered.register(tool)
         return filtered
 
+    def to_catalog(self) -> list[dict[str, str]]:
+        """Return metadata for all registered tools (for frontend display)."""
+        return [
+            {
+                "name": t.name,
+                "display_name": t.display_name,
+                "category": t.category,
+                "description": t.description,
+            }
+            for t in self._tools.values()
+        ]
+
     # ------------------------------------------------------------------
     # Serialisation helpers
     # ------------------------------------------------------------------

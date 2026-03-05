@@ -73,11 +73,18 @@ class ConnectorToolAdapter(BaseTool):
         self._connector_id = connector_id
         self._action_id = action_id
         self._connector_name_raw = connector_name
+        self._action_name_raw = action_name
         self._on_call_complete = on_call_complete
 
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def display_name(self) -> str:
+        connector = self._connector_name_raw.replace("_", " ").title()
+        action = self._action_name_raw.replace("_", " ").title()
+        return f"{connector}: {action}"
 
     @property
     def description(self) -> str:
