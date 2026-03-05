@@ -508,10 +508,11 @@ async def _resolve_tools(
         except Exception:
             logger.warning("Failed to load connector tools", exc_info=True)
 
-    # Load user-defined MCP servers
+    # Load user-defined MCP servers — only fetch configs here; actual connection
+    # happens inside the SSE generator (same coroutine) to avoid the anyio
+    # cancel-scope cross-task RuntimeError on disconnect_all().
     if user_id:
         try:
-            from fim_agent.core.mcp import MCPClient as _MCPClient
             from fim_agent.db import create_session as _create_session
             from fim_agent.web.models.mcp_server import MCPServer as _MCPServerModel
             from sqlalchemy import true as _true
@@ -525,57 +526,73 @@ async def _resolve_tools(
                 _user_servers = _result.scalars().all()
 
             if _user_servers:
-                _mcp_client = _MCPClient()
-                _loaded = 0
-                for _srv in _user_servers:
-                    try:
-                        if _srv.transport == "stdio" and _srv.command:
-                            if not _allow_stdio_mcp:
-                                logger.warning(
-                                    "STDIO MCP disabled by ALLOW_STDIO_MCP=false, skipping %r",
-                                    _srv.name,
-                                )
-                                continue
-                            _mcp_tools = await _mcp_client.connect_stdio(
-                                name=_srv.name,
-                                command=_srv.command,
-                                args=_srv.args or [],
-                                env=_srv.env,
-                                working_dir=_srv.working_dir,
-                            )
-                        elif _srv.transport == "sse" and _srv.url:
-                            _mcp_tools = await _mcp_client.connect_sse(
-                                name=_srv.name,
-                                url=_srv.url,
-                                headers=_srv.headers,
-                            )
-                        elif _srv.transport == "streamable_http" and _srv.url:
-                            _mcp_tools = await _mcp_client.connect_streamable_http(
-                                name=_srv.name,
-                                url=_srv.url,
-                                headers=_srv.headers,
-                            )
-                        else:
-                            continue
-                        for _t in _mcp_tools:
-                            tools.register(_t)
-                        _loaded += len(_mcp_tools)
-                    except Exception:
-                        logger.warning(
-                            "Failed to connect user MCP server %r",
-                            _srv.name,
-                            exc_info=True,
-                        )
-                logger.info(
-                    "Loaded %d tools from %d user MCP servers",
-                    _loaded,
-                    len(_user_servers),
-                )
-                tools._user_mcp_client = _mcp_client  # type: ignore[attr-defined]
+                tools._pending_mcp_servers = list(_user_servers)  # type: ignore[attr-defined]
         except Exception:
-            logger.warning("Failed to load user MCP servers", exc_info=True)
+            logger.warning("Failed to load user MCP server configs", exc_info=True)
 
     return tools
+
+
+async def _connect_pending_mcp_servers(tools: ToolRegistry) -> Any:
+    """Connect to pending MCP servers and register their tools.
+
+    Must be called from inside the SSE generator so that the anyio cancel
+    scope created by stdio_client is entered and exited in the same coroutine.
+    Returns the MCPClient (caller must call disconnect_all() in finally).
+    """
+    pending = getattr(tools, "_pending_mcp_servers", None)
+    if not pending:
+        return None
+
+    from fim_agent.core.mcp import MCPClient as _MCPClient
+
+    _mcp_client = _MCPClient()
+    _loaded = 0
+    for _srv in pending:
+        try:
+            if _srv.transport == "stdio" and _srv.command:
+                if not _allow_stdio_mcp:
+                    logger.warning(
+                        "STDIO MCP disabled by ALLOW_STDIO_MCP=false, skipping %r",
+                        _srv.name,
+                    )
+                    continue
+                _mcp_tools = await _mcp_client.connect_stdio(
+                    name=_srv.name,
+                    command=_srv.command,
+                    args=_srv.args or [],
+                    env=_srv.env,
+                    working_dir=_srv.working_dir,
+                )
+            elif _srv.transport == "sse" and _srv.url:
+                _mcp_tools = await _mcp_client.connect_sse(
+                    name=_srv.name,
+                    url=_srv.url,
+                    headers=_srv.headers,
+                )
+            elif _srv.transport == "streamable_http" and _srv.url:
+                _mcp_tools = await _mcp_client.connect_streamable_http(
+                    name=_srv.name,
+                    url=_srv.url,
+                    headers=_srv.headers,
+                )
+            else:
+                continue
+            for _t in _mcp_tools:
+                tools.register(_t)
+            _loaded += len(_mcp_tools)
+        except Exception:
+            logger.warning(
+                "Failed to connect user MCP server %r",
+                _srv.name,
+                exc_info=True,
+            )
+    logger.info(
+        "Loaded %d tools from %d user MCP servers",
+        _loaded,
+        len(pending),
+    )
+    return _mcp_client
 
 
 # ---------------------------------------------------------------------------
@@ -775,7 +792,6 @@ async def react_endpoint(
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
     llm = _resolve_llm(agent_cfg)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
-    user_mcp_client = getattr(tools, "_user_mcp_client", None)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     # Merge user personal instructions + agent-specific instructions
@@ -804,6 +820,9 @@ async def react_endpoint(
         t0 = time.time()
         sse_events: list[dict[str, Any]] = []
         yield _emit(sse_events, "step", {"type": "thinking", "iteration": 0})
+
+        # -- MCP connection (must happen inside generator for anyio cancel scope) --
+        user_mcp_client = await _connect_pending_mcp_servers(tools)
 
         # -- Optional persistence setup ------------------------------------
         db_session = None
@@ -1132,7 +1151,6 @@ async def dag_endpoint(
     agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
     llm = _resolve_llm(agent_cfg)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
-    dag_user_mcp_client = getattr(tools, "_user_mcp_client", None)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
     # Merge user personal instructions + agent-specific instructions
@@ -1163,6 +1181,9 @@ async def dag_endpoint(
     async def generate() -> AsyncGenerator[str, None]:  # noqa: C901
         t0 = time.time()
         sse_events: list[dict[str, Any]] = []
+
+        # -- MCP connection (must happen inside generator for anyio cancel scope) --
+        dag_user_mcp_client = await _connect_pending_mcp_servers(tools)
 
         # -- Optional persistence setup ------------------------------------
         db_session = None
