@@ -58,6 +58,7 @@ from ..deps import (
     get_dag_max_replan_rounds,
     get_dag_replan_stop_confidence,
     get_dag_step_max_iterations,
+    get_effective_fast_llm,
     get_effective_llm,
     get_fast_context_budget,
     get_fast_llm,
@@ -389,6 +390,11 @@ async def _resolve_llm(
                 return llm
     # System default -> ENV fallback
     return await get_effective_llm(db)
+
+
+async def _resolve_fast_llm(db: AsyncSession) -> BaseLLM:
+    """Fast LLM: DB role='fast' -> DB role='general' -> ENV fast fallback."""
+    return await get_effective_fast_llm(db)
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -809,6 +815,7 @@ async def react_endpoint(
     from fim_agent.db import create_session as _create_session
     async with _create_session() as _llm_db:
         llm = await _resolve_llm(agent_cfg, _llm_db)
+        fast_llm = await _resolve_fast_llm(_llm_db)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
@@ -943,12 +950,12 @@ async def react_endpoint(
                 from fim_agent.core.memory import DbMemory
                 memory = DbMemory(
                     conversation_id=conversation_id,
-                    compact_llm=get_fast_llm(),
+                    compact_llm=fast_llm,
                     user_id=current_user_id,
                     usage_tracker=fast_usage_tracker,
                 )
             context_guard = ContextGuard(
-                compact_llm=get_fast_llm(),
+                compact_llm=fast_llm,
                 default_budget=get_context_budget(),
                 usage_tracker=fast_usage_tracker,
             )
@@ -1081,7 +1088,7 @@ async def react_endpoint(
 
             # ephemeral: generate AFTER persist, inject BEFORE yield
             suggestions = await _generate_suggestions(
-                get_fast_llm(), q, result.answer, preferred_language=preferred_language,
+                fast_llm, q, result.answer, preferred_language=preferred_language,
                 usage_tracker=fast_usage_tracker,
             )
             if suggestions:
@@ -1190,8 +1197,9 @@ async def dag_endpoint(
         grounding_hint = _kb_system_hint(agent_cfg)
         extra_instructions = (extra_instructions or "") + grounding_hint
 
-    # DAG uses a fast LLM for step execution; try agent config first.
-    fast_llm = get_fast_llm()
+    # DAG uses a fast LLM for step execution; role='fast' -> role='general' -> ENV fallback.
+    async with _create_session() as _fast_llm_db:
+        fast_llm = await _resolve_fast_llm(_fast_llm_db)
 
     # Load attached images
     dag_image_data: list[tuple[str, str, str]] = []

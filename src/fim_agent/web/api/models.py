@@ -28,11 +28,31 @@ def _config_to_response(cfg: ModelConfig) -> ModelConfigResponse:
         base_url=cfg.base_url,
         category=cfg.category,
         temperature=cfg.temperature,
+        max_output_tokens=getattr(cfg, "max_output_tokens", None),
+        context_size=getattr(cfg, "context_size", None),
+        role=getattr(cfg, "role", None),
         is_default=cfg.is_default,
         is_active=cfg.is_active,
         created_at=cfg.created_at.isoformat() if cfg.created_at else "",
         updated_at=cfg.updated_at.isoformat() if cfg.updated_at else None,
     )
+
+
+async def _unset_role(
+    db: AsyncSession,
+    role: str,
+    exclude_id: str | None = None,
+) -> None:
+    """Ensure only one system config has a given role."""
+    stmt = select(ModelConfig).where(
+        ModelConfig.role == role,
+        ModelConfig.user_id.is_(None),
+    )
+    if exclude_id:
+        stmt = stmt.where(ModelConfig.id != exclude_id)
+    result = await db.execute(stmt)
+    for cfg in result.scalars().all():
+        cfg.role = None
 
 
 async def _unset_defaults(
@@ -65,8 +85,14 @@ async def create_model_config(
     if body.is_default:
         await _unset_defaults(db, current_user.id, body.category)
 
+    # System-level role configs use user_id=None (singleton per role)
+    config_user_id: str | None = current_user.id
+    if body.role in ("general", "fast"):
+        await _unset_role(db, body.role)
+        config_user_id = None
+
     cfg = ModelConfig(
-        user_id=current_user.id,
+        user_id=config_user_id,
         name=body.name,
         provider=body.provider,
         model_name=body.model_name,
@@ -74,7 +100,10 @@ async def create_model_config(
         api_key=body.api_key,
         category=body.category,
         temperature=body.temperature,
+        max_output_tokens=body.max_output_tokens,
+        context_size=body.context_size,
         is_default=body.is_default,
+        role=body.role,
     )
     db.add(cfg)
     await db.commit()
@@ -159,6 +188,11 @@ async def update_model_config(
         await _unset_defaults(
             db, current_user.id, category, exclude_id=cfg.id
         )
+
+    # Handle role assignment: ensure only one system config holds a given role
+    new_role = update_data.get("role")
+    if new_role is not None:
+        await _unset_role(db, new_role, exclude_id=cfg.id)
 
     for field, value in update_data.items():
         setattr(cfg, field, value)

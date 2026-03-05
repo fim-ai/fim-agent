@@ -263,7 +263,11 @@ async def get_llm_by_config_id(
 async def get_system_default_llm(
     db: "AsyncSession",
 ) -> OpenAICompatibleLLM | None:
-    """Query the system-level default model config (user_id=NULL, is_default=True)."""
+    """Query the system-level default model config (user_id=NULL, is_default=True).
+
+    Deprecated: prefer ``get_system_llm_by_role`` for role-based lookup.
+    Kept for backward compatibility.
+    """
     from sqlalchemy import select
     from fim_agent.web.models.model_config import ModelConfig as ModelConfigORM
 
@@ -290,10 +294,56 @@ async def get_system_default_llm(
     )
 
 
+async def get_system_llm_by_role(
+    db: "AsyncSession",
+    role: str,
+) -> "OpenAICompatibleLLM | None":
+    """Query a system-level model config by role (user_id=NULL).
+
+    Returns an :class:`OpenAICompatibleLLM` built from the matching config, or
+    ``None`` if no active config with that role exists.
+    """
+    from sqlalchemy import select
+    from fim_agent.web.models.model_config import ModelConfig as ModelConfigORM
+
+    stmt = (
+        select(ModelConfigORM)
+        .where(
+            ModelConfigORM.user_id == None,  # noqa: E711
+            ModelConfigORM.role == role,
+            ModelConfigORM.is_active == True,  # noqa: E712
+        )
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        return None
+    return OpenAICompatibleLLM(
+        api_key=cfg.api_key or _api_key(),
+        base_url=cfg.base_url or _base_url(),
+        model=cfg.model_name,
+        default_temperature=cfg.temperature if cfg.temperature is not None else _temperature(),
+        default_max_tokens=cfg.max_output_tokens or _main_max_output(),
+    )
+
+
 async def get_effective_llm(db: "AsyncSession") -> OpenAICompatibleLLM:
-    """System default model -> ENV fallback."""
+    """General model: DB role='general' -> DB is_default -> ENV fallback."""
+    llm = await get_system_llm_by_role(db, "general")
+    if llm is not None:
+        return llm
     llm = await get_system_default_llm(db)
     return llm if llm is not None else get_llm()
+
+
+async def get_effective_fast_llm(db: "AsyncSession") -> OpenAICompatibleLLM:
+    """Fast model: DB role='fast' -> DB role='general' -> ENV fast fallback."""
+    llm = await get_system_llm_by_role(db, "fast")
+    if llm is not None:
+        return llm
+    llm = await get_system_llm_by_role(db, "general")
+    return llm if llm is not None else get_fast_llm()
 
 
 def get_user_id() -> str:
