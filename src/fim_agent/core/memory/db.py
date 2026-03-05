@@ -32,6 +32,7 @@ from .compact import CompactUtils
 
 if TYPE_CHECKING:
     from fim_agent.core.model import BaseLLM
+    from fim_agent.core.model.usage import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +94,13 @@ class DbMemory(BaseMemory):
         max_tokens: int = 32_000,
         compact_llm: BaseLLM | None = None,
         user_id: str | None = None,
+        usage_tracker: UsageTracker | None = None,
     ) -> None:
         self._conversation_id = conversation_id
         self._max_tokens = max_tokens
         self._compact_llm = compact_llm
         self._user_id = user_id
+        self._usage_tracker = usage_tracker
         # Compact tracking — set after get_messages() runs.
         self.was_compacted: bool = False
         self._original_count: int = 0
@@ -168,6 +171,7 @@ class DbMemory(BaseMemory):
             if self._compact_llm is not None:
                 result = await CompactUtils.llm_compact(
                     messages, self._compact_llm, self._max_tokens,
+                    usage_tracker=self._usage_tracker,
                 )
             else:
                 result = CompactUtils.smart_truncate(messages, self._max_tokens)

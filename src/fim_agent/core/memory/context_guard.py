@@ -16,6 +16,7 @@ from .compact import CompactUtils
 
 if TYPE_CHECKING:
     from fim_agent.core.model import BaseLLM
+    from fim_agent.core.model.usage import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -83,10 +84,12 @@ class ContextGuard:
         compact_llm: BaseLLM | None = None,
         default_budget: int = 32_000,
         max_message_chars: int = 50_000,
+        usage_tracker: UsageTracker | None = None,
     ) -> None:
         self._compact_llm = compact_llm
         self._default_budget = default_budget
         self.max_message_chars = max_message_chars
+        self._usage_tracker = usage_tracker
 
     async def check_and_compact(
         self,
@@ -215,6 +218,8 @@ class ContextGuard:
                 ChatMessage(role="user", content=history_text),
             ])
             summary = (result.message.content or "").strip()
+            if self._usage_tracker and result.usage:
+                await self._usage_tracker.record(result.usage)
         except Exception:
             logger.warning(
                 "ContextGuard LLM compact failed, falling back to truncation",

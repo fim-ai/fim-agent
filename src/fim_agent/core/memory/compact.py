@@ -15,6 +15,7 @@ from fim_agent.core.model.types import ChatMessage
 
 if TYPE_CHECKING:
     from fim_agent.core.model import BaseLLM
+    from fim_agent.core.model.usage import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +187,7 @@ class CompactUtils:
         llm: BaseLLM,
         max_tokens: int = 8000,
         keep_recent: int = 4,
+        usage_tracker: UsageTracker | None = None,
     ) -> list[ChatMessage]:
         """Compress conversation history using an LLM summary.
 
@@ -234,6 +236,8 @@ class CompactUtils:
                 ChatMessage(role="user", content=history_text),
             ])
             summary = (result.message.content or "").strip()
+            if usage_tracker and result.usage:
+                await usage_tracker.record(result.usage)
         except Exception:
             logger.warning("LLM compact failed, falling back to truncation", exc_info=True)
             return cls.smart_truncate(messages, max_tokens)
