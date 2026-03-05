@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Plus, Trash2, Loader2, Search, Star, MoreHorizontal, Pencil, MessagesSquare, GitBranch } from "lucide-react"
+import { Plus, Trash2, Loader2, Search, Star, MoreHorizontal, Pencil, MessagesSquare, GitBranch, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -213,8 +213,10 @@ export function ConversationSidebar({ collapsed, hideHeader }: ConversationSideb
                         <span className="flex-1 truncate text-[13px]">
                           {conv.title || "Untitled"}
                         </span>
-                        {conv.mode === "dag" && (
-                          <GitBranch className="shrink-0 h-3 w-3 text-muted-foreground/40" />
+                        {conv.mode === "dag" ? (
+                          <GitBranch className="shrink-0 h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        ) : (
+                          <Zap className="shrink-0 h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                         )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
