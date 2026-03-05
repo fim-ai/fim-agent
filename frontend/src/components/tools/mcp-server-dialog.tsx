@@ -32,6 +32,7 @@ interface MCPServerDialogProps {
   onOpenChange: (open: boolean) => void
   server?: MCPServerResponse | null
   onSuccess: (server: MCPServerResponse) => void
+  allowStdio?: boolean
 }
 
 export function MCPServerDialog({
@@ -39,6 +40,7 @@ export function MCPServerDialog({
   onOpenChange,
   server,
   onSuccess,
+  allowStdio = true,
 }: MCPServerDialogProps) {
   const isEdit = !!server
 
@@ -61,7 +63,7 @@ export function MCPServerDialog({
       if (server) {
         setName(server.name)
         setDescription(server.description || "")
-        setTransport(server.transport)
+        setTransport(!allowStdio && server.transport === "stdio" ? "sse" : server.transport)
         setCommand(server.command || "")
         setArgs(server.args?.join(", ") || "")
         setUrl(server.url || "")
@@ -80,7 +82,7 @@ export function MCPServerDialog({
       } else {
         setName("")
         setDescription("")
-        setTransport("stdio")
+        setTransport(allowStdio ? "stdio" : "sse")
         setCommand("")
         setArgs("")
         setUrl("")
@@ -250,14 +252,16 @@ export function MCPServerDialog({
           <div className="grid gap-1.5">
             <label className="text-sm font-medium">Transport</label>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={transport === "stdio" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTransport("stdio")}
-              >
-                STDIO
-              </Button>
+              {allowStdio && (
+                <Button
+                  type="button"
+                  variant={transport === "stdio" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTransport("stdio")}
+                >
+                  STDIO
+                </Button>
+              )}
               <Button
                 type="button"
                 variant={transport === "sse" ? "default" : "outline"}
@@ -278,7 +282,7 @@ export function MCPServerDialog({
           </div>
 
           {/* STDIO fields */}
-          {transport === "stdio" && (
+          {transport === "stdio" && allowStdio && (
             <>
               <div className="grid gap-1.5">
                 <label className="text-sm font-medium">Command</label>

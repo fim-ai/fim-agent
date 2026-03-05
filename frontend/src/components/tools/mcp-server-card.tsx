@@ -21,16 +21,17 @@ interface MCPServerCardProps {
   server: MCPServerResponse
   onEdit: () => void
   onDelete: () => void
+  onToggleActive: (isActive: boolean) => void
 }
 
-export function MCPServerCard({ server, onEdit, onDelete }: MCPServerCardProps) {
+export function MCPServerCard({ server, onEdit, onDelete, onToggleActive }: MCPServerCardProps) {
   const endpoint = server.transport === "stdio" ? server.command : server.url
   const isRemoteTransport = server.transport === "sse" || server.transport === "streamable_http"
 
   return (
     <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-accent/5">
       {/* Header: name + badges */}
-      <div className="flex items-start gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2">
         <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground">
           {server.name}
         </h3>
@@ -40,12 +41,28 @@ export function MCPServerCard({ server, onEdit, onDelete }: MCPServerCardProps) 
         >
           {server.transport === "streamable_http" ? "HTTP" : server.transport.toUpperCase()}
         </Badge>
-        <span
-          className={`shrink-0 h-2 w-2 rounded-full mt-1.5 ${
-            server.is_active ? "bg-green-500" : "bg-muted-foreground/40"
-          }`}
-          title={server.is_active ? "Active" : "Inactive"}
-        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={server.is_active}
+              onClick={() => onToggleActive(!server.is_active)}
+              className={`relative shrink-0 inline-flex h-4 w-7 items-center rounded-full transition-colors focus-visible:outline-none ${
+                server.is_active ? "bg-green-500" : "bg-muted-foreground/30"
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+                  server.is_active ? "translate-x-[14px]" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5}>
+            {server.is_active ? "Disable" : "Enable"}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Endpoint */}

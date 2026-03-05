@@ -19,6 +19,7 @@ export default function ToolsPage() {
   const [activeTab, setActiveTab] = useState("builtin")
   const [servers, setServers] = useState<MCPServerResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [allowStdio, setAllowStdio] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<MCPServerResponse | null>(null)
 
@@ -42,7 +43,10 @@ export default function ToolsPage() {
   }, [])
 
   useEffect(() => {
-    if (user) loadServers()
+    if (user) {
+      loadServers()
+      mcpServerApi.capabilities().then((c) => setAllowStdio(c.allow_stdio)).catch(() => {})
+    }
   }, [user, loadServers])
 
   const handleEdit = (server: MCPServerResponse) => {
@@ -61,6 +65,15 @@ export default function ToolsPage() {
       setServers((prev) => prev.filter((s) => s.id !== id))
     } catch (err) {
       console.error("Failed to delete MCP server:", err)
+    }
+  }
+
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    try {
+      const updated = await mcpServerApi.toggleActive(id, isActive)
+      setServers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+    } catch (err) {
+      console.error("Failed to toggle MCP server:", err)
     }
   }
 
@@ -145,6 +158,7 @@ export default function ToolsPage() {
                   server={server}
                   onEdit={() => handleEdit(server)}
                   onDelete={() => handleDelete(server.id)}
+                  onToggleActive={(isActive) => handleToggleActive(server.id, isActive)}
                 />
               ))}
             </div>
@@ -158,6 +172,7 @@ export default function ToolsPage() {
         onOpenChange={setDialogOpen}
         server={editingServer}
         onSuccess={handleSuccess}
+        allowStdio={allowStdio}
       />
     </div>
   )
