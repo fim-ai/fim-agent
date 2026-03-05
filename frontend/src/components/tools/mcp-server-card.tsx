@@ -1,6 +1,7 @@
 "use client"
 
-import { Pencil, Trash2, Terminal, Globe } from "lucide-react"
+import { useState } from "react"
+import { Pencil, Trash2, Terminal, Globe, FlaskConical, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -22,11 +23,25 @@ interface MCPServerCardProps {
   onEdit: () => void
   onDelete: () => void
   onToggleActive: (isActive: boolean) => void
+  onTest: () => Promise<{ ok: boolean; tool_count?: number; error?: string }>
 }
 
-export function MCPServerCard({ server, onEdit, onDelete, onToggleActive }: MCPServerCardProps) {
+export function MCPServerCard({ server, onEdit, onDelete, onToggleActive, onTest }: MCPServerCardProps) {
   const endpoint = server.transport === "stdio" ? server.command : server.url
   const isRemoteTransport = server.transport === "sse" || server.transport === "streamable_http"
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; tool_count?: number; error?: string } | null>(null)
+
+  const handleTest = async () => {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const result = await onTest()
+      setTestResult(result)
+    } finally {
+      setTesting(false)
+    }
+  }
 
   return (
     <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-accent/5">
@@ -84,12 +99,19 @@ export function MCPServerCard({ server, onEdit, onDelete, onToggleActive }: MCPS
         </Tooltip>
       )}
 
-      {/* Tool count */}
-      {server.tool_count > 0 && (
+      {/* Tool count / test result */}
+      {testResult ? (
+        <p className={`text-xs mb-1 flex items-center gap-1 ${testResult.ok ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+          {testResult.ok
+            ? <><CheckCircle2 className="h-3 w-3" />{testResult.tool_count} tool{testResult.tool_count !== 1 ? "s" : ""} found</>
+            : <><XCircle className="h-3 w-3" /><span className="truncate" title={testResult.error}>{testResult.error}</span></>
+          }
+        </p>
+      ) : server.tool_count > 0 ? (
         <p className="text-xs text-muted-foreground mb-1">
           {server.tool_count} tool{server.tool_count !== 1 ? "s" : ""}
         </p>
-      )}
+      ) : null}
 
       {/* Description */}
       <p className="flex-1 text-xs text-muted-foreground line-clamp-2 mb-3">
@@ -110,6 +132,23 @@ export function MCPServerCard({ server, onEdit, onDelete, onToggleActive }: MCPS
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={5}>Edit</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={handleTest}
+              disabled={testing}
+            >
+              {testing
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <FlaskConical className="h-3.5 w-3.5" />
+              }
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5}>Test connection</TooltipContent>
         </Tooltip>
         <div className="flex-1" />
         <AlertDialog>

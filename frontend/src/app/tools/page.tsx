@@ -83,6 +83,14 @@ export default function ToolsPage() {
     }
   }
 
+  const handleTest = async (id: string) => {
+    const result = await mcpServerApi.test(id)
+    if (result.ok && result.tool_count !== undefined) {
+      setServers((prev) => prev.map((s) => (s.id === id ? { ...s, tool_count: result.tool_count! } : s)))
+    }
+    return result
+  }
+
   const handleSuccess = (server: MCPServerResponse) => {
     dialogSucceededRef.current = true
     setServers((prev) => {
@@ -172,6 +180,7 @@ export default function ToolsPage() {
                   onEdit={() => handleEdit(server)}
                   onDelete={() => handleDelete(server.id)}
                   onToggleActive={(isActive) => handleToggleActive(server.id, isActive)}
+                  onTest={() => handleTest(server.id)}
                 />
               ))}
             </div>

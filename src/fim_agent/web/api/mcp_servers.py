@@ -169,6 +169,55 @@ async def update_mcp_server(
     return ApiResponse(data=_to_response(server).model_dump())
 
 
+@router.post("/{server_id}/test", response_model=ApiResponse)
+async def test_mcp_server(
+    server_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Test connectivity to an MCP server and update its tool_count."""
+    server = await _get_owned_server(server_id, current_user.id, db)
+
+    try:
+        from fim_agent.core.mcp import MCPClient
+    except ImportError:
+        return ApiResponse(data={"ok": False, "error": "mcp package not installed"})
+
+    client = MCPClient()
+    try:
+        if server.transport == "stdio":
+            tools = await client.connect_stdio(
+                name=server.name,
+                command=server.command or "",
+                args=server.args or [],
+                env=server.env,
+                working_dir=server.working_dir,
+            )
+        elif server.transport == "sse":
+            tools = await client.connect_sse(
+                name=server.name,
+                url=server.url or "",
+                headers=server.headers,
+            )
+        else:
+            tools = await client.connect_streamable_http(
+                name=server.name,
+                url=server.url or "",
+                headers=server.headers,
+            )
+
+        count = len(tools)
+        server.tool_count = count
+        await db.commit()
+        tool_names = [t.name for t in tools]
+        return ApiResponse(data={"ok": True, "tool_count": count, "tools": tool_names})
+    except Exception as exc:
+        logger.warning("MCP test failed for server %r: %s", server.name, exc)
+        return ApiResponse(data={"ok": False, "error": str(exc)})
+    finally:
+        await client.disconnect_all()
+
+
 @router.delete("/{server_id}", response_model=ApiResponse)
 async def delete_mcp_server(
     server_id: str,

@@ -628,4 +628,10 @@ export const mcpServerApi = {
 
   capabilities: () =>
     apiFetch<{ allow_stdio: boolean }>("/api/mcp-servers/capabilities"),
+
+  test: (id: string) =>
+    apiFetch<ApiResponse<{ ok: boolean; tool_count?: number; tools?: string[]; error?: string }>>(
+      `/api/mcp-servers/${id}/test`,
+      { method: "POST" },
+    ).then((r) => r.data),
 }
