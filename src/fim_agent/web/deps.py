@@ -346,6 +346,60 @@ async def get_effective_fast_llm(db: "AsyncSession") -> OpenAICompatibleLLM:
     return llm if llm is not None else get_fast_llm()
 
 
+async def _get_context_budget_for_role(
+    db: "AsyncSession",
+    role: str,
+    env_fallback_fn: "callable[[], int]",
+) -> int:
+    """Return input token budget for the given role from DB config or ENV."""
+    from sqlalchemy import select
+    from fim_agent.web.models.model_config import ModelConfig as ModelConfigORM
+
+    stmt = (
+        select(ModelConfigORM)
+        .where(
+            ModelConfigORM.user_id == None,  # noqa: E711
+            ModelConfigORM.role == role,
+            ModelConfigORM.is_active == True,  # noqa: E712
+        )
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    cfg = result.scalar_one_or_none()
+    if cfg is None or cfg.context_size is None:
+        return env_fallback_fn()
+    max_out = cfg.max_output_tokens or _main_max_output()
+    return _compute_input_budget(cfg.context_size, max_out)
+
+
+async def get_effective_context_budget(db: "AsyncSession") -> int:
+    """Input token budget for the general model: DB context_size -> ENV."""
+    return await _get_context_budget_for_role(db, "general", get_context_budget)
+
+
+async def get_effective_fast_context_budget(db: "AsyncSession") -> int:
+    """Input token budget for the fast model: DB role=fast -> role=general -> ENV."""
+    from sqlalchemy import select
+    from fim_agent.web.models.model_config import ModelConfig as ModelConfigORM
+
+    for role in ("fast", "general"):
+        stmt = (
+            select(ModelConfigORM)
+            .where(
+                ModelConfigORM.user_id == None,  # noqa: E711
+                ModelConfigORM.role == role,
+                ModelConfigORM.is_active == True,  # noqa: E712
+            )
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        cfg = result.scalar_one_or_none()
+        if cfg is not None and cfg.context_size is not None:
+            max_out = cfg.max_output_tokens or _main_max_output()
+            return _compute_input_budget(cfg.context_size, max_out)
+    return get_fast_context_budget()
+
+
 def get_user_id() -> str:
     """Return the current user identifier.
 

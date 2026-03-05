@@ -58,6 +58,8 @@ from ..deps import (
     get_dag_max_replan_rounds,
     get_dag_replan_stop_confidence,
     get_dag_step_max_iterations,
+    get_effective_context_budget,
+    get_effective_fast_context_budget,
     get_effective_fast_llm,
     get_effective_llm,
     get_fast_context_budget,
@@ -816,6 +818,7 @@ async def react_endpoint(
     async with _create_session() as _llm_db:
         llm = await _resolve_llm(agent_cfg, _llm_db)
         fast_llm = await _resolve_fast_llm(_llm_db)
+        _context_budget = await get_effective_context_budget(_llm_db)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
@@ -956,7 +959,7 @@ async def react_endpoint(
                 )
             context_guard = ContextGuard(
                 compact_llm=fast_llm,
-                default_budget=get_context_budget(),
+                default_budget=_context_budget,
                 usage_tracker=fast_usage_tracker,
             )
 
@@ -1177,6 +1180,7 @@ async def dag_endpoint(
     from fim_agent.db import create_session as _create_session
     async with _create_session() as _llm_db:
         llm = await _resolve_llm(agent_cfg, _llm_db)
+        _fast_context_budget = await get_effective_fast_context_budget(_llm_db)
     tools = await _resolve_tools(agent_cfg, conversation_id, user_id=current_user_id)
     agent_instructions = agent_cfg["instructions"] if agent_cfg else None
 
@@ -1417,7 +1421,7 @@ async def dag_endpoint(
                 )
                 dag_context_guard = ContextGuard(
                     compact_llm=fast_llm,
-                    default_budget=get_fast_context_budget(),
+                    default_budget=_fast_context_budget,
                     usage_tracker=fast_usage_tracker,
                 )
 
