@@ -92,6 +92,15 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
   // Read agent param from URL for quick chat link
   const agentParam = isNewChat ? searchParams.get("agent") : null
 
+  // Stable callback — avoids auto-select effect re-running on every render
+  const handleAgentChange = useCallback((agent: AgentResponse | null) => {
+    setSelectedAgent(agent)
+    // Sync mode from agent's default when no active conversation
+    if (!activeId && agent?.execution_mode) {
+      setMode(agent.execution_mode)
+    }
+  }, [activeId])
+
   // Ref to track conversation IDs we created ourselves (via send),
   // so the "switch conversation" effect doesn't reset SSE for them.
   const selfCreatedIdRef = useRef<string | null>(null)
@@ -313,13 +322,7 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
         selectedAgent={selectedAgent}
         injectedMessages={injectedMessages}
         onRecallInject={handleRecallInject}
-        onAgentChange={(agent) => {
-          setSelectedAgent(agent)
-          // Sync mode from agent's default when no active conversation
-          if (!activeId && agent?.execution_mode) {
-            setMode(agent.execution_mode)
-          }
-        }}
+        onAgentChange={handleAgentChange}
         onQueryChange={setQuery}
         onLanguageChange={setLanguage}
         onModeChange={(m) => {
@@ -743,15 +746,20 @@ function PlaygroundContent({
     }).catch(() => setAgentsLoaded(true))
   }, [agentsLoaded])
 
+  // Keep a ref to onAgentChange so the auto-select effect doesn't need it as a dep
+  const onAgentChangeRef = useRef(onAgentChange)
+  useEffect(() => { onAgentChangeRef.current = onAgentChange }, [onAgentChange])
+
   // Auto-select agent from URL param
   useEffect(() => {
     if (!initialAgentId || !agentsLoaded || agents.length === 0) return
     if (selectedAgent?.id === initialAgentId) return // already selected
     const found = agents.find(a => a.id === initialAgentId)
     if (found) {
-      onAgentChange(found)
+      onAgentChangeRef.current(found)
     }
-  }, [initialAgentId, agentsLoaded, agents, selectedAgent, onAgentChange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAgentId, agentsLoaded, agents, selectedAgent])
 
   // Shared upload logic for both file input and paste
   const uploadFiles = useCallback(async (files: File[]) => {
