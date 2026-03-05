@@ -15,11 +15,14 @@ DockerBackend           — concrete docker backend
 
 from __future__ import annotations
 
+import logging
 import os
 
 from .docker_backend import DockerBackend
 from .local_backend import LocalBackend
 from .protocol import SandboxBackend, SandboxResult
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "get_sandbox_backend",
@@ -53,6 +56,11 @@ def get_sandbox_backend() -> SandboxBackend:
                 node_image=os.environ.get("DOCKER_NODE_IMAGE", "node:20-slim"),
                 shell_image=os.environ.get("DOCKER_SHELL_IMAGE", "python:3.11-slim"),
             )
+            logger.info("Sandbox backend: docker (python=%s, node=%s, shell=%s)",
+                        os.environ.get("DOCKER_PYTHON_IMAGE", "python:3.11-slim"),
+                        os.environ.get("DOCKER_NODE_IMAGE", "node:20-slim"),
+                        os.environ.get("DOCKER_SHELL_IMAGE", "python:3.11-slim"))
         else:
             _backend = LocalBackend()
+            logger.info("Sandbox backend: local (in-process exec, no container isolation)")
     return _backend

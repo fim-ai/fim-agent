@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from pathlib import Path
 
 from .protocol import SandboxResult
@@ -88,9 +89,11 @@ class DockerBackend:
 
         entrypoint = self._entrypoints[language]
         exec_dir.mkdir(parents=True, exist_ok=True)
+        container_name = f"fim-sandbox-{uuid.uuid4().hex[:8]}"
 
         cmd = [
             "docker", "run", "--rm", "-i",
+            "--name", container_name,
             "--network=none",
             "--memory=256m", "--cpus=0.5",
             "-v", f"{exec_dir}:/workspace",
@@ -98,7 +101,12 @@ class DockerBackend:
             image, *entrypoint,
         ]
 
-        return await self._run_container(cmd, stdin_data=code, timeout=timeout)
+        logger.debug(
+            "docker run_code: container=%s image=%s language=%s exec_dir=%s timeout=%ds",
+            container_name, image, language, exec_dir, timeout,
+        )
+        return await self._run_container(cmd, stdin_data=code, timeout=timeout,
+                                         container_name=container_name)
 
     async def run_shell(
         self,
@@ -108,17 +116,24 @@ class DockerBackend:
         timeout: int,
     ) -> SandboxResult:
         sandbox_dir.mkdir(parents=True, exist_ok=True)
+        container_name = f"fim-sandbox-{uuid.uuid4().hex[:8]}"
 
         # Shell execution allows network access (curl, wget, etc.)
         cmd = [
             "docker", "run", "--rm", "-i",
+            "--name", container_name,
             "--memory=256m", "--cpus=0.5",
             "-v", f"{sandbox_dir}:/workspace",
             "-w", "/workspace",
             self._shell_image, "/bin/sh",
         ]
 
-        return await self._run_container(cmd, stdin_data=command, timeout=timeout)
+        logger.debug(
+            "docker run_shell: container=%s image=%s sandbox_dir=%s timeout=%ds",
+            container_name, self._shell_image, sandbox_dir, timeout,
+        )
+        return await self._run_container(cmd, stdin_data=command, timeout=timeout,
+                                         container_name=container_name)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -130,6 +145,7 @@ class DockerBackend:
         *,
         stdin_data: str,
         timeout: int,
+        container_name: str = "",
     ) -> SandboxResult:
         """Spawn a Docker container, pipe *stdin_data*, and collect output."""
         try:
@@ -161,6 +177,7 @@ class DockerBackend:
             except ProcessLookupError:
                 pass
             await proc.wait()
+            logger.debug("docker container=%s timed out", container_name)
             return SandboxResult(
                 stdout="", stderr="", exit_code=124, timed_out=True
             )
@@ -168,6 +185,8 @@ class DockerBackend:
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
         exit_code = proc.returncode or 0
+
+        logger.debug("docker container=%s exited exit_code=%d", container_name, exit_code)
 
         # Detect OOM kill
         error: str | None = None

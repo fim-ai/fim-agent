@@ -23,6 +23,8 @@ from typing import Any
 
 from .protocol import SandboxResult
 
+import os as _os
+
 logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------
@@ -133,6 +135,7 @@ class LocalBackend:
         timeout: int,
     ) -> SandboxResult:
         sandbox_dir.mkdir(parents=True, exist_ok=True)
+        logger.debug("local run_shell: sandbox_dir=%s timeout=%ds", sandbox_dir, timeout)
 
         # Build a restricted env (local mode only — docker has its own isolation)
         env = _build_safe_env(str(sandbox_dir))
@@ -180,6 +183,7 @@ class LocalBackend:
         self, code: str, *, exec_dir: Path, timeout: int
     ) -> SandboxResult:
         """Run Python code in-process with restricted sandbox."""
+        logger.debug("local run_python: exec_dir=%s timeout=%ds pid=%d", exec_dir, timeout, _os.getpid())
         try:
             output: str = await asyncio.wait_for(
                 asyncio.to_thread(self._execute_python_sync, code, exec_dir),
@@ -253,6 +257,7 @@ class LocalBackend:
         self, code: str, *, exec_dir: Path, timeout: int
     ) -> SandboxResult:
         """Run JavaScript code via ``node -e``."""
+        logger.debug("local run_node: exec_dir=%s timeout=%ds", exec_dir, timeout)
         exec_dir.mkdir(parents=True, exist_ok=True)
         try:
             proc = await asyncio.create_subprocess_exec(
