@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/contexts/auth-context"
 import { authApi } from "@/lib/api"
+import { toast } from "sonner"
 
 const MAX_INSTRUCTIONS_LENGTH = 2000
 const MAX_DISPLAY_NAME_LENGTH = 50
@@ -17,12 +18,10 @@ export function GeneralSettings() {
   // --- Profile ---
   const [displayName, setDisplayName] = useState("")
   const [savingProfile, setSavingProfile] = useState(false)
-  const [profileSaved, setProfileSaved] = useState(false)
 
   // --- Personal Instructions ---
   const [instructions, setInstructions] = useState("")
   const [savingInstructions, setSavingInstructions] = useState(false)
-  const [instructionsSaved, setInstructionsSaved] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -45,10 +44,9 @@ export function GeneralSettings() {
         display_name: displayName.trim(),
       })
       updateUser(updated)
-      setProfileSaved(true)
-      setTimeout(() => setProfileSaved(false), 2000)
+      toast.success("Profile saved")
     } catch (err) {
-      console.error("Failed to save profile:", err)
+      toast.error("Failed to save profile")
     } finally {
       setSavingProfile(false)
     }
@@ -62,10 +60,9 @@ export function GeneralSettings() {
         system_instructions: instructions,
       })
       updateUser(updated)
-      setInstructionsSaved(true)
-      setTimeout(() => setInstructionsSaved(false), 2000)
+      toast.success("Instructions saved")
     } catch (err) {
-      console.error("Failed to save instructions:", err)
+      toast.error("Failed to save instructions")
     } finally {
       setSavingInstructions(false)
     }
@@ -108,9 +105,6 @@ export function GeneralSettings() {
                 {displayName.length} / {MAX_DISPLAY_NAME_LENGTH}
               </span>
               <div className="flex items-center gap-2">
-                {profileSaved && (
-                  <span className="text-xs text-green-600">Saved</span>
-                )}
                 <Button
                   size="sm"
                   onClick={handleSaveProfile}
@@ -156,9 +150,6 @@ export function GeneralSettings() {
             {instructions.length} / {MAX_INSTRUCTIONS_LENGTH}
           </span>
           <div className="flex items-center gap-2">
-            {instructionsSaved && (
-              <span className="text-xs text-green-600">Saved</span>
-            )}
             <Button
               size="sm"
               onClick={handleSaveInstructions}

@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { authApi, ApiError } from "@/lib/api"
+import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { ACCESS_TOKEN_KEY, getApiDirectUrl } from "@/lib/constants"
 import type { UserInfo } from "@/types/auth"
@@ -191,12 +192,6 @@ export function AccountSettings() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Bind result feedback
-  const [bindMessage, setBindMessage] = useState<{
-    type: "success" | "error"
-    text: string
-  } | null>(null)
-
   const refreshUser = useCallback(async () => {
     try {
       const freshUser = await authApi.me()
@@ -212,27 +207,17 @@ export function AccountSettings() {
 
     if (bindSuccess) {
       const providerName = formatProviderName(bindSuccess)
-      setBindMessage({
-        type: "success",
-        text: `${providerName} connected successfully.`,
-      })
+      toast.success(`${providerName} connected successfully.`)
       refreshUser()
       router.replace("/settings?tab=account", { scroll: false })
     } else if (bindError) {
       const text =
         BIND_ERROR_MESSAGES[bindError] ??
         `Failed to connect account: ${bindError}`
-      setBindMessage({ type: "error", text })
+      toast.error(text)
       router.replace("/settings?tab=account", { scroll: false })
     }
   }, [searchParams, router, refreshUser])
-
-  // Auto-dismiss bind message after 6 seconds
-  useEffect(() => {
-    if (!bindMessage) return
-    const timer = setTimeout(() => setBindMessage(null), 6000)
-    return () => clearTimeout(timer)
-  }, [bindMessage])
 
   const handleConnect = (provider: string) => {
     const token = localStorage.getItem(ACCESS_TOKEN_KEY)
@@ -243,7 +228,6 @@ export function AccountSettings() {
   // Email state
   const [email, setEmail] = useState(user?.email ?? "")
   const [emailSaving, setEmailSaving] = useState(false)
-  const [emailSuccess, setEmailSuccess] = useState(false)
   const [emailError, setEmailError] = useState("")
 
   const emailChanged = email !== (user?.email ?? "")
@@ -257,15 +241,13 @@ export function AccountSettings() {
 
     setEmailSaving(true)
     setEmailError("")
-    setEmailSuccess(false)
 
     try {
       const updated = await authApi.updateProfile({
         email: email.trim(),
       })
       updateUser({ email: updated.email })
-      setEmailSuccess(true)
-      setTimeout(() => setEmailSuccess(false), 3000)
+      toast.success("Email updated successfully")
     } catch (err) {
       if (err instanceof ApiError) {
         setEmailError(err.message)
@@ -279,13 +261,11 @@ export function AccountSettings() {
 
   // OAuth unbind state
   const [unbindingProvider, setUnbindingProvider] = useState<string | null>(null)
-  const [unbindError, setUnbindError] = useState("")
 
   const handleUnbind = async (provider: string) => {
     if (unbindingProvider) return
 
     setUnbindingProvider(provider)
-    setUnbindError("")
 
     try {
       const updatedUser = await authApi.unbindOAuth(provider)
@@ -294,11 +274,12 @@ export function AccountSettings() {
         oauth_provider: updatedUser.oauth_provider,
         has_password: updatedUser.has_password,
       })
+      toast.success(`${formatProviderName(provider)} disconnected`)
     } catch (err) {
       if (err instanceof ApiError) {
-        setUnbindError(err.message)
+        toast.error(err.message)
       } else {
-        setUnbindError("Failed to disconnect provider. Please try again.")
+        toast.error("Failed to disconnect provider. Please try again.")
       }
     } finally {
       setUnbindingProvider(null)
@@ -310,7 +291,6 @@ export function AccountSettings() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
 
   const hasPassword = user?.has_password ?? !user?.oauth_provider
@@ -331,7 +311,6 @@ export function AccountSettings() {
 
     setSaving(true)
     setError("")
-    setSuccess(false)
 
     try {
       await authApi.changePassword({
@@ -341,8 +320,7 @@ export function AccountSettings() {
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      toast.success("Password changed successfully")
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)
@@ -358,7 +336,6 @@ export function AccountSettings() {
   const [setNewPw, setSetNewPw] = useState("")
   const [setConfirmPw, setSetConfirmPw] = useState("")
   const [setPwSaving, setSetPwSaving] = useState(false)
-  const [setPwSuccess, setSetPwSuccess] = useState(false)
   const [setPwError, setSetPwError] = useState("")
 
   const setConfirmMismatch =
@@ -376,7 +353,6 @@ export function AccountSettings() {
 
     setSetPwSaving(true)
     setSetPwError("")
-    setSetPwSuccess(false)
 
     try {
       const updatedUser = await authApi.setPassword({
@@ -385,8 +361,7 @@ export function AccountSettings() {
       updateUser({ has_password: updatedUser.has_password })
       setSetNewPw("")
       setSetConfirmPw("")
-      setSetPwSuccess(true)
-      setTimeout(() => setSetPwSuccess(false), 3000)
+      toast.success("Password set successfully")
     } catch (err) {
       if (err instanceof ApiError) {
         setSetPwError(err.message)
@@ -400,36 +375,13 @@ export function AccountSettings() {
 
   return (
     <div className="space-y-8">
-      {/* Bind result feedback */}
-      {bindMessage && (
-        <div
-          className={`rounded-md border p-3 text-sm ${
-            bindMessage.type === "success"
-              ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
-              : "border-destructive/30 bg-destructive/5 text-destructive"
-          }`}
-        >
-          {bindMessage.text}
-        </div>
-      )}
-
       {/* Connected Accounts -- always shown for all users */}
       {user && (
-        <>
-          <OAuthBindingsSection
-            user={user}
-            onUnbind={handleUnbind}
-            onConnect={handleConnect}
-          />
-          {unbindError && (
-            <p className="text-sm text-destructive -mt-4">{unbindError}</p>
-          )}
-          {unbindingProvider && (
-            <p className="text-sm text-muted-foreground -mt-4">
-              Disconnecting {formatProviderName(unbindingProvider)}...
-            </p>
-          )}
-        </>
+        <OAuthBindingsSection
+          user={user}
+          onUnbind={handleUnbind}
+          onConnect={handleConnect}
+        />
       )}
 
       <Separator />
@@ -466,12 +418,6 @@ export function AccountSettings() {
 
           {emailError && (
             <p className="text-sm text-destructive">{emailError}</p>
-          )}
-
-          {emailSuccess && (
-            <p className="text-sm text-green-600">
-              Email updated successfully.
-            </p>
           )}
 
           <Button type="submit" size="sm" disabled={!canSaveEmail}>
@@ -537,12 +483,6 @@ export function AccountSettings() {
               <p className="text-sm text-destructive">{error}</p>
             )}
 
-            {success && (
-              <p className="text-sm text-green-600">
-                Password changed successfully.
-              </p>
-            )}
-
             <Button type="submit" size="sm" disabled={!canSubmit}>
               {saving ? "Changing..." : "Change Password"}
             </Button>
@@ -591,12 +531,6 @@ export function AccountSettings() {
 
             {setPwError && (
               <p className="text-sm text-destructive">{setPwError}</p>
-            )}
-
-            {setPwSuccess && (
-              <p className="text-sm text-green-600">
-                Password set successfully. You can now log in with your email and password.
-              </p>
             )}
 
             <Button type="submit" size="sm" disabled={!canSetPw}>
