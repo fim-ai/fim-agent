@@ -248,8 +248,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ) : (
               <>
                 <Link href="/new" className="flex items-center gap-2 rounded-md px-1 -mx-1 transition-colors hover:opacity-70">
-                  <img src="/fim-mark-light.svg" alt="FIM" className="h-5 w-auto shrink-0 dark:hidden" />
-                  <img src="/fim-mark.svg" alt="FIM" className="h-5 w-auto shrink-0 hidden dark:block" />
                   <span className="text-base font-bold tracking-tight text-sidebar-foreground" style={{ fontFamily: 'var(--font-cabinet), sans-serif' }}>{APP_NAME}</span>
                 </Link>
                 <Tooltip>
