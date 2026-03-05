@@ -7,6 +7,8 @@ import json
 import logging
 import os
 import re
+import time
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
@@ -46,6 +48,9 @@ class ConnectorToolAdapter(BaseTool):
         action_response_extract: str | None,
         action_requires_confirmation: bool,
         auth_credentials: dict[str, str] | None = None,
+        connector_id: str | None = None,
+        action_id: str | None = None,
+        on_call_complete: Callable[..., Awaitable[None]] | None = None,
     ) -> None:
         safe_connector = re.sub(r"[^a-zA-Z0-9]", "_", connector_name.lower()).strip("_")
         safe_action = re.sub(r"[^a-zA-Z0-9]", "_", action_name.lower()).strip("_")
@@ -65,6 +70,10 @@ class ConnectorToolAdapter(BaseTool):
         self._auth_type = connector_auth_type
         self._auth_config = connector_auth_config or {}
         self._auth_credentials = auth_credentials or {}
+        self._connector_id = connector_id
+        self._action_id = action_id
+        self._connector_name_raw = connector_name
+        self._on_call_complete = on_call_complete
 
     @property
     def name(self) -> str:
@@ -110,7 +119,13 @@ class ConnectorToolAdapter(BaseTool):
                 body = kwargs if kwargs else None
             headers["Content-Type"] = "application/json"
 
-        # 4. Execute request
+        # 4. Execute request with call logging
+        start_ms = time.monotonic_ns() // 1_000_000
+        response_status: int | None = None
+        success = False
+        error_message: str | None = None
+        result = ""
+
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 resp = await client.request(
@@ -121,9 +136,14 @@ class ConnectorToolAdapter(BaseTool):
                     json=body,
                 )
 
+                response_status = resp.status_code
                 content = resp.text
                 if resp.status_code >= 400:
-                    return f"[HTTP {resp.status_code}] {content[:2000]}"
+                    error_message = content[:500]
+                    result = f"[HTTP {resp.status_code}] {content[:2000]}"
+                    return result
+
+                success = True
 
                 # Apply response extract (jmespath) if configured
                 if (
@@ -137,8 +157,10 @@ class ConnectorToolAdapter(BaseTool):
                         extracted = jmespath.search(self._response_extract, data)
                         if extracted is not None:
                             if isinstance(extracted, str):
-                                return extracted
-                            return json.dumps(extracted, ensure_ascii=False, indent=2)
+                                result = extracted
+                                return result
+                            result = json.dumps(extracted, ensure_ascii=False, indent=2)
+                            return result
                     except ImportError:
                         logger.debug(
                             "jmespath not installed — skipping response_extract"
@@ -148,12 +170,35 @@ class ConnectorToolAdapter(BaseTool):
 
                 # Smart truncation for long responses
                 content = self._truncate_response(content)
-                return content
+                result = content
+                return result
 
         except httpx.TimeoutException:
-            return "[Timeout] Request exceeded 30 seconds."
+            error_message = "Request exceeded 30 seconds"
+            result = f"[Timeout] {error_message}."
+            return result
         except httpx.RequestError as exc:
-            return f"[Error] {type(exc).__name__}: {exc}"
+            error_message = f"{type(exc).__name__}: {exc}"
+            result = f"[Error] {error_message}"
+            return result
+        finally:
+            elapsed_ms = time.monotonic_ns() // 1_000_000 - start_ms
+            if self._on_call_complete:
+                try:
+                    await self._on_call_complete(
+                        connector_id=self._connector_id,
+                        connector_name=self._connector_name_raw,
+                        action_id=self._action_id,
+                        action_name=self._description,
+                        request_method=self._method,
+                        request_url=url,
+                        response_status=response_status,
+                        response_time_ms=elapsed_ms,
+                        success=success,
+                        error_message=error_message,
+                    )
+                except Exception:
+                    logger.debug("on_call_complete callback failed", exc_info=True)
 
     @staticmethod
     def _truncate_response(content: str) -> str:

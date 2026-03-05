@@ -354,6 +354,7 @@ async def _resolve_agent_config(
         if agent is None:
             return None
         return {
+            "agent_id": agent.id,
             "instructions": agent.instructions,
             "tool_categories": agent.tool_categories,
             "model_config_json": agent.model_config_json,
@@ -434,9 +435,36 @@ async def _resolve_tools(
         from fim_agent.core.tool.connector import ConnectorToolAdapter
         from fim_agent.db import create_session
         from fim_agent.web.models.connector import Connector as ConnectorModel
+        from fim_agent.web.models.connector_call_log import ConnectorCallLog
 
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
+
+        agent_id_for_log = agent_cfg.get("agent_id") if agent_cfg else None
+
+        async def _log_connector_call(**kwargs: Any) -> None:
+            """Persist a connector call log entry in its own DB session."""
+            try:
+                async with create_session() as log_session:
+                    log = ConnectorCallLog(
+                        connector_id=kwargs.get("connector_id", ""),
+                        connector_name=kwargs.get("connector_name", ""),
+                        action_id=kwargs.get("action_id"),
+                        action_name=kwargs.get("action_name", ""),
+                        conversation_id=conversation_id,
+                        user_id=user_id,
+                        agent_id=agent_id_for_log,
+                        request_method=kwargs.get("request_method", ""),
+                        request_url=kwargs.get("request_url", ""),
+                        response_status=kwargs.get("response_status"),
+                        response_time_ms=kwargs.get("response_time_ms"),
+                        success=kwargs.get("success", False),
+                        error_message=kwargs.get("error_message"),
+                    )
+                    log_session.add(log)
+                    await log_session.commit()
+            except Exception:
+                logger.debug("Failed to log connector call", exc_info=True)
 
         try:
             async with create_session() as session:
@@ -464,6 +492,9 @@ async def _resolve_tools(
                             action_request_body_template=action.request_body_template,
                             action_response_extract=action.response_extract,
                             action_requires_confirmation=action.requires_confirmation,
+                            connector_id=conn.id,
+                            action_id=action.id,
+                            on_call_complete=_log_connector_call,
                         )
                         tools.register(adapter)
                 logger.info(
