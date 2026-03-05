@@ -22,6 +22,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **CohereReranker**: New `core/reranker/cohere.py` — Cohere Rerank API v2 with retry; selectable via `RERANKER_PROVIDER=cohere` or `COHERE_API_KEY` auto-detect
 - **OpenAIReranker**: New `core/reranker/openai.py` — bi-encoder cosine similarity using any OpenAI-compatible embedding endpoint; fallback when cross-encoder rerankers are unavailable; selectable via `RERANKER_PROVIDER=openai`
 
+### Fixed
+- **DAG planning spinner persists after abort**: Removed `stepMap.size > 0` guard from the abort cleanup block in `useDagSteps` so `currentPhase` is reset to `null` even when stopped during the planning phase before any steps arrive
+- **SSE HTTP errors silently ignored**: Migrated `useSSE` from `EventSource` to `fetch` + `ReadableStream`; HTTP 4xx/5xx errors now surface as toast messages; `isError` state lets the playground correctly mark a run as stopped/failed
+- **Settings flash-and-disappear feedback**: Replaced `setTimeout`-based inline success text with `toast.success` / `toast.error` across AccountSettings and GeneralSettings (OAuth bind, email, password, instructions)
+- **Sidebar mode icon always visible**: DAG/ReAct mode icons now only appear on row hover; added Zap icon for ReAct conversations
+- **Reranker silent crash when Jina key absent**: `get_reranker()` now returns `None` when `RERANKER_PROVIDER=jina` is set but `JINA_API_KEY` is missing; reranking is silently skipped rather than creating a broken reranker that fails at call time
+- **Playground history user icon**: History turns now show user initials (first char of display_name / username) instead of a generic User icon
+
 ### Changed
 - **env file structure**: Reorganized `example.env` and `.env` into logical sections (LLM → Web Tools → RAG → Code Execution → Connectors → Platform → OAuth); provider selectors now appear before their API keys; replaced version-tagged headers (`v0.4`, `v0.5`) with clean `──` section separators
 - **WebSearchTool / WebFetchTool**: Refactored to delegate to `get_web_searcher()` / `get_web_fetcher()` factories; identical public interface — zero breaking changes
