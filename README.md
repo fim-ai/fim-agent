@@ -272,28 +272,7 @@ JINA_API_KEY=jina_...           # Unlocks web tools + RAG
 
 ### All Variables
 
-| Variable                     | Required | Default                                   | Description                                         |
-| ---------------------------- | -------- | ----------------------------------------- | --------------------------------------------------- |
-| `LLM_API_KEY`                | Yes      |                                           | API key for the LLM provider                        |
-| `LLM_BASE_URL`               | No       | `https://api.openai.com/v1`               | Base URL of the OpenAI-compatible API               |
-| `LLM_MODEL`                  | No       | `gpt-4o`                                  | Model identifier to use                             |
-| `LLM_TEMPERATURE`            | No       | `0.7`                                     | Default sampling temperature                        |
-| `LLM_CONTEXT_SIZE`           | No       | `128000`                                  | Context window size for the main LLM                |
-| `LLM_MAX_OUTPUT_TOKENS`      | No       | `64000`                                   | Max output tokens per call for the main LLM         |
-| `FAST_LLM_CONTEXT_SIZE`      | No       | *(falls back to `LLM_CONTEXT_SIZE`)*      | Context window size for the fast LLM                |
-| `FAST_LLM_MAX_OUTPUT_TOKENS` | No       | *(falls back to `LLM_MAX_OUTPUT_TOKENS`)* | Max output tokens per call for the fast LLM         |
-| `MAX_CONCURRENCY`            | No       | `5`                                       | Max parallel steps in DAG executor                  |
-| `JINA_API_KEY`               | No       |                                           | Jina API key for embedding, reranker, and web tools |
-| `EMBEDDING_MODEL`            | No       | `jina-embeddings-v3`                      | Embedding model identifier                          |
-| `EMBEDDING_DIMENSION`        | No       | `1024`                                    | Embedding vector dimension                          |
-| `RERANKER_MODEL`             | No       | `jina-reranker-v2-base-multilingual`      | Reranker model identifier                           |
-| `VECTOR_STORE_DIR`           | No       | `./data/vector_store`                     | Directory for LanceDB vector store data             |
-
-Copy `example.env` to `.env` and fill in your values:
-
-```bash
-cp example.env .env
-```
+See the full [Environment Variables](https://github.com/fim-ai/fim-agent/wiki/Environment-Variables) reference for all configuration options (LLM, agent execution, web tools, RAG, code execution, image generation, connectors, platform, OAuth).
 
 ## Development
 
