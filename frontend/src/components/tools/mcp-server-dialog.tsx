@@ -27,10 +27,20 @@ import { mcpServerApi } from "@/lib/api"
 import { toast } from "sonner"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate } from "@/types/mcp-server"
 
+export interface MCPServerInitialValues {
+  name?: string
+  description?: string
+  transport?: "stdio" | "sse" | "streamable_http"
+  url?: string
+  command?: string
+  args?: string
+}
+
 interface MCPServerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   server?: MCPServerResponse | null
+  initialValues?: MCPServerInitialValues | null
   onSuccess: (server: MCPServerResponse) => void
   allowStdio?: boolean
 }
@@ -39,6 +49,7 @@ export function MCPServerDialog({
   open,
   onOpenChange,
   server,
+  initialValues,
   onSuccess,
   allowStdio = true,
 }: MCPServerDialogProps) {
@@ -80,12 +91,12 @@ export function MCPServerDialog({
         )
         setIsActive(server.is_active)
       } else {
-        setName("")
-        setDescription("")
-        setTransport(allowStdio ? "stdio" : "sse")
-        setCommand("")
-        setArgs("")
-        setUrl("")
+        setName(initialValues?.name ?? "")
+        setDescription(initialValues?.description ?? "")
+        setTransport(initialValues?.transport ?? (allowStdio ? "stdio" : "sse"))
+        setCommand(initialValues?.command ?? "")
+        setArgs(initialValues?.args ?? "")
+        setUrl(initialValues?.url ?? "")
         setWorkingDir("")
         setEnvPairs([])
         setHeaderPairs([])

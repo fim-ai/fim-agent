@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { mcpServerApi } from "@/lib/api"
 import { BuiltinToolsSection } from "@/components/tools/builtin-tools-section"
 import { MCPServerCard } from "@/components/tools/mcp-server-card"
-import { MCPServerDialog } from "@/components/tools/mcp-server-dialog"
+import { MCPServerDialog, type MCPServerInitialValues } from "@/components/tools/mcp-server-dialog"
 import type { MCPServerResponse } from "@/types/mcp-server"
 
 export default function ToolsPage() {
@@ -22,6 +22,7 @@ export default function ToolsPage() {
   const [allowStdio, setAllowStdio] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<MCPServerResponse | null>(null)
+  const [dialogInitialValues, setDialogInitialValues] = useState<MCPServerInitialValues | null>(null)
 
   // Auth guard
   useEffect(() => {
@@ -54,8 +55,9 @@ export default function ToolsPage() {
     setDialogOpen(true)
   }
 
-  const handleAdd = () => {
+  const handleAdd = (initial?: MCPServerInitialValues) => {
     setEditingServer(null)
+    setDialogInitialValues(initial ?? null)
     setDialogOpen(true)
   }
 
@@ -136,19 +138,56 @@ export default function ToolsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : servers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-dashed border-border">
-              <p className="text-sm text-muted-foreground">
-                No MCP servers configured. Add one to extend agent capabilities.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 gap-1.5"
-                onClick={handleAdd}
-              >
-                <Plus className="h-4 w-4" />
-                Add Server
-              </Button>
+            <div className="space-y-6">
+              <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border">
+                <p className="text-sm text-muted-foreground">
+                  No MCP servers configured. Add one to extend agent capabilities.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 gap-1.5"
+                  onClick={handleAdd}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Server
+                </Button>
+              </div>
+
+              {/* Quick start example — only shown when list is empty */}
+              {allowStdio && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                    Quick Start
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleAdd({
+                      name: "server-everything",
+                      transport: "stdio",
+                      command: "npx",
+                      args: "-y, @modelcontextprotocol/server-everything",
+                      description: "Official MCP test server — covers all tool types",
+                    })}
+                    className="w-full text-left rounded-lg border border-border bg-card p-4 hover:border-primary/50 hover:bg-accent/30 transition-colors group"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-violet-500/10 text-violet-500 ring-1 ring-violet-500/20">
+                        STDIO
+                      </span>
+                      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                        @modelcontextprotocol/server-everything
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Official MCP test server. Covers prompts, resources, tools and sampling — great for verifying your setup.
+                    </p>
+                    <code className="text-[11px] font-mono text-muted-foreground bg-muted/60 rounded px-2 py-1 block">
+                      npx -y @modelcontextprotocol/server-everything
+                    </code>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -171,6 +210,7 @@ export default function ToolsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         server={editingServer}
+        initialValues={dialogInitialValues}
         onSuccess={handleSuccess}
         allowStdio={allowStdio}
       />
