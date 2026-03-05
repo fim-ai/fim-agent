@@ -152,6 +152,10 @@ export async function apiFetch<T>(
     throw new ApiError(res.status, message)
   }
 
+  // 204 No Content (and any response with no body) has nothing to parse
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return undefined as unknown as T
+  }
   return res.json() as Promise<T>
 }
 
