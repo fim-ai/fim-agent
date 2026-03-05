@@ -18,8 +18,8 @@ __all__ = ["MCPServer"]
 class MCPServer(UUIDPKMixin, TimestampMixin, Base):
     __tablename__ = "mcp_servers"
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True, index=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -32,5 +32,6 @@ class MCPServer(UUIDPKMixin, TimestampMixin, Base):
     headers: Any = Column(JSON, nullable=True)  # dict[str, str] for SSE/Streamable HTTP
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     tool_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_global: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
 
-    user: Mapped[User] = relationship(back_populates="mcp_servers", lazy="raise")
+    user: Mapped[User | None] = relationship(back_populates="mcp_servers", lazy="raise")

@@ -5,8 +5,12 @@ from __future__ import annotations
 import math
 import os
 import re
+import secrets
+import shutil
+import string
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
@@ -15,8 +19,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_agent.db import get_session
 from fim_agent.web.auth import get_current_admin, hash_password
-from fim_agent.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, KnowledgeBase, Message, SystemSetting, User
+from fim_agent.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, SystemSetting, User
 from fim_agent.web.schemas.common import PaginatedResponse
+from fim_agent.web.schemas.mcp_server import MCPServerCreate, MCPServerUpdate
 
 # ---------------------------------------------------------------------------
 # Settings helpers
@@ -154,6 +159,85 @@ class AdminResetPasswordRequest(BaseModel):
 
 class AdminToggleActiveRequest(BaseModel):
     is_active: bool
+
+
+class AdminUserInfoExtended(BaseModel):
+    id: str
+    username: str
+    display_name: str | None
+    email: str | None
+    is_admin: bool
+    is_active: bool
+    created_at: str
+    has_active_session: bool
+    monthly_tokens: int
+    token_quota: int | None
+
+
+class SetQuotaRequest(BaseModel):
+    token_quota: int | None
+
+
+class AdminConversationInfo(BaseModel):
+    id: str
+    title: str | None
+    mode: str | None
+    model_name: str | None
+    total_tokens: int
+    message_count: int
+    user_id: str
+    username: str
+    created_at: str
+
+
+class UserStorageStat(BaseModel):
+    user_id: str
+    username: str
+    file_count: int
+    total_bytes: int
+
+
+class StorageStatsResponse(BaseModel):
+    total_bytes: int
+    users: list[UserStorageStat]
+
+
+class IntegrationHealth(BaseModel):
+    key: str
+    label: str
+    configured: bool
+    detail: str | None
+
+
+class InviteCodeInfo(BaseModel):
+    id: str
+    code: str
+    note: str | None
+    max_uses: int
+    use_count: int
+    expires_at: str | None
+    is_active: bool
+    created_at: str
+
+
+class CreateInviteCodeRequest(BaseModel):
+    note: str | None = None
+    max_uses: int = 1
+    expires_at: datetime | None = None
+
+
+class AdminMCPServerInfo(BaseModel):
+    id: str
+    name: str
+    description: str | None
+    transport: str
+    command: str | None
+    args: list[str] | None
+    url: str | None
+    is_active: bool
+    is_global: bool
+    tool_count: int
+    created_at: str
 
 
 # ---------------------------------------------------------------------------
@@ -484,8 +568,38 @@ async def list_users(
     result = await db.execute(query)
     users = result.scalars().all()
 
+    # Bulk monthly token aggregation
+    first_of_month = datetime(date.today().year, date.today().month, 1, tzinfo=timezone.utc)
+    monthly_rows = await db.execute(
+        select(Conversation.user_id, func.coalesce(func.sum(Conversation.total_tokens), 0))
+        .where(Conversation.created_at >= first_of_month)
+        .group_by(Conversation.user_id)
+    )
+    monthly_tokens_map = dict(monthly_rows.all())
+
+    now = datetime.now(timezone.utc)
+    items = [
+        AdminUserInfoExtended(
+            id=u.id,
+            username=u.username,
+            display_name=u.display_name,
+            email=u.email,
+            is_admin=u.is_admin,
+            is_active=u.is_active,
+            created_at=u.created_at.isoformat() if u.created_at else "",
+            has_active_session=(
+                u.refresh_token is not None
+                and u.refresh_token_expires_at is not None
+                and u.refresh_token_expires_at > now
+            ),
+            monthly_tokens=monthly_tokens_map.get(u.id, 0),
+            token_quota=u.token_quota,
+        ).model_dump()
+        for u in users
+    ]
+
     return PaginatedResponse(
-        items=[_user_to_info(u).model_dump() for u in users],
+        items=items,
         total=total,
         page=page,
         size=size,

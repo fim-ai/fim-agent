@@ -98,6 +98,8 @@ async def init_db() -> None:
             await _backfill_conversation_model_name(conn)
             await _migrate_conversation_fast_llm_tokens(conn)
             await _migrate_user_tokens_invalidated_at(conn)
+            await _migrate_user_token_quota(conn)
+            await _migrate_mcp_server_global(conn)
 
     logger.info("Database initialized successfully")
 
@@ -365,6 +367,59 @@ async def _migrate_user_tokens_invalidated_at(conn) -> None:
     if "tokens_invalidated_at" not in existing_columns:
         logger.info("Adding column users.tokens_invalidated_at")
         await conn.execute(text("ALTER TABLE users ADD COLUMN tokens_invalidated_at DATETIME"))
+
+
+async def _migrate_user_token_quota(conn) -> None:
+    """Add token_quota column to users table if it doesn't exist."""
+    result = await conn.execute(text("PRAGMA table_info(users)"))
+    existing_columns = {row[1] for row in result.fetchall()}
+    if "token_quota" not in existing_columns:
+        logger.info("Adding column users.token_quota")
+        await conn.execute(text("ALTER TABLE users ADD COLUMN token_quota INTEGER"))
+
+
+async def _migrate_mcp_server_global(conn) -> None:
+    """Add is_global column and make user_id nullable in mcp_servers."""
+    result = await conn.execute(text("PRAGMA table_info(mcp_servers)"))
+    existing_columns_info = result.fetchall()
+    existing_columns = {row[1] for row in existing_columns_info}
+
+    if "is_global" not in existing_columns:
+        logger.info("Adding column mcp_servers.is_global")
+        await conn.execute(
+            text("ALTER TABLE mcp_servers ADD COLUMN is_global BOOLEAN NOT NULL DEFAULT 0")
+        )
+
+    # Make user_id nullable via table recreation if currently NOT NULL
+    result2 = await conn.execute(text("PRAGMA table_info(mcp_servers)"))
+    columns = result2.fetchall()
+    user_id_col = next((c for c in columns if c[1] == "user_id"), None)
+    if user_id_col and user_id_col[3] == 1:  # notnull=1
+        logger.info("Making mcp_servers.user_id nullable (recreating table)")
+        col_names = [c[1] for c in columns]
+        col_list = ", ".join(col_names)
+        col_defs = []
+        for c in columns:
+            cid, name, ctype, notnull, dflt, pk = c
+            parts = [name, ctype or "TEXT"]
+            if pk:
+                parts.append("PRIMARY KEY")
+            if notnull and name != "user_id":
+                parts.append("NOT NULL")
+            if dflt is not None:
+                parts.append(f"DEFAULT {dflt}")
+            col_defs.append(" ".join(parts))
+        create_sql = f"CREATE TABLE mcp_servers_new ({', '.join(col_defs)})"
+        await conn.execute(text(create_sql))
+        await conn.execute(
+            text(f"INSERT INTO mcp_servers_new ({col_list}) SELECT {col_list} FROM mcp_servers")
+        )
+        await conn.execute(text("DROP TABLE mcp_servers"))
+        await conn.execute(text("ALTER TABLE mcp_servers_new RENAME TO mcp_servers"))
+        await conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_mcp_servers_user_id ON mcp_servers(user_id)")
+        )
+        logger.info("mcp_servers.user_id is now nullable")
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fim_agent.db.base import Base, TimestampMixin, UUIDPKMixin
@@ -34,6 +34,7 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     refresh_token: Mapped[str | None] = mapped_column(String(500), nullable=True)
     refresh_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     tokens_invalidated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    token_quota: Mapped[int | None] = mapped_column(Integer, nullable=True)
     system_instructions: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     preferred_language: Mapped[str] = mapped_column(
         String(10), nullable=False, default="auto", server_default="auto"
