@@ -83,6 +83,7 @@ class StatsResponse(BaseModel):
     today_conversations: int = 0
     tokens_by_agent: list[AgentTokenStat] = []
     conversations_by_model: list[ModelStat]
+    tokens_by_model: list[ModelStat] = []
     top_agents: list[AgentStat]
     recent_days: list[DayStat]
 
@@ -217,6 +218,24 @@ async def get_stats(
         for label, count in label_counts.most_common(10)
     ]
 
+    # Tokens by model (same grouping logic, but SUM(total_tokens))
+    token_model_rows = await db.execute(
+        select(
+            func.coalesce(Conversation.model_name, "Unknown").label("model"),
+            func.coalesce(func.sum(Conversation.total_tokens), 0).label("tokens"),
+        )
+        .group_by(func.coalesce(Conversation.model_name, "Unknown"))
+        .order_by(func.sum(Conversation.total_tokens).desc())
+        .limit(20)
+    )
+    token_label_counts: Counter[str] = Counter()
+    for r in token_model_rows.all():
+        token_label_counts[_model_label(r[0])] += r[1]
+    tokens_by_model = [
+        ModelStat(model=label, count=count)
+        for label, count in token_label_counts.most_common(10)
+    ]
+
     # Top agents by conversation count (top 5), joined to get agent name
     agent_rows = await db.execute(
         select(
@@ -304,6 +323,7 @@ async def get_stats(
         today_conversations=today_conversations,
         tokens_by_agent=tokens_by_agent,
         conversations_by_model=conversations_by_model,
+        tokens_by_model=tokens_by_model,
         top_agents=top_agents,
         recent_days=recent_days,
     )

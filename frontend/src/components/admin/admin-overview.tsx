@@ -31,6 +31,7 @@ interface AdminStats {
   today_conversations: number
   tokens_by_agent: { agent_id: string; name: string; total_tokens: number }[]
   conversations_by_model: { model: string; count: number }[]
+  tokens_by_model: { model: string; count: number }[]
   top_agents: { agent_id: string; name: string; count: number }[]
   recent_days: { date: string; count: number }[]
 }
@@ -60,7 +61,7 @@ function PieTooltip({ active, payload }: { active?: boolean; payload?: { name: s
   return (
     <div className="rounded-md border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-md">
       <p className="font-medium">{payload[0].name}</p>
-      <p className="text-muted-foreground">conversations: <span className="text-popover-foreground font-medium">{payload[0].value.toLocaleString()}</span></p>
+      <p className="text-muted-foreground">tokens: <span className="text-popover-foreground font-medium">{formatTokens(payload[0].value)}</span></p>
     </div>
   )
 }
@@ -135,7 +136,7 @@ export function AdminOverview() {
   }
 
   const topModels = stats
-    ? [...stats.conversations_by_model].sort((a, b) => b.count - a.count).slice(0, 5)
+    ? [...(stats.tokens_by_model ?? stats.conversations_by_model)].sort((a, b) => b.count - a.count).slice(0, 5)
     : []
 
   const topAgents = stats ? stats.top_agents.slice(0, 5) : []
@@ -250,8 +251,8 @@ export function AdminOverview() {
       {/* Section 4 — Model Usage (donut chart) */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-base font-medium">Model Usage</h3>
-          <p className="text-sm text-muted-foreground">Conversation distribution across LLM models.</p>
+          <h3 className="text-base font-medium">Token Usage by Model</h3>
+          <p className="text-sm text-muted-foreground">Token consumption distribution across LLM models.</p>
         </div>
 
         {isLoading ? (
@@ -259,6 +260,10 @@ export function AdminOverview() {
         ) : topModels.length === 0 ? (
           <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
             No model usage data yet.
+          </div>
+        ) : topModels.length === 1 ? (
+          <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+            All tokens consumed by <span className="font-medium text-foreground">{topModels[0].model}</span> ({formatTokens(topModels[0].count)})
           </div>
         ) : (
           <div className="h-[220px]">
