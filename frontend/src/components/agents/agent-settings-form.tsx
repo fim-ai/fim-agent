@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 import { SuggestedPromptsEditor } from "@/components/agents/suggested-prompts-editor"
 import { agentApi, kbApi, connectorApi } from "@/lib/api"
-import type { AgentCreate, AgentResponse } from "@/types/agent"
+import type { AgentCreate, AgentResponse, SandboxConfig } from "@/types/agent"
 import type { ConnectorResponse } from "@/types/connector"
 import { cn } from "@/lib/utils"
 import { useToolCatalog } from "@/hooks/use-tool-catalog"
@@ -77,6 +77,9 @@ export function AgentSettingsForm({
   const [executionMode, setExecutionMode] = useState<"react" | "dag">("react")
   const [confidenceThreshold, setConfidenceThreshold] = useState<number | null>(null)
   const [temperature, setTemperature] = useState<number | null>(null)
+  const [sandboxMemory, setSandboxMemory] = useState<string>("")
+  const [sandboxCpu, setSandboxCpu] = useState<string>("")
+  const [sandboxTimeout, setSandboxTimeout] = useState<string>("")
 
   const [availableKBs, setAvailableKBs] = useState<{ id: string; name: string; document_count: number }[]>([])
   const [availableConnectors, setAvailableConnectors] = useState<ConnectorResponse[]>([])
@@ -99,6 +102,9 @@ export function AgentSettingsForm({
       setConfidenceThreshold(typeof ct === "number" ? ct : null)
       const rawTemp = agent.model_config_json?.temperature
       setTemperature(typeof rawTemp === "number" ? rawTemp : null)
+      setSandboxMemory(agent.sandbox_config?.memory ?? "")
+      setSandboxCpu(agent.sandbox_config?.cpu != null ? String(agent.sandbox_config.cpu) : "")
+      setSandboxTimeout(agent.sandbox_config?.timeout != null ? String(agent.sandbox_config.timeout) : "")
     } else {
       setName("")
       setIcon(null)
@@ -111,6 +117,9 @@ export function AgentSettingsForm({
       setSelectedConnectors([])
       setConfidenceThreshold(null)
       setTemperature(null)
+      setSandboxMemory("")
+      setSandboxCpu("")
+      setSandboxTimeout("")
     }
   }, [agent])
 
@@ -149,9 +158,12 @@ export function AgentSettingsForm({
         const origCt = typeof ct === "number" ? ct : null
         return confidenceThreshold !== origCt
       })() ||
-      temperature !== (agent.model_config_json?.temperature ?? null)
+      temperature !== (agent.model_config_json?.temperature ?? null) ||
+      sandboxMemory !== (agent.sandbox_config?.memory ?? "") ||
+      sandboxCpu !== (agent.sandbox_config?.cpu != null ? String(agent.sandbox_config.cpu) : "") ||
+      sandboxTimeout !== (agent.sandbox_config?.timeout != null ? String(agent.sandbox_config.timeout) : "")
     onDirtyChange(dirty)
-  }, [agent, name, icon, description, instructions, executionMode, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, temperature, onDirtyChange])
+  }, [agent, name, icon, description, instructions, executionMode, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, temperature, sandboxMemory, sandboxCpu, sandboxTimeout, onDirtyChange])
 
   const toggleCategory = (cat: string) => {
     setToolCategories((prev) =>
@@ -182,6 +194,13 @@ export function AgentSettingsForm({
         modelConfigJson = Object.keys(rest).length > 0 ? rest : undefined
       }
 
+      // Build sandbox_config: only include fields that have been set
+      const sandboxCfg: SandboxConfig = {}
+      if (sandboxMemory) sandboxCfg.memory = sandboxMemory
+      if (sandboxCpu) sandboxCfg.cpu = parseFloat(sandboxCpu)
+      if (sandboxTimeout) sandboxCfg.timeout = parseInt(sandboxTimeout, 10)
+      const hasSandboxConfig = Object.keys(sandboxCfg).length > 0
+
       const data: AgentCreate = {
         name: trimmedName,
         icon: icon || null,
@@ -196,6 +215,7 @@ export function AgentSettingsForm({
           grounding_config: { confidence_threshold: confidenceThreshold },
         }),
         ...(modelConfigJson !== undefined && { model_config_json: modelConfigJson }),
+        ...(hasSandboxConfig && { sandbox_config: sandboxCfg }),
       }
 
       let result: AgentResponse
@@ -339,6 +359,56 @@ export function AgentSettingsForm({
                   Reset
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Sandbox Config */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sandbox Resources</label>
+            <p className="text-xs text-muted-foreground">
+              Resource limits for code execution tools. Only applies when using Docker backend (CODE_EXEC_BACKEND=docker).
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Memory</label>
+                <select
+                  value={sandboxMemory}
+                  onChange={(e) => setSandboxMemory(e.target.value)}
+                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Default (256m)</option>
+                  <option value="128m">128m</option>
+                  <option value="256m">256m</option>
+                  <option value="512m">512m</option>
+                  <option value="1g">1g</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">CPU</label>
+                <select
+                  value={sandboxCpu}
+                  onChange={(e) => setSandboxCpu(e.target.value)}
+                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Default (0.5)</option>
+                  <option value="0.25">0.25</option>
+                  <option value="0.5">0.5</option>
+                  <option value="1">1.0</option>
+                  <option value="2">2.0</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Timeout (s)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={600}
+                  value={sandboxTimeout}
+                  onChange={(e) => setSandboxTimeout(e.target.value)}
+                  placeholder="120"
+                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
             </div>
           </div>
 

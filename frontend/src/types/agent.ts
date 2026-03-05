@@ -1,3 +1,9 @@
+export interface SandboxConfig {
+  memory?: string
+  cpu?: number
+  timeout?: number
+}
+
 export interface AgentResponse {
   id: string
   name: string
@@ -10,6 +16,7 @@ export interface AgentResponse {
   kb_ids: string[] | null
   connector_ids: string[] | null
   grounding_config: Record<string, unknown> | null
+  sandbox_config: SandboxConfig | null
   execution_mode: "react" | "dag"
   status: string
   published_at: string | null
@@ -28,6 +35,7 @@ export interface AgentCreate {
   kb_ids?: string[]
   connector_ids?: string[]
   grounding_config?: Record<string, unknown>
+  sandbox_config?: SandboxConfig
   execution_mode?: "react" | "dag"
 }
 
@@ -42,6 +50,7 @@ export interface AgentUpdate {
   kb_ids?: string[]
   connector_ids?: string[]
   grounding_config?: Record<string, unknown>
+  sandbox_config?: SandboxConfig
   execution_mode?: "react" | "dag"
 }
 
