@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Loader2, ShieldOff, ShieldCheck, Megaphone, Wrench, LogOut, AlertTriangle, Zap, Plus, Ticket, Copy, X } from "lucide-react"
+import { Loader2, ShieldOff, ShieldCheck, Megaphone, Wrench, LogOut, AlertTriangle, Zap, Plus, Ticket, Copy, X, Eye } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -129,7 +129,7 @@ export function AdminSettings() {
   return (
     <div className="space-y-8 max-w-2xl">
       <div>
-        <h3 className="text-base font-medium">System Settings</h3>
+        <h2 className="text-base font-semibold">Settings</h2>
         <p className="text-sm text-muted-foreground">
           Global configuration that affects all users.
         </p>
@@ -346,6 +346,7 @@ function InviteCodeManager() {
   const [isLoading, setIsLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [revokeTarget, setRevokeTarget] = useState<InviteCode | null>(null)
+  const [showInactive, setShowInactive] = useState(false)
 
   // Create form
   const [note, setNote] = useState("")
@@ -408,6 +409,9 @@ function InviteCodeManager() {
     toast.success("Code copied to clipboard")
   }
 
+  const inactiveCount = codes.filter((c) => !c.is_active || c.use_count >= c.max_uses).length
+  const visibleCodes = showInactive ? codes : codes.filter((c) => c.is_active && c.use_count < c.max_uses)
+
   return (
     <div className="space-y-3 pt-2">
       <div className="flex items-center justify-between">
@@ -415,10 +419,23 @@ function InviteCodeManager() {
           <Ticket className="h-3.5 w-3.5" />
           Invite Codes
         </h5>
-        <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)} className="h-7 gap-1 text-xs">
-          <Plus className="h-3 w-3" />
-          Generate Code
-        </Button>
+        <div className="flex items-center gap-2">
+          {inactiveCount > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowInactive((v) => !v)}
+              className="h-7 gap-1 text-xs text-muted-foreground"
+            >
+              <Eye className="h-3 w-3" />
+              {showInactive ? "Hide inactive" : `${inactiveCount} inactive`}
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)} className="h-7 gap-1 text-xs">
+            <Plus className="h-3 w-3" />
+            Generate Code
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -426,11 +443,13 @@ function InviteCodeManager() {
           <Loader2 className="h-3 w-3 animate-spin" />
           Loading...
         </div>
-      ) : codes.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">No invite codes yet.</p>
+      ) : visibleCodes.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2">
+          {codes.length === 0 ? "No invite codes yet." : "No active invite codes."}
+        </p>
       ) : (
         <div className="divide-y divide-border rounded-md border border-border text-sm">
-          {codes.map((c) => (
+          {visibleCodes.map((c) => (
             <div key={c.id} className="flex items-center justify-between px-3 py-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{c.code}</code>
@@ -448,7 +467,11 @@ function InviteCodeManager() {
                     exp {new Date(c.expires_at).toLocaleDateString()}
                   </span>
                 )}
-                {c.is_active ? (
+                {!c.is_active ? (
+                  <Badge variant="secondary" className="text-xs">Revoked</Badge>
+                ) : c.use_count >= c.max_uses ? (
+                  <Badge variant="secondary" className="text-xs">Exhausted</Badge>
+                ) : (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -457,8 +480,6 @@ function InviteCodeManager() {
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>
-                ) : (
-                  <Badge variant="secondary" className="text-xs">Revoked</Badge>
                 )}
               </div>
             </div>
