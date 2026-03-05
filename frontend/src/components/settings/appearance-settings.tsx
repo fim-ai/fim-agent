@@ -43,13 +43,13 @@ export function AppearanceSettings() {
 
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">Color mode</h3>
-        <div className="grid grid-cols-3 gap-3 max-w-lg">
+        <div className="grid grid-cols-3 gap-4 max-w-2xl">
           {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
               onClick={() => setTheme(value)}
               className={cn(
-                "group relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all",
+                "group relative flex flex-col items-center gap-2 rounded-lg border-2 p-5 transition-all",
                 theme === value
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/40 hover:bg-accent/50"
