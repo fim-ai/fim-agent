@@ -39,8 +39,11 @@ Each step must have:
 can start.  Use an empty list for steps that have no prerequisites.
 - "tool_hint": (optional) the name of a tool that would be useful for this \
 step, or null if no specific tool is needed.
-- "model_hint": (optional) a role name indicating which model should handle \
-this step (e.g. "fast", "vision", "general"), or null for the default model.
+- "model_hint": set to "fast" for simple, deterministic steps that require \
+minimal reasoning (e.g. data lookup, format conversion, simple calculation, \
+straightforward retrieval).  Set to null for steps that require deep reasoning, \
+multi-step synthesis, complex analysis, or creative problem-solving.  When in \
+doubt, use null — it is always safer to use the more capable model.
 
 Rules:
 1. Steps MUST form a valid directed acyclic graph (DAG) -- no circular \
