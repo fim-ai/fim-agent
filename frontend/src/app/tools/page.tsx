@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Loader2, Wrench, Server, Search } from "lucide-react"
+import { Plus, Loader2, Wrench, Server, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
@@ -25,6 +25,8 @@ export default function ToolsPage() {
   const [hubOpen, setHubOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<MCPServerResponse | null>(null)
   const [dialogInitialValues, setDialogInitialValues] = useState<MCPServerInitialValues | null>(null)
+  const fromCatalogRef = useRef(false)
+  const dialogSucceededRef = useRef(false)
 
   // Auth guard
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function ToolsPage() {
   }
 
   const handleSuccess = (server: MCPServerResponse) => {
+    dialogSucceededRef.current = true
     setServers((prev) => {
       const exists = prev.find((s) => s.id === server.id)
       if (exists) {
@@ -131,8 +134,8 @@ export default function ToolsPage() {
             </h2>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setHubOpen(true)}>
-                <Search className="h-4 w-4" />
-                Browse Hub
+                <LayoutGrid className="h-4 w-4" />
+                MCP Catalog
               </Button>
               <Button size="sm" className="gap-1.5 h-8" onClick={() => handleAdd()}>
                 <Plus className="h-4 w-4" />
@@ -146,56 +149,19 @@ export default function ToolsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : servers.length === 0 ? (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border">
-                <p className="text-sm text-muted-foreground">
-                  No MCP servers configured. Add one to extend agent capabilities.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 gap-1.5"
-                  onClick={() => handleAdd()}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Server
-                </Button>
-              </div>
-
-              {/* Quick start example — only shown when list is empty */}
-              {allowStdio && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
-                    Quick Start
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => handleAdd({
-                      name: "server-everything",
-                      transport: "stdio",
-                      command: "npx",
-                      args: "-y, @modelcontextprotocol/server-everything",
-                      description: "Official MCP test server — covers all tool types",
-                    })}
-                    className="w-full text-left rounded-lg border border-border bg-card p-4 hover:border-primary/50 hover:bg-accent/30 transition-colors group"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-violet-500/10 text-violet-500 ring-1 ring-violet-500/20">
-                        STDIO
-                      </span>
-                      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                        @modelcontextprotocol/server-everything
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Official MCP test server. Covers prompts, resources, tools and sampling — great for verifying your setup.
-                    </p>
-                    <code className="text-[11px] font-mono text-muted-foreground bg-muted/60 rounded px-2 py-1 block">
-                      npx -y @modelcontextprotocol/server-everything
-                    </code>
-                  </button>
-                </div>
-              )}
+            <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border">
+              <p className="text-sm text-muted-foreground">
+                No MCP servers configured. Add one to extend agent capabilities.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 gap-1.5"
+                onClick={() => handleAdd()}
+              >
+                <Plus className="h-4 w-4" />
+                Add Server
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -216,7 +182,17 @@ export default function ToolsPage() {
       {/* Dialog */}
       <MCPServerDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open) {
+            // Reopen catalog if dialog was opened from it and user didn't save
+            if (fromCatalogRef.current && !dialogSucceededRef.current) {
+              setHubOpen(true)
+            }
+            fromCatalogRef.current = false
+            dialogSucceededRef.current = false
+          }
+        }}
         server={editingServer}
         initialValues={dialogInitialValues}
         onSuccess={handleSuccess}
@@ -227,6 +203,8 @@ export default function ToolsPage() {
         onOpenChange={setHubOpen}
         onSuccess={handleSuccess}
         onInstallLocal={(initial) => {
+          fromCatalogRef.current = true
+          dialogSucceededRef.current = false
           setHubOpen(false)
           handleAdd(initial)
         }}
