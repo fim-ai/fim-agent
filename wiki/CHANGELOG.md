@@ -7,6 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **README Provider-Agnostic Setup**: Replaced Anthropic-only Recommended Setup example with a provider table (OpenAI, DeepSeek, Anthropic, Ollama) and a generic minimal `.env`; leading message now correctly states any OpenAI-compatible provider is supported
 - **Environment Variables Wiki**: Extracted all env var documentation from README into `wiki/Environment-Variables.md` with full coverage across 8 sections (LLM, agent execution, web tools, RAG, code execution, image generation, connectors, platform, OAuth); README now links to the wiki page
 
 - **Disable Public Registration**: Admins can toggle public self-registration on/off from Admin Panel → Settings tab; setting persists in a new `system_settings` DB table; `POST /api/auth/register` enforces the setting (first user bootstrap always allowed); login page hides the Register tab when disabled; OAuth callback also blocked from creating new accounts; public `GET /api/auth/registration-status` endpoint for frontend
