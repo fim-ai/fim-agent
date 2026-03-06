@@ -6,6 +6,9 @@ Backend selection is controlled by the WEB_FETCH_PROVIDER environment variable.
 
 from __future__ import annotations
 
+import ipaddress
+import socket
+import urllib.parse
 from typing import Any
 
 import httpx
@@ -16,6 +19,48 @@ from ..base import BaseTool
 
 _DEFAULT_TIMEOUT: int = 30
 _MAX_CHARS: int = 20_000
+
+
+def _validate_url(url: str) -> None:
+    """Validate a URL against SSRF risks.
+
+    Raises ValueError if:
+    - The scheme is not http or https.
+    - The resolved IP falls in a private, loopback, or link-local range.
+
+    DNS resolution failures are treated as non-blocking: if the hostname
+    cannot be resolved here, the request is allowed to proceed and will
+    fail naturally at the HTTP layer.
+    """
+    parsed = urllib.parse.urlparse(url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(
+            f"Blocked URL scheme '{parsed.scheme}': only http and https are allowed."
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL contains no hostname.")
+
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        # DNS resolution failed — not an SSRF issue; let the fetcher handle it.
+        return
+
+    for _family, _type, _proto, _canonname, sockaddr in addr_infos:
+        raw_ip = sockaddr[0]
+        try:
+            addr = ipaddress.ip_address(raw_ip)
+        except ValueError:
+            continue
+
+        if addr.is_loopback or addr.is_private or addr.is_link_local:
+            raise ValueError(
+                f"Blocked request to internal/reserved address '{raw_ip}' "
+                f"resolved from hostname '{hostname}'."
+            )
 
 
 class WebFetchTool(BaseTool):
@@ -61,6 +106,11 @@ class WebFetchTool(BaseTool):
         url: str = kwargs.get("url", "").strip()
         if not url:
             return "[Error] No URL provided."
+
+        try:
+            _validate_url(url)
+        except ValueError as exc:
+            return f"[Blocked] {exc}"
 
         fetcher = get_web_fetcher(timeout=self._timeout)
         try:

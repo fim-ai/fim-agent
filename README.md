@@ -7,11 +7,11 @@
 [![GitHub stars](https://img.shields.io/github/stars/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/network)
 [![GitHub issues](https://img.shields.io/github/issues/fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/issues)
-[![Follow on X](https://img.shields.io/twitter/follow/FIM_TECH?style=social)](https://x.com/FIM_TECH)
+[![Follow on X](https://img.shields.io/twitter/follow/FIM_Agent?style=social)](https://x.com/FIM_Agent)
 
 **AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.**
 
-🌐 [Website](https://agent.fim.ai/) · 📖 [Wiki](https://github.com/fim-ai/fim-agent/wiki) · 📋 [Changelog](https://github.com/fim-ai/fim-agent/wiki/CHANGELOG) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_TECH)
+🌐 [Website](https://agent.fim.ai/) · 📖 [Wiki](https://github.com/fim-ai/fim-agent/wiki) · 📋 [Changelog](https://github.com/fim-ai/fim-agent/wiki/CHANGELOG) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_Agent)
 
 </div>
 
@@ -335,6 +335,6 @@ See [LICENSE](LICENSE) for full terms.
 
 <div align="center">
 
-🌐 [Website](https://agent.fim.ai/) · 📖 [Wiki](https://github.com/fim-ai/fim-agent/wiki) · 📋 [Changelog](https://github.com/fim-ai/fim-agent/wiki/CHANGELOG) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💡 [Request Feature](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_TECH)
+🌐 [Website](https://agent.fim.ai/) · 📖 [Wiki](https://github.com/fim-ai/fim-agent/wiki) · 📋 [Changelog](https://github.com/fim-ai/fim-agent/wiki/CHANGELOG) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💡 [Request Feature](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_Agent)
 
 </div>

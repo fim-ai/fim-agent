@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { authApi, ApiError } from "@/lib/api"
+import { apiFetch, authApi, ApiError } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { ACCESS_TOKEN_KEY, getApiDirectUrl } from "@/lib/constants"
@@ -219,10 +219,18 @@ export function AccountSettings() {
     }
   }, [searchParams, router, refreshUser])
 
-  const handleConnect = (provider: string) => {
+  const handleConnect = async (provider: string) => {
     const token = localStorage.getItem(ACCESS_TOKEN_KEY)
     if (!token) return
-    window.location.href = `${getApiDirectUrl()}/api/auth/oauth/${provider}/authorize?action=bind&token=${token}`
+    try {
+      // Fetch a one-time bind ticket instead of passing the raw JWT in the URL
+      const res = await apiFetch<{ ticket: string }>("/api/auth/oauth/bind-ticket", {
+        method: "POST",
+      })
+      window.location.href = `${getApiDirectUrl()}/api/auth/oauth/${provider}/authorize?action=bind&ticket=${res.ticket}`
+    } catch {
+      toast.error("Failed to initiate OAuth connection. Please try again.")
+    }
   }
 
   // Email state

@@ -48,7 +48,7 @@ export function EmojiPickerPopover({
             className="flex flex-col h-[340px]"
           >
             <EmojiPicker.Search
-              className="mx-2 mt-2 mb-1 h-8 rounded-md border border-input bg-transparent px-2.5 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="mx-2 mt-2 mb-1 h-8 rounded-md border border-input bg-transparent px-2.5 text-sm placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px] focus-visible:border-ring"
               autoFocus
             />
             <EmojiPicker.Viewport className="flex-1 overflow-y-auto px-1">

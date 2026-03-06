@@ -743,6 +743,7 @@ async def reset_password(
     target_user.password_hash = hash_password(body.new_password)
     target_user.refresh_token = None
     target_user.refresh_token_expires_at = None
+    target_user.tokens_invalidated_at = datetime.now(timezone.utc)
     await db.commit()
 
     result = await db.execute(select(User).where(User.id == user_id))

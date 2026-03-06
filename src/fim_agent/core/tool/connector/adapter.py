@@ -105,7 +105,12 @@ class ConnectorToolAdapter(BaseTool):
         path_params = re.findall(r"\{(\w+)\}", path)
         for param in path_params:
             if param in kwargs:
-                path = path.replace(f"{{{param}}}", str(kwargs.pop(param)))
+                value = str(kwargs.pop(param))
+                if "/" in value or "\\" in value or ".." in value:
+                    raise ValueError(
+                        f"Path parameter '{param}' contains invalid characters."
+                    )
+                path = path.replace(f"{{{param}}}", value)
 
         url = f"{self._base_url}{path}"
 

@@ -108,6 +108,12 @@ class LocalBackend:
     Shell:      spawns ``asyncio.create_subprocess_shell``
     """
 
+    def __init__(self) -> None:
+        logger.warning(
+            "python_exec is using the LOCAL sandbox backend — no OS-level isolation. "
+            "Use CODE_EXEC_BACKEND=docker in production multi-user deployments."
+        )
+
     async def run_code(
         self,
         code: str,

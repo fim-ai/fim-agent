@@ -44,7 +44,7 @@ export function MCPServerCard({ server, onEdit, onDelete, onToggleActive, onTest
   }
 
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-accent/5">
+    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-ring/40 hover:bg-accent/10">
       {/* Header: name + badges */}
       <div className="flex items-center gap-2 mb-2">
         <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground">

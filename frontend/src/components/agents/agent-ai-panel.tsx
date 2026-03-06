@@ -156,11 +156,23 @@ export function AgentAIPanel({
         ) : (
           <>
             {messages.length === 0 && (
-              <p className="text-xs text-muted-foreground py-2 text-center">
-                {isNewMode && !agentId
-                  ? "Describe the agent you want to create..."
-                  : "Describe how to modify this agent..."}
-              </p>
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                  <Sparkles className="h-5 w-5 text-amber-500/60" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    {isNewMode && !agentId
+                      ? "Describe the agent you want to create..."
+                      : "Describe how to modify this agent..."}
+                  </p>
+                  <p className="text-xs text-muted-foreground/50">
+                    {isNewMode && !agentId
+                      ? "AI will configure settings for you"
+                      : "AI will apply your requested changes"}
+                  </p>
+                </div>
+              </div>
             )}
             {messages.map((msg, i) => (
               <div

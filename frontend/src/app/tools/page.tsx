@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Plus, Loader2, Wrench, Server, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -16,8 +16,16 @@ import type { MCPServerResponse } from "@/types/mcp-server"
 export default function ToolsPage() {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const [activeTab, setActiveTab] = useState("builtin")
+  const VALID_TABS = ["builtin", "mcp"]
+  const initialTab = VALID_TABS.includes(searchParams.get("tab") ?? "") ? searchParams.get("tab")! : "builtin"
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    router.replace(`/tools?tab=${tab}`)
+  }
   const [servers, setServers] = useState<MCPServerResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [allowStdio, setAllowStdio] = useState(true)
@@ -120,7 +128,7 @@ export default function ToolsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col flex-1 overflow-hidden">
         <div className="px-6 pt-4 shrink-0">
           <TabsList>
             <TabsTrigger value="builtin">Built-in</TabsTrigger>
@@ -130,7 +138,7 @@ export default function ToolsPage() {
 
         {/* Built-in tab */}
         <TabsContent value="builtin" className="flex-1 overflow-y-auto px-6 py-4 mt-0">
-          <BuiltinToolsSection onSwitchToMCP={() => setActiveTab("mcp")} />
+          <BuiltinToolsSection onSwitchToMCP={() => handleTabChange("mcp")} />
         </TabsContent>
 
         {/* MCP Servers tab */}

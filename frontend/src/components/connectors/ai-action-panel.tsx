@@ -174,11 +174,23 @@ export function AIActionPanel({
         ) : (
           <>
             {messages.length === 0 && (
-              <p className="text-xs text-muted-foreground py-2 text-center">
-                {isNewMode && !connectorId
-                  ? "Describe the connector you want to create, or paste an OpenAPI spec URL."
-                  : "Describe the API actions you want to create, and AI will generate them for you."}
-              </p>
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                  <Sparkles className="h-5 w-5 text-amber-500/60" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    {isNewMode && !connectorId
+                      ? "Describe the connector you want to create, or paste an OpenAPI spec URL."
+                      : "Describe the API actions you want to create, and AI will generate them for you."}
+                  </p>
+                  <p className="text-xs text-muted-foreground/50">
+                    {isNewMode && !connectorId
+                      ? "AI will configure settings and actions"
+                      : "AI will create, update, or delete actions"}
+                  </p>
+                </div>
+              </div>
             )}
             {messages.map((msg, i) => (
               <div

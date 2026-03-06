@@ -15,6 +15,7 @@ import {
   Library,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -297,12 +298,12 @@ export default function KBDetailPage() {
         {activeTab === "search" && (
           <div className="space-y-4">
             <form onSubmit={handleSearch} className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search knowledge base..."
-                className="flex h-9 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex-1"
               />
               <Button
                 type="submit"

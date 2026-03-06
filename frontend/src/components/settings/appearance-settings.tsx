@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils"
 
 const THEME_OPTIONS = [
   {
-    value: "light",
-    label: "Light",
-    icon: Sun,
-  },
-  {
     value: "system",
     label: "Auto",
     icon: Monitor,
+  },
+  {
+    value: "light",
+    label: "Light",
+    icon: Sun,
   },
   {
     value: "dark",

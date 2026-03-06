@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -206,7 +207,7 @@ export function ConversationSidebar({ collapsed, hideHeader }: ConversationSideb
                         className={cn(
                           "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors text-left cursor-pointer",
                           activeId === conv.id && pathname === "/"
-                            ? "bg-accent text-accent-foreground"
+                            ? "bg-accent/60 text-accent-foreground"
                             : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
                         )}
                       >
@@ -236,9 +237,10 @@ export function ConversationSidebar({ collapsed, hideHeader }: ConversationSideb
                               <Star className={cn("h-3.5 w-3.5 mr-2", conv.starred && "fill-yellow-500 text-yellow-500")} />
                               {conv.starred ? "Unstar" : "Star"}
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
+                              variant="destructive"
                               onClick={(e) => { e.stopPropagation(); setPendingDeleteId(conv.id) }}
-                              className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2" />
                               Delete

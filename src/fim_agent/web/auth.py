@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import re
+import secrets
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import bcrypt
 import jwt
@@ -16,7 +20,64 @@ from fim_agent.db import get_session
 
 from .models.user import User
 
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "fim-agent-dev-secret-change-in-production")
+logger = logging.getLogger(__name__)
+
+def _resolve_secret_key() -> str:
+    """Return the JWT secret key, auto-generating and persisting one if needed."""
+    env_val = os.environ.get("JWT_SECRET_KEY", "")
+    if env_val:
+        return env_val
+
+    # Auto-generate a secure secret and persist it to .env
+    generated = secrets.token_hex(32)
+
+    # Locate project root .env
+    # auth.py is at src/fim_agent/web/auth.py, so:
+    #   parents[0] = src/fim_agent/web/
+    #   parents[1] = src/fim_agent/
+    #   parents[2] = src/
+    #   parents[3] = project root (fim-agent/)
+    project_root = Path(__file__).resolve().parents[3]
+    env_file = project_root / ".env"
+
+    try:
+        if env_file.exists():
+            content = env_file.read_text(encoding="utf-8")
+        else:
+            content = ""
+
+        new_line = f"JWT_SECRET_KEY={generated}"
+        new_content, n = re.subn(
+            r'^#?\s*JWT_SECRET_KEY=.*$',
+            new_line,
+            content,
+            flags=re.MULTILINE,
+        )
+        if n > 0:
+            updated = new_content
+        else:
+            updated = content.rstrip("\n") + ("\n" if content else "") + new_line + "\n"
+
+        env_file.write_text(updated, encoding="utf-8")
+        logger.info(
+            "JWT_SECRET_KEY was not set — auto-generated a secure secret and persisted it to %s. "
+            "Set JWT_SECRET_KEY explicitly in your .env for production deployments.",
+            env_file,
+        )
+    except OSError as exc:
+        logger.warning(
+            "JWT_SECRET_KEY was not set and could not write to %s (%s). "
+            "A temporary in-memory secret will be used — tokens will be invalidated on restart.",
+            env_file,
+            exc,
+        )
+
+    # Also inject into the current process so submodules reading os.environ get the same value
+    os.environ["JWT_SECRET_KEY"] = generated
+    return generated
+
+
+SECRET_KEY = _resolve_secret_key()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
 REFRESH_TOKEN_EXPIRE_DAYS = 7

@@ -10,15 +10,20 @@ function CallbackHandler() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const accessToken = searchParams.get("access_token")
-    const refreshToken = searchParams.get("refresh_token")
-    const userJson = searchParams.get("user")
+    // Errors still arrive as query params (server can't set fragments on error redirects easily)
     const error = searchParams.get("error")
-
     if (error) {
       window.location.href = `/login?error=${encodeURIComponent(error)}`
       return
     }
+
+    // Tokens arrive in the URL fragment (#) so they never appear in server
+    // logs, nginx access logs, or Referer headers.
+    const hash = window.location.hash.substring(1) // remove leading #
+    const params = new URLSearchParams(hash)
+    const accessToken = params.get("access_token")
+    const refreshToken = params.get("refresh_token")
+    const userJson = params.get("user")
 
     if (accessToken && refreshToken && userJson) {
       try {
@@ -33,6 +38,7 @@ function CallbackHandler() {
         window.location.href = "/login?error=oauth_failed"
       }
     } else {
+      // No tokens in fragment — could be a direct visit or a broken redirect
       window.location.href = "/login?error=oauth_failed"
     }
   }, [searchParams])

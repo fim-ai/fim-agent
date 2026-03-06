@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Bot, Check, Loader2, Zap, GitBranch } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
@@ -248,13 +250,10 @@ export function AgentSettingsForm({
     }
   }
 
-  const inputClass =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="space-y-4 pr-4">
+        <div className="space-y-4">
           {/* Name + Icon */}
           <div className="space-y-1.5">
             <label htmlFor="agent-name" className="text-sm font-medium">
@@ -266,14 +265,13 @@ export function AgentSettingsForm({
                 onChange={setIcon}
                 fallbackIcon={<Bot className="h-5 w-5" />}
               />
-              <input
+              <Input
                 id="agent-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="My Agent"
                 required
-                className={inputClass}
               />
             </div>
           </div>
@@ -283,13 +281,13 @@ export function AgentSettingsForm({
             <label htmlFor="agent-description" className="text-sm font-medium">
               Description
             </label>
-            <textarea
+            <Textarea
               id="agent-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="A brief description of what this agent does..."
               rows={2}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+              className="resize-none"
             />
           </div>
 
@@ -414,42 +412,50 @@ export function AgentSettingsForm({
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Memory</label>
-                <select
-                  value={sandboxMemory}
-                  onChange={(e) => setSandboxMemory(e.target.value)}
-                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                <Select
+                  value={sandboxMemory || "__default__"}
+                  onValueChange={(v) => setSandboxMemory(v === "__default__" ? "" : v)}
                 >
-                  <option value="">Default (256m)</option>
-                  <option value="128m">128m</option>
-                  <option value="256m">256m</option>
-                  <option value="512m">512m</option>
-                  <option value="1g">1g</option>
-                </select>
+                  <SelectTrigger size="sm" className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">Default (256m)</SelectItem>
+                    <SelectItem value="128m">128m</SelectItem>
+                    <SelectItem value="256m">256m</SelectItem>
+                    <SelectItem value="512m">512m</SelectItem>
+                    <SelectItem value="1g">1g</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">CPU</label>
-                <select
-                  value={sandboxCpu}
-                  onChange={(e) => setSandboxCpu(e.target.value)}
-                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                <Select
+                  value={sandboxCpu || "__default__"}
+                  onValueChange={(v) => setSandboxCpu(v === "__default__" ? "" : v)}
                 >
-                  <option value="">Default (0.5)</option>
-                  <option value="0.25">0.25</option>
-                  <option value="0.5">0.5</option>
-                  <option value="1">1.0</option>
-                  <option value="2">2.0</option>
-                </select>
+                  <SelectTrigger size="sm" className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">Default (0.5)</SelectItem>
+                    <SelectItem value="0.25">0.25</SelectItem>
+                    <SelectItem value="0.5">0.5</SelectItem>
+                    <SelectItem value="1">1.0</SelectItem>
+                    <SelectItem value="2">2.0</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Timeout (s)</label>
-                <input
+                <Input
                   type="number"
                   min={1}
                   max={600}
                   value={sandboxTimeout}
                   onChange={(e) => setSandboxTimeout(e.target.value)}
                   placeholder="120"
-                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="h-8 px-2 text-xs"
                 />
               </div>
             </div>
@@ -460,13 +466,13 @@ export function AgentSettingsForm({
             <label htmlFor="agent-instructions" className="text-sm font-medium">
               Instructions
             </label>
-            <textarea
+            <Textarea
               id="agent-instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               placeholder="System prompt for the agent. Tell it how to behave, what to focus on..."
               rows={5}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+              className="resize-y"
             />
           </div>
 

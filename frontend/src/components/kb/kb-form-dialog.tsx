@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Loader2, Plus, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -21,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { KBCreate, KBResponse } from "@/types/kb"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface KBFormDialogProps {
   open: boolean
@@ -99,9 +102,6 @@ export function KBFormDialog({
   }
 
   const isEditing = kb !== null
-  const inputClass =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted"
-
   return (
     <>
     <Dialog open={open} onOpenChange={handleClose}>
@@ -128,14 +128,13 @@ export function KBFormDialog({
               <label htmlFor="kb-name" className="text-sm font-medium">
                 Name <span className="text-destructive">*</span>
               </label>
-              <input
+              <Input
                 id="kb-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="My Knowledge Base"
                 required
-                className={inputClass}
               />
             </div>
 
@@ -144,13 +143,13 @@ export function KBFormDialog({
               <label htmlFor="kb-description" className="text-sm font-medium">
                 Description
               </label>
-              <textarea
+              <Textarea
                 id="kb-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="A brief description of this knowledge base..."
                 rows={2}
-                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                className="resize-none"
               />
             </div>
           </fieldset>
@@ -172,18 +171,17 @@ export function KBFormDialog({
               <label htmlFor="kb-chunk-strategy" className="text-sm font-medium">
                 Strategy
               </label>
-              <select
-                id="kb-chunk-strategy"
-                value={chunkStrategy}
-                onChange={(e) => setChunkStrategy(e.target.value)}
-                disabled={isEditing}
-                className={inputClass}
-              >
-                <option value="recursive">Recursive</option>
-                <option value="markdown">Markdown</option>
-                <option value="fixed">Fixed</option>
-                <option value="semantic">Semantic</option>
-              </select>
+              <Select value={chunkStrategy} onValueChange={setChunkStrategy} disabled={isEditing}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recursive">Recursive</SelectItem>
+                  <SelectItem value="markdown">Markdown</SelectItem>
+                  <SelectItem value="fixed">Fixed</SelectItem>
+                  <SelectItem value="semantic">Semantic</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 {chunkStrategy === "recursive" && "Split by paragraphs, sentences, then words. Best for general use."}
                 {chunkStrategy === "markdown" && "Split by # headers first, then recursively within sections. Best for .md files."}
@@ -203,7 +201,7 @@ export function KBFormDialog({
                 <label htmlFor="kb-chunk-size" className="text-sm font-medium">
                   Size
                 </label>
-                <input
+                <Input
                   id="kb-chunk-size"
                   type="number"
                   min={100}
@@ -211,7 +209,6 @@ export function KBFormDialog({
                   value={chunkSize}
                   onChange={(e) => setChunkSize(Math.min(Number(e.target.value), 6000))}
                   disabled={isEditing}
-                  className={inputClass}
                 />
                 <p className="text-xs text-muted-foreground">
                   Recommended: 1000. Max: 6000 (embedding model limit).
@@ -221,7 +218,7 @@ export function KBFormDialog({
                 <label htmlFor="kb-chunk-overlap" className="text-sm font-medium">
                   Overlap
                 </label>
-                <input
+                <Input
                   id="kb-chunk-overlap"
                   type="number"
                   min={0}
@@ -229,7 +226,6 @@ export function KBFormDialog({
                   value={chunkOverlap}
                   onChange={(e) => setChunkOverlap(Number(e.target.value))}
                   disabled={isEditing}
-                  className={inputClass}
                 />
               </div>
             </div>
@@ -243,16 +239,16 @@ export function KBFormDialog({
               <label htmlFor="kb-retrieval-mode" className="text-sm font-medium">
                 Mode
               </label>
-              <select
-                id="kb-retrieval-mode"
-                value={retrievalMode}
-                onChange={(e) => setRetrievalMode(e.target.value)}
-                className={inputClass}
-              >
-                <option value="hybrid">Hybrid</option>
-                <option value="dense">Dense</option>
-                <option value="fts">Full-Text Search</option>
-              </select>
+              <Select value={retrievalMode} onValueChange={setRetrievalMode}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hybrid">Hybrid</SelectItem>
+                  <SelectItem value="dense">Dense</SelectItem>
+                  <SelectItem value="fts">Full-Text Search</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 {retrievalMode === "hybrid" && "Vector + full-text search with RRF fusion + reranking. Best quality."}
                 {retrievalMode === "dense" && "Pure vector similarity search. Good for semantic matching."}

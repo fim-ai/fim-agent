@@ -24,7 +24,7 @@ export function AgentCard({
   const isPublished = agent.status === "published"
 
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-accent/5">
+    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-ring/40 hover:bg-accent/10">
       {/* Header: name + badges */}
       <div className="flex items-start gap-2 mb-2">
         <h3 className="flex-1 min-w-0 text-sm font-medium truncate text-card-foreground flex items-center gap-1.5">
@@ -119,7 +119,7 @@ export function AgentCard({
           asChild
         >
           <Link href={`/new?agent=${agent.id}`}>
-            <MessageSquare className="h-3.5 w-3.5" />
+            <MessageSquare className="h-3 w-3" />
             Start Chat
           </Link>
         </Button>

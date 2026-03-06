@@ -4,10 +4,13 @@ import { useState, useEffect } from "react"
 import { Loader2, Plug } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 import { connectorApi } from "@/lib/api"
 import type { ConnectorCreate, ConnectorResponse } from "@/types/connector"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ConnectorSettingsFormProps {
   connector: ConnectorResponse | null // null = create mode
@@ -146,13 +149,10 @@ export function ConnectorSettingsForm({
     }
   }
 
-  const inputClass =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
       <ScrollArea className="flex-1">
-        <div className="space-y-4 pr-4">
+        <div className="space-y-4">
           {/* Name + Icon */}
           <div className="space-y-1.5">
             <label htmlFor="connector-name" className="text-sm font-medium">
@@ -164,14 +164,13 @@ export function ConnectorSettingsForm({
                 onChange={setIcon}
                 fallbackIcon={<Plug className="h-5 w-5" />}
               />
-              <input
+              <Input
                 id="connector-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="GitHub API"
                 required
-                className={inputClass}
               />
             </div>
           </div>
@@ -181,13 +180,13 @@ export function ConnectorSettingsForm({
             <label htmlFor="connector-description" className="text-sm font-medium">
               Description
             </label>
-            <textarea
+            <Textarea
               id="connector-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="A brief description of this connector..."
               rows={2}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+              className="resize-none"
             />
           </div>
 
@@ -196,14 +195,13 @@ export function ConnectorSettingsForm({
             <label htmlFor="connector-base-url" className="text-sm font-medium">
               Base URL <span className="text-destructive">*</span>
             </label>
-            <input
+            <Input
               id="connector-base-url"
               type="text"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://api.example.com"
               required
-              className={inputClass}
             />
           </div>
 
@@ -212,17 +210,17 @@ export function ConnectorSettingsForm({
             <label htmlFor="connector-auth-type" className="text-sm font-medium">
               Auth Type
             </label>
-            <select
-              id="connector-auth-type"
-              value={authType}
-              onChange={(e) => setAuthType(e.target.value)}
-              className={inputClass}
-            >
-              <option value="none">None</option>
-              <option value="bearer">Bearer Token</option>
-              <option value="api_key">API Key (Custom Header)</option>
-              <option value="basic">Basic Auth (Username/Password)</option>
-            </select>
+            <Select value={authType} onValueChange={setAuthType}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="bearer">Bearer Token</SelectItem>
+                <SelectItem value="api_key">API Key (Custom Header)</SelectItem>
+                <SelectItem value="basic">Basic Auth (Username/Password)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Bearer Token config */}
@@ -232,13 +230,12 @@ export function ConnectorSettingsForm({
                 <label htmlFor="connector-token-prefix" className="text-sm font-medium">
                   Token Prefix
                 </label>
-                <input
+                <Input
                   id="connector-token-prefix"
                   type="text"
                   value={tokenPrefix}
                   onChange={(e) => setTokenPrefix(e.target.value)}
                   placeholder="Bearer"
-                  className={inputClass}
                 />
                 <p className="text-xs text-muted-foreground">
                   Prefix before the token in Authorization header. Default: Bearer.
@@ -248,13 +245,12 @@ export function ConnectorSettingsForm({
                 <label htmlFor="connector-default-token" className="text-sm font-medium">
                   Default Token
                 </label>
-                <input
+                <Input
                   id="connector-default-token"
                   type="password"
                   value={defaultToken}
                   onChange={(e) => setDefaultToken(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxx"
-                  className={inputClass}
                 />
                 <p className="text-xs text-muted-foreground">
                   Used for testing. Per-user credentials will override this in a future version.
@@ -270,13 +266,12 @@ export function ConnectorSettingsForm({
                 <label htmlFor="connector-header-name" className="text-sm font-medium">
                   Header Name
                 </label>
-                <input
+                <Input
                   id="connector-header-name"
                   type="text"
                   value={headerName}
                   onChange={(e) => setHeaderName(e.target.value)}
                   placeholder="X-API-Key"
-                  className={inputClass}
                 />
                 <p className="text-xs text-muted-foreground">
                   The HTTP header used to send the API key. Default: X-API-Key.
@@ -286,13 +281,12 @@ export function ConnectorSettingsForm({
                 <label htmlFor="connector-default-api-key" className="text-sm font-medium">
                   Default API Key
                 </label>
-                <input
+                <Input
                   id="connector-default-api-key"
                   type="password"
                   value={defaultApiKey}
                   onChange={(e) => setDefaultApiKey(e.target.value)}
                   placeholder="sk-xxxxxxxxxxxx"
-                  className={inputClass}
                 />
                 <p className="text-xs text-muted-foreground">
                   Used for testing. Per-user credentials will override this in a future version.
@@ -308,26 +302,24 @@ export function ConnectorSettingsForm({
                 <label htmlFor="connector-default-username" className="text-sm font-medium">
                   Username
                 </label>
-                <input
+                <Input
                   id="connector-default-username"
                   type="text"
                   value={defaultUsername}
                   onChange={(e) => setDefaultUsername(e.target.value)}
                   placeholder="admin"
-                  className={inputClass}
                 />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="connector-default-password" className="text-sm font-medium">
                   Password
                 </label>
-                <input
+                <Input
                   id="connector-default-password"
                   type="password"
                   value={defaultPassword}
                   onChange={(e) => setDefaultPassword(e.target.value)}
                   placeholder="********"
-                  className={inputClass}
                 />
               </div>
               <p className="text-xs text-muted-foreground">

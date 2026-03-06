@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Plus, Trash2, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
@@ -16,6 +18,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { connectorApi } from "@/lib/api"
 import { toast } from "sonner"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type {
   ConnectorResponse,
   ConnectorActionResponse,
@@ -54,9 +57,6 @@ const EMPTY_FORM: ActionFormState = {
   responseExtract: "",
   requiresConfirmation: false,
 }
-
-const inputClass =
-  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 
 // ---------------------------------------------------------------------------
 // Props
@@ -284,14 +284,13 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                 <label htmlFor="am-action-name" className="text-sm font-medium">
                   Name <span className="text-destructive">*</span>
                 </label>
-                <input
+                <Input
                   id="am-action-name"
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="List Repositories"
                   required
-                  className={inputClass}
                 />
               </div>
 
@@ -300,13 +299,13 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                 <label htmlFor="am-action-description" className="text-sm font-medium">
                   Description
                 </label>
-                <textarea
+                <Textarea
                   id="am-action-description"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="What does this action do..."
                   rows={2}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                  className="resize-none"
                 />
               </div>
 
@@ -316,31 +315,30 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                   <label htmlFor="am-action-method" className="text-sm font-medium">
                     Method
                   </label>
-                  <select
-                    id="am-action-method"
-                    value={form.method}
-                    onChange={(e) => setForm({ ...form, method: e.target.value })}
-                    className={inputClass}
-                  >
-                    {METHODS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {METHODS.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="am-action-path" className="text-sm font-medium">
                     Path <span className="text-destructive">*</span>
                   </label>
-                  <input
+                  <Input
                     id="am-action-path"
                     type="text"
                     value={form.path}
                     onChange={(e) => setForm({ ...form, path: e.target.value })}
                     placeholder="/repos/{owner}/{repo}"
                     required
-                    className={inputClass}
                   />
                 </div>
               </div>
@@ -350,7 +348,7 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                 <label htmlFor="am-action-params" className="text-sm font-medium">
                   Parameters Schema (JSON)
                 </label>
-                <textarea
+                <Textarea
                   id="am-action-params"
                   value={form.parametersSchema}
                   onChange={(e) =>
@@ -358,7 +356,7 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                   }
                   placeholder='{"owner": {"type": "string", "required": true}}'
                   rows={3}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y font-mono text-xs"
+                  className="resize-y font-mono text-xs"
                 />
               </div>
 
@@ -367,7 +365,7 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                 <label htmlFor="am-action-extract" className="text-sm font-medium">
                   Response Extract (JMESPath)
                 </label>
-                <input
+                <Input
                   id="am-action-extract"
                   type="text"
                   value={form.responseExtract}
@@ -375,7 +373,6 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
                     setForm({ ...form, responseExtract: e.target.value })
                   }
                   placeholder="data[].{name: name, id: id}"
-                  className={inputClass}
                 />
                 <p className="text-xs text-muted-foreground">
                   JMESPath expression to extract relevant data from the API response.
@@ -384,7 +381,7 @@ export function ActionManager({ connector, onChanged }: ActionManagerProps) {
 
               {/* Requires Confirmation */}
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                <input
+                <Input
                   type="checkbox"
                   checked={form.requiresConfirmation}
                   onChange={(e) =>

@@ -38,8 +38,9 @@ frontend/            # Next.js portal (shadcn/ui)
 
 - **No native dialogs** (`confirm`/`alert`/`prompt`) — use `AlertDialog` / `Dialog` / Toast (sonner)
 - **Navigation → `<Link>`**, not `<button onClick={router.push()}>`. For shadcn `<Button>`, use `asChild` + `<Link>` inside
-- **Focus rings**: use `focus-visible:outline-offset-[-2px]`, **never** `outline-offset-0` — `0` gets clipped by container overflow. Already fixed in `ui/input.tsx` + `ui/textarea.tsx`; do not revert.
+- **Focus rings**: use `focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px] focus-visible:border-ring`, **never** `focus-visible:ring-1 focus-visible:ring-ring` — `ring-*` is a `box-shadow` that extends outside the border-box and gets clipped by `overflow: hidden` on parent containers (e.g. ScrollArea viewport). CSS `outline` with `-2px` offset renders inward and is never clipped. Already fixed in `ui/input.tsx` + `ui/textarea.tsx`; apply the same pattern to any raw `<input>`/`<textarea>` with custom `className`; do not revert.
 - **No `pl-*`/`pr-*` on form wrappers** containing `<Input>`/`<Textarea>` — asymmetric padding clips `shadow-xs`. Use parent `px-*` or `gap-*`/`space-y-*` instead.
+- **No native `<select>`** — always use shadcn `<Select>` + `<SelectTrigger className="w-full">` + `<SelectContent>` + `<SelectItem>`. Add `className="w-full"` to `SelectTrigger` (default is `w-fit`). For empty-string default values, use a `__default__` sentinel: `value={val || "__default__"}` / `onValueChange={(v) => setVal(v === "__default__" ? "" : v)}` — Radix treats `""` as unset.
 
 ## Toast Feedback Convention (MANDATORY)
 

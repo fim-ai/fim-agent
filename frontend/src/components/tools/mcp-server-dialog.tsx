@@ -140,13 +140,24 @@ export function MCPServerDialog({
       JSON.stringify(headerPairs) !== JSON.stringify(
         server.headers ? Object.entries(server.headers).map(([key, value]) => ({ key, value })) : []
       )
-    : name.trim().length > 0 || description.trim().length > 0 ||
-      command.trim().length > 0 || url.trim().length > 0 ||
-      args.trim().length > 0 || workingDir.trim().length > 0 ||
-      envPairs.length > 0 || headerPairs.length > 0
+    : name !== (initialValues?.name ?? "") ||
+      description !== (initialValues?.description ?? "") ||
+      command !== (initialValues?.command ?? "") ||
+      args !== (initialValues?.args ?? "") ||
+      url !== (initialValues?.url ?? "") ||
+      workingDir.trim().length > 0 ||
+      JSON.stringify(envPairs) !== JSON.stringify(
+        initialValues?.env
+          ? Object.entries(initialValues.env).map(([k, v]) => ({ key: k, value: v }))
+          : []
+      ) ||
+      headerPairs.length > 0
 
   const handleClose = (open: boolean) => {
-    if (!open && isDirty) { setShowCloseConfirm(true); return }
+    if (!open && isDirty) {
+      if (!showCloseConfirm) setShowCloseConfirm(true)
+      return  // always block close when dirty
+    }
     onOpenChange(open)
   }
 
@@ -244,7 +255,10 @@ export function MCPServerDialog({
       <DialogContent
         className="sm:max-w-lg flex flex-col max-h-[85vh]"
         onInteractOutside={(e) => {
-          if (isDirty) { e.preventDefault(); setShowCloseConfirm(true) }
+          if (isDirty) {
+            e.preventDefault()
+            if (!showCloseConfirm) setShowCloseConfirm(true)
+          }
         }}
       >
         <DialogHeader>
@@ -494,7 +508,7 @@ export function MCPServerDialog({
       </DialogContent>
     </Dialog>
 
-    <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+    <AlertDialog open={open && showCloseConfirm} onOpenChange={setShowCloseConfirm}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
@@ -505,7 +519,7 @@ export function MCPServerDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Keep editing</AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => onOpenChange(false)}
+            onClick={() => { setShowCloseConfirm(false); onOpenChange(false) }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             Discard & close

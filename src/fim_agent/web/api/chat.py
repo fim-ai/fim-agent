@@ -23,12 +23,13 @@ import base64
 import json
 import logging
 import os
+import secrets
 import time
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -73,12 +74,18 @@ from ..deps import (
     get_tools,
 )
 from fim_agent.db import get_session
-from fim_agent.web.auth import get_current_user_optional
+from fim_agent.web.auth import get_current_user, get_current_user_optional
 from fim_agent.web.models import User
 
 logger = logging.getLogger(__name__)
 
 _allow_stdio_mcp = os.environ.get("ALLOW_STDIO_MCP", "true").lower() != "false"
+
+# ---------------------------------------------------------------------------
+# SSE one-time ticket store  (ticket → (user_id, expires_at))
+# ---------------------------------------------------------------------------
+
+_sse_tickets: dict[str, tuple[str, datetime]] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +272,8 @@ async def _generate_suggestions(
 async def _resolve_user(
     token: str | None,
 ) -> tuple[str | None, str | None, str | None]:
-    """Validate a JWT query-param token and return (user_id, system_instructions, preferred_language).
+    """Validate a JWT query-param token (or one-time SSE ticket) and return
+    ``(user_id, system_instructions, preferred_language)``.
 
     Returns ``(None, None, None)`` when *token* is not provided.
     Raises HTTPException(401) on invalid/expired tokens.
@@ -273,14 +281,30 @@ async def _resolve_user(
     if not token:
         return None, None, None
 
-    from fim_agent.web.auth import decode_token
+    # -- Purge expired tickets on every call --------------------------------
+    now_utc = datetime.now(UTC)
+    expired_keys = [k for k, (_, exp) in _sse_tickets.items() if exp < now_utc]
+    for k in expired_keys:
+        _sse_tickets.pop(k, None)
 
-    payload = decode_token(token)  # raises 401 on bad token
-    user_id: str | None = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
+    # -- Check if token is a one-time SSE ticket ----------------------------
+    if token in _sse_tickets:
+        _uid, _exp = _sse_tickets.pop(token)
+        if _exp < now_utc:
+            raise HTTPException(status_code=401, detail="SSE ticket expired")
+        # Ticket is valid — fall through to DB lookup with _uid
+        user_id: str | None = _uid
+        payload: dict = {}
+    else:
+        # -- Normal JWT path ------------------------------------------------
+        from fim_agent.web.auth import decode_token
 
-    # Fetch user's system_instructions and preferred_language
+        payload = decode_token(token)  # raises 401 on bad/expired token
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+
+    # -- Fetch full user record from DB ------------------------------------
     system_instructions: str | None = None
     preferred_language: str | None = None
     try:
@@ -289,16 +313,35 @@ async def _resolve_user(
 
         async with create_session() as session:
             result = await session.execute(
-                sa_select(User.system_instructions, User.preferred_language).where(
-                    User.id == user_id
-                )
+                sa_select(User).where(User.id == user_id)
             )
-            row = result.one_or_none()
-            if row:
-                system_instructions = row[0]
-                preferred_language = row[1]
+            user = result.scalar_one_or_none()
+            if user is None:
+                raise HTTPException(status_code=401, detail="User not found")
+
+            # Fix #11a: reject disabled accounts
+            if not user.is_active:
+                return None, None, None
+
+            # Fix #11b: reject tokens issued before a force-logout event
+            if user.tokens_invalidated_at is not None and payload:
+                iat = payload.get("iat")
+                if iat is None:
+                    return None, None, None
+                token_issued = (
+                    datetime.fromtimestamp(iat, tz=UTC)
+                    if isinstance(iat, (int, float))
+                    else iat
+                )
+                if token_issued <= user.tokens_invalidated_at.replace(tzinfo=UTC):
+                    return None, None, None
+
+            system_instructions = user.system_instructions
+            preferred_language = user.preferred_language
+    except HTTPException:
+        raise
     except Exception:
-        logger.warning("Failed to load user system_instructions", exc_info=True)
+        logger.warning("Failed to load user record", exc_info=True)
 
     return user_id, system_instructions, preferred_language
 
@@ -755,6 +798,27 @@ def _load_image_data_urls(
 
 
 # ---------------------------------------------------------------------------
+# SSE ticket endpoint — issue a short-lived one-time token for SSE auth
+# ---------------------------------------------------------------------------
+
+
+@router.post("/chat/ticket")
+async def issue_sse_ticket(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> dict[str, str]:
+    """Generate a single-use SSE authentication ticket.
+
+    The ticket is valid for 60 seconds and can be passed as the ``token``
+    query parameter to ``/api/react`` or ``/api/dag``.  It is consumed on
+    first use so it cannot be replayed.
+    """
+    ticket = secrets.token_urlsafe(32)
+    expires_at = datetime.now(UTC) + timedelta(seconds=60)
+    _sse_tickets[ticket] = (str(current_user.id), expires_at)
+    return {"ticket": ticket}
+
+
+# ---------------------------------------------------------------------------
 # Inject endpoint — mid-stream message injection
 # ---------------------------------------------------------------------------
 
@@ -769,7 +833,7 @@ class InjectMessageRequest(BaseModel):
 @router.post("/chat/inject")
 async def inject_message(
     body: InjectMessageRequest,
-    current_user: User | None = Depends(get_current_user_optional),  # noqa: B008
+    current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> dict[str, Any]:
     """Inject a user message into a running agent execution.
@@ -780,6 +844,16 @@ async def inject_message(
 
     Returns 409 if no active execution exists for the conversation.
     """
+    # Ownership check: verify the conversation belongs to the authenticated user.
+    from fim_agent.web.models import Conversation as _ConvModel
+
+    _conv_result = await db.execute(
+        sa_select(_ConvModel.user_id).where(_ConvModel.id == body.conversation_id)
+    )
+    _conv_owner = _conv_result.scalar_one_or_none()
+    if _conv_owner is None or str(_conv_owner) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     q = get_interrupt_queue(body.conversation_id)
     if q is None:
         raise HTTPException(
@@ -821,9 +895,20 @@ class RecallInjectRequest(BaseModel):
 @router.post("/chat/inject/recall")
 async def recall_inject(
     body: RecallInjectRequest,
-    current_user: User | None = Depends(get_current_user_optional),  # noqa: B008
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> dict[str, bool]:
     """Recall (cancel) a queued inject message before the agent consumes it."""
+    # Ownership check: verify the conversation belongs to the authenticated user.
+    from fim_agent.web.models import Conversation as _ConvModel
+
+    _conv_result = await db.execute(
+        sa_select(_ConvModel.user_id).where(_ConvModel.id == body.conversation_id)
+    )
+    _conv_owner = _conv_result.scalar_one_or_none()
+    if _conv_owner is None or str(_conv_owner) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     q = get_interrupt_queue(body.conversation_id)
     if q is None:
         raise HTTPException(status_code=409, detail="No active execution")
@@ -866,6 +951,8 @@ async def react_endpoint(
     """
     # -- Pre-stream resolution (before StreamingResponse) -------------------
     current_user_id, user_system_instructions, preferred_language = await _resolve_user(token)
+    if current_user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     if conversation_id and current_user_id:
         await _validate_conversation_ownership(conversation_id, current_user_id)
     if current_user_id:
@@ -1237,6 +1324,8 @@ async def dag_endpoint(
     """
     # -- Pre-stream resolution ----------------------------------------------
     current_user_id, user_system_instructions, preferred_language = await _resolve_user(token)
+    if current_user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     if conversation_id and current_user_id:
         await _validate_conversation_ownership(conversation_id, current_user_id)
     if current_user_id:

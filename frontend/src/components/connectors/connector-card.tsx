@@ -24,7 +24,7 @@ export function ConnectorCard({
   onDelete,
 }: ConnectorCardProps) {
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-accent/5">
+    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-ring/40 hover:bg-accent/10">
 
       {/* Header: name + badges */}
       <div className="flex items-start gap-2 mb-2">
