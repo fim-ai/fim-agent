@@ -53,7 +53,7 @@ Hub          → Central cross-system orchestration (Portal / API)
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| **Open source vs. closed** | **Closed-source SaaS** (revisit post-PMF) | AI auto-configuration engine and legacy system connector know-how are the core moat; open-sourcing transfers that value to competitors. Open Core may be revisited once product-market fit is proven. |
+| **Open source vs. closed** | **Open Source (Open Core model)** | SaaS is a demo/lead-gen channel, not a revenue source. Real revenue comes from enterprise deployment + connector customization + ongoing services. Code is not the moat — connector know-how, enterprise relationships, and AI auto-config quality are. Open source maximizes reach at near-zero CAC; enterprise services are non-replicable by code alone. Framework + community connectors open; pre-built enterprise connectors (用友/金蝶/致远) + managed SaaS + deployment services are the paid layer. |
 | **Connector vs. MCP alignment** | **Keep separate; optional MCP export later** | Connector = no-code product feature (fill a form → tool); MCP = developer protocol (write code → server). They solve the same problem at different abstraction layers for different users. Don't merge; offer "Export as MCP Server" in v1.2. |
 | **Frontend language** | **Chinese-first i18n** | Closed-source SaaS targeting Chinese enterprise (用友/金蝶/致远). Set up `next-intl` with `zh-CN` as primary, English as fallback from existing code. Code/commits/variable names stay English (engineering standard). |
 | **Connector access modes** | **Three modes: API → DB → Auth-Login** | Priority order based on coverage and implementation complexity. API mode (80% of modern systems) polish first; DB mode (data analysis, high enterprise value) second; Auth-Login (legacy ERP multi-step credential exchange) third. See v0.8.1, v0.10. |
@@ -330,7 +330,7 @@ Mode 3: Auth-Login Mode (planned v0.10)
 
 > *"Sharpen the core product: AI auto-configuration quality and Chinese enterprise readiness"*
 >
-> Two priorities before Organization (v0.9): make the AI Connector Builder production-quality for the API access mode, and ship Chinese UI for enterprise demos. These are the highest-leverage items for the target market (Chinese enterprise SaaS).
+> Two priorities before Organization (v0.9): make the AI Connector Builder production-quality for the API access mode, and ship Chinese UI for enterprise demos. These are the highest-leverage items for the target market (Chinese enterprise deployment + services).
 
 **Connector Response Intelligence**
 - [x] **Schema-Hint Truncation**: Shared `truncate_tool_output()` utility (`core/tool/truncation.py`) for both ConnectorToolAdapter and MCPToolAdapter; truncation messages now include JSON key lists and array item counts so the agent knows what was omitted and can refine queries — replaces blind `[Truncated -- N chars]` messages. MCPToolAdapter previously had **zero truncation**; now protected against oversized tool outputs (e.g., 265K-char MCP responses that would blow up the context window). Inspired by Claude Code's overflow mechanism: when tool output exceeds limits, provide a "map" (schema hint) not the "territory" (raw data).
@@ -348,9 +348,9 @@ Mode 3: Auth-Login Mode (planned v0.10)
 
 **Frontend i18n (Chinese-First)**
 
-> Closed-source SaaS targeting Chinese enterprise market. Chinese UI is a prerequisite for demos, sales, and pilot deployments. English fallback from existing code is sufficient — no separate English translation effort.
+> Open Core project targeting Chinese enterprise market. Chinese UI is a prerequisite for demos, pilot deployments, and enterprise sales. English remains the primary language for code, docs, and open-source community; Chinese locale added for the product UI.
 >
-> **Rule: Code stays English, UI speaks Chinese.** Variable names, commit messages, comments, technical docs, CHANGELOG — all remain English. Only user-facing UI strings are externalized to locale files.
+> **Rule: Code stays English, UI speaks both.** Variable names, commit messages, comments, technical docs, CHANGELOG — all remain English (open-source community standard). User-facing UI strings are externalized to locale files with `zh-CN` as primary and `en` as fallback.
 
 - [ ] **i18n Infrastructure**: `next-intl` integration with `zh-CN` as primary locale, `en` as fallback (existing English strings serve as fallback keys — no translation file needed for English)
 - [ ] **UI Text Externalization**: All user-facing strings extracted to locale JSON files (`messages/zh-CN.json`); components use `useTranslations()` hook. Organized by page/feature (e.g., `agent.create`, `connector.authType.bearer`, `admin.userManagement`)
@@ -358,8 +358,6 @@ Mode 3: Auth-Login Mode (planned v0.10)
 
 **NOT in this version (explicit decisions — see Strategy Decisions section):**
 - ❌ Connector does NOT adopt MCP protocol internally — Connector is a no-code product, MCP is a developer protocol; they are complementary layers serving different users
-- ❌ No full English i18n translation effort — English fallback from existing code is sufficient; investing in English translation has zero ROI for the Chinese enterprise target market
-- ❌ No open source release — closed-source SaaS confirmed; the AI auto-configuration engine and legacy system know-how are the moat
 - ❌ No DB mode or Auth-Login mode yet — these are v0.10 scope; API mode must be production-quality first
 
 ---
@@ -581,7 +579,7 @@ ERP Connector     (read financial data)
 **i18n** *(core items moved to v0.8.1 — Chinese-first strategy)*
 - [x] **User Language Preference**: `preferred_language` backend setting with language directive injection across all LLM interactions *(shipped in v0.6.2)*
 - [ ] **Frontend i18n**: → **moved to v0.8.1** (Chinese-first; `next-intl` + `zh-CN` primary locale)
-- [ ] **Documentation i18n**: Chinese user-facing documentation (help center, onboarding guides); technical docs (CHANGELOG, API docs) remain English. Deferred until product stabilizes post-v0.9.
+- [ ] **Documentation i18n**: Chinese user-facing documentation (help center, onboarding guides); technical docs (CHANGELOG, API docs, README, Wiki) remain English for open-source community. Deferred until product stabilizes post-v0.9.
 
 ### v1.1 -- Agent as a Service
 
