@@ -409,16 +409,6 @@ async def get_effective_fast_context_budget(db: "AsyncSession") -> int:
     return get_fast_context_budget()
 
 
-def get_user_id() -> str:
-    """Return the current user identifier.
-
-    This is a placeholder that always returns ``"default"``.  It is pre-wired
-    so that future authentication middleware can override the value without
-    touching endpoint signatures.
-    """
-    return "default"
-
-
 # Alias for convenience — endpoints can use either name.
 get_db = get_session
 

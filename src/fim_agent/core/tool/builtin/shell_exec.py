@@ -233,6 +233,14 @@ class ShellExecTool(BaseTool):
         self._memory = memory
         self._cpu = cpu
 
+        backend_name = os.environ.get("CODE_EXEC_BACKEND", "local").lower()
+        if backend_name == "local":
+            logger.warning(
+                "shell_exec is using the LOCAL backend — commands run directly on the "
+                "host machine with no OS-level isolation. "
+                "Use CODE_EXEC_BACKEND=docker in production multi-user deployments."
+            )
+
     # ------------------------------------------------------------------
     # Tool protocol properties
     # ------------------------------------------------------------------

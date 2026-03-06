@@ -15,6 +15,7 @@ __fim_origin__ = "https://github.com/fim-ai/fim-agent"
 import logging
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -31,7 +32,6 @@ import json
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from .api.admin import SETTING_MAINTENANCE_MODE, get_setting, router as admin_router
 from .api.agents import router as agents_router
@@ -71,12 +71,15 @@ def create_app() -> FastAPI:
     The returned app includes:
 
     * Database lifecycle management via the ``lifespan`` context manager.
-    * CORS middleware allowing ``localhost:3000`` (Next.js dev server) and all
-      origins (``*``) so that production front-ends work out of the box.
+    * CORS middleware allowing explicit localhost origins (Next.js dev server)
+      plus any extra origins supplied via the ``CORS_ORIGINS`` env var.
+      ``allow_credentials=True`` requires explicit origins — wildcard (``*``)
+      is intentionally excluded.
     * The ``/api/react`` and ``/api/dag`` SSE chat endpoints from
       :mod:`fim_agent.web.api.chat`.
     * Auth, conversation, and agent CRUD routers.
-    * Static file serving for ``/uploads`` when the directory exists.
+    * File downloads served through the authenticated ``/api/files`` router
+      (no unauthenticated static-file mount).
 
     Returns
     -------
@@ -103,16 +106,27 @@ def create_app() -> FastAPI:
     # Passes: OPTIONS (CORS preflight), /api/auth/* (login still works),
     #         /api/admin/* (admins can turn maintenance off), /api/system/*
     _MAINTENANCE_PASS = ("/api/auth/", "/api/admin/", "/api/system/")
+    _maintenance_cache: list[tuple[bool, float] | None] = [None]
+    _MAINTENANCE_TTL = 30.0
 
     @app.middleware("http")
     async def maintenance_mode_gate(request: Request, call_next):
         path = request.url.path
         if any(path.startswith(p) for p in _MAINTENANCE_PASS) or request.method == "OPTIONS":
             return await call_next(request)
-        from fim_agent.db import create_session
-        async with create_session() as db:
-            value = await get_setting(db, SETTING_MAINTENANCE_MODE, default="false")
-        if value.lower() == "true":
+
+        now = time.monotonic()
+        cached = _maintenance_cache[0]
+        if cached is not None and now - cached[1] < _MAINTENANCE_TTL:
+            is_maintenance = cached[0]
+        else:
+            from fim_agent.db import create_session
+            async with create_session() as db:
+                value = await get_setting(db, SETTING_MAINTENANCE_MODE, default="false")
+            is_maintenance = value.lower() == "true"
+            _maintenance_cache[0] = (is_maintenance, now)
+
+        if is_maintenance:
             return JSONResponse(
                 status_code=503,
                 content={"detail": "System is under maintenance. Please try again later."},
@@ -121,6 +135,15 @@ def create_app() -> FastAPI:
         return await call_next(request)
 
     # -- CORS ---------------------------------------------------------------
+    # Do NOT include "*" alongside allow_credentials=True — browsers reject
+    # credentialed requests to wildcard origins (and it exposes all endpoints
+    # to any origin).  List explicit allowed origins only; operators can extend
+    # via the CORS_ORIGINS env var (comma-separated).
+    _extra_origins = [
+        o.strip()
+        for o in os.environ.get("CORS_ORIGINS", "").split(",")
+        if o.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -128,7 +151,7 @@ def create_app() -> FastAPI:
             "http://localhost:3001",
             "http://127.0.0.1:3000",
             "http://127.0.0.1:3001",
-            "*",
+            *_extra_origins,
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -151,14 +174,11 @@ def create_app() -> FastAPI:
     app.include_router(models_router)
     app.include_router(tools_router)
 
-    # -- Static uploads -----------------------------------------------------
+    # NOTE: /uploads is intentionally NOT mounted as a public StaticFiles route.
+    # File downloads are served through the authenticated API endpoint at
+    # GET /api/files/{file_id}/download, which enforces access control.
     uploads_dir = Path(os.environ.get("UPLOADS_DIR", "uploads"))
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    app.mount(
-        "/uploads",
-        StaticFiles(directory=str(uploads_dir)),
-        name="uploads",
-    )
 
     logger.info("FIM Agent API application created")
     return app

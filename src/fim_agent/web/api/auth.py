@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -122,31 +122,43 @@ async def register(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invite code required",
                 )
-            from datetime import timezone as _tz
-
-            code_result = await db.execute(
-                select(InviteCode).where(
+                # Atomic increment: the UPDATE only succeeds when the code exists,
+            # is active, has not expired, and still has remaining uses.
+            # This prevents the non-atomic read-modify-write race condition where
+            # two concurrent requests both pass the use_count check before either
+            # commits.
+            now_utc = datetime.now(UTC)
+            invite_result = await db.execute(
+                update(InviteCode)
+                .where(
                     InviteCode.code == body.invite_code,
                     InviteCode.is_active == True,  # noqa: E712
+                    InviteCode.use_count < InviteCode.max_uses,
+                    (InviteCode.expires_at == None)  # noqa: E711
+                    | (InviteCode.expires_at > now_utc),
                 )
+                .values(use_count=InviteCode.use_count + 1)
+                .returning(InviteCode)
             )
-            invite = code_result.scalar_one_or_none()
+            invite = invite_result.scalar_one_or_none()
             if invite is None:
+                # Distinguish the failure reason with a second read (read-only,
+                # no TOCTOU risk here — we are only producing a helpful error
+                # message after the atomic operation already rejected the request).
+                diag_result = await db.execute(
+                    select(InviteCode).where(InviteCode.code == body.invite_code)
+                )
+                diag = diag_result.scalar_one_or_none()
+                if diag is None or not diag.is_active:
+                    detail = "Invalid invite code"
+                elif diag.expires_at and diag.expires_at.replace(tzinfo=UTC) < now_utc:
+                    detail = "Invite code has expired"
+                else:
+                    detail = "Invite code has been fully used"
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid invite code",
+                    detail=detail,
                 )
-            if invite.expires_at and invite.expires_at.replace(tzinfo=_tz.utc) < datetime.now(_tz.utc):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invite code has expired",
-                )
-            if invite.use_count >= invite.max_uses:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invite code has been fully used",
-                )
-            invite.use_count += 1
             await db.flush()
 
     result = await db.execute(select(User).where(User.username == body.username))
@@ -180,7 +192,7 @@ async def register(
     refresh = create_refresh_token(user.id, user.username)
 
     user.refresh_token = refresh
-    user.refresh_token_expires_at = datetime.utcnow() + timedelta(
+    user.refresh_token_expires_at = datetime.now(UTC) + timedelta(
         days=REFRESH_TOKEN_EXPIRE_DAYS
     )
     await db.commit()
@@ -223,7 +235,7 @@ async def login(
     refresh = create_refresh_token(user.id, user.username)
 
     user.refresh_token = refresh
-    user.refresh_token_expires_at = datetime.utcnow() + timedelta(
+    user.refresh_token_expires_at = datetime.now(UTC) + timedelta(
         days=REFRESH_TOKEN_EXPIRE_DAYS
     )
     await db.commit()
@@ -280,7 +292,7 @@ async def refresh_token(
 
     if (
         user.refresh_token_expires_at is not None
-        and user.refresh_token_expires_at < datetime.utcnow()
+        and user.refresh_token_expires_at < datetime.now(UTC)
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -292,7 +304,7 @@ async def refresh_token(
     refresh = create_refresh_token(user.id, user.username)
 
     user.refresh_token = refresh
-    user.refresh_token_expires_at = datetime.utcnow() + timedelta(
+    user.refresh_token_expires_at = datetime.now(UTC) + timedelta(
         days=REFRESH_TOKEN_EXPIRE_DAYS
     )
     await db.commit()
@@ -501,7 +513,7 @@ async def setup(
     refresh = create_refresh_token(user.id, user.username)
 
     user.refresh_token = refresh
-    user.refresh_token_expires_at = datetime.utcnow() + timedelta(
+    user.refresh_token_expires_at = datetime.now(UTC) + timedelta(
         days=REFRESH_TOKEN_EXPIRE_DAYS
     )
     await db.commit()
