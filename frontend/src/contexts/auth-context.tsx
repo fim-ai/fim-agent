@@ -9,6 +9,7 @@ import {
   useRef,
 } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { authApi, setAuthFailureCallback } from "@/lib/api"
 import {
   ACCESS_TOKEN_KEY,
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setAuthFailureCallback(() => {
       clearAuth()
+      toast.error("Session expired, please log in again")
       router.replace("/login")
     })
     return () => setAuthFailureCallback(null)

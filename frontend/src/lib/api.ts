@@ -39,8 +39,33 @@ import type { ModelConfigResponse, ModelConfigCreate, ModelConfigUpdate } from "
 
 // --- Auth failure callback ---
 let authFailureCallback: (() => void) | null = null
+let authFailureFired = false
+let authFailurePending = false // fired before callback was registered (hard refresh race)
+
 export function setAuthFailureCallback(cb: (() => void) | null) {
   authFailureCallback = cb
+  if (cb === null) {
+    // cleanup on unmount — reset all state
+    authFailureFired = false
+    authFailurePending = false
+  } else {
+    // new session — reset fired flag; replay if already pending
+    authFailureFired = false
+    if (authFailurePending) {
+      authFailurePending = false
+      cb()
+    }
+  }
+}
+
+function fireAuthFailure() {
+  if (authFailureFired) return
+  authFailureFired = true
+  if (authFailureCallback) {
+    authFailureCallback()
+  } else {
+    authFailurePending = true // callback not yet registered; will fire when it is
+  }
 }
 
 // --- Maintenance mode callback ---
@@ -128,14 +153,27 @@ export async function apiFetch<T>(
 
   let res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers })
 
-  if (res.status === 401 && token) {
-    const refreshed = await refreshAccessToken()
-    if (refreshed) {
-      headers["Authorization"] = `Bearer ${refreshed.access_token}`
-      res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers })
+  if (res.status === 401) {
+    if (token) {
+      const refreshed = await refreshAccessToken()
+      if (refreshed) {
+        headers["Authorization"] = `Bearer ${refreshed.access_token}`
+        res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers })
+      } else {
+        fireAuthFailure()
+        return new Promise<T>(() => {}) // silently hang — auth callback redirects to login
+      }
     } else {
-      authFailureCallback?.()
-      return new Promise<T>(() => {}) // silently hang — auth callback redirects to login
+      // No token at all — only redirect if not on a public page (login/setup/oauth callback)
+      const isPublicPath =
+        typeof window !== "undefined" &&
+        ["/login", "/setup", "/auth"].some((p) =>
+          window.location.pathname.startsWith(p),
+        )
+      if (!isPublicPath) {
+        fireAuthFailure()
+        return new Promise<T>(() => {}) // silently hang — auth callback redirects to login
+      }
     }
   }
 
