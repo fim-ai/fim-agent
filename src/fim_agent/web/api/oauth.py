@@ -7,7 +7,7 @@ import logging
 import os
 import secrets
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,6 +24,7 @@ from fim_agent.web.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_current_user,
 )
 from fim_agent.web.models import User, UserOAuthBinding
 from fim_agent.web.oauth import (
@@ -42,6 +43,13 @@ router = APIRouter(prefix="/api/auth/oauth", tags=["oauth"])
 # Each entry: {"expiry": float, "action": "login"|"bind", "user_id": str|None}
 _oauth_states: dict[str, dict] = {}
 _STATE_TTL = 300  # 5 minutes
+
+# ---------------------------------------------------------------------------
+# OAuth bind ticket store  (ticket → (user_id, expires_at))
+# One-time tickets replace raw JWTs in the /authorize?ticket=... bind flow.
+# ---------------------------------------------------------------------------
+_bind_tickets: dict[str, tuple[str, float]] = {}
+_BIND_TICKET_TTL = 60  # 60 seconds
 
 
 def _cleanup_expired_states() -> None:
@@ -72,13 +80,14 @@ async def authorize(
     provider_name: str,
     action: str | None = None,
     token: str | None = None,
+    ticket: str | None = None,
 ):
     """Redirect user to OAuth provider for authentication.
 
     Query params for bind flow:
     - action=bind — indicates this is an account-binding request
-    - token — JWT access token of the current user (needed because this
-      is a browser redirect and can't use the Authorization header)
+    - ticket — one-time bind ticket (preferred, from POST /api/auth/oauth/bind-ticket)
+    - token — JWT access token (deprecated, still accepted for backward compat)
     """
     provider = get_provider(provider_name)
     if not provider:
@@ -94,19 +103,48 @@ async def authorize(
     }
 
     if action == "bind":
-        if not token:
-            raise HTTPException(status_code=400, detail="Token required for bind action")
-        try:
-            payload = decode_token(token)
-        except HTTPException:
-            frontend_url = _get_frontend_url()
-            return RedirectResponse(
-                url=f"{frontend_url}/settings?tab=account&bind_error=invalid_token",
-                status_code=302,
-            )
-        user_id = payload.get("sub")
+        user_id: str | None = None
+
+        # Prefer ticket over raw JWT token
+        if ticket:
+            now = time.time()
+            # Purge expired bind tickets
+            expired = [k for k, (_, exp) in _bind_tickets.items() if exp < now]
+            for k in expired:
+                _bind_tickets.pop(k, None)
+
+            entry = _bind_tickets.pop(ticket, None)
+            if entry is None:
+                frontend_url = _get_frontend_url()
+                return RedirectResponse(
+                    url=f"{frontend_url}/settings?tab=account&bind_error=invalid_ticket",
+                    status_code=302,
+                )
+            uid, exp = entry
+            if exp < now:
+                frontend_url = _get_frontend_url()
+                return RedirectResponse(
+                    url=f"{frontend_url}/settings?tab=account&bind_error=ticket_expired",
+                    status_code=302,
+                )
+            user_id = uid
+        elif token:
+            # Deprecated: raw JWT in query param
+            logger.warning("OAuth bind using deprecated raw JWT token param — use ticket instead")
+            try:
+                payload = decode_token(token)
+            except HTTPException:
+                frontend_url = _get_frontend_url()
+                return RedirectResponse(
+                    url=f"{frontend_url}/settings?tab=account&bind_error=invalid_token",
+                    status_code=302,
+                )
+            user_id = payload.get("sub")
+        else:
+            raise HTTPException(status_code=400, detail="Ticket or token required for bind action")
+
         if not user_id:
-            raise HTTPException(status_code=400, detail="Invalid token: missing user id")
+            raise HTTPException(status_code=400, detail="Invalid credentials: missing user id")
         state_entry["action"] = "bind"
         state_entry["user_id"] = user_id
 
@@ -278,13 +316,16 @@ async def _handle_login(
         if user_info.display_name and binding.display_name != user_info.display_name:
             binding.display_name = user_info.display_name
     else:
-        # 2. No binding found -- try to match by email
+        # 2. No binding found -- check if a local account with this email exists.
+        #    If found, auto-bind: log in as that existing user.
         user = None
         if user_info.email:
             email_result = await db.execute(
                 select(User).where(User.email == user_info.email)
             )
-            user = email_result.scalar_one_or_none()
+            matched = email_result.scalar_one_or_none()
+            if matched is not None:
+                user = matched
 
         if user is None:
             # 3. No email match -- create new user, but check registration_mode first
@@ -344,15 +385,16 @@ async def _handle_login(
     if not user.oauth_provider:
         user.oauth_provider = user_info.provider
         user.oauth_id = user_info.id
-    # Update email if changed
-    if user_info.email and user.email != user_info.email:
-        user.email = user_info.email
+    # NOTE: We deliberately do NOT update user.email from the OAuth provider.
+    # Silently overwriting the stored email whenever a provider reports a new
+    # address would allow an attacker who changes their provider email to
+    # overwrite another user's email address.
 
     # Issue JWT tokens
     jwt_access = create_access_token(user.id, user.username)
     jwt_refresh = create_refresh_token(user.id, user.username)
     user.refresh_token = jwt_refresh
-    user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    user.refresh_token_expires_at = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     await db.commit()
 
     # Reload with oauth_bindings for response serialization
@@ -382,10 +424,33 @@ async def _handle_login(
         "oauth_bindings": bindings_data,
     })
 
+    # Use URL fragment (#) instead of query params (?) so tokens never
+    # appear in server logs, nginx access logs, or browser history.
     redirect_url = (
         f"{frontend_url}/auth/callback"
-        f"?access_token={jwt_access}"
+        f"#access_token={jwt_access}"
         f"&refresh_token={jwt_refresh}"
         f"&user={quote(user_data)}"
     )
     return RedirectResponse(url=redirect_url, status_code=302)
+
+
+# ---------------------------------------------------------------------------
+# Bind ticket endpoint — issue a short-lived one-time token for OAuth bind
+# ---------------------------------------------------------------------------
+
+
+@router.post("/bind-ticket")
+async def issue_bind_ticket(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> dict[str, str]:
+    """Generate a single-use OAuth bind ticket.
+
+    The ticket is valid for 60 seconds and should be passed as the ``ticket``
+    query parameter to ``/{provider}/authorize?action=bind&ticket=...``.
+    It is consumed on first use so it cannot be replayed.
+    """
+    ticket = secrets.token_urlsafe(32)
+    expires_at = time.time() + _BIND_TICKET_TTL
+    _bind_tickets[ticket] = (str(current_user.id), expires_at)
+    return {"ticket": ticket}
