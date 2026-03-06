@@ -10,6 +10,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Admin/Settings: invite code inactive filter**: Revoked and exhausted invite codes are hidden by default; an "N inactive" toggle button reveals them. Exhausted codes (use_count ≥ max_uses) now show an "Exhausted" badge distinct from "Revoked".
 
 ### Fixed
+- **OAuth callback redirect** now passes tokens via URL fragment instead of query params, preventing leakage in server logs and browser history (S-7)
+- **OAuth bind flow** now uses one-time ticket instead of raw JWT in URL; new `POST /api/auth/oauth/bind-ticket` endpoint (S-6)
 - **API/chat: DB session leak on setup failure**: Both `react_endpoint` and `dag_endpoint` now call `db_session.close()` before nulling the reference when the setup block raises, preventing connection pool exhaustion.
 - **API/chat: atomic token tracking**: Fast-LLM token persistence replaced SELECT+modify with a single SQL `UPDATE … SET total_tokens = COALESCE(total_tokens,0)+N` to avoid read-modify-write races under concurrent requests.
 - **API/chat: fast_usage_tracker scope in DAG endpoint**: Moved initialization before the try block so the variable is always defined when the done payload is assembled; also tracks usage from the conversation summarization phase.
