@@ -7,6 +7,7 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 from fim_agent.core.tool.base import BaseTool
+from fim_agent.core.tool.truncation import truncate_tool_output
 
 
 def _sanitize_tool_name(name: str) -> str:
@@ -79,7 +80,8 @@ class MCPToolAdapter(BaseTool):
     async def run(self, **kwargs: Any) -> str:
         """Call the MCP server's ``tools/call`` endpoint and extract text."""
         result = await self._call_fn(self._original_name, kwargs)
-        return self._extract_text(result)
+        output = self._extract_text(result)
+        return truncate_tool_output(output)
 
     # ------------------------------------------------------------------
     # Helpers
