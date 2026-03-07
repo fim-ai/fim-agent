@@ -7,7 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Error code infrastructure**: `AppError(HTTPException)` with structured `error_code` + `detail_args`; global exception handlers in `app.py` for `AppError`, `HTTPException` (backward-compat), and `RequestValidationError`; frontend `ApiError` extended with `errorCode`/`errorArgs`; `getErrorMessage()` utility for i18n-aware error display
+- **Error translations**: `errors.json` (en/zh) with ~60 error code translations covering auth, admin, chat, connectors, files, KB, models, agents, AI, OAuth, MCP
+- **AI result i18n**: `message_key` + `message_args` fields on `AICreateAgentResult`, `AIRefineAgentResult`, `AIActionResult`, `AICreateConnectorResult` for translated success messages
+
+### Changed
+- **Backend error responses**: All 121 `raise HTTPException(...)` across 13 API modules migrated to `raise AppError(...)` with machine-readable error codes; response format now includes `{detail, error_code, error_args}`
+- **Frontend error display**: Admin components migrated from `errMsg()` helper to `getErrorMessage(err, tError)` with `next-intl` translations; hardcoded error strings replaced with i18n keys; auth-context "Session expired" message internationalized
 - **i18n: full frontend internationalization** — migrated 500+ hardcoded English strings across 76 files to `next-intl` with cookie-based locale switching (en/zh). 11 namespaces: common, auth, layout, playground, admin, agents, connectors, kb, settings, tools, dag. Language selector in user menu sets `NEXT_LOCALE` cookie + reloads. No URL routing changes — locale stored in cookie, read server-side via `getRequestConfig` with `fs.readdirSync` auto-discovery of namespace JSON files.
+- **i18n: playground example prompts merged into i18n** — moved all hardcoded en/zh example prompts from `examples.tsx` into `messages/en|zh/playground.json` (`examples.react[]` / `examples.dag[]`). Removed local `language` state, `language`/`onLanguageChange` prop-drilling, and in-component EN/中文 switcher. Prompts now follow the global locale automatically via `t.raw()`.
 - **Admin/Settings: invite code inactive filter**: Revoked and exhausted invite codes are hidden by default; an "N inactive" toggle button reveals them. Exhausted codes (use_count ≥ max_uses) now show an "Exhausted" badge distinct from "Revoked".
 
 ### Fixed
