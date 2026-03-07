@@ -44,7 +44,7 @@ function LoginPageInner() {
 
   // Forgot password state
   const [forgotMode, setForgotMode] = useState(false)
-  const [forgotStep, setForgotStep] = useState<"email" | "code" | "password">("email")
+  const [forgotStep, setForgotStep] = useState<"email" | "code">("email")
   const [forgotEmail, setForgotEmail] = useState("")
   const [forgotCode, setForgotCode] = useState("")
   const [forgotNewPassword, setForgotNewPassword] = useState("")
@@ -284,14 +284,9 @@ function LoginPageInner() {
     }
   }
 
-  const handleForgotCodeComplete = (code: string) => {
-    setForgotCode(code)
-    setForgotStep("password")
-  }
-
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (forgotNewPassword.length < 8 || forgotNewPassword !== forgotConfirmPassword) return
+    if (forgotCode.length < 6 || forgotNewPassword.length < 8 || forgotNewPassword !== forgotConfirmPassword) return
     setForgotSubmitting(true)
     try {
       await authApi.forgotPassword({
@@ -311,7 +306,6 @@ function LoginPageInner() {
       toast.error(getErrorMessage(err, tError))
       const apiErr = err as import("@/lib/api").ApiError
       if (apiErr.errorCode === "verification_code_invalid" || apiErr.errorCode === "verification_code_expired" || apiErr.errorCode === "verification_code_too_many_attempts") {
-        setForgotStep("code")
         setForgotCode("")
       }
     } finally {
@@ -553,8 +547,8 @@ function LoginPageInner() {
                       </button>
                     </div>
                   </div>
-                ) : forgotStep === "code" ? (
-                  <div className="space-y-4 pt-4">
+                ) : (
+                  <form onSubmit={handleForgotPasswordSubmit} className="space-y-4 pt-4">
                     <p className="text-sm text-muted-foreground">
                       {t("resetCodeSent", { email: forgotEmail })}
                     </p>
@@ -563,7 +557,6 @@ function LoginPageInner() {
                         maxLength={6}
                         value={forgotCode}
                         onChange={setForgotCode}
-                        onComplete={handleForgotCodeComplete}
                         autoFocus
                       >
                         <InputOTPGroup>
@@ -579,6 +572,38 @@ function LoginPageInner() {
                         </InputOTPGroup>
                       </InputOTP>
                     </div>
+                    <div className="space-y-2">
+                      <Input
+                        type="password"
+                        placeholder={t("newPasswordPlaceholder")}
+                        value={forgotNewPassword}
+                        onChange={(e) => setForgotNewPassword(e.target.value)}
+                        autoComplete="new-password"
+                      />
+                      <Input
+                        type="password"
+                        placeholder={t("confirmNewPasswordPlaceholder")}
+                        value={forgotConfirmPassword}
+                        onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    {forgotConfirmPassword.length > 0 && forgotNewPassword !== forgotConfirmPassword && (
+                      <p className="text-sm text-destructive">{t("passwordsMustMatch")}</p>
+                    )}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={
+                        forgotSubmitting ||
+                        forgotCode.length < 6 ||
+                        forgotNewPassword.length < 8 ||
+                        forgotNewPassword !== forgotConfirmPassword
+                      }
+                    >
+                      {forgotSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {forgotSubmitting ? t("resettingPassword") : t("resetPassword")}
+                    </Button>
                     <div className="flex items-center justify-between">
                       <button
                         type="button"
@@ -598,53 +623,6 @@ function LoginPageInner() {
                           : forgotResendCountdown > 0
                             ? t("resendCodeIn", { seconds: forgotResendCountdown })
                             : t("resendCode")}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <form onSubmit={handleForgotPasswordSubmit} className="space-y-4 pt-4">
-                    <p className="text-sm text-muted-foreground">
-                      {t("resetCodeSent", { email: forgotEmail })}
-                    </p>
-                    <div className="space-y-2">
-                      <Input
-                        type="password"
-                        placeholder={t("newPasswordPlaceholder")}
-                        value={forgotNewPassword}
-                        onChange={(e) => setForgotNewPassword(e.target.value)}
-                        autoFocus
-                        autoComplete="new-password"
-                      />
-                      <Input
-                        type="password"
-                        placeholder={t("confirmNewPasswordPlaceholder")}
-                        value={forgotConfirmPassword}
-                        onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                        autoComplete="new-password"
-                      />
-                    </div>
-                    {forgotConfirmPassword.length > 0 && forgotNewPassword !== forgotConfirmPassword && (
-                      <p className="text-sm text-destructive">{t("passwordsMustMatch")}</p>
-                    )}
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={
-                        forgotSubmitting ||
-                        forgotNewPassword.length < 8 ||
-                        forgotNewPassword !== forgotConfirmPassword
-                      }
-                    >
-                      {forgotSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {forgotSubmitting ? t("resettingPassword") : t("resetPassword")}
-                    </Button>
-                    <div className="text-center">
-                      <button
-                        type="button"
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={handleCancelForgot}
-                      >
-                        {t("backToLogin")}
                       </button>
                     </div>
                   </form>

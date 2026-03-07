@@ -308,12 +308,11 @@ export function AccountSettings() {
   // Reset password via OTP state
   const locale = useLocale()
   const [resetMode, setResetMode] = useState(false)
-  const [resetStep, setResetStep] = useState<"confirm" | "code" | "password">("confirm")
+  const [resetStep, setResetStep] = useState<"confirm" | "code">("confirm")
   const [resetCode, setResetCode] = useState("")
   const [resetNewPassword, setResetNewPassword] = useState("")
   const [resetConfirmPassword, setResetConfirmPassword] = useState("")
   const [resetSending, setResetSending] = useState(false)
-  const [resetVerifying, setResetVerifying] = useState(false)
   const [resetSubmitting, setResetSubmitting] = useState(false)
   const [resetResendCountdown, setResetResendCountdown] = useState(0)
 
@@ -389,21 +388,9 @@ export function AccountSettings() {
     }
   }
 
-  const handleResetCodeComplete = async (code: string) => {
-    setResetVerifying(true)
-    try {
-      // Don't verify code separately — just move to password step
-      // The code will be validated when the user submits the new password
-      setResetCode(code)
-      setResetStep("password")
-    } finally {
-      setResetVerifying(false)
-    }
-  }
-
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (resetNewPassword.length < MIN_PASSWORD_LENGTH || resetNewPassword !== resetConfirmPassword) return
+    if (resetCode.length < 6 || resetNewPassword.length < MIN_PASSWORD_LENGTH || resetNewPassword !== resetConfirmPassword) return
 
     setResetSubmitting(true)
     try {
@@ -416,9 +403,8 @@ export function AccountSettings() {
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message)
-        // If code is invalid/expired, go back to code step
+        // If code is invalid/expired, clear it so user can re-enter
         if (err.errorCode === "verification_code_invalid" || err.errorCode === "verification_code_expired" || err.errorCode === "verification_code_too_many_attempts") {
-          setResetStep("code")
           setResetCode("")
         }
       } else {
@@ -617,56 +603,30 @@ export function AccountSettings() {
               )}
 
               {resetStep === "code" && (
-                <div className="space-y-4">
+                <form onSubmit={handleResetPassword} className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     {t("resetCodeSent", { email: user?.email ?? "" })}
                   </p>
-                  <InputOTP
-                    maxLength={6}
-                    value={resetCode}
-                    onChange={setResetCode}
-                    onComplete={handleResetCodeComplete}
-                    disabled={resetVerifying}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                    </InputOTPGroup>
-                    <InputOTPSeparator />
-                    <InputOTPGroup>
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleSendResetCode}
-                      disabled={resetResendCountdown > 0 || resetSending}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t("enterResetCode")} <span className="text-destructive">*</span></label>
+                    <InputOTP
+                      maxLength={6}
+                      value={resetCode}
+                      onChange={setResetCode}
                     >
-                      {resetSending
-                        ? t("sendingResetCode")
-                        : resetResendCountdown > 0
-                          ? t("resendCodeIn", { seconds: resetResendCountdown })
-                          : t("resendCode")}
-                    </Button>
-                    <button
-                      type="button"
-                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
-                      onClick={handleCancelReset}
-                    >
-                      {t("cancelReset")}
-                    </button>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
                   </div>
-                </div>
-              )}
-
-              {resetStep === "password" && (
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <p className="text-sm font-medium">{t("setNewPassword")}</p>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">{t("newPasswordLabel")} <span className="text-destructive">*</span></label>
                     <Input
@@ -700,6 +660,7 @@ export function AccountSettings() {
                       type="submit"
                       size="sm"
                       disabled={
+                        resetCode.length < 6 ||
                         resetNewPassword.length < MIN_PASSWORD_LENGTH ||
                         resetNewPassword !== resetConfirmPassword ||
                         resetSubmitting
@@ -707,14 +668,27 @@ export function AccountSettings() {
                     >
                       {resetSubmitting ? t("resettingPassword") : t("resetPassword")}
                     </Button>
-                    <button
+                    <Button
                       type="button"
-                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
-                      onClick={handleCancelReset}
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSendResetCode}
+                      disabled={resetResendCountdown > 0 || resetSending}
                     >
-                      {t("cancelReset")}
-                    </button>
+                      {resetSending
+                        ? t("sendingResetCode")
+                        : resetResendCountdown > 0
+                          ? t("resendCodeIn", { seconds: resetResendCountdown })
+                          : t("resendCode")}
+                    </Button>
                   </div>
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                    onClick={handleCancelReset}
+                  >
+                    {t("cancelReset")}
+                  </button>
                 </form>
               )}
             </div>
