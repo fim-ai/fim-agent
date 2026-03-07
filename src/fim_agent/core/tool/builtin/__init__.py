@@ -85,6 +85,7 @@ _ARTIFACTS_KWARGS: dict[type, str] = {
     NodeExecTool: "artifacts_dir",
     ShellExecTool: "artifacts_dir",
     GenerateImageTool: "artifacts_dir",
+    FileOpsTool: "artifacts_dir",
 }
 
 # Tools that require explicit configuration and should NOT be auto-discovered.

@@ -32,8 +32,14 @@ class FileOpsTool(BaseTool):
     rejected.
     """
 
-    def __init__(self, *, workspace_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        workspace_dir: Path | None = None,
+        artifacts_dir: Path | None = None,
+    ) -> None:
         self._workspace_dir = workspace_dir or _DEFAULT_WORKSPACE_DIR
+        self._artifacts_dir = artifacts_dir
 
     # ------------------------------------------------------------------
     # Tool protocol properties
@@ -139,7 +145,8 @@ class FileOpsTool(BaseTool):
             if operation == "read":
                 return await asyncio.to_thread(self._read, resolved)
             elif operation == "write":
-                return await asyncio.to_thread(self._write, resolved, content)
+                result = await asyncio.to_thread(self._write, resolved, content)
+                return self._maybe_register_artifact(result, resolved)
             elif operation == "append":
                 return await asyncio.to_thread(self._append, resolved, content)
             elif operation == "delete":
@@ -155,17 +162,62 @@ class FileOpsTool(BaseTool):
             elif operation == "read_json":
                 return await asyncio.to_thread(self._read_json, resolved)
             elif operation == "write_json":
-                return await asyncio.to_thread(self._write_json, resolved, content)
+                result = await asyncio.to_thread(self._write_json, resolved, content)
+                return self._maybe_register_artifact(result, resolved)
             elif operation == "read_csv":
                 return await asyncio.to_thread(self._read_csv, resolved)
             elif operation == "write_csv":
-                return await asyncio.to_thread(self._write_csv, resolved, content)
+                result = await asyncio.to_thread(self._write_csv, resolved, content)
+                return self._maybe_register_artifact(result, resolved)
             elif operation == "find_replace":
                 return await asyncio.to_thread(self._find_replace, resolved, old_text, new_text)
             else:
                 return f"[Error] Unknown operation: {operation}"
         except Exception as exc:
             return f"[Error] {type(exc).__name__}: {exc}"
+
+    # ------------------------------------------------------------------
+    # Artifact registration
+    # ------------------------------------------------------------------
+
+    def _maybe_register_artifact(self, result: str, file_path: Path) -> str:
+        """If artifacts_dir is set and the file exists, register it as an artifact."""
+        if (
+            self._artifacts_dir is None
+            or result.startswith("[Error]")
+            or not file_path.exists()
+            or not file_path.is_file()
+        ):
+            return result
+
+        from ..artifact_utils import save_content_artifact, MAX_ARTIFACT_SIZE, _guess_mime
+        from ..base import ToolResult, Artifact
+
+        size = file_path.stat().st_size
+        if size > MAX_ARTIFACT_SIZE:
+            return result
+
+        import shutil
+        import uuid
+
+        self._artifacts_dir.mkdir(parents=True, exist_ok=True)
+        artifact_id = uuid.uuid4().hex[:12]
+        stored_name = f"{artifact_id}_{file_path.name}"
+        dest = self._artifacts_dir / stored_name
+        shutil.copy2(file_path, dest)
+
+        try:
+            rel_path = str(dest.relative_to(self._artifacts_dir.parent.parent.parent))
+        except ValueError:
+            rel_path = stored_name
+
+        artifact = Artifact(
+            name=file_path.name,
+            path=rel_path,
+            mime_type=_guess_mime(file_path),
+            size=size,
+        )
+        return ToolResult(content=result, artifacts=[artifact])
 
     # ------------------------------------------------------------------
     # Path safety

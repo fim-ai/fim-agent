@@ -144,11 +144,13 @@ class PythonExecTool(BaseTool):
             output = f"[Script: {result.script_path.name}]\n" + output
         output = _truncate_output(output)
 
-        # Scan for new files after execution.
+        # Scan for new files after execution (exclude the script file itself).
         if self._artifacts_dir:
             from ..artifact_utils import scan_new_files
             from ..base import ToolResult
 
+            if result.script_path is not None:
+                before.add(result.script_path.name)
             artifacts = scan_new_files(self._exec_dir, before, self._artifacts_dir)
             if artifacts:
                 return ToolResult(content=output, artifacts=artifacts)
