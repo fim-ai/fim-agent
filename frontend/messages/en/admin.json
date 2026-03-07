@@ -3,6 +3,7 @@
 
   "tabs": {
     "overview": "Overview",
+    "health": "Health",
     "users": "Users",
     "conversations": "Conversations",
     "connectors": "Connectors",
@@ -47,6 +48,23 @@
     "tokensByAgentDesc": "Top agents by total token consumption.",
     "noTokenUsage": "No token usage data yet.",
     "chartTokens": "Tokens"
+  },
+
+  "health": {
+    "title": "Integration Health",
+    "subtitle": "Configuration status for all system integrations and their feature impact.",
+    "loading": "Loading health status...",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "impactLabel": "Affected features",
+    "group": {
+      "ai": "AI Models",
+      "retrieval": "Retrieval & Search",
+      "web": "Web Tools",
+      "email": "Email",
+      "media": "Media",
+      "other": "Other"
+    }
   },
 
   "users": {
@@ -115,7 +133,12 @@
     "userStatusUpdated": "User status updated",
 
     "deleteUserTitle": "Delete user \"{username}\"?",
-    "deleteUserDesc": "This will permanently delete the account and all associated data. This action cannot be undone.",
+    "deleteUserDesc": "This action cannot be undone. The following data will be permanently deleted:",
+    "deleteUserItem1": "Account information (profile, credentials, settings)",
+    "deleteUserItem2": "All conversations and chat messages",
+    "deleteUserItem3": "Generated artifacts (images, code outputs, etc.)",
+    "deleteUserItem4": "User-uploaded files",
+    "deleteUserItem5": "Sandbox and temporary files",
     "deletePermanently": "Delete Permanently",
     "userDeleted": "User \"{username}\" deleted"
   },
@@ -260,10 +283,10 @@
 
   "audit": {
     "title": "Audit Log",
-    "subtitle": "Admin actions recorded for accountability.",
+    "subtitle": "System actions recorded for accountability.",
     "noEntries": "No audit log entries yet.",
     "timeColumn": "Time",
-    "adminColumn": "Admin",
+    "adminColumn": "Operator",
     "actionColumn": "Action",
     "targetColumn": "Target",
     "detailColumn": "Detail",
@@ -297,8 +320,10 @@
       "model__delete": "Delete Model",
       "model__enable": "Enable Model",
       "model__disable": "Disable Model",
-      "model__set_role": "Set Model Role"
+      "model__set_role": "Set Model Role",
+      "account__self_delete": "Account Self-Delete"
     },
+    "detailDialogTitle": "Audit Detail",
     "filterDateFrom": "From",
     "filterDateTo": "To",
     "exportCsv": "Export CSV",
@@ -400,6 +425,7 @@
     "revokeDesc": "Code \"{code}\" will be deactivated. Users with this code will no longer be able to register.",
     "revoke": "Revoke",
     "codeRevoked": "Invite code revoked",
-    "codeCopied": "Code copied to clipboard"
+    "codeCopied": "Code copied to clipboard",
+    "smtpRequired": "SMTP is not configured. Enable SMTP to use this feature."
   }
 }

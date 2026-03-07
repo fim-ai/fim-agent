@@ -184,7 +184,7 @@ function OAuthBindingsSection({ user, onUnbind, onConnect }: { user: UserInfo; o
 }
 
 export function AccountSettings() {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations("settings.account")
@@ -236,6 +236,15 @@ export function AccountSettings() {
       toast.error(t("connectFailed"))
     }
   }
+
+  // SMTP status (default true to avoid flash-hiding the button)
+  const [smtpConfigured, setSmtpConfigured] = useState(true)
+
+  useEffect(() => {
+    apiFetch<{ smtp_configured: boolean }>("/api/auth/registration-status")
+      .then((data) => setSmtpConfigured(data.smtp_configured))
+      .catch(() => {})
+  }, [])
 
   // Email state
   const [email, setEmail] = useState(user?.email ?? "")
@@ -574,13 +583,15 @@ export function AccountSettings() {
                 </Button>
               </div>
 
-              <button
-                type="button"
-                className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
-                onClick={() => setResetMode(true)}
-              >
-                {t("forgotPassword")}
-              </button>
+              {smtpConfigured && (
+                <button
+                  type="button"
+                  className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                  onClick={() => setResetMode(true)}
+                >
+                  {t("forgotPassword")}
+                </button>
+              )}
             </form>
           ) : (
             /* OTP Reset flow */
@@ -748,21 +759,143 @@ export function AccountSettings() {
       <Separator />
 
       {/* Danger Zone */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-base font-medium text-destructive">
-            {t("dangerZoneTitle")}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {t("dangerZoneDescription")}
-          </p>
-        </div>
+      <DeleteAccountSection t={t} user={user} logout={logout} />
+    </div>
+  )
+}
 
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
-          <p className="text-sm text-muted-foreground">
-            {t("deleteAccountUnavailable")}
-          </p>
-        </div>
+// ---------------------------------------------------------------------------
+// Delete Account Section
+// ---------------------------------------------------------------------------
+
+const COUNTDOWN_SECONDS = 5
+
+function DeleteAccountSection({
+  t,
+  user,
+  logout,
+}: {
+  t: ReturnType<typeof useTranslations<"settings.account">>
+  user: UserInfo | null
+  logout: () => void
+}) {
+  const tc = useTranslations("common")
+  const [open, setOpen] = useState(false)
+  const [confirmInput, setConfirmInput] = useState("")
+  const [countdown, setCountdown] = useState(0)
+  const [deleting, setDeleting] = useState(false)
+
+  const target = user?.username || user?.email || ""
+  const inputMatched = confirmInput === target
+
+  // Start countdown when input matches
+  useEffect(() => {
+    if (!inputMatched || !open) {
+      setCountdown(0)
+      return
+    }
+    setCountdown(COUNTDOWN_SECONDS)
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [inputMatched, open])
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setConfirmInput("")
+      setCountdown(0)
+      setDeleting(false)
+    }
+  }, [open])
+
+  const handleDelete = async () => {
+    if (!inputMatched || countdown > 0 || deleting) return
+    setDeleting(true)
+    try {
+      await authApi.deleteAccount()
+      toast.success(t("deleteAccountFinal"))
+      logout()
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : String(err)
+      toast.error(msg)
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-base font-medium text-destructive">
+          {t("dangerZoneTitle")}
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          {t("dangerZoneDescription")}
+        </p>
+      </div>
+
+      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          {t("deleteAccountDesc")}
+        </p>
+        <AlertDialog open={open} onOpenChange={setOpen}>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" className="shrink-0">
+              {t("deleteAccountButton")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("deleteAccountConfirmTitle")}</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="text-sm text-muted-foreground">
+                  <p>{t("deleteAccountConfirmDesc")}</p>
+                  <ul className="mt-2 list-disc pl-5 space-y-1">
+                    <li>{t("deleteAccountConfirmItem1")}</li>
+                    <li>{t("deleteAccountConfirmItem2")}</li>
+                    <li>{t("deleteAccountConfirmItem3")}</li>
+                    <li>{t("deleteAccountConfirmItem4")}</li>
+                    <li>{t("deleteAccountConfirmItem5")}</li>
+                  </ul>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-sm font-medium">
+                {t("deleteAccountInputHint", { target })}
+              </label>
+              <Input
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder={target}
+                autoComplete="off"
+              />
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+              <Button
+                variant="destructive"
+                disabled={!inputMatched || countdown > 0 || deleting}
+                onClick={handleDelete}
+              >
+                {deleting
+                  ? t("deleteAccountDeleting")
+                  : countdown > 0
+                    ? t("deleteAccountCountdown", { seconds: String(countdown) })
+                    : t("deleteAccountFinal")}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

@@ -18,9 +18,11 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
+from fim_agent.web.email import _smtp_configured
 from fim_agent.web.exceptions import AppError
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from fim_agent.db import get_session
 from fim_agent.web.auth import get_current_admin, hash_password
@@ -220,6 +222,7 @@ class IntegrationHealth(BaseModel):
     label: str
     configured: bool
     detail: str | None
+    impact: str | None = None
 
 
 class InviteCodeInfo(BaseModel):
@@ -830,6 +833,7 @@ class SystemSettingsResponse(BaseModel):
     announcement_text: str
     default_token_quota: int
     email_verification_enabled: bool
+    smtp_configured: bool
 
 
 class UpdateSystemSettingsRequest(BaseModel):
@@ -861,6 +865,7 @@ async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
         announcement_text=ann_txt,
         default_token_quota=int(quota_str) if quota_str.isdigit() else 0,
         email_verification_enabled=email_verif.lower() == "true",
+        smtp_configured=_smtp_configured(),
     )
 
 
@@ -906,6 +911,8 @@ async def update_system_settings(
         await set_setting(db, SETTING_ANNOUNCEMENT_TEXT, body.announcement_text)
         changed.append("announcement_text updated")
     if body.email_verification_enabled is not None:
+        if body.email_verification_enabled and not _smtp_configured():
+            raise AppError("smtp_not_configured", detail="Cannot enable email verification without SMTP")
         await set_setting(db, SETTING_EMAIL_VERIFICATION_ENABLED, "true" if body.email_verification_enabled else "false")
         changed.append(f"email_verification_enabled={body.email_verification_enabled}")
     if changed:
@@ -928,18 +935,51 @@ async def delete_user(
     if current_user.id == user_id:
         raise AppError("cannot_delete_own_account")
 
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.conversations).selectinload(Conversation.messages),
+            selectinload(User.agents),
+            selectinload(User.knowledge_bases),
+            selectinload(User.model_configs),
+            selectinload(User.connectors),
+            selectinload(User.mcp_servers),
+            selectinload(User.oauth_bindings),
+        )
+        .where(User.id == user_id)
+    )
     target_user = result.scalar_one_or_none()
     if target_user is None:
         raise AppError("user_not_found", status_code=404)
 
     info = _user_to_info(target_user)
     label = target_user.username or target_user.email
+
+    # --- Clean up file-system resources before DB delete ---
+    conv_result = await db.execute(
+        select(Conversation.id).where(Conversation.user_id == user_id)
+    )
+    conv_ids = [row[0] for row in conv_result.fetchall()]
+
+    for conv_id in conv_ids:
+        sandbox_dir = _CONVERSATIONS_DIR / conv_id
+        if sandbox_dir.exists():
+            shutil.rmtree(sandbox_dir, ignore_errors=True)
+        uploads_dir = _UPLOADS_CONVERSATIONS_DIR / conv_id
+        if uploads_dir.exists():
+            shutil.rmtree(uploads_dir, ignore_errors=True)
+
+    user_uploads = _UPLOADS_BASE / f"user_{user_id}"
+    if user_uploads.exists():
+        shutil.rmtree(user_uploads, ignore_errors=True)
+
+    # --- DB delete & audit ---
     await db.delete(target_user)
     await db.commit()
     await write_audit(
         db, current_user, "user.delete",
         target_type="user", target_id=user_id, target_label=label,
+        detail=f"deleted user {label}; cleaned {len(conv_ids)} conversations, sandbox & upload dirs",
     )
     return info
 
@@ -1184,17 +1224,21 @@ async def get_system_health(
 
     llm_model = os.environ.get("LLM_MODEL", "")
     llm_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("OPENAI_API_KEY", "")
+    llm_configured = bool(llm_model and llm_key)
     checks.append(IntegrationHealth(
         key="llm", label="Main LLM",
-        configured=bool(llm_model and llm_key),
+        configured=llm_configured,
         detail=llm_model if llm_model else None,
+        impact=None if llm_configured else "Chat will not work",
     ))
 
     fast_model = os.environ.get("FAST_LLM_MODEL", "")
+    fast_configured = bool(fast_model)
     checks.append(IntegrationHealth(
         key="fast_llm", label="Fast LLM",
-        configured=bool(fast_model),
+        configured=fast_configured,
         detail=fast_model if fast_model else None,
+        impact=None if fast_configured else "DAG mode and summarization unavailable",
     ))
 
     jina_key = os.environ.get("JINA_API_KEY", "")
@@ -1206,6 +1250,7 @@ async def get_system_health(
         key="embedding", label="Embedding",
         configured=emb_configured,
         detail=emb_detail,
+        impact=None if emb_configured else "Knowledge base retrieval unavailable",
     ))
 
     reranker = os.environ.get("RERANKER_PROVIDER", "")
@@ -1216,6 +1261,7 @@ async def get_system_health(
         key="reranker", label="Reranker",
         configured=reranker_configured,
         detail=reranker_detail,
+        impact=None if reranker_configured else "Search result ranking degraded",
     ))
 
     search_provider = os.environ.get("WEB_SEARCH_PROVIDER", "jina")
@@ -1238,10 +1284,20 @@ async def get_system_health(
     ))
 
     image_key = os.environ.get("IMAGE_GEN_API_KEY", "")
+    image_configured = bool(image_key)
     checks.append(IntegrationHealth(
         key="image_gen", label="Image Generation",
-        configured=bool(image_key),
+        configured=image_configured,
         detail=None,
+        impact=None if image_configured else "Image generation unavailable",
+    ))
+
+    smtp_ok = _smtp_configured()
+    checks.append(IntegrationHealth(
+        key="smtp", label="SMTP (Email)",
+        configured=smtp_ok,
+        detail=os.environ.get("SMTP_HOST") if smtp_ok else None,
+        impact=None if smtp_ok else "Email code login, email verification, forgot password",
     ))
 
     return checks
@@ -1253,9 +1309,8 @@ async def get_system_health(
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _uploads_base = Path(os.environ.get("UPLOADS_DIR", "uploads"))
-_UPLOADS_CONVERSATIONS_DIR = (
-    _uploads_base if _uploads_base.is_absolute() else _PROJECT_ROOT / _uploads_base
-) / "conversations"
+_UPLOADS_BASE = _uploads_base if _uploads_base.is_absolute() else _PROJECT_ROOT / _uploads_base
+_UPLOADS_CONVERSATIONS_DIR = _UPLOADS_BASE / "conversations"
 _CONVERSATIONS_DIR = _PROJECT_ROOT / "tmp" / "conversations"
 
 
@@ -1370,8 +1425,6 @@ async def admin_delete_conversation(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ):
     """Delete any conversation by ID. Requires admin privileges."""
-    from sqlalchemy.orm import selectinload
-
     result = await db.execute(
         select(Conversation).options(selectinload(Conversation.messages)).where(Conversation.id == conv_id)
     )

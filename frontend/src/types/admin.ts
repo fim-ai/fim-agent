@@ -16,6 +16,7 @@ export interface IntegrationHealth {
   label: string
   configured: boolean
   detail: string | null
+  impact: string | null
 }
 
 export interface AdminConversation {

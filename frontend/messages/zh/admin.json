@@ -3,6 +3,7 @@
 
   "tabs": {
     "overview": "概览",
+    "health": "健康检测",
     "users": "用户",
     "conversations": "对话",
     "connectors": "连接器",
@@ -47,6 +48,23 @@
     "tokensByAgentDesc": "按总 Token 消耗排名的智能体。",
     "noTokenUsage": "暂无 Token 使用数据。",
     "chartTokens": "Tokens"
+  },
+
+  "health": {
+    "title": "集成健康状态",
+    "subtitle": "所有系统集成的配置状态及其功能影响。",
+    "loading": "加载健康状态...",
+    "configured": "已配置",
+    "notConfigured": "未配置",
+    "impactLabel": "受影响功能",
+    "group": {
+      "ai": "AI 模型",
+      "retrieval": "检索与搜索",
+      "web": "Web 工具",
+      "email": "邮件",
+      "media": "媒体",
+      "other": "其他"
+    }
   },
 
   "users": {
@@ -115,7 +133,12 @@
     "userStatusUpdated": "用户状态已更新",
 
     "deleteUserTitle": "删除用户 \"{username}\"？",
-    "deleteUserDesc": "这将永久删除该账户及所有关联数据，此操作不可撤销。",
+    "deleteUserDesc": "此操作不可撤销，以下数据将被永久删除：",
+    "deleteUserItem1": "账户信息（个人资料、登录凭证、偏好设置）",
+    "deleteUserItem2": "所有对话及聊天消息",
+    "deleteUserItem3": "生成的产物（图片、代码输出等）",
+    "deleteUserItem4": "用户上传的文件",
+    "deleteUserItem5": "沙箱及临时文件",
     "deletePermanently": "永久删除",
     "userDeleted": "用户 \"{username}\" 已删除"
   },
@@ -260,10 +283,10 @@
 
   "audit": {
     "title": "审计日志",
-    "subtitle": "记录管理员操作以便追溯。",
+    "subtitle": "记录系统关键操作以便追溯。",
     "noEntries": "暂无审计日志。",
     "timeColumn": "时间",
-    "adminColumn": "管理员",
+    "adminColumn": "操作人",
     "actionColumn": "操作",
     "targetColumn": "目标",
     "detailColumn": "详情",
@@ -297,8 +320,10 @@
       "model__delete": "删除模型",
       "model__enable": "启用模型",
       "model__disable": "停用模型",
-      "model__set_role": "设置模型角色"
+      "model__set_role": "设置模型角色",
+      "account__self_delete": "用户自行注销"
     },
+    "detailDialogTitle": "审计详情",
     "filterDateFrom": "起始日期",
     "filterDateTo": "截止日期",
     "exportCsv": "导出 CSV",
@@ -400,6 +425,7 @@
     "revokeDesc": "邀请码 \"{code}\" 将被停用。持有此码的用户将无法注册。",
     "revoke": "撤销",
     "codeRevoked": "邀请码已撤销",
-    "codeCopied": "邀请码已复制到剪贴板"
+    "codeCopied": "邀请码已复制到剪贴板",
+    "smtpRequired": "SMTP 未配置。请先配置 SMTP 才能使用此功能。"
   }
 }

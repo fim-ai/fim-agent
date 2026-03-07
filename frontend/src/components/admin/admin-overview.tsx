@@ -3,11 +3,8 @@
 import { useState, useEffect } from "react"
 import { useTranslations, useLocale } from "next-intl"
 import { Users, MessageSquare, Zap, Bot, Database, BookOpen, FileText, Hash, Plug } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { apiFetch, adminApi } from "@/lib/api"
-import { cn } from "@/lib/utils"
-import type { IntegrationHealth } from "@/types/admin"
+import { apiFetch } from "@/lib/api"
 import {
   PieChart,
   Pie,
@@ -196,9 +193,6 @@ export function AdminOverview() {
         )}
       </div>
 
-      {/* Integration Health */}
-      <IntegrationHealthCard />
-
       <Separator />
 
       {/* Section 2 — Recent Activity (bar chart) */}
@@ -353,37 +347,5 @@ export function AdminOverview() {
         )}
       </div>
     </div>
-  )
-}
-
-function IntegrationHealthCard() {
-  const t = useTranslations("admin.overview")
-  const [health, setHealth] = useState<IntegrationHealth[]>([])
-
-  useEffect(() => {
-    adminApi.getSystemHealth().then(setHealth).catch(() => {})
-  }, [])
-
-  if (health.length === 0) return null
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">{t("integrationHealth")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-2">
-          {health.map(item => (
-            <div key={item.key} className="flex items-center gap-2">
-              <div className={cn("w-2 h-2 rounded-full shrink-0", item.configured ? "bg-green-500" : "bg-red-500")} />
-              <div className="min-w-0">
-                <p className="text-sm">{item.label}</p>
-                {item.detail && <p className="text-xs text-muted-foreground truncate">{item.detail}</p>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
   )
 }

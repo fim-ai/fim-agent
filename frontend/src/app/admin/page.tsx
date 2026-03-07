@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { LayoutDashboard, Plug, Settings, Shield, Users, MessageSquare, HardDrive, Server, Cpu } from "lucide-react"
+import { LayoutDashboard, Activity, Plug, Settings, Shield, Users, MessageSquare, HardDrive, Server, Cpu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { AdminOverview } from "@/components/admin/admin-overview"
@@ -15,11 +15,13 @@ import { AdminConversations } from "@/components/admin/admin-conversations"
 import { AdminStorage } from "@/components/admin/admin-storage"
 import { AdminMcpServers } from "@/components/admin/admin-mcp-servers"
 import { AdminModels } from "@/components/admin/admin-models"
+import { AdminHealth } from "@/components/admin/admin-health"
 
-const TAB_KEYS = ["overview", "users", "conversations", "connectors", "mcp", "models", "audit", "storage", "settings"] as const
+const TAB_KEYS = ["overview", "health", "users", "conversations", "connectors", "mcp", "models", "audit", "storage", "settings"] as const
 
 const TAB_ICONS = {
   overview: LayoutDashboard,
+  health: Activity,
   users: Users,
   conversations: MessageSquare,
   connectors: Plug,
@@ -99,6 +101,7 @@ function AdminPanelContent() {
         {/* Right content */}
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === "overview" && <AdminOverview />}
+          {activeTab === "health" && <AdminHealth />}
           {activeTab === "users" && <AdminUsers />}
           {activeTab === "conversations" && <AdminConversations />}
           {activeTab === "connectors" && <AdminConnectors />}

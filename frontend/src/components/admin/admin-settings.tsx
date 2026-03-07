@@ -48,6 +48,7 @@ interface SystemSettings {
   announcement_enabled: boolean
   announcement_text: string
   default_token_quota: number
+  smtp_configured: boolean
 }
 
 export function AdminSettings() {
@@ -181,6 +182,11 @@ export function AdminSettings() {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t("emailVerificationDesc")}
                 </p>
+                {!settings?.smtp_configured && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    {t("smtpRequired")}
+                  </p>
+                )}
               </div>
               <Switch
                 id="email-verification-toggle"
@@ -189,7 +195,7 @@ export function AdminSettings() {
                   await patch({ email_verification_enabled: v })
                   toast.success(v ? t("emailVerificationEnabled") : t("emailVerificationDisabled"))
                 }}
-                disabled={isSaving}
+                disabled={isSaving || !settings?.smtp_configured}
               />
             </div>
           )}
