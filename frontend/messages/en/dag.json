@@ -8,5 +8,9 @@
   "output": "Output",
   "toolDetails": "{name} tool details",
   "reasoning": "Reasoning",
-  "arguments": "Arguments"
+  "arguments": "Arguments",
+  "download": "Download",
+  "openInNewTab": "Open in new tab",
+  "generatedFiles": "Generated Files",
+  "htmlPreview": "HTML Preview"
 }

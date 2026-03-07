@@ -1,3 +1,10 @@
+export interface ArtifactInfo {
+  name: string
+  url: string
+  mime_type: string
+  size: number
+}
+
 export interface IterationData {
   type?: string              // "tool_call" | "tool_start" | "thinking"
   iteration?: number
@@ -9,4 +16,6 @@ export interface IterationData {
   error?: string
   duration?: number          // seconds
   loading?: boolean          // DAG tool_start equivalent
+  content_type?: string      // "text" | "html" | "markdown" | "json"
+  artifacts?: ArtifactInfo[]
 }

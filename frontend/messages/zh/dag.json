@@ -8,5 +8,9 @@
   "output": "输出",
   "toolDetails": "{name} 工具详情",
   "reasoning": "推理过程",
-  "arguments": "参数"
+  "arguments": "参数",
+  "download": "下载",
+  "openInNewTab": "在新标签页中打开",
+  "generatedFiles": "生成的文件",
+  "htmlPreview": "HTML 预览"
 }

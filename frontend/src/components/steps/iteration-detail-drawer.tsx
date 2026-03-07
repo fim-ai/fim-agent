@@ -135,7 +135,12 @@ export function IterationDetailDrawer({ data, summary, onClose }: IterationDetai
                   <ToolArgsBlock args={data.tool_args!} hideLabel />
                 )}
                 {effectiveTab === "obs" && hasObs && (
-                  <ObservationBlock observation={data.observation!} hideLabel />
+                  <ObservationBlock
+                    observation={data.observation!}
+                    hideLabel
+                    contentType={data.content_type}
+                    artifacts={data.artifacts}
+                  />
                 )}
 
                 {/* Error — always visible */}

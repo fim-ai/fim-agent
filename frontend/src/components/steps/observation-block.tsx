@@ -3,11 +3,15 @@
 import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { MarkdownContent } from "@/lib/markdown"
+import type { ArtifactInfo } from "./types"
+import { ArtifactChips } from "./artifact-chips"
 
 interface ObservationBlockProps {
   observation: string
   size?: "default" | "compact"
   hideLabel?: boolean
+  contentType?: string
+  artifacts?: ArtifactInfo[]
 }
 
 const DEFAULT_MD_CLS = "text-xs [&_pre]:my-0 [&_pre]:p-0 [&_pre]:bg-transparent [&_pre]:rounded-none"
@@ -40,12 +44,17 @@ export function ObservationBlock({
   observation,
   size = "default",
   hideLabel = false,
+  contentType,
+  artifacts,
 }: ObservationBlockProps) {
   const t = useTranslations("dag")
   const isCompact = size === "compact"
   const mdCls = isCompact ? COMPACT_MD_CLS : DEFAULT_MD_CLS
 
   const { text, lang } = useMemo(() => formatObservation(observation), [observation])
+
+  // Explicit contentType overrides auto-detection
+  const effectiveType = contentType || (lang === "json" ? "json" : "text")
 
   return (
     <div className={`rounded${isCompact ? "" : "-md"} border border-border/30 ${isCompact ? "bg-muted/30 p-2" : "border-border/50 bg-muted/30 p-3"}`}>
@@ -54,15 +63,33 @@ export function ObservationBlock({
           {t("output")}
         </p>
       )}
-      {lang ? (
+      {effectiveType === "html" ? (
+        <iframe
+          sandbox="allow-scripts"
+          srcDoc={observation}
+          className="w-full rounded border border-border/20 bg-white"
+          style={{ height: "300px" }}
+          title={t("htmlPreview")}
+        />
+      ) : effectiveType === "markdown" ? (
         <MarkdownContent
-          content={`\`\`\`${lang}\n${text}\n\`\`\``}
+          content={observation}
+          className={mdCls}
+        />
+      ) : effectiveType === "json" ? (
+        <MarkdownContent
+          content={`\`\`\`json\n${text}\n\`\`\``}
           className={mdCls}
         />
       ) : (
         <pre className="whitespace-pre-wrap break-all text-xs text-foreground/90 font-mono leading-relaxed overflow-x-auto">
           {observation}
         </pre>
+      )}
+      {artifacts && artifacts.length > 0 && (
+        <div className="mt-2">
+          <ArtifactChips artifacts={artifacts} />
+        </div>
       )}
     </div>
   )

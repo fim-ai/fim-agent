@@ -17,7 +17,7 @@ import { fmtDuration } from "@/lib/utils"
 import type { ReactStepEvent, ReactDoneEvent } from "@/types/api"
 import type { StepItem } from "@/hooks/use-react-steps"
 import { ReferencesSection } from "./references-section"
-import { IterationCard } from "@/components/steps"
+import { IterationCard, ArtifactChips } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import { SuggestedFollowups } from "./suggested-followups"
 
@@ -211,6 +211,8 @@ function StepCard({ step, duration, displayIteration }: { step: ReactStepEvent; 
     error: step.error,
     duration,
     loading: step.type === "tool_start",
+    content_type: step.content_type,
+    artifacts: step.artifacts,
   }
 
   return <IterationCard data={iterData} variant="card" defaultCollapsed={true} />
@@ -218,6 +220,13 @@ function StepCard({ step, duration, displayIteration }: { step: ReactStepEvent; 
 
 function DoneCard({ done, items, onSuggestionSelect }: { done: ReactDoneEvent; items?: StepItem[]; onSuggestionSelect?: (query: string) => void }) {
   const t = useTranslations("playground")
+  const tDag = useTranslations("dag")
+
+  // Collect all artifacts from step events
+  const allArtifacts = (items ?? [])
+    .filter(i => i.event === "step")
+    .flatMap(i => (i.data as ReactStepEvent).artifacts ?? [])
+
   return (
     <Card className="py-4">
       <CardHeader className="pb-0">
@@ -249,6 +258,14 @@ function DoneCard({ done, items, onSuggestionSelect }: { done: ReactDoneEvent; i
           content={done.answer}
           className="prose-sm text-sm text-foreground/90"
         />
+        {allArtifacts.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border/30">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+              {tDag("generatedFiles")}
+            </p>
+            <ArtifactChips artifacts={allArtifacts} />
+          </div>
+        )}
         {items && <ReferencesSection items={items} />}
         {done.suggestions?.length && onSuggestionSelect ? (
           <SuggestedFollowups

@@ -34,7 +34,7 @@ import type {
 } from "@/types/api"
 import type { StepState } from "@/hooks/use-dag-steps"
 import { DagFlowGraph } from "@/components/dag/dag-flow-graph"
-import { IterationCard } from "@/components/steps"
+import { IterationCard, ArtifactChips } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import { SuggestedFollowups } from "./suggested-followups"
 import { stripCitations } from "@/lib/evidence-utils"
@@ -138,7 +138,7 @@ export function DagOutput({
         ))}
 
         {/* Done card — always visible */}
-        <DagDoneCard done={doneEvent} onSuggestionSelect={onSuggestionSelect} />
+        <DagDoneCard done={doneEvent} stepStates={stepStates} onSuggestionSelect={onSuggestionSelect} />
       </div>
     )
   }
@@ -208,7 +208,7 @@ export function DagOutput({
       {analysisPhase && <AnalysisCard phase={analysisPhase} />}
 
       {/* Done card */}
-      {doneEvent && <DagDoneCard done={doneEvent} onSuggestionSelect={onSuggestionSelect} />}
+      {doneEvent && <DagDoneCard done={doneEvent} stepStates={stepStates} onSuggestionSelect={onSuggestionSelect} />}
     </div>
   )
 }
@@ -312,6 +312,8 @@ function StepProgressCard({ state }: { state: StepState }) {
               error: iter.error,
               loading: iter.loading,
               duration: iter.duration,
+              content_type: iter.content_type,
+              artifacts: iter.artifacts,
             }
             return (
               <IterationCard
@@ -469,8 +471,15 @@ function AnalysisCard({ phase }: { phase: DagPhaseEvent }) {
   )
 }
 
-function DagDoneCard({ done, onSuggestionSelect }: { done: DagDoneEvent; onSuggestionSelect?: (query: string) => void }) {
+function DagDoneCard({ done, stepStates, onSuggestionSelect }: { done: DagDoneEvent; stepStates?: StepState[]; onSuggestionSelect?: (query: string) => void }) {
   const t = useTranslations("playground")
+  const tDag = useTranslations("dag")
+
+  // Collect all artifacts from all steps
+  const allArtifacts = (stepStates ?? []).flatMap(state =>
+    state.iterations.flatMap(iter => iter.artifacts ?? [])
+  )
+
   return (
     <Card className="border-green-500/20 py-4">
       <CardHeader className="pb-0">
@@ -504,6 +513,14 @@ function DagDoneCard({ done, onSuggestionSelect }: { done: DagDoneEvent; onSugge
           content={stripCitations(done.answer)}
           className="prose-sm text-sm text-foreground/90"
         />
+        {allArtifacts.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border/30">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+              {tDag("generatedFiles")}
+            </p>
+            <ArtifactChips artifacts={allArtifacts} />
+          </div>
+        )}
         {done.suggestions?.length && onSuggestionSelect ? (
           <SuggestedFollowups
             suggestions={done.suggestions}

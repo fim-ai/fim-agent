@@ -16,6 +16,13 @@ export interface ReactStepEvent {
   error?: string
   /** Server-side iteration elapsed (LLM thinking + tool execution). */
   iter_elapsed?: number
+  content_type?: string
+  artifacts?: Array<{
+    name: string
+    url: string
+    mime_type: string
+    size: number
+  }>
 }
 
 export interface ReactDoneEvent {
@@ -75,6 +82,13 @@ export interface DagStepProgressEvent {
   iter_elapsed?: number
   /** Per-step token usage (available on "completed" events). */
   usage?: TokenUsage
+  content_type?: string
+  artifacts?: Array<{
+    name: string
+    url: string
+    mime_type: string
+    size: number
+  }>
 }
 
 export interface DagDoneEvent {

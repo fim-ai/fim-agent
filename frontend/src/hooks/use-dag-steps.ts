@@ -25,6 +25,8 @@ export interface StepState {
     loading?: boolean
     timestamp?: number
     duration?: number
+    content_type?: string
+    artifacts?: Array<{ name: string; url: string; mime_type: string; size: number }>
   }>
 }
 
@@ -130,6 +132,8 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
               error: undefined,
               loading: true,
               timestamp: msg.timestamp,
+              content_type: sp.content_type,
+              artifacts: sp.artifacts,
             })
           } else {
             const matchIdx = state.iterations.findIndex(iter =>
@@ -150,6 +154,8 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
                 error: sp.error,
                 loading: false,
                 duration: sp.iter_elapsed ?? clientDuration,
+                content_type: sp.content_type ?? state.iterations[matchIdx].content_type,
+                artifacts: sp.artifacts ?? state.iterations[matchIdx].artifacts,
               }
             } else {
               state.iterations.push({
@@ -161,6 +167,8 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
                 observation: sp.observation,
                 error: sp.error,
                 loading: false,
+                content_type: sp.content_type,
+                artifacts: sp.artifacts,
               })
             }
           }
