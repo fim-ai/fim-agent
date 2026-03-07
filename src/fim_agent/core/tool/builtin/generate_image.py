@@ -46,9 +46,9 @@ class GenerateImageTool(BaseTool):
     def description(self) -> str:
         return (
             "Generate an image from a text description using Google Imagen. "
-            "The tool returns a markdown image snippet `![Generated Image](url)`. "
-            "You MUST copy this exact markdown snippet verbatim into your reply "
-            "so the image renders inline — do NOT describe the image with text instead. "
+            "The generated image is automatically displayed in the UI as a "
+            "downloadable artifact — do NOT attempt to embed the image URL in "
+            "your reply. Instead, describe what was generated in natural language. "
             "Supports aspect ratios: 1:1 (default), 16:9, 9:16, 4:3, 3:4."
         )
 
@@ -94,8 +94,10 @@ class GenerateImageTool(BaseTool):
         except Exception as exc:
             return f"Image generation failed: {exc}"
 
-        # Register generated image as an artifact and use the artifact API URL
-        # so the frontend can load the image with authentication.
+        # Text summary for LLM — no image URL, the artifact chip handles display.
+        text = f"*Prompt:* {result.prompt}\n*Model:* {result.model}"
+
+        # Register generated image as a downloadable artifact.
         if self._artifacts_dir:
             from fim_agent.core.tool.base import Artifact, ToolResult
 
@@ -109,17 +111,6 @@ class GenerateImageTool(BaseTool):
                     rel_path = str(stored.relative_to(self._artifacts_dir.parent.parent.parent))
                 except ValueError:
                     rel_path = stored.name
-
-                # Derive conversation ID from artifacts_dir path to build the
-                # artifact API URL (instead of the unserved /uploads/... path).
-                conv_id = self._artifacts_dir.parent.name
-                artifact_url = f"/api/conversations/{conv_id}/artifacts/{artifact_id}"
-
-                text = (
-                    f"![Generated Image]({artifact_url})\n\n"
-                    f"*Prompt:* {result.prompt}  \n"
-                    f"*Model:* {result.model}"
-                )
                 artifact = Artifact(
                     name=img_path.name,
                     path=rel_path,
@@ -128,10 +119,4 @@ class GenerateImageTool(BaseTool):
                 )
                 return ToolResult(content=text, artifacts=[artifact])
 
-        # Fallback when no artifacts_dir: use the direct upload URL.
-        text = (
-            f"![Generated Image]({result.url})\n\n"
-            f"*Prompt:* {result.prompt}  \n"
-            f"*Model:* {result.model}"
-        )
         return text
