@@ -287,50 +287,52 @@ function PreviewModal({
           <DialogTitle className="truncate pr-6">{artifact.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="min-h-32 flex items-center justify-center">
-          {loading ? (
+        {loading ? (
+          <div className="min-h-32 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          ) : filter === "images" && blobUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+          </div>
+        ) : filter === "images" && blobUrl ? (
+          <div className="flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={blobUrl}
               alt={artifact.name}
               className="max-h-[70vh] object-contain rounded"
             />
-          ) : filter === "html" && blobUrl ? (
-            <iframe
-              src={blobUrl}
-              sandbox="allow-scripts"
-              className="h-[60vh] w-full rounded border border-border"
-              title={artifact.name}
+          </div>
+        ) : filter === "html" && blobUrl ? (
+          <iframe
+            src={blobUrl}
+            sandbox="allow-scripts"
+            className="h-[60vh] w-full rounded border border-border"
+            title={artifact.name}
+          />
+        ) : isText && isMarkdown && textContent !== null ? (
+          <div className="max-h-[65vh] overflow-y-auto rounded border border-border p-4 prose prose-sm dark:prose-invert max-w-none">
+            <Markdown remarkPlugins={[remarkGfm]}>{textContent}</Markdown>
+          </div>
+        ) : isText && highlightedHtml !== null ? (
+          <pre className="max-h-[65vh] overflow-x-auto overflow-y-auto rounded border border-border bg-muted/30 p-4 text-xs leading-relaxed">
+            <code
+              className="hljs"
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
             />
-          ) : isText && isMarkdown && textContent !== null ? (
-            <div className="w-full max-h-[65vh] overflow-y-auto rounded border border-border p-4 prose prose-sm dark:prose-invert max-w-none">
-              <Markdown remarkPlugins={[remarkGfm]}>{textContent}</Markdown>
+          </pre>
+        ) : isText && textContent !== null ? (
+          <pre className="max-h-[65vh] overflow-x-auto overflow-y-auto rounded border border-border bg-muted/30 p-4 text-xs leading-relaxed whitespace-pre-wrap break-words">
+            {textContent}
+          </pre>
+        ) : (
+          <div className="min-h-32 flex flex-col items-center justify-center gap-3 text-center">
+            <File className="h-12 w-12 text-muted-foreground/40" />
+            <div>
+              <p className="font-medium text-sm">{artifact.name}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {artifact.mime_type} &middot; {formatSize(artifact.size)}
+              </p>
             </div>
-          ) : isText && highlightedHtml !== null ? (
-            <pre className="w-full max-h-[65vh] overflow-auto rounded border border-border bg-muted/30 p-4 text-xs leading-relaxed">
-              <code
-                className="hljs"
-                dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-              />
-            </pre>
-          ) : isText && textContent !== null ? (
-            <pre className="w-full max-h-[65vh] overflow-auto rounded border border-border bg-muted/30 p-4 text-xs leading-relaxed whitespace-pre-wrap break-words">
-              {textContent}
-            </pre>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <File className="h-12 w-12 text-muted-foreground/40" />
-              <div>
-                <p className="font-medium text-sm">{artifact.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {artifact.mime_type} &middot; {formatSize(artifact.size)}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <DialogFooter className="flex-row items-center justify-between gap-2 sm:justify-between">
           <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
