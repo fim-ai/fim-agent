@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import random
+import shutil
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -24,6 +25,7 @@ from fim_agent.web.api.admin import (
     SETTING_REGISTRATION_ENABLED,
     get_setting,
 )
+from fim_agent.web.models.audit_log import AuditLog
 from fim_agent.web.models.email_verification import EmailVerification
 from fim_agent.web.models.invite_code import InviteCode
 from fim_agent.web.auth import (
@@ -37,6 +39,7 @@ from fim_agent.web.auth import (
     verify_password,
 )
 from fim_agent.web.models import User
+from fim_agent.web.models.conversation import Conversation
 from fim_agent.web.models.oauth_binding import UserOAuthBinding
 from fim_agent.web.schemas.auth import (
     ChangePasswordRequest,
@@ -110,11 +113,12 @@ async def registration_status(
         value = await get_setting(db, SETTING_REGISTRATION_ENABLED, default="true")
         reg_mode = "open" if value.lower() != "false" else "disabled"
     email_verif = await get_setting(db, "email_verification_enabled", default="false")
+    smtp_ok = _smtp_configured()
     return {
         "registration_enabled": reg_mode != "disabled",
         "registration_mode": reg_mode,
-        "email_verification_enabled": email_verif.lower() == "true",
-        "smtp_configured": _smtp_configured(),
+        "email_verification_enabled": email_verif.lower() == "true" and smtp_ok,
+        "smtp_configured": smtp_ok,
     }
 
 
@@ -231,9 +235,9 @@ async def register(
     if email_result.scalar_one_or_none() is not None:
         raise AppError("email_already_registered", status_code=409)
 
-    # Validate email verification code if email verification is enabled
+    # Validate email verification code if email verification is enabled AND SMTP is available
     email_verif_enabled = await get_setting(db, "email_verification_enabled", default="false")
-    if email_verif_enabled.lower() == "true" and not is_first_user_check:
+    if email_verif_enabled.lower() == "true" and _smtp_configured() and not is_first_user_check:
         if not body.verification_code:
             raise AppError("email_verification_required")
         # Find the latest unexpired, unverified code for this email
@@ -1033,3 +1037,76 @@ async def get_announcement(
     if enabled.lower() == "true" and text.strip():
         return {"enabled": True, "text": text}
     return {"enabled": False, "text": ""}
+
+
+# ---------------------------------------------------------------------------
+# Self account deletion
+# ---------------------------------------------------------------------------
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_CONVERSATIONS_DIR = _PROJECT_ROOT / "tmp" / "conversations"
+_uploads_base = Path(os.environ.get("UPLOADS_DIR", "uploads"))
+_UPLOADS_BASE = _uploads_base if _uploads_base.is_absolute() else _PROJECT_ROOT / _uploads_base
+_UPLOADS_CONVERSATIONS_DIR = _UPLOADS_BASE / "conversations"
+
+
+@router.delete("/account")
+async def delete_own_account(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict:
+    """Permanently delete the current user's own account and all associated data."""
+    user_id = current_user.id
+    label = current_user.username or current_user.email
+
+    # --- Clean up file-system resources before DB delete ---
+    conv_result = await db.execute(
+        select(Conversation.id).where(Conversation.user_id == user_id)
+    )
+    conv_ids = [row[0] for row in conv_result.fetchall()]
+
+    for conv_id in conv_ids:
+        sandbox_dir = _CONVERSATIONS_DIR / conv_id
+        if sandbox_dir.exists():
+            shutil.rmtree(sandbox_dir, ignore_errors=True)
+        uploads_dir = _UPLOADS_CONVERSATIONS_DIR / conv_id
+        if uploads_dir.exists():
+            shutil.rmtree(uploads_dir, ignore_errors=True)
+
+    user_uploads = _UPLOADS_BASE / f"user_{user_id}"
+    if user_uploads.exists():
+        shutil.rmtree(user_uploads, ignore_errors=True)
+
+    # --- Audit trail (must happen before DB delete since user is the actor) ---
+    audit_detail = f"user self-deleted; cleaned {len(conv_ids)} conversations, sandbox & upload dirs"
+    db.add(
+        AuditLog(
+            admin_id=user_id,
+            admin_username=label,
+            action="account.self_delete",
+            target_type="user",
+            target_id=user_id,
+            target_label=label,
+            detail=audit_detail,
+        )
+    )
+
+    # --- DB delete (eagerly load all relationships for cascade) ---
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.conversations).selectinload(Conversation.messages),
+            selectinload(User.agents),
+            selectinload(User.knowledge_bases),
+            selectinload(User.model_configs),
+            selectinload(User.connectors),
+            selectinload(User.mcp_servers),
+            selectinload(User.oauth_bindings),
+        )
+        .where(User.id == user_id)
+    )
+    user_obj = result.scalar_one()
+    await db.delete(user_obj)
+    await db.commit()
+
+    return {"deleted": True}
