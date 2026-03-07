@@ -128,6 +128,33 @@ class SendResetCodeRequest(BaseModel):
     locale: str | None = Field(None, pattern=r"^(en|zh)$")
 
 
+class SendForgotCodeRequest(BaseModel):
+    """Unauthenticated: send OTP to reset a forgotten password."""
+    email: str = Field(..., max_length=255)
+    locale: str | None = Field(None, pattern=r"^(en|zh)$")
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email address")
+        return v.lower()
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Unauthenticated: verify OTP and set new password."""
+    email: str = Field(..., max_length=255)
+    code: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(min_length=8, max_length=100)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email address")
+        return v.lower()
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

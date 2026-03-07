@@ -295,6 +295,18 @@ export const authApi = {
       body: JSON.stringify({ locale }),
     }),
 
+  sendForgotCode: (email: string, locale?: string) =>
+    apiFetch<{ message: string; expires_in: number }>("/api/auth/send-forgot-code", {
+      method: "POST",
+      body: JSON.stringify({ email, locale }),
+    }),
+
+  forgotPassword: (body: { email: string; code: string; new_password: string }) =>
+    apiFetch<{ success: boolean; data: { message: string } }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   resetPassword: (body: { code: string; new_password: string }) =>
     apiFetch<ApiResponse<{ message: string }>>("/api/auth/reset-password", {
       method: "POST",

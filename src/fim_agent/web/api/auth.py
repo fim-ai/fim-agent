@@ -39,12 +39,14 @@ from fim_agent.web.models import User
 from fim_agent.web.models.oauth_binding import UserOAuthBinding
 from fim_agent.web.schemas.auth import (
     ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     LoginWithCodeRequest,
     OAuthBindingInfo,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    SendForgotCodeRequest,
     SendLoginCodeRequest,
     SendResetCodeRequest,
     SendVerificationCodeRequest,
@@ -768,6 +770,107 @@ async def reset_password(
     # Set new password
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one()
+    user.password_hash = hash_password(body.new_password)
+    await db.commit()
+
+    return ApiResponse(data={"message": "Password reset successfully"})
+
+
+@router.post("/send-forgot-code")
+async def send_forgot_code(
+    body: SendForgotCodeRequest,
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict:
+    """Send a 6-digit OTP for password reset (unauthenticated — login page)."""
+    if not _smtp_configured():
+        raise AppError("smtp_not_configured", status_code=503)
+
+    # Email must belong to an existing user
+    user = await db.scalar(select(User).where(User.email == body.email))
+    if user is None:
+        raise AppError("email_not_registered", status_code=404)
+
+    if not user.is_active:
+        raise AppError("account_disabled", status_code=403)
+
+    # Rate limit: no new code if one was sent < 60s ago
+    recent = await db.execute(
+        select(EmailVerification)
+        .where(
+            EmailVerification.email == body.email,
+            EmailVerification.purpose == "reset_password",
+            EmailVerification.created_at > func.datetime("now", f"-{VERIFICATION_CODE_RATE_LIMIT_SECONDS} seconds"),
+        )
+        .order_by(EmailVerification.created_at.desc())
+        .limit(1)
+    )
+    if recent.scalar_one_or_none() is not None:
+        raise AppError("verification_rate_limited", status_code=429)
+
+    code = f"{random.randint(0, 999999):06d}"
+    verification = EmailVerification(
+        email=body.email,
+        code=code,
+        purpose="reset_password",
+        expires_at=datetime.now(UTC) + timedelta(minutes=VERIFICATION_CODE_EXPIRY_MINUTES),
+    )
+    db.add(verification)
+    await db.commit()
+
+    await send_verification_email(body.email, code, purpose="reset_password", locale=body.locale or "en")
+
+    return {
+        "message": "Reset code sent",
+        "expires_in": VERIFICATION_CODE_EXPIRY_MINUTES * 60,
+    }
+
+
+@router.post("/forgot-password", response_model=ApiResponse)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Reset password via OTP (unauthenticated — login page forgot-password flow)."""
+    # Verify user exists
+    user = await db.scalar(select(User).where(User.email == body.email))
+    if user is None:
+        raise AppError("email_not_registered", status_code=404)
+
+    if not user.is_active:
+        raise AppError("account_disabled", status_code=403)
+
+    # Find the latest unverified code for this email+purpose
+    verif_result = await db.execute(
+        select(EmailVerification)
+        .where(
+            EmailVerification.email == body.email,
+            EmailVerification.purpose == "reset_password",
+            EmailVerification.verified_at == None,  # noqa: E711
+        )
+        .order_by(EmailVerification.created_at.desc())
+        .limit(1)
+    )
+    verif = verif_result.scalar_one_or_none()
+
+    if verif is None:
+        raise AppError("verification_code_expired")
+
+    if verif.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+        raise AppError("verification_code_expired")
+
+    if verif.attempts >= VERIFICATION_MAX_ATTEMPTS:
+        raise AppError("verification_code_too_many_attempts")
+
+    if verif.code != body.code:
+        verif.attempts += 1
+        await db.commit()
+        raise AppError("verification_code_invalid")
+
+    # Mark as verified
+    verif.verified_at = datetime.now(UTC)
+    await db.flush()
+
+    # Set new password
     user.password_hash = hash_password(body.new_password)
     await db.commit()
 

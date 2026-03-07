@@ -1,38 +1,72 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2 } from "lucide-react"
+import { Loader2, Globe, Sun, Moon } from "lucide-react"
 import { APP_NAME, getApiBaseUrl, getApiDirectUrl } from "@/lib/constants"
 import { authApi } from "@/lib/api"
+import { getErrorMessage } from "@/lib/error-utils"
+import { toast } from "sonner"
 import { AnimatedLogo } from "@/components/layout/animated-logo"
+import { useTheme } from "next-themes"
 
 function LoginPageInner() {
   const t = useTranslations("auth")
   const tc = useTranslations("common")
-  const { user, isLoading: authLoading, login, register } = useAuth()
+  const tError = useTranslations("errors")
+  const locale = useLocale()
+  const { user, isLoading: authLoading, login, loginWithCode, register } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Login form state
-  const [loginUsername, setLoginUsername] = useState("")
+  const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
 
+  // OTP login state
+  const [otpLoginMode, setOtpLoginMode] = useState(false)
+  const [otpEmail, setOtpEmail] = useState("")
+  const [otpStep, setOtpStep] = useState<"email" | "code">("email")
+  const [otpCode, setOtpCode] = useState("")
+  const [otpSending, setOtpSending] = useState(false)
+  const [otpVerifying, setOtpVerifying] = useState(false)
+  const [otpResendCountdown, setOtpResendCountdown] = useState(0)
+  const [smtpConfigured, setSmtpConfigured] = useState(false)
+
+  // Forgot password state
+  const [forgotMode, setForgotMode] = useState(false)
+  const [forgotStep, setForgotStep] = useState<"email" | "code" | "password">("email")
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [forgotCode, setForgotCode] = useState("")
+  const [forgotNewPassword, setForgotNewPassword] = useState("")
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState("")
+  const [forgotSending, setForgotSending] = useState(false)
+  const [forgotSubmitting, setForgotSubmitting] = useState(false)
+  const [forgotResendCountdown, setForgotResendCountdown] = useState(0)
+
   // Register form state
-  const [regUsername, setRegUsername] = useState("")
   const [regEmail, setRegEmail] = useState("")
   const [regPassword, setRegPassword] = useState("")
   const [regConfirm, setRegConfirm] = useState("")
   const [regInviteCode, setRegInviteCode] = useState("")
   const [regError, setRegError] = useState("")
   const [regLoading, setRegLoading] = useState(false)
+
+  // Email verification state
+  const [emailVerificationEnabled, setEmailVerificationEnabled] = useState(false)
+  const [verificationStep, setVerificationStep] = useState(false)
+  const [verificationCode, setVerificationCode] = useState("")
+  const [sendingCode, setSendingCode] = useState(false)
+  const [resendCountdown, setResendCountdown] = useState(0)
 
   // Setup status check
   const [setupChecking, setSetupChecking] = useState(true)
@@ -45,10 +79,14 @@ function LoginPageInner() {
   const [oauthProviders, setOauthProviders] = useState<string[]>([])
   const [oauthError, setOauthError] = useState("")
 
-  // Redirect if already logged in
+  // Redirect if already logged in (also fires after login/register when user state updates)
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/")
+      if (!user.onboarding_completed) {
+        router.replace("/onboarding")
+      } else {
+        router.replace("/")
+      }
     }
   }, [authLoading, user, router])
 
@@ -71,6 +109,12 @@ function LoginPageInner() {
                 }
                 if (data.registration_mode) {
                   setRegistrationMode(data.registration_mode as "open" | "invite" | "disabled")
+                }
+                if (typeof data.email_verification_enabled === "boolean") {
+                  setEmailVerificationEnabled(data.email_verification_enabled)
+                }
+                if (typeof data.smtp_configured === "boolean") {
+                  setSmtpConfigured(data.smtp_configured)
                 }
               }
             })
@@ -116,17 +160,57 @@ function LoginPageInner() {
       })
   }, [])
 
+  // Resend countdown timer (registration)
+  useEffect(() => {
+    if (resendCountdown <= 0) return
+    const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [resendCountdown])
+
+  // Resend countdown timer (OTP login)
+  useEffect(() => {
+    if (otpResendCountdown <= 0) return
+    const timer = setTimeout(() => setOtpResendCountdown(otpResendCountdown - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [otpResendCountdown])
+
+  // Resend countdown timer (forgot password)
+  useEffect(() => {
+    if (forgotResendCountdown <= 0) return
+    const timer = setTimeout(() => setForgotResendCountdown(forgotResendCountdown - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [forgotResendCountdown])
+
+  const handleSendCode = async () => {
+    setRegError("")
+    if (!regEmail.trim()) {
+      setRegError(t("emailRequired"))
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) {
+      setRegError(t("emailInvalid"))
+      return
+    }
+    setSendingCode(true)
+    try {
+      await authApi.sendVerificationCode(regEmail, locale)
+      setVerificationStep(true)
+      setResendCountdown(60)
+      setVerificationCode("")
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError("")
     setLoginLoading(true)
     try {
-      const isEmail = loginUsername.includes("@")
-      await login({
-        ...(isEmail ? { email: loginUsername } : { username: loginUsername }),
-        password: loginPassword,
-      })
-      router.replace("/")
+      await login({ email: loginEmail, password: loginPassword })
+      // Redirect is handled by the useEffect that watches user state
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : t("loginFailed"))
     } finally {
@@ -134,9 +218,121 @@ function LoginPageInner() {
     }
   }
 
+  const handleSendLoginCode = async () => {
+    if (!otpEmail.trim()) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(otpEmail)) return
+    setOtpSending(true)
+    try {
+      await authApi.sendLoginCode(otpEmail, locale)
+      setOtpStep("code")
+      setOtpResendCountdown(60)
+      setOtpCode("")
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  const doLoginWithCode = useCallback(async (codeOverride?: string) => {
+    setOtpVerifying(true)
+    try {
+      await loginWithCode({ email: otpEmail, code: codeOverride || otpCode })
+      // Redirect is handled by the useEffect that watches user state
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+      setOtpCode("")
+    } finally {
+      setOtpVerifying(false)
+    }
+  }, [loginWithCode, otpEmail, otpCode, tError])
+
+  // Accept optional codeOverride for auto-submit from OTP onComplete
+  const doRegister = useCallback(async (codeOverride?: string) => {
+    setRegError("")
+    setRegLoading(true)
+    try {
+      await register({
+        password: regPassword,
+        email: regEmail,
+        invite_code: regInviteCode.trim() || undefined,
+        verification_code: codeOverride || verificationCode.trim() || undefined,
+      })
+      // Redirect is handled by the useEffect that watches user state
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+      // Clear OTP so user can re-enter
+      setVerificationCode("")
+    } finally {
+      setRegLoading(false)
+    }
+  }, [register, regPassword, regEmail, regInviteCode, verificationCode, tError])
+
+  const handleSendForgotCode = async () => {
+    if (!forgotEmail.trim()) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) return
+    setForgotSending(true)
+    try {
+      await authApi.sendForgotCode(forgotEmail, locale)
+      setForgotStep("code")
+      setForgotResendCountdown(60)
+      setForgotCode("")
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setForgotSending(false)
+    }
+  }
+
+  const handleForgotCodeComplete = (code: string) => {
+    setForgotCode(code)
+    setForgotStep("password")
+  }
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (forgotNewPassword.length < 8 || forgotNewPassword !== forgotConfirmPassword) return
+    setForgotSubmitting(true)
+    try {
+      await authApi.forgotPassword({
+        email: forgotEmail,
+        code: forgotCode,
+        new_password: forgotNewPassword,
+      })
+      toast.success(t("passwordResetSuccess"))
+      // Return to login form
+      setForgotMode(false)
+      setForgotStep("email")
+      setForgotCode("")
+      setForgotNewPassword("")
+      setForgotConfirmPassword("")
+      setForgotEmail("")
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+      const apiErr = err as import("@/lib/api").ApiError
+      if (apiErr.errorCode === "verification_code_invalid" || apiErr.errorCode === "verification_code_expired" || apiErr.errorCode === "verification_code_too_many_attempts") {
+        setForgotStep("code")
+        setForgotCode("")
+      }
+    } finally {
+      setForgotSubmitting(false)
+    }
+  }
+
+  const handleCancelForgot = () => {
+    setForgotMode(false)
+    setForgotStep("email")
+    setForgotEmail("")
+    setForgotCode("")
+    setForgotNewPassword("")
+    setForgotConfirmPassword("")
+  }
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setRegError("")
+
+    // Validate fields
     if (!regEmail.trim()) {
       setRegError(t("emailRequired"))
       return
@@ -153,20 +349,22 @@ function LoginPageInner() {
       setRegError(t("passwordMinLength"))
       return
     }
-    setRegLoading(true)
-    try {
-      await register({
-        username: regUsername,
-        password: regPassword,
-        email: regEmail,
-        invite_code: regInviteCode.trim() || undefined,
-      })
-      router.replace("/")
-    } catch (err) {
-      setRegError(err instanceof Error ? err.message : t("registrationFailed"))
-    } finally {
-      setRegLoading(false)
+
+    // If email verification is enabled and we haven't sent code yet, send it first
+    if (emailVerificationEnabled && !verificationStep) {
+      await handleSendCode()
+      return
     }
+
+    await doRegister()
+  }
+
+  const handleLanguageSwitch = (lang: string) => {
+    const cookieValue = lang === "auto" ? "" : lang
+    document.cookie = cookieValue
+      ? `NEXT_LOCALE=${cookieValue}; path=/; max-age=${60 * 60 * 24 * 365}`
+      : "NEXT_LOCALE=; path=/; max-age=0"
+    router.refresh()
   }
 
   if (authLoading || setupChecking) {
@@ -180,7 +378,7 @@ function LoginPageInner() {
   if (user) return null // Will redirect
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'oklch(0.13 0.008 55)' }}>
+    <div className="flex min-h-screen bg-background">
       {/* Left panel — brand / hero, always dark, hidden on mobile */}
       <div className="login-brand-panel hidden lg:flex w-[45%] shrink-0 flex-col justify-between px-14 py-10 text-white">
         {/* Mesh gradient background */}
@@ -210,12 +408,31 @@ function LoginPageInner() {
 
         {/* Bottom — copyright */}
         <div className="relative z-10">
-          <p className="text-xs text-white/35">&copy; 2026 {APP_NAME}</p>
+          <p className="text-xs text-white/35">&copy; {new Date().getFullYear()} {APP_NAME}</p>
         </div>
       </div>
 
       {/* Right panel — form, follows light/dark theme */}
-      <div className="flex flex-1 flex-col items-center justify-center bg-background/[0.88] backdrop-blur-sm px-6 py-12">
+      <div className="relative flex flex-1 flex-col items-center justify-center bg-background px-6 py-12">
+        {/* Theme & Language switcher */}
+        <div className="absolute top-4 right-4 flex items-center gap-1">
+          <button
+            type="button"
+            className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          >
+            {resolvedTheme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            onClick={() => handleLanguageSwitch(locale === "zh" ? "en" : "zh")}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            {locale === "zh" ? "English" : "中文"}
+          </button>
+        </div>
+
         <div className="w-full max-w-sm">
           {/* Mobile-only logo (< lg) */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
@@ -297,87 +514,422 @@ function LoginPageInner() {
               {registrationEnabled && <TabsTrigger value="register">{tc("register")}</TabsTrigger>}
             </TabsList>
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Input
-                    placeholder={t("usernameOrEmailPlaceholder")}
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                    required
-                    autoFocus
-                    autoComplete="username"
-                  />
-                  <Input
-                    type="password"
-                    placeholder={t("passwordPlaceholder")}
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-                {loginError && (
-                  <p className="text-sm text-destructive">{loginError}</p>
-                )}
-                <Button type="submit" className="w-full" disabled={loginLoading}>
-                  {loginLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t("signIn")}
-                </Button>
-              </form>
-            </TabsContent>
-            {registrationEnabled && <TabsContent value="register">
-              <form onSubmit={handleRegister} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Input
-                    placeholder={t("usernameMinLengthPlaceholder")}
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                    required
-                    minLength={2}
-                    autoComplete="username"
-                  />
+              {forgotMode ? (
+                forgotStep === "email" ? (
+                  <div className="space-y-4 pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      {t("forgotPasswordSubtitle")}
+                    </p>
+                    <Input
+                      type="email"
+                      placeholder={t("emailPlaceholder")}
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      autoFocus
+                      autoComplete="email"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          handleSendForgotCode()
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      className="w-full"
+                      disabled={forgotSending || !forgotEmail.trim()}
+                      onClick={handleSendForgotCode}
+                    >
+                      {forgotSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t("sendResetCode")}
+                    </Button>
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={handleCancelForgot}
+                      >
+                        {t("backToLogin")}
+                      </button>
+                    </div>
+                  </div>
+                ) : forgotStep === "code" ? (
+                  <div className="space-y-4 pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      {t("resetCodeSent", { email: forgotEmail })}
+                    </p>
+                    <div className="flex justify-center">
+                      <InputOTP
+                        maxLength={6}
+                        value={forgotCode}
+                        onChange={setForgotCode}
+                        onComplete={handleForgotCodeComplete}
+                        autoFocus
+                      >
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                        </InputOTPGroup>
+                        <InputOTPSeparator />
+                        <InputOTPGroup>
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={handleCancelForgot}
+                      >
+                        {t("backToLogin")}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
+                        disabled={forgotResendCountdown > 0 || forgotSending}
+                        onClick={handleSendForgotCode}
+                      >
+                        {forgotSending
+                          ? t("sendingCode")
+                          : forgotResendCountdown > 0
+                            ? t("resendCodeIn", { seconds: forgotResendCountdown })
+                            : t("resendCode")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotPasswordSubmit} className="space-y-4 pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      {t("resetCodeSent", { email: forgotEmail })}
+                    </p>
+                    <div className="space-y-2">
+                      <Input
+                        type="password"
+                        placeholder={t("newPasswordPlaceholder")}
+                        value={forgotNewPassword}
+                        onChange={(e) => setForgotNewPassword(e.target.value)}
+                        autoFocus
+                        autoComplete="new-password"
+                      />
+                      <Input
+                        type="password"
+                        placeholder={t("confirmNewPasswordPlaceholder")}
+                        value={forgotConfirmPassword}
+                        onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    {forgotConfirmPassword.length > 0 && forgotNewPassword !== forgotConfirmPassword && (
+                      <p className="text-sm text-destructive">{t("passwordsMustMatch")}</p>
+                    )}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={
+                        forgotSubmitting ||
+                        forgotNewPassword.length < 8 ||
+                        forgotNewPassword !== forgotConfirmPassword
+                      }
+                    >
+                      {forgotSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {forgotSubmitting ? t("resettingPassword") : t("resetPassword")}
+                    </Button>
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={handleCancelForgot}
+                      >
+                        {t("backToLogin")}
+                      </button>
+                    </div>
+                  </form>
+                )
+              ) : !otpLoginMode ? (
+                /* Password login mode */
+                <form onSubmit={handleLogin} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder={t("emailPlaceholder")}
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                      autoFocus
+                      autoComplete="email"
+                    />
+                    <Input
+                      type="password"
+                      placeholder={t("passwordPlaceholder")}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  {loginError && (
+                    <p className="text-sm text-destructive">{loginError}</p>
+                  )}
+                  <Button type="submit" className="w-full" disabled={loginLoading}>
+                    {loginLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t("signIn")}
+                  </Button>
+                  {smtpConfigured && (
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => {
+                          setForgotMode(true)
+                          setForgotStep("email")
+                          if (loginEmail.trim()) setForgotEmail(loginEmail.trim())
+                        }}
+                      >
+                        {t("forgotPassword")}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-sm text-primary hover:text-primary/80 transition-colors"
+                        onClick={() => setOtpLoginMode(true)}
+                      >
+                        {t("loginWithEmailCode")}
+                      </button>
+                    </div>
+                  )}
+                </form>
+              ) : otpStep === "email" ? (
+                /* OTP login — email step */
+                <div className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    {t("otpLoginSubtitle")}
+                  </p>
                   <Input
                     type="email"
                     placeholder={t("emailPlaceholder")}
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    required
+                    value={otpEmail}
+                    onChange={(e) => setOtpEmail(e.target.value)}
+                    autoFocus
                     autoComplete="email"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleSendLoginCode()
+                      }
+                    }}
                   />
-                  <Input
-                    type="password"
-                    placeholder={t("passwordMinLengthPlaceholder")}
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    autoComplete="new-password"
-                  />
-                  <Input
-                    type="password"
-                    placeholder={t("confirmPasswordPlaceholder")}
-                    value={regConfirm}
-                    onChange={(e) => setRegConfirm(e.target.value)}
-                    required
-                    autoComplete="new-password"
-                  />
-                  {registrationMode === "invite" && (
-                    <Input
-                      placeholder={t("inviteCodePlaceholder")}
-                      value={regInviteCode}
-                      onChange={(e) => setRegInviteCode(e.target.value)}
-                      autoComplete="off"
-                      required
-                    />
-                  )}
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={otpSending || !otpEmail.trim()}
+                    onClick={handleSendLoginCode}
+                  >
+                    {otpSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t("sendLoginCode")}
+                  </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => {
+                        setOtpLoginMode(false)
+                        setOtpStep("email")
+                        setOtpCode("")
+                        setOtpEmail("")
+                      }}
+                    >
+                      {t("backToPasswordLogin")}
+                    </button>
+                  </div>
                 </div>
-                {regError && (
-                  <p className="text-sm text-destructive">{regError}</p>
+              ) : (
+                /* OTP login — code step */
+                <div className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    {t("loginCodeSent", { email: otpEmail })}
+                  </p>
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={setOtpCode}
+                      onComplete={(code) => doLoginWithCode(code)}
+                      disabled={otpVerifying}
+                      autoFocus
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  {otpVerifying && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {t("signingIn")}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => {
+                        setOtpStep("email")
+                        setOtpCode("")
+                      }}
+                    >
+                      {t("changeEmail")}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
+                      disabled={otpResendCountdown > 0 || otpSending}
+                      onClick={handleSendLoginCode}
+                    >
+                      {otpSending
+                        ? t("sendingCode")
+                        : otpResendCountdown > 0
+                          ? t("resendCodeIn", { seconds: otpResendCountdown })
+                          : t("resendCode")}
+                    </button>
+                  </div>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => {
+                        setOtpLoginMode(false)
+                        setOtpStep("email")
+                        setOtpCode("")
+                        setOtpEmail("")
+                      }}
+                    >
+                      {t("backToPasswordLogin")}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+            {registrationEnabled && <TabsContent value="register">
+              <form onSubmit={handleRegister} className="space-y-4 pt-4">
+                {!verificationStep ? (
+                  <>
+                    <div className="space-y-2">
+                      <Input
+                        type="email"
+                        placeholder={t("emailPlaceholder")}
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                      />
+                      <Input
+                        type="password"
+                        placeholder={t("passwordMinLengthPlaceholder")}
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        autoComplete="new-password"
+                      />
+                      <Input
+                        type="password"
+                        placeholder={t("confirmPasswordPlaceholder")}
+                        value={regConfirm}
+                        onChange={(e) => setRegConfirm(e.target.value)}
+                        required
+                        autoComplete="new-password"
+                      />
+                      {registrationMode === "invite" && (
+                        <Input
+                          placeholder={t("inviteCodePlaceholder")}
+                          value={regInviteCode}
+                          onChange={(e) => setRegInviteCode(e.target.value)}
+                          autoComplete="off"
+                          required
+                        />
+                      )}
+                    </div>
+                    {regError && (
+                      <p className="text-sm text-destructive">{regError}</p>
+                    )}
+                    <Button type="submit" className="w-full" disabled={regLoading || sendingCode}>
+                      {(regLoading || sendingCode) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {emailVerificationEnabled && !sendingCode ? t("verifyEmail") : sendingCode ? t("sendingCode") : t("createAccount")}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {t("verificationCodeSent", { email: regEmail })}
+                      </p>
+                      <div className="flex justify-center">
+                        <InputOTP
+                          maxLength={6}
+                          value={verificationCode}
+                          onChange={setVerificationCode}
+                          onComplete={(code) => doRegister(code)}
+                          disabled={regLoading}
+                          autoFocus
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                          </InputOTPGroup>
+                          <InputOTPSeparator />
+                          <InputOTPGroup>
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                      {regLoading && (
+                        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          {t("verifying")}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => {
+                            setVerificationStep(false)
+                            setVerificationCode("")
+                            setRegError("")
+                          }}
+                        >
+                          {t("changeEmail")}
+                        </button>
+                        <button
+                          type="button"
+                          className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
+                          disabled={resendCountdown > 0 || sendingCode}
+                          onClick={handleSendCode}
+                        >
+                          {sendingCode
+                            ? t("sendingCode")
+                            : resendCountdown > 0
+                              ? t("resendCodeIn", { seconds: resendCountdown })
+                              : t("resendCode")}
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
-                <Button type="submit" className="w-full" disabled={regLoading}>
-                  {regLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t("createAccount")}
-                </Button>
               </form>
             </TabsContent>}
           </Tabs>
