@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import math
 import os
 import re
@@ -13,6 +15,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from fim_agent.web.exceptions import AppError
@@ -21,9 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_agent.db import get_session
 from fim_agent.web.auth import get_current_admin, hash_password
-from fim_agent.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, SystemSetting, User
+from fim_agent.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, ModelConfig, SystemSetting, User
 from fim_agent.web.schemas.common import PaginatedResponse
 from fim_agent.web.schemas.mcp_server import MCPServerCreate, MCPServerUpdate
+from fim_agent.web.schemas.model_config import ModelConfigResponse
 
 # ---------------------------------------------------------------------------
 # Settings helpers
@@ -120,7 +124,7 @@ class StatsResponse(BaseModel):
 
 class AdminUserInfo(BaseModel):
     id: str
-    username: str
+    username: str | None = None
     display_name: str | None
     email: str | None
     is_admin: bool
@@ -136,7 +140,7 @@ _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 class AdminCreateUserRequest(BaseModel):
-    username: str = Field(min_length=2, max_length=50)
+    username: str | None = Field(None, min_length=2, max_length=50)
     password: str = Field(min_length=6, max_length=100)
     email: str = Field(..., max_length=255)
     display_name: str | None = None
@@ -165,7 +169,7 @@ class AdminToggleActiveRequest(BaseModel):
 
 class AdminUserInfoExtended(BaseModel):
     id: str
-    username: str
+    username: str | None = None
     display_name: str | None
     email: str | None
     is_admin: bool
@@ -188,13 +192,20 @@ class AdminConversationInfo(BaseModel):
     total_tokens: int
     message_count: int
     user_id: str
-    username: str
+    username: str | None = None
+    created_at: str
+
+
+class AdminMessageInfo(BaseModel):
+    id: str
+    role: str
+    content: str | None
     created_at: str
 
 
 class UserStorageStat(BaseModel):
     user_id: str
-    username: str
+    username: str | None = None
     file_count: int
     total_bytes: int
 
@@ -616,10 +627,11 @@ async def create_user(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> AdminUserInfo:
     """Create a new user. Requires admin privileges."""
-    # Check username uniqueness
-    result = await db.execute(select(User).where(User.username == body.username))
-    if result.scalar_one_or_none() is not None:
-        raise AppError("username_taken", status_code=409)
+    # Check username uniqueness (only if provided)
+    if body.username is not None:
+        result = await db.execute(select(User).where(User.username == body.username))
+        if result.scalar_one_or_none() is not None:
+            raise AppError("username_taken", status_code=409)
     # Check email uniqueness
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none() is not None:
@@ -639,7 +651,7 @@ async def create_user(
     user = result.scalar_one()
     await write_audit(
         db, current_user, "user.create",
-        target_type="user", target_id=user.id, target_label=user.username,
+        target_type="user", target_id=user.id, target_label=user.username or user.email,
     )
     return _user_to_info(user)
 
@@ -703,7 +715,7 @@ async def update_user_admin(
     await write_audit(
         db, current_user,
         "user.grant_admin" if body.is_admin else "user.revoke_admin",
-        target_type="user", target_id=user_id, target_label=target_user.username,
+        target_type="user", target_id=user_id, target_label=target_user.username or target_user.email,
     )
     return _user_to_info(target_user)
 
@@ -731,7 +743,7 @@ async def reset_password(
     target_user = result.scalar_one()
     await write_audit(
         db, current_user, "user.reset_password",
-        target_type="user", target_id=user_id, target_label=target_user.username,
+        target_type="user", target_id=user_id, target_label=target_user.username or target_user.email,
     )
     return _user_to_info(target_user)
 
@@ -764,7 +776,7 @@ async def toggle_user_active(
     await write_audit(
         db, current_user,
         "user.enable" if body.is_active else "user.disable",
-        target_type="user", target_id=user_id, target_label=target_user.username,
+        target_type="user", target_id=user_id, target_label=target_user.username or target_user.email,
     )
     return _user_to_info(target_user)
 
@@ -778,6 +790,7 @@ SETTING_ANNOUNCEMENT_ENABLED = "announcement_enabled"
 SETTING_ANNOUNCEMENT_TEXT = "announcement_text"
 SETTING_REGISTRATION_MODE = "registration_mode"
 SETTING_DEFAULT_TOKEN_QUOTA = "default_token_quota"
+SETTING_EMAIL_VERIFICATION_ENABLED = "email_verification_enabled"
 
 
 async def write_audit(
@@ -793,7 +806,7 @@ async def write_audit(
     db.add(
         AuditLog(
             admin_id=admin.id,
-            admin_username=admin.username,
+            admin_username=admin.username or admin.email,
             action=action,
             target_type=target_type,
             target_id=target_id,
@@ -816,6 +829,7 @@ class SystemSettingsResponse(BaseModel):
     announcement_enabled: bool
     announcement_text: str
     default_token_quota: int
+    email_verification_enabled: bool
 
 
 class UpdateSystemSettingsRequest(BaseModel):
@@ -825,6 +839,7 @@ class UpdateSystemSettingsRequest(BaseModel):
     announcement_enabled: bool | None = None
     announcement_text: str | None = None
     default_token_quota: int | None = None
+    email_verification_enabled: bool | None = None
 
 
 async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
@@ -834,6 +849,7 @@ async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
     ann_en = await get_setting(db, SETTING_ANNOUNCEMENT_ENABLED, default="false")
     ann_txt = await get_setting(db, SETTING_ANNOUNCEMENT_TEXT, default="")
     quota_str = await get_setting(db, SETTING_DEFAULT_TOKEN_QUOTA, default="0")
+    email_verif = await get_setting(db, SETTING_EMAIL_VERIFICATION_ENABLED, default="false")
     # Derive registration_mode: prefer explicit setting, fall back to legacy boolean
     if not reg_mode:
         reg_mode = "open" if reg.lower() != "false" else "disabled"
@@ -844,6 +860,7 @@ async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
         announcement_enabled=ann_en.lower() == "true",
         announcement_text=ann_txt,
         default_token_quota=int(quota_str) if quota_str.isdigit() else 0,
+        email_verification_enabled=email_verif.lower() == "true",
     )
 
 
@@ -888,6 +905,9 @@ async def update_system_settings(
     if body.announcement_text is not None:
         await set_setting(db, SETTING_ANNOUNCEMENT_TEXT, body.announcement_text)
         changed.append("announcement_text updated")
+    if body.email_verification_enabled is not None:
+        await set_setting(db, SETTING_EMAIL_VERIFICATION_ENABLED, "true" if body.email_verification_enabled else "false")
+        changed.append(f"email_verification_enabled={body.email_verification_enabled}")
     if changed:
         await write_audit(db, current_user, "settings.update", detail="; ".join(changed))
     return await _load_all_settings(db)
@@ -914,7 +934,7 @@ async def delete_user(
         raise AppError("user_not_found", status_code=404)
 
     info = _user_to_info(target_user)
-    label = target_user.username
+    label = target_user.username or target_user.email
     await db.delete(target_user)
     await db.commit()
     await write_audit(
@@ -957,7 +977,7 @@ async def force_logout_all(
 class AuditLogEntry(BaseModel):
     id: str
     admin_id: str
-    admin_username: str
+    admin_username: str | None = None
     action: str
     target_type: str | None
     target_id: str | None
@@ -966,23 +986,108 @@ class AuditLogEntry(BaseModel):
     created_at: str
 
 
+def _build_audit_filters(
+    action: str | None,
+    admin_id: str | None,
+    date_from: str | None,
+    date_to: str | None,
+) -> list:
+    """Build SQLAlchemy filter clauses for audit log queries."""
+    filters = []
+    if action:
+        filters.append(AuditLog.action == action)
+    if admin_id:
+        filters.append(AuditLog.admin_id == admin_id)
+    if date_from:
+        try:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d").replace(
+                hour=0, minute=0, second=0
+            )
+            filters.append(AuditLog.created_at >= dt_from)
+        except ValueError:
+            pass  # ignore invalid date strings
+    if date_to:
+        try:
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59
+            )
+            filters.append(AuditLog.created_at <= dt_to)
+        except ValueError:
+            pass  # ignore invalid date strings
+    return filters
+
+
+@router.get("/audit-log/export")
+async def export_audit_log(
+    action: str | None = None,
+    admin_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> StreamingResponse:
+    """Export filtered audit log entries as CSV. Limited to 10 000 rows."""
+    filters = _build_audit_filters(action, admin_id, date_from, date_to)
+    query = select(AuditLog).order_by(AuditLog.created_at.desc())
+    for f in filters:
+        query = query.where(f)
+    query = query.limit(10_000)
+
+    result = await db.execute(query)
+    rows = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["timestamp", "admin", "action", "target_type", "target_label", "detail"])
+    for r in rows:
+        writer.writerow([
+            r.created_at.isoformat() if r.created_at else "",
+            r.admin_username or "",
+            r.action,
+            r.target_type or "",
+            r.target_label or "",
+            r.detail or "",
+        ])
+
+    buf.seek(0)
+    today = date.today().isoformat()
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="audit-log-{today}.csv"'},
+    )
+
+
 @router.get("/audit-log", response_model=PaginatedResponse)
 async def list_audit_log(
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
+    action: str | None = None,
+    admin_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     current_user: User = Depends(get_current_admin),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> PaginatedResponse:
     """Return paginated audit log entries, newest first. Requires admin privileges."""
-    total_result = await db.execute(select(func.count()).select_from(AuditLog))
+    filters = _build_audit_filters(action, admin_id, date_from, date_to)
+
+    count_query = select(func.count()).select_from(AuditLog)
+    for f in filters:
+        count_query = count_query.where(f)
+    total_result = await db.execute(count_query)
     total: int = total_result.scalar_one()
 
-    rows_result = await db.execute(
+    data_query = (
         select(AuditLog)
         .order_by(AuditLog.created_at.desc())
         .offset((page - 1) * size)
         .limit(size)
     )
+    for f in filters:
+        data_query = data_query.where(f)
+
+    rows_result = await db.execute(data_query)
     rows = rows_result.scalars().all()
 
     items = [
@@ -1033,7 +1138,7 @@ async def force_logout_user(
     await db.commit()
     await write_audit(
         db, current_user, "user.force_logout",
-        target_type="user", target_id=user_id, target_label=user.username,
+        target_type="user", target_id=user_id, target_label=user.username or user.email,
     )
     return {"ok": True}
 
@@ -1059,7 +1164,7 @@ async def set_user_quota(
     await db.commit()
     await write_audit(
         db, current_user, "user.set_quota",
-        target_type="user", target_id=user_id, target_label=user.username,
+        target_type="user", target_id=user_id, target_label=user.username or user.email,
         detail=f"quota={body.token_quota}",
     )
     return {"ok": True}
@@ -1172,7 +1277,7 @@ async def list_all_conversations(
         stmt = stmt.where(Conversation.user_id == user_id)
     if q:
         like = f"%{q}%"
-        stmt = stmt.where(or_(Conversation.title.ilike(like), User.username.ilike(like)))
+        stmt = stmt.where(or_(Conversation.title.ilike(like), User.username.ilike(like), User.email.ilike(like)))
 
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = (await db.execute(count_stmt)).scalar_one()
@@ -1203,7 +1308,7 @@ async def list_all_conversations(
             total_tokens=conv.total_tokens,
             message_count=msg_counts.get(conv.id, 0),
             user_id=user.id,
-            username=user.username,
+            username=user.username or user.email,
             created_at=conv.created_at.isoformat() if conv.created_at else "",
         ).model_dump()
         for conv, user in rows
@@ -1215,6 +1320,47 @@ async def list_all_conversations(
         size=size,
         pages=math.ceil(total / size) if total > 0 else 1,
     )
+
+
+@router.get("/conversations/{conv_id}/messages", response_model=list[AdminMessageInfo])
+async def admin_get_conversation_messages(
+    conv_id: str,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+):
+    """Fetch all messages of a conversation for admin inspection. Read-only."""
+    # Verify conversation exists
+    conv_result = await db.execute(
+        select(Conversation).where(Conversation.id == conv_id)
+    )
+    conv = conv_result.scalar_one_or_none()
+    if conv is None:
+        raise AppError("conversation_not_found", status_code=404)
+
+    # Fetch messages ordered by created_at ASC
+    msg_result = await db.execute(
+        select(Message)
+        .where(Message.conversation_id == conv_id)
+        .order_by(Message.created_at.asc())
+    )
+    messages = msg_result.scalars().all()
+
+    # Audit log
+    await write_audit(
+        db, current_user, "conversation.viewed",
+        target_type="conversation", target_id=conv_id,
+        target_label=conv.title or None,
+    )
+
+    return [
+        AdminMessageInfo(
+            id=msg.id,
+            role=msg.role,
+            content=msg.content,
+            created_at=msg.created_at.isoformat() if msg.created_at else "",
+        )
+        for msg in messages
+    ]
 
 
 @router.delete("/conversations/{conv_id}", status_code=204)
@@ -1359,12 +1505,12 @@ async def get_storage_stats(
                             pass
                 user_stats[uid] = {"file_count": file_count, "total_bytes": total_bytes}
 
-    # Resolve usernames
+    # Resolve usernames (with email fallback)
     if user_stats:
         user_rows = await db.execute(
-            select(User.id, User.username).where(User.id.in_(list(user_stats.keys())))
+            select(User.id, User.username, User.email).where(User.id.in_(list(user_stats.keys())))
         )
-        username_map = dict(user_rows.all())
+        username_map = {row[0]: (row[1] or row[2]) for row in user_rows.all()}
     else:
         username_map = {}
 
@@ -1582,3 +1728,325 @@ async def test_global_mcp_server(
         return {"ok": False, "error": str(exc)}
     finally:
         await client.disconnect_all()
+
+
+# ---------------------------------------------------------------------------
+# Admin Model Management
+# ---------------------------------------------------------------------------
+
+
+class AdminModelCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    provider: str = ""
+    model_name: str = Field(min_length=1, max_length=100)
+    base_url: str | None = None
+    api_key: str | None = None
+    category: str = "llm"
+    temperature: float | None = None
+    max_output_tokens: int | None = None
+    context_size: int | None = None
+    role: str | None = None
+    is_active: bool = True
+
+
+class AdminModelUpdate(BaseModel):
+    name: str | None = None
+    provider: str | None = None
+    model_name: str | None = None
+    base_url: str | None = None
+    api_key: str | None = None
+    category: str | None = None
+    temperature: float | None = None
+    max_output_tokens: int | None = None
+    context_size: int | None = None
+    role: str | None = None
+    is_active: bool | None = None
+
+
+class AdminToggleActiveModelRequest(BaseModel):
+    is_active: bool
+
+
+class AdminSetModelRoleRequest(BaseModel):
+    role: str | None = None
+
+
+class EnvFallbackInfo(BaseModel):
+    llm_model: str
+    llm_base_url: str
+    llm_temperature: float
+    llm_context_size: int
+    llm_max_output_tokens: int
+    fast_llm_model: str
+    fast_llm_context_size: int
+    fast_llm_max_output_tokens: int
+    has_api_key: bool
+
+
+class AdminModelsListResponse(BaseModel):
+    models: list[ModelConfigResponse]
+    env_fallback: EnvFallbackInfo
+
+
+def _model_config_to_response(cfg: ModelConfig) -> ModelConfigResponse:
+    """Convert a ModelConfig ORM object to a response schema."""
+    return ModelConfigResponse(
+        id=cfg.id,
+        name=cfg.name,
+        provider=cfg.provider,
+        model_name=cfg.model_name,
+        base_url=cfg.base_url,
+        category=cfg.category,
+        temperature=cfg.temperature,
+        max_output_tokens=getattr(cfg, "max_output_tokens", None),
+        context_size=getattr(cfg, "context_size", None),
+        role=getattr(cfg, "role", None),
+        is_default=cfg.is_default,
+        is_active=cfg.is_active,
+        created_at=cfg.created_at.isoformat() if cfg.created_at else "",
+        updated_at=cfg.updated_at.isoformat() if cfg.updated_at else None,
+    )
+
+
+def _build_env_fallback() -> EnvFallbackInfo:
+    """Build environment variable fallback information."""
+    llm_model = os.getenv("LLM_MODEL", "gpt-4o")
+    llm_context_size = int(os.getenv("LLM_CONTEXT_SIZE", "128000"))
+    llm_max_output_tokens = int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "64000"))
+    return EnvFallbackInfo(
+        llm_model=llm_model,
+        llm_base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"),
+        llm_temperature=float(os.getenv("LLM_TEMPERATURE", "0.7")),
+        llm_context_size=llm_context_size,
+        llm_max_output_tokens=llm_max_output_tokens,
+        fast_llm_model=os.getenv("FAST_LLM_MODEL") or llm_model,
+        fast_llm_context_size=int(
+            os.getenv("FAST_LLM_CONTEXT_SIZE") or str(llm_context_size)
+        ),
+        fast_llm_max_output_tokens=int(
+            os.getenv("FAST_LLM_MAX_OUTPUT_TOKENS") or str(llm_max_output_tokens)
+        ),
+        has_api_key=bool(os.getenv("LLM_API_KEY")),
+    )
+
+
+async def _admin_unset_role(
+    db: AsyncSession,
+    role: str,
+    exclude_id: str | None = None,
+) -> None:
+    """Ensure only one system-level config holds a given role."""
+    stmt = select(ModelConfig).where(
+        ModelConfig.role == role,
+        ModelConfig.user_id.is_(None),
+    )
+    if exclude_id:
+        stmt = stmt.where(ModelConfig.id != exclude_id)
+    result = await db.execute(stmt)
+    for cfg in result.scalars().all():
+        cfg.role = None
+
+
+@router.get("/models", response_model=AdminModelsListResponse)
+async def admin_list_models(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminModelsListResponse:
+    """List all system-level model configurations with ENV fallback info."""
+    from sqlalchemy import case
+
+    # Order: general first, fast second, then by created_at
+    role_order = case(
+        (ModelConfig.role == "general", 0),
+        (ModelConfig.role == "fast", 1),
+        else_=2,
+    )
+    result = await db.execute(
+        select(ModelConfig)
+        .where(ModelConfig.user_id.is_(None))
+        .order_by(role_order, ModelConfig.created_at.asc())
+    )
+    configs = result.scalars().all()
+    return AdminModelsListResponse(
+        models=[_model_config_to_response(c) for c in configs],
+        env_fallback=_build_env_fallback(),
+    )
+
+
+@router.post("/models", response_model=ModelConfigResponse, status_code=201)
+async def admin_create_model(
+    body: AdminModelCreate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ModelConfigResponse:
+    """Create a system-level model configuration."""
+    if body.role in ("general", "fast"):
+        await _admin_unset_role(db, body.role)
+
+    cfg = ModelConfig(
+        user_id=None,
+        name=body.name,
+        provider=body.provider,
+        model_name=body.model_name,
+        base_url=body.base_url,
+        api_key=body.api_key,
+        category=body.category,
+        temperature=body.temperature,
+        max_output_tokens=body.max_output_tokens,
+        context_size=body.context_size,
+        role=body.role,
+        is_active=body.is_active,
+    )
+    db.add(cfg)
+    await db.commit()
+    await db.refresh(cfg)
+    await write_audit(
+        db,
+        current_user,
+        "model.create",
+        target_type="model",
+        target_id=cfg.id,
+        target_label=cfg.name,
+        detail=f"provider={cfg.provider}, model={cfg.model_name}, role={cfg.role}",
+    )
+    return _model_config_to_response(cfg)
+
+
+@router.put("/models/{model_id}", response_model=ModelConfigResponse)
+async def admin_update_model(
+    model_id: str,
+    body: AdminModelUpdate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ModelConfigResponse:
+    """Update a system-level model configuration."""
+    result = await db.execute(
+        select(ModelConfig).where(
+            ModelConfig.id == model_id,
+            ModelConfig.user_id.is_(None),
+        )
+    )
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        raise AppError("admin_model_not_found", status_code=404)
+
+    update_data = body.model_dump(exclude_unset=True)
+
+    new_role = update_data.get("role")
+    if new_role in ("general", "fast"):
+        await _admin_unset_role(db, new_role, exclude_id=cfg.id)
+
+    for field, value in update_data.items():
+        setattr(cfg, field, value)
+
+    await db.commit()
+    await db.refresh(cfg)
+    await write_audit(
+        db,
+        current_user,
+        "model.update",
+        target_type="model",
+        target_id=cfg.id,
+        target_label=cfg.name,
+    )
+    return _model_config_to_response(cfg)
+
+
+@router.delete("/models/{model_id}", status_code=204)
+async def admin_delete_model(
+    model_id: str,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> None:
+    """Delete a system-level model configuration."""
+    result = await db.execute(
+        select(ModelConfig).where(
+            ModelConfig.id == model_id,
+            ModelConfig.user_id.is_(None),
+        )
+    )
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        raise AppError("admin_model_not_found", status_code=404)
+
+    name = cfg.name
+    await db.delete(cfg)
+    await db.commit()
+    await write_audit(
+        db,
+        current_user,
+        "model.delete",
+        target_type="model",
+        target_id=model_id,
+        target_label=name,
+    )
+
+
+@router.patch("/models/{model_id}/active")
+async def admin_toggle_model_active(
+    model_id: str,
+    body: AdminToggleActiveModelRequest,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict:
+    """Toggle the active status of a system-level model configuration."""
+    result = await db.execute(
+        select(ModelConfig).where(
+            ModelConfig.id == model_id,
+            ModelConfig.user_id.is_(None),
+        )
+    )
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        raise AppError("admin_model_not_found", status_code=404)
+
+    cfg.is_active = body.is_active
+    await db.commit()
+    action = "model.enable" if body.is_active else "model.disable"
+    await write_audit(
+        db,
+        current_user,
+        action,
+        target_type="model",
+        target_id=model_id,
+        target_label=cfg.name,
+    )
+    return {"ok": True}
+
+
+@router.patch("/models/{model_id}/role")
+async def admin_set_model_role(
+    model_id: str,
+    body: AdminSetModelRoleRequest,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict:
+    """Set or clear the role for a system-level model configuration."""
+    result = await db.execute(
+        select(ModelConfig).where(
+            ModelConfig.id == model_id,
+            ModelConfig.user_id.is_(None),
+        )
+    )
+    cfg = result.scalar_one_or_none()
+    if cfg is None:
+        raise AppError("admin_model_not_found", status_code=404)
+
+    if body.role and body.role not in ("general", "fast"):
+        raise AppError("invalid_model_role", status_code=400)
+
+    if body.role:
+        await _admin_unset_role(db, body.role, exclude_id=cfg.id)
+
+    cfg.role = body.role
+    await db.commit()
+    await write_audit(
+        db,
+        current_user,
+        "model.set_role",
+        target_type="model",
+        target_id=model_id,
+        target_label=cfg.name,
+        detail=f"role={body.role}",
+    )
+    return {"ok": True}

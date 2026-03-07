@@ -474,14 +474,24 @@ async def _resolve_llm(
     if not getattr(llm, "api_key", None):
         raise ValueError(
             "No LLM API key configured. "
-            "Go to Settings → Models to add a model provider, "
+            "Go to Admin → Models to add a model provider, "
             "or set LLM_API_KEY in your environment."
         )
     return llm
 
 
-async def _resolve_fast_llm(db: AsyncSession) -> BaseLLM:
-    """Fast LLM: DB role='fast' -> DB role='general' -> ENV fast fallback."""
+async def _resolve_fast_llm(
+    agent_cfg: dict[str, Any] | None,
+    db: AsyncSession,
+) -> BaseLLM:
+    """Fast LLM: agent fast_model_config_id > DB role='fast' > DB role='general' > ENV."""
+    if agent_cfg:
+        cfg = agent_cfg.get("model_config_json") or {}
+        fast_id = cfg.get("fast_model_config_id") if isinstance(cfg, dict) else None
+        if fast_id:
+            llm = await get_llm_by_config_id(db, fast_id)
+            if llm is not None:
+                return llm
     return await get_effective_fast_llm(db)
 
 
@@ -959,7 +969,7 @@ async def react_endpoint(
     try:
         async with _create_session() as _llm_db:
             llm = await _resolve_llm(agent_cfg, _llm_db)
-            fast_llm = await _resolve_fast_llm(_llm_db)
+            fast_llm = await _resolve_fast_llm(agent_cfg, _llm_db)
             _context_budget = await get_effective_context_budget(_llm_db)
     except ValueError as exc:
         raise AppError(
@@ -1367,7 +1377,7 @@ async def dag_endpoint(
 
     # DAG uses a fast LLM for step execution; role='fast' -> role='general' -> ENV fallback.
     async with _create_session() as _fast_llm_db:
-        fast_llm = await _resolve_fast_llm(_fast_llm_db)
+        fast_llm = await _resolve_fast_llm(agent_cfg, _fast_llm_db)
 
     # Load attached images
     dag_image_data: list[tuple[str, str, str]] = []
