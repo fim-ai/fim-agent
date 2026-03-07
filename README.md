@@ -140,6 +140,7 @@ FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Co
 - **Pluggable Tool System** — Auto-discovery; ships with Python executor, Node.js executor, calculator, web search/fetch, HTTP request, shell exec, and more.
 - **Pluggable Sandbox** — `python_exec` / `node_exec` / `shell_exec` run in local or Docker mode (`CODE_EXEC_BACKEND=docker`) for OS-level isolation (`--network=none`, `--memory=256m`). Safe for SaaS and multi-tenant deployments.
 - **MCP Protocol** — Connect any MCP server as tools. Third-party MCP ecosystem works out of the box.
+- **Tool Artifact System** — Tools produce rich outputs (HTML previews, generated files) with in-chat rendering and download. HTML artifacts render in sandboxed iframes; file artifacts show download chips.
 - **OpenAI-Compatible** — Works with any `/v1/chat/completions` provider (OpenAI, DeepSeek, Qwen, Ollama, vLLM…).
 
 #### RAG & Knowledge

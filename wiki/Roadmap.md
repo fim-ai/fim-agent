@@ -356,6 +356,10 @@ Mode 3: Auth-Login Mode (planned v0.10)
 - [ ] **UI Text Externalization**: All user-facing strings extracted to locale JSON files (`messages/zh-CN.json`); components use `useTranslations()` hook. Organized by page/feature (e.g., `agent.create`, `connector.authType.bearer`, `admin.userManagement`)
 - [ ] **Locale Resolution**: Driven by user's `preferred_language` setting (already exists in backend); `auto` mode falls back to `navigator.language`; switching language does not require page reload (next-intl handles this)
 
+**Tool Artifact System**
+- [x] **Artifact Infrastructure**: `Artifact` and `ToolResult` dataclasses in tool base; `scan_new_files()` and `save_content_artifact()` utilities; tools (`template_render`, `python_exec`, `node_exec`, `shell_exec`, `generate_image`) produce `ToolResult` with artifacts; REST API for listing and downloading artifacts per conversation
+- [x] **Artifact Frontend Rendering**: `ObservationBlock` renders HTML in sandboxed iframes and markdown by content type; `ArtifactChips` for file download/preview; `DagDoneCard` and `DoneCard` artifact summaries
+
 **NOT in this version (explicit decisions — see Strategy Decisions section):**
 - ❌ Connector does NOT adopt MCP protocol internally — Connector is a no-code product, MCP is a developer protocol; they are complementary layers serving different users
 - ❌ No DB mode or Auth-Login mode yet — these are v0.10 scope; API mode must be production-quality first

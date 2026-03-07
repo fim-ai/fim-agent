@@ -83,6 +83,17 @@ cp example.env .env
 
 ---
 
+## Tool Artifacts
+
+Size limits for files produced by tool execution (code execution, template rendering, image generation).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `MAX_ARTIFACT_SIZE` | No | `10485760` (10 MB) | Max single artifact file size in bytes |
+| `MAX_ARTIFACTS_TOTAL` | No | `52428800` (50 MB) | Max total artifact size per session in bytes |
+
+---
+
 ## Image Generation
 
 | Variable | Required | Default | Description |
