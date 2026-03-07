@@ -1,0 +1,17 @@
+{
+  "title": "产出物",
+  "count": "{count} 个产出物",
+  "filterAll": "全部",
+  "filterImages": "图片",
+  "filterHtml": "HTML",
+  "filterCode": "代码",
+  "filterFiles": "文件",
+  "noArtifacts": "暂无产出物",
+  "noArtifactsDesc": "智能体生成的产出物将在此处显示。",
+  "noResults": "没有匹配该筛选条件的产出物",
+  "fromConversation": "来自对话",
+  "openConversation": "打开对话",
+  "download": "下载",
+  "preview": "预览",
+  "loading": "加载中..."
+}

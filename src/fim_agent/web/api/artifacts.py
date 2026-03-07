@@ -5,19 +5,24 @@ from __future__ import annotations
 import logging
 import mimetypes
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from fim_agent.web.auth import get_current_user
+from fim_agent.web.auth import decode_token, get_current_user
 from fim_agent.web.exceptions import AppError
 from fim_agent.web.models import User
 from fim_agent.web.schemas.common import ApiResponse
 
+_bearer_optional = HTTPBearer(auto_error=False)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/conversations", tags=["artifacts"])
+global_artifacts_router = APIRouter(prefix="/api", tags=["artifacts"])
 
 UPLOAD_ROOT = Path(os.environ.get("UPLOADS_DIR", "uploads"))
 
@@ -80,10 +85,24 @@ async def list_artifacts(
 async def download_artifact(
     conversation_id: str,
     artifact_id: str,
-    current_user: User = Depends(get_current_user),
+    token: str | None = Query(None, description="JWT token (for img src auth)"),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_optional),
 ) -> FileResponse:
-    """Download a specific artifact."""
-    await _validate_conversation_ownership(conversation_id, current_user.id)
+    """Download a specific artifact.
+
+    Supports authentication via either:
+    - ``Authorization: Bearer <token>`` header (standard API calls)
+    - ``?token=<jwt>`` query parameter (for ``<img src>`` tags that cannot
+      carry custom headers)
+    """
+    jwt_token = (credentials.credentials if credentials else None) or token
+    if not jwt_token:
+        raise AppError("not_authenticated", status_code=401)
+    payload = decode_token(jwt_token)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise AppError("not_authenticated", status_code=401)
+    await _validate_conversation_ownership(conversation_id, user_id)
     d = _artifacts_dir(conversation_id)
     if not d.exists():
         raise AppError("artifact_not_found", status_code=404)
@@ -101,3 +120,49 @@ async def download_artifact(
             )
 
     raise AppError("artifact_not_found", status_code=404)
+
+
+@global_artifacts_router.get("/artifacts", response_model=ApiResponse)
+async def list_all_artifacts(
+    current_user: User = Depends(get_current_user),
+) -> ApiResponse:
+    """List all artifacts across all conversations for the current user."""
+    from sqlalchemy import select as sa_select
+
+    from fim_agent.db import create_session
+    from fim_agent.web.models import Conversation
+
+    async with create_session() as session:
+        result = await session.execute(
+            sa_select(Conversation.id, Conversation.title, Conversation.created_at).where(
+                Conversation.user_id == current_user.id,
+            )
+        )
+        conversations = result.all()
+
+    artifacts: list[dict] = []
+    for conv_id, conv_title, _conv_created_at in conversations:
+        artifacts_dir = _artifacts_dir(conv_id)
+        if not artifacts_dir.exists():
+            continue
+        for f in artifacts_dir.iterdir():
+            if not f.is_file():
+                continue
+            parts = f.name.split("_", 1)
+            artifact_id = parts[0]
+            original_name = parts[1] if len(parts) > 1 else f.name
+            mime, _ = mimetypes.guess_type(str(f))
+            stat = f.stat()
+            artifacts.append({
+                "id": artifact_id,
+                "name": original_name,
+                "mime_type": mime or "application/octet-stream",
+                "size": stat.st_size,
+                "url": f"/api/conversations/{conv_id}/artifacts/{artifact_id}",
+                "conversation_id": conv_id,
+                "conversation_title": conv_title or "Untitled",
+                "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+            })
+
+    artifacts.sort(key=lambda a: a["created_at"], reverse=True)
+    return ApiResponse(data=artifacts)

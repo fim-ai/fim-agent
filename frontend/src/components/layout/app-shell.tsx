@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, Library, Loader2, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun, Wrench, X } from "lucide-react"
+import { Bot, Layers, Library, Loader2, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun, Wrench, X } from "lucide-react"
 import { getApiBaseUrl } from "@/lib/constants"
 import { setMaintenanceCallback } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -401,6 +401,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Wrench className="h-4 w-4" />
                 {!collapsed && <span>{t("tools")}</span>}
+              </Link>
+            </SidebarTooltip>
+            <SidebarTooltip label={t("artifacts")} collapsed={collapsed}>
+              <Link
+                href="/artifacts"
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                  pathname === "/artifacts"
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+                  collapsed && "h-9 w-9 justify-center px-0"
+                )}
+              >
+                <Layers className="h-4 w-4" />
+                {!collapsed && <span>{t("artifacts")}</span>}
               </Link>
             </SidebarTooltip>
             <SidebarTooltip label={t("allChats")} collapsed={collapsed}>
