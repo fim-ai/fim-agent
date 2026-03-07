@@ -533,9 +533,22 @@ class ReActAgent:
                             for a in raw_result.artifacts
                         ] if raw_result.artifacts else None,
                     )
+                    # For rich content types, give the LLM a short summary
+                    # instead of the full content (which the frontend renders
+                    # via iframe / markdown).  This prevents the LLM from
+                    # echoing large HTML blobs in its final answer.
+                    llm_content = raw_result.content
+                    if raw_result.content_type in ("html", "markdown") and raw_result.artifacts:
+                        names = ", ".join(a.name for a in raw_result.artifacts)
+                        llm_content = (
+                            f"[Artifact generated: {names}] "
+                            "The content is rendered as a preview in the UI "
+                            "and available for download. "
+                            "Do NOT paste the raw source in your answer."
+                        )
                     msg = ChatMessage(
                         role="tool",
-                        content=raw_result.content,
+                        content=llm_content,
                         tool_call_id=tc.id,
                     )
                     return step, msg

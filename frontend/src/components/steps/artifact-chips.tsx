@@ -1,8 +1,10 @@
 "use client"
 
+import { useCallback } from "react"
 import { useTranslations } from "next-intl"
 import { Download, ExternalLink, FileText, FileImage, FileCode, File, FileSpreadsheet } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
 import type { ArtifactInfo } from "./types"
 
 function getFileIcon(mimeType: string) {
@@ -23,6 +25,17 @@ function canPreview(mimeType: string): boolean {
   return mimeType === "text/html" || mimeType.startsWith("image/")
 }
 
+/** Fetch an artifact with auth, return an object URL. */
+async function fetchArtifactBlob(url: string): Promise<string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null
+  const headers: Record<string, string> = {}
+  if (token) headers["Authorization"] = `Bearer ${token}`
+  const res = await fetch(`${getApiBaseUrl()}${url}`, { headers })
+  if (!res.ok) throw new Error(`Failed to fetch artifact: ${res.status}`)
+  const blob = await res.blob()
+  return URL.createObjectURL(blob)
+}
+
 interface ArtifactChipsProps {
   artifacts: ArtifactInfo[]
   className?: string
@@ -30,6 +43,33 @@ interface ArtifactChipsProps {
 
 export function ArtifactChips({ artifacts, className }: ArtifactChipsProps) {
   const t = useTranslations("dag")
+
+  const handleDownload = useCallback(async (artifact: ArtifactInfo) => {
+    try {
+      const blobUrl = await fetchArtifactBlob(artifact.url)
+      const a = document.createElement("a")
+      a.href = blobUrl
+      a.download = artifact.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      // Fallback: direct open (will fail with auth error but nothing else we can do)
+      window.open(`${getApiBaseUrl()}${artifact.url}`, "_blank")
+    }
+  }, [])
+
+  const handleOpen = useCallback(async (artifact: ArtifactInfo) => {
+    try {
+      const blobUrl = await fetchArtifactBlob(artifact.url)
+      window.open(blobUrl, "_blank")
+      // Don't revoke immediately — the new tab needs it.
+      // Browser will clean up when the tab is closed.
+    } catch {
+      window.open(`${getApiBaseUrl()}${artifact.url}`, "_blank")
+    }
+  }, [])
 
   if (!artifacts.length) return null
 
@@ -50,7 +90,7 @@ export function ArtifactChips({ artifacts, className }: ArtifactChipsProps) {
                 variant="ghost"
                 size="icon"
                 className="h-5 w-5"
-                onClick={() => window.open(artifact.url, "_blank")}
+                onClick={() => handleDownload(artifact)}
                 title={t("download")}
               >
                 <Download className="h-3 w-3" />
@@ -60,7 +100,7 @@ export function ArtifactChips({ artifacts, className }: ArtifactChipsProps) {
                   variant="ghost"
                   size="icon"
                   className="h-5 w-5"
-                  onClick={() => window.open(artifact.url, "_blank")}
+                  onClick={() => handleOpen(artifact)}
                   title={t("openInNewTab")}
                 >
                   <ExternalLink className="h-3 w-3" />
