@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
 import { APP_NAME, getApiBaseUrl, getApiDirectUrl } from "@/lib/constants"
 import { authApi } from "@/lib/api"
+import { AnimatedLogo } from "@/components/layout/animated-logo"
 
 function LoginPageInner() {
   const t = useTranslations("auth")
@@ -188,19 +189,7 @@ function LoginPageInner() {
         </div>
 
         {/* Top — logo */}
-        <div className="relative z-10 flex items-center gap-2.5">
-          <img
-            src="/fim-mark.svg"
-            alt="FIM"
-            className="h-6 w-auto brightness-0 invert"
-          />
-          <span
-            className="text-xl font-bold tracking-tight text-white/90"
-            style={{ fontFamily: 'var(--font-cabinet), sans-serif' }}
-          >
-            {APP_NAME}
-          </span>
-        </div>
+        <AnimatedLogo appName={APP_NAME} />
 
         {/* Middle-lower — tagline */}
         <div className="relative z-10 -mt-8">

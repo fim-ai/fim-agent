@@ -22,6 +22,7 @@ specifiers:
   highlight.js: ^11.11.1
   katex: ^0.16.33
   lucide-react: ^0.575.0
+  motion: ^12.35.0
   next: ~15.5.12
   next-intl: ^4.8.3
   next-themes: ^0.4.6
@@ -54,6 +55,7 @@ dependencies:
   highlight.js: 11.11.1
   katex: 0.16.33
   lucide-react: 0.575.0_react@18.3.1
+  motion: 12.35.0_react-dom@18.3.1+react@18.3.1
   next: 15.5.12_react-dom@18.3.1+react@18.3.1
   next-intl: 4.8.3_b6d337a426a9c7860f0da8c6280ba2db
   next-themes: 0.4.6_react-dom@18.3.1+react@18.3.1
@@ -4954,6 +4956,27 @@ packages:
     engines: {node: '>= 0.6'}
     dev: true
 
+  /framer-motion/12.35.0_react-dom@18.3.1+react@18.3.1:
+    resolution: {integrity: sha512-w8hghCMQ4oq10j6aZh3U2yeEQv5K69O/seDI/41PK4HtgkLrcBovUNc0ayBC3UyyU7V1mrY2yLzvYdWJX9pGZQ==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+    dependencies:
+      motion-dom: 12.35.0
+      motion-utils: 12.29.2
+      react: 18.3.1
+      react-dom: 18.3.1_react@18.3.1
+      tslib: 2.8.1
+    dev: false
+
   /fresh/2.0.0:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
     engines: {node: '>= 0.8'}
@@ -6551,6 +6574,36 @@ packages:
   /minimist/1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
     dev: true
+
+  /motion-dom/12.35.0:
+    resolution: {integrity: sha512-FFMLEnIejK/zDABn+vqGVAUN4T0+3fw+cVAY8MMT65yR+j5uMuvWdd4npACWhh94OVWQs79CrBBuwOwGRZAQiA==}
+    dependencies:
+      motion-utils: 12.29.2
+    dev: false
+
+  /motion-utils/12.29.2:
+    resolution: {integrity: sha512-G3kc34H2cX2gI63RqU+cZq+zWRRPSsNIOjpdl9TN4AQwC4sgwYPl/Q/Obf/d53nOm569T0fYK+tcoSV50BWx8A==}
+    dev: false
+
+  /motion/12.35.0_react-dom@18.3.1+react@18.3.1:
+    resolution: {integrity: sha512-BQUhNUIGvUcwXCzwmnT1JpjUqab34lIwxHnXUyWRht1WC1vAyp7/4qgMiUXxN3K6hgUhyoR+HNnLeQMwUZjVjw==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+    dependencies:
+      framer-motion: 12.35.0_react-dom@18.3.1+react@18.3.1
+      react: 18.3.1
+      react-dom: 18.3.1_react@18.3.1
+      tslib: 2.8.1
+    dev: false
 
   /ms/2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
