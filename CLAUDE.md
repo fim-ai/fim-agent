@@ -38,39 +38,21 @@ frontend/            # Next.js portal (shadcn/ui)
 
 - **No native dialogs** (`confirm`/`alert`/`prompt`) — use `AlertDialog` / `Dialog` / Toast (sonner)
 - **Navigation → `<Link>`**, not `<button onClick={router.push()}>`. For shadcn `<Button>`, use `asChild` + `<Link>` inside
-- **Focus rings**: use `focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px] focus-visible:border-ring`, **never** `focus-visible:ring-1 focus-visible:ring-ring` — `ring-*` is a `box-shadow` that extends outside the border-box and gets clipped by `overflow: hidden` on parent containers (e.g. ScrollArea viewport). CSS `outline` with `-2px` offset renders inward and is never clipped. Already fixed in `ui/input.tsx` + `ui/textarea.tsx`; apply the same pattern to any raw `<input>`/`<textarea>` with custom `className`; do not revert.
-- **No `pl-*`/`pr-*` on form wrappers** containing `<Input>`/`<Textarea>` — asymmetric padding clips `shadow-xs`. Use parent `px-*` or `gap-*`/`space-y-*` instead.
-- **No native `<select>`** — always use shadcn `<Select>` + `<SelectTrigger className="w-full">` + `<SelectContent>` + `<SelectItem>`. Add `className="w-full"` to `SelectTrigger` (default is `w-fit`). For empty-string default values, use a `__default__` sentinel: `value={val || "__default__"}` / `onValueChange={(v) => setVal(v === "__default__" ? "" : v)}` — Radix treats `""` as unset.
+- **Focus rings**: use `focus-visible:outline-*` pattern, **never** `focus-visible:ring-*` — `ring` is `box-shadow`, gets clipped by `overflow:hidden`. See `ui/input.tsx` for reference.
+- **No `pl-*`/`pr-*` on form wrappers** containing `<Input>`/`<Textarea>` — clips `shadow-xs`. Use `px-*` or `gap-*` instead.
+- **No native `<select>`** — use shadcn `<Select>` with `<SelectTrigger className="w-full">`. For empty defaults, use `__default__` sentinel (Radix treats `""` as unset).
 
 ## Toast Feedback Convention (MANDATORY)
 
-Every user-triggered API call (create, update, delete, upload, toggle, etc.) MUST show toast:
-- Success → `toast.success("...")` (sonner)
-- Failure → `toast.error(errMsg(err))`
+Every user-triggered API call MUST show toast: success → `toast.success()`, failure → `toast.error(errMsg(err))`. Never silently close dialogs, never use only `console.error()`, never use inline flash state — always toast.
 
-**NEVER** silently close a dialog. **NEVER** use only `console.error()`. **NEVER** use flash-and-disappear inline state (`setSaved(true); setTimeout(...)`) — always use `toast.success()`.
+## Dirty State Protection (MANDATORY)
 
-## Dirty State Protection Convention (MANDATORY)
+Create/edit forms MUST guard against accidental close (modal backdrop, X button, page navigation). AlertDialog must be **sibling** of Dialog, never nested. References: `connector-settings-form.tsx` (modal pattern), `agents/[id]/page.tsx` (full-page pattern).
 
-Forms with meaningful user input MUST guard against accidental close.
+## i18n (MANDATORY)
 
-**Applies to**: Modal/Drawer/Sheet create/edit forms, full-page editor forms.
-**Does NOT apply to**: Read-only drawers, search dialogs, inline panels.
-
-### Modal/Drawer pattern — key rules
-- X button + Cancel both call the same `handleClose`
-- `onInteractOutside` (not `onPointerDownOutside`): if dirty → `e.preventDefault()` + show confirm
-- AlertDialog is a **sibling** of Dialog, never nested inside `DialogContent`
-- Empty form → backdrop closes directly (no confirm)
-
-Reference: `frontend/src/components/connectors/connector-settings-form.tsx`
-
-### Full-page form pattern — key rules
-- Child form exposes `onDirtyChange` callback → page tracks `formDirty`
-- When dirty: swap `<Link>` back button → `<button>` that opens leave-confirm dialog
-- Add `beforeunload` handler while dirty (browser refresh warning)
-
-Reference: `frontend/src/app/agents/[id]/page.tsx`
+All UI text must use `next-intl` — **never hardcode English strings**. Add keys to both `messages/en/{ns}.json` and `messages/zh/{ns}.json`, use `useTranslations("{ns}")` in components. Shared strings (Save/Cancel/Delete) → `useTranslations("common")`. New namespace = just drop JSON files, auto-discovered via `fs.readdirSync`.
 
 ## Code Conventions
 
