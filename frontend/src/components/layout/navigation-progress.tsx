@@ -16,14 +16,17 @@ export function NavigationProgress() {
       const anchor = (e.target as Element).closest("a[href]")
       if (!anchor) return
       const href = anchor.getAttribute("href") ?? ""
-      // Skip external, hash, protocol, and same-page links
+      // Skip external, hash, protocol, download, and same-page links
       if (
         !href ||
         href.startsWith("http") ||
         href.startsWith("//") ||
         href.startsWith("#") ||
         href.startsWith("mailto:") ||
-        href.startsWith("javascript:")
+        href.startsWith("javascript:") ||
+        href.startsWith("blob:") ||
+        href.startsWith("data:") ||
+        anchor.hasAttribute("download")
       ) return
       const targetPath = href.split("?")[0].split("#")[0]
       if (targetPath === window.location.pathname) return
