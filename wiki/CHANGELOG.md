@@ -6,6 +6,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
+### Security
+- **CRIT-1: Python sandbox hardening**: `python_exec` tool now uses whitelist-based imports (only safe standard library modules allowed) and replaces built-in `open()` with a sandboxed version that blocks writes to sensitive paths; prevents arbitrary code execution via unrestricted imports
+- **CRIT-2: SSRF protection for ConnectorToolAdapter**: Outbound HTTP requests from connector actions now pass through SSRF validation, blocking requests to private/internal IP ranges (RFC 1918, link-local, loopback) and resolving hostnames before connecting
+- **CRIT-3: Path traversal prevention**: Avatar download and KB file upload endpoints now validate and sanitize file paths to prevent directory traversal attacks (e.g., `../../etc/passwd`)
+- **H-4: Expanded shell command blacklist**: `shell_exec` tool now blocks additional dangerous commands to reduce host-level attack surface
+- **H-5: SSRF protection for OpenAPI spec fetch and URL importer**: OpenAPI specification fetching and URL-based document import now validate target URLs against private/internal IP ranges before making requests
+- **H-6: Enforce ALLOW_STDIO_MCP policy**: MCP server registration now checks the `ALLOW_STDIO_MCP` env var and rejects stdio-transport servers when set to `false`; connector credential values are masked in API responses to prevent secret leakage
+- **H-7, H-8: Minimum password length enforcement**: User registration and password change endpoints now require a minimum of 8 characters
+- **Shared SSRF protection module**: Extracted reusable `ssrf_guard` utility for URL validation against private networks, used across connectors, OpenAPI fetch, and URL importer
+
+### Changed
+- **H-9: ReActAgent public properties**: Added public property accessors to `ReActAgent` for better encapsulation
+- **H-10: File index lock**: Added async lock to file index operations to prevent race conditions
+- **H-12, H-15: Async cleanup and parallel validation**: `shutil.rmtree` calls in admin storage cleanup replaced with async equivalents; admin stats queries consolidated; chat endpoint validation (user lookup, token quota check) now runs in parallel for lower latency
+- **H-11: JWT-based token expiry**: Frontend token expiry detection now uses JWT `exp` claim instead of a fixed timer; API errors surfaced via toast notifications; user storage key extracted to a shared `USER_KEY` constant
+
 ### Added
 - **Admin v0.8 — Extended Admin Platform**: 5 new admin modules (37 new API endpoints) accessible via dedicated sidebar tabs:
   - **Security tab**: Login history tracking (all attempts with IP, user-agent, success/fail), login statistics, IP whitelist/blacklist rules (CRUD with CIDR support), active session viewer
