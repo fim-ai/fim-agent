@@ -1,4 +1,4 @@
-"""Built-in image generation tool powered by Google Imagen."""
+"""Built-in image generation tool (supports Google Gemini and OpenAI-compatible providers)."""
 
 from __future__ import annotations
 
@@ -13,8 +13,9 @@ _DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[4] / "tmp" / "default" / 
 
 
 class GenerateImageTool(BaseTool):
-    """Generate an image from a text prompt using Google Imagen (via Gemini API).
+    """Generate an image from a text prompt.
 
+    Supports Google Gemini (native API) and OpenAI-compatible providers.
     Requires IMAGE_GEN_API_KEY to be set in the environment.
     The generated image is saved to the shared workspace and automatically
     registered as an artifact via ``scan_new_files()``.
@@ -43,7 +44,7 @@ class GenerateImageTool(BaseTool):
     @property
     def description(self) -> str:
         return (
-            "Generate an image from a text description using Google Imagen. "
+            "Generate an image from a text description. "
             "The image file is attached below automatically — do NOT mention "
             "any download link or URL in your reply. Just briefly describe "
             "what was generated. "
@@ -73,7 +74,7 @@ class GenerateImageTool(BaseTool):
         if not os.environ.get("IMAGE_GEN_API_KEY"):
             return (
                 False,
-                "Set IMAGE_GEN_API_KEY (Google AI Studio key) in your environment to enable image generation.",
+                "Set IMAGE_GEN_API_KEY in your environment to enable image generation.",
             )
         return True, None
 
@@ -89,9 +90,9 @@ class GenerateImageTool(BaseTool):
         if self._artifacts_dir:
             before = {f.name for f in self._output_dir.iterdir() if f.is_file()}
 
-        from fim_agent.core.image_gen.google import GoogleImageGen
+        from fim_agent.core.image_gen import get_image_gen
 
-        gen = GoogleImageGen()
+        gen = get_image_gen()
         try:
             result = await gen.generate(
                 prompt, aspect_ratio=aspect_ratio, output_dir=str(self._output_dir)

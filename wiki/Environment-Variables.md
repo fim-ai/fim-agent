@@ -98,10 +98,10 @@ Size limits for files produced by tool execution (code execution, template rende
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `IMAGE_GEN_PROVIDER` | No | — | Currently only `google` is supported |
-| `IMAGE_GEN_API_KEY` | No | — | Google AI Studio API key |
-| `IMAGE_GEN_MODEL` | No | `gemini-3.1-flash-image-preview` | Image generation model |
-| `IMAGE_GEN_BASE_URL` | No | `https://generativelanguage.googleapis.com/v1beta` | Google API base URL |
+| `IMAGE_GEN_PROVIDER` | No | `google` | `google` (Gemini native API) or `openai` (OpenAI-compatible `/v1/images/generations`) |
+| `IMAGE_GEN_API_KEY` | No | — | Google AI Studio key (`google`) or proxy/OpenAI API key (`openai`) |
+| `IMAGE_GEN_MODEL` | No | `gemini-3.1-flash-image-preview` | Image generation model (e.g. `dall-e-3`, `gemini-nano-banana-2`) |
+| `IMAGE_GEN_BASE_URL` | No | *(per provider)* | Google: `https://generativelanguage.googleapis.com/v1beta`; OpenAI: `https://api.openai.com/v1` |
 
 ---
 
