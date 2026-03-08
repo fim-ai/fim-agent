@@ -19,6 +19,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **UI: `formatTokens` utility**: New formatting helper for displaying token counts with locale-aware number formatting
 - **UI: `Checkbox` and `FadeIn` components**: New shadcn-style checkbox and fade-in animation wrapper components
 
+### Changed
+- **Docs: ASCII → Mermaid diagrams**: All box-drawing ASCII diagrams converted to native Mermaid charts (12 diagrams across 6 pages) for better rendering and interactivity
+- **Docs: dark mode theme**: Refined Mintlify color config — warm amber accent in dark mode, gradient background decoration, proper background colors matching project theme
+
 ### Fixed
 - **Docker i18n broken**: Copy `messages/` directory into standalone output and add `outputFileTracingIncludes` so next-intl can discover locale JSON files at runtime
 - **Docker startup race condition**: Add API readiness wait loop (Python socket poll) in entrypoint before starting Next.js, preventing `e.map is not a function` SSR errors
