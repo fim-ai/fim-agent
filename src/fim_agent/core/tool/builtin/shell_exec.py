@@ -95,6 +95,32 @@ _BLOCKED_COMMAND_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     # Listening sockets (connecting is fine)
     (re.compile(r"\bnc\s+-[a-zA-Z]*l"), "listening socket (nc -l)"),
     (re.compile(r"\bncat\s+-[a-zA-Z]*l"), "listening socket (ncat -l)"),
+
+    # Shell interpreters
+    (re.compile(r"\bbash\b"), "shell interpreter (bash)"),
+    (re.compile(r"\bsh\b"), "shell interpreter (sh)"),
+    (re.compile(r"\bzsh\b"), "shell interpreter (zsh)"),
+    (re.compile(r"\bdash\b"), "shell interpreter (dash)"),
+    (re.compile(r"\bfish\b"), "shell interpreter (fish)"),
+
+    # Script interpreters
+    (re.compile(r"\bpython\b"), "script interpreter (python)"),
+    (re.compile(r"\bpython3\b"), "script interpreter (python3)"),
+    (re.compile(r"\bperl\b"), "script interpreter (perl)"),
+    (re.compile(r"\bruby\b"), "script interpreter (ruby)"),
+    (re.compile(r"\bnode\b"), "script interpreter (node)"),
+    (re.compile(r"\bphp\b"), "script interpreter (php)"),
+
+    # Network tools
+    (re.compile(r"\bcurl\b"), "network tool (curl)"),
+    (re.compile(r"\bwget\b"), "network tool (wget)"),
+
+    # Command wrappers
+    (re.compile(r"\benv\b"), "command wrapper (env)"),
+    (re.compile(r"\bxargs\b"), "command wrapper (xargs)"),
+    (re.compile(r"\bexec\b"), "command wrapper (exec)"),
+    (re.compile(r"\beval\b"), "command wrapper (eval)"),
+    (re.compile(r"\bnohup\b"), "command wrapper (nohup)"),
 ]
 
 # System paths that must not be written to.
@@ -259,7 +285,7 @@ class ShellExecTool(BaseTool):
     def description(self) -> str:
         return (
             "Execute shell commands in a sandboxed environment. "
-            "Useful for running CLI tools like curl, jq, awk, sed, wc, "
+            "Useful for running CLI tools like jq, awk, sed, wc, "
             "sort, head, tail, grep, etc. "
             "Commands run with restricted permissions — no access to "
             "system files, no sudo, no package installation."

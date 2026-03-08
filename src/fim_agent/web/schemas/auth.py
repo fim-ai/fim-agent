@@ -34,7 +34,7 @@ class UserInfo(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    password: str = Field(min_length=6, max_length=100)
+    password: str = Field(min_length=8, max_length=100)
     email: str = Field(..., max_length=255)
     invite_code: str | None = None
     verification_code: str | None = None
@@ -109,7 +109,7 @@ class UpdateProfileRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=6, max_length=100)
+    new_password: str = Field(min_length=8, max_length=100)
 
 
 class SetPasswordRequest(BaseModel):
@@ -173,7 +173,7 @@ class RefreshRequest(BaseModel):
 
 
 class SetupRequest(BaseModel):
-    password: str = Field(min_length=6, max_length=100)
+    password: str = Field(min_length=8, max_length=100)
     email: str = Field(..., max_length=255)
 
     @field_validator("email")
