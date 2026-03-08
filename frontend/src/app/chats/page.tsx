@@ -197,8 +197,8 @@ export default function ChatsPage() {
   const hasMore = conversations.length < total
 
   return (
-    <div className="h-full overflow-y-auto">
-    <div className="max-w-3xl mx-auto py-8 px-4">
+    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex-1 overflow-y-auto px-6 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold flex items-center gap-2">

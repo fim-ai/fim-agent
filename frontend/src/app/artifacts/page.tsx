@@ -18,11 +18,18 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  MoreHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { apiFetch } from "@/lib/api"
 import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 // ---------- types ----------
 
@@ -106,6 +113,21 @@ function fileExt(name: string): string {
 
 function isMarkdownFile(name: string, mimeType: string): boolean {
   return fileExt(name) === "md" || mimeType === "text/markdown"
+}
+
+async function downloadArtifact(artifact: ArtifactItem) {
+  try {
+    const url = await fetchArtifactBlob(artifact.url)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = artifact.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch {
+    window.open(`${getApiBaseUrl()}${artifact.url}`, "_blank")
+  }
 }
 
 function isTextPreviewable(mime: string, name: string): boolean {
@@ -239,20 +261,7 @@ function PreviewPanel({
     return () => { if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [artifact.url, artifact.name, needsBlob, isText, isMarkdown])
 
-  const handleDownload = useCallback(async () => {
-    try {
-      const url = blobUrl ?? (await fetchArtifactBlob(artifact.url))
-      const a = document.createElement("a")
-      a.href = url
-      a.download = artifact.name
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      if (!blobUrl) URL.revokeObjectURL(url)
-    } catch {
-      window.open(`${getApiBaseUrl()}${artifact.url}`, "_blank")
-    }
-  }, [artifact, blobUrl])
+  const handleDownload = useCallback(() => downloadArtifact(artifact), [artifact])
 
   return (
     <div className="flex flex-col h-full">
@@ -370,14 +379,27 @@ function ArtifactsContent() {
   const [artifacts, setArtifacts] = useState<ArtifactItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<ArtifactItem | null>(null)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 20
+  const totalPages = Math.ceil(total / pageSize)
 
   useEffect(() => {
     setLoading(true)
-    apiFetch<{ data: ArtifactItem[] }>("/api/artifacts")
-      .then((res) => setArtifacts(res.data))
-      .catch(() => setArtifacts([]))
+    setSelected(null)
+    apiFetch<{ items: ArtifactItem[]; total: number; page: number; size: number }>(
+      `/api/artifacts?page=${page}&size=${pageSize}`,
+    )
+      .then((res) => {
+        setArtifacts(res.items)
+        setTotal(res.total)
+      })
+      .catch(() => {
+        setArtifacts([])
+        setTotal(0)
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [page])
 
   const filtered =
     activeFilter === "all"
@@ -425,7 +447,7 @@ function ArtifactsContent() {
     <div className="h-full flex overflow-hidden">
       {/* Left: scrollable grid area */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-5xl mx-auto py-8 px-4">
+        <div className="px-6 py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold flex items-center gap-2">
@@ -434,7 +456,7 @@ function ArtifactsContent() {
             </h1>
             {!loading && (
               <span className="text-sm text-muted-foreground">
-                {t("count", { count: artifacts.length })}
+                {t("count", { count: total })}
               </span>
             )}
           </div>
@@ -474,7 +496,7 @@ function ArtifactsContent() {
               <p className="text-sm text-muted-foreground">{t("noResults")}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filtered.map((artifact) => {
                 const isActive =
                   selected?.id === artifact.id &&
@@ -484,12 +506,36 @@ function ArtifactsContent() {
                     key={`${artifact.conversation_id}-${artifact.id}`}
                     onClick={() => setSelected(isActive ? null : artifact)}
                     className={cn(
-                      "group rounded-lg border overflow-hidden cursor-pointer transition-all",
+                      "group relative rounded-lg border overflow-hidden cursor-pointer transition-all",
                       isActive
                         ? "border-primary ring-2 ring-primary/20 shadow-md"
                         : "border-border hover:shadow-md",
                     )}
                   >
+                    {/* Hover dropdown menu */}
+                    <div className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 has-[[data-state=open]]:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex h-7 w-7 items-center justify-center rounded-md bg-background/80 backdrop-blur-sm shadow-sm border border-border/50 text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => downloadArtifact(artifact)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            {t("download")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/?c=${artifact.conversation_id}`)}>
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {t("openConversation")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
                     <div className="aspect-square bg-muted/30 overflow-hidden">
                       <ArtifactThumbnail artifact={artifact} />
                     </div>
@@ -497,15 +543,6 @@ function ArtifactsContent() {
                       <p className="text-sm font-medium truncate" title={artifact.name}>
                         {artifact.name}
                       </p>
-                      <Link
-                        href={`/?c=${artifact.conversation_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors truncate"
-                        title={artifact.conversation_title}
-                      >
-                        <MessageSquare className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{artifact.conversation_title}</span>
-                      </Link>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {formatSize(artifact.size)} · {formatRelativeTime(artifact.created_at, tLayout)}
                       </p>
@@ -513,6 +550,31 @@ function ArtifactsContent() {
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-6">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                title={t("previousPage")}
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-muted-foreground">
+                {t("page")} {page} {t("of")} {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                title={t("nextPage")}
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           )}
         </div>

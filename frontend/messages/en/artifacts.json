@@ -15,5 +15,9 @@
   "preview": "Preview",
   "loading": "Loading...",
   "previous": "Previous",
-  "next": "Next"
+  "next": "Next",
+  "page": "Page",
+  "of": "of",
+  "previousPage": "Previous page",
+  "nextPage": "Next page"
 }

@@ -15,5 +15,9 @@
   "preview": "预览",
   "loading": "加载中...",
   "previous": "上一个",
-  "next": "下一个"
+  "next": "下一个",
+  "page": "页码",
+  "of": "/",
+  "previousPage": "上一页",
+  "nextPage": "下一页"
 }

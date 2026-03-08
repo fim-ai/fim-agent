@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import mimetypes
 import os
 from datetime import datetime, timezone
@@ -15,7 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fim_agent.web.auth import decode_token, get_current_user
 from fim_agent.web.exceptions import AppError
 from fim_agent.web.models import User
-from fim_agent.web.schemas.common import ApiResponse
+from fim_agent.web.schemas.common import ApiResponse, PaginatedResponse
 
 _bearer_optional = HTTPBearer(auto_error=False)
 
@@ -122,10 +123,12 @@ async def download_artifact(
     raise AppError("artifact_not_found", status_code=404)
 
 
-@global_artifacts_router.get("/artifacts", response_model=ApiResponse)
+@global_artifacts_router.get("/artifacts", response_model=PaginatedResponse)
 async def list_all_artifacts(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
-) -> ApiResponse:
+) -> PaginatedResponse:
     """List all artifacts across all conversations for the current user."""
     from sqlalchemy import select as sa_select
 
@@ -165,4 +168,13 @@ async def list_all_artifacts(
             })
 
     artifacts.sort(key=lambda a: a["created_at"], reverse=True)
-    return ApiResponse(data=artifacts)
+    total = len(artifacts)
+    start = (page - 1) * size
+    items = artifacts[start : start + size]
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size) if total else 0,
+    )
