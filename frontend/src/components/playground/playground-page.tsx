@@ -680,6 +680,19 @@ function PlaygroundContent({
     viewport.scrollTo({ top: viewport.scrollHeight, behavior })
   }, [])
 
+  const scrollInViewport = useCallback((selector: string) => {
+    const root = scrollAreaRef.current
+    if (!root) return
+    const viewport = root.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]")
+    if (!viewport) return
+    const el = viewport.querySelector<HTMLElement>(selector)
+    if (!el) return
+    const elRect = el.getBoundingClientRect()
+    const viewportRect = viewport.getBoundingClientRect()
+    const scrollOffset = elRect.top - viewportRect.top + viewport.scrollTop
+    viewport.scrollTo({ top: Math.max(0, scrollOffset - 16), behavior: "smooth" })
+  }, [])
+
   const handleSuggestionSelect = useCallback((q: string) => {
     // Clear any attached files/images so they don't show up as "still attached"
     // on the follow-up turn. The suggestion never sends them to the backend anyway.
@@ -753,6 +766,25 @@ function PlaygroundContent({
     }
   }, [messages, scrollViewportToBottom])
 
+  // When streaming completes, scroll to the top of the result block so the user
+  // sees the answer from the beginning rather than the very end.
+  const wasRunningRef = useRef(false)
+  useEffect(() => {
+    if (isRunning) {
+      wasRunningRef.current = true
+      return
+    }
+    if (!wasRunningRef.current) return
+    wasRunningRef.current = false
+    // Only snap to result top when user didn't manually scroll away mid-stream.
+    if (!isNearBottomRef.current) return
+    // Double-rAF: first frame lets React commit the "done" re-render (steps collapse),
+    // second frame waits for the browser layout pass so bounding rects are correct.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => scrollInViewport("[data-live-output]"))
+    )
+  }, [isRunning, scrollInViewport])
+
   // Reset scroll state on clear
   useEffect(() => {
     if (!hasMessages) {
@@ -767,22 +799,16 @@ function PlaygroundContent({
   }, [pendingQuery])
 
   const scrollToBottom = useCallback(() => {
-    scrollViewportToBottom()
-    setShowScrollBtn(false)
-  }, [scrollViewportToBottom])
-
-  const scrollInViewport = useCallback((selector: string) => {
     const root = scrollAreaRef.current
-    if (!root) return
-    const viewport = root.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]")
-    if (!viewport) return
-    const el = viewport.querySelector<HTMLElement>(selector)
-    if (!el) return
-    const elRect = el.getBoundingClientRect()
-    const viewportRect = viewport.getBoundingClientRect()
-    const scrollOffset = elRect.top - viewportRect.top + viewport.scrollTop
-    viewport.scrollTo({ top: Math.max(0, scrollOffset - 16), behavior: "smooth" })
-  }, [])
+    const viewport = root?.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]")
+    const liveOutput = viewport?.querySelector<HTMLElement>("[data-live-output]")
+    if (liveOutput) {
+      scrollInViewport("[data-live-output]")
+    } else {
+      scrollViewportToBottom()
+    }
+    setShowScrollBtn(false)
+  }, [scrollInViewport, scrollViewportToBottom])
 
   const scrollToStep = useCallback((stepId: string) => {
     scrollInViewport(`[data-step-id="${stepId}"]`)
@@ -1047,21 +1073,23 @@ function PlaygroundContent({
                     </div>
                   )}
                   {(hasLiveMessages || (isRunning && pendingQuery && mode === "react")) && (
-                    mode === "react" ? (
-                      <ReactOutput items={reactItems} isStreaming={isRunning && modeMatches} onSuggestionSelect={handleSuggestionSelect} />
-                    ) : (
-                      <DagOutput
-                        planSteps={dagData.planSteps}
-                        stepStates={dagData.stepStates}
-                        analysisPhase={dagData.analysisPhase}
-                        doneEvent={dagData.doneEvent}
-                        currentPhase={dagData.currentPhase}
-                        currentRound={dagData.currentRound}
-                        injectEvents={dagData.injectEvents}
-                        hideDagGraph
-                        onSuggestionSelect={handleSuggestionSelect}
-                      />
-                    )
+                    <div data-live-output>
+                      {mode === "react" ? (
+                        <ReactOutput items={reactItems} isStreaming={isRunning && modeMatches} onSuggestionSelect={handleSuggestionSelect} />
+                      ) : (
+                        <DagOutput
+                          planSteps={dagData.planSteps}
+                          stepStates={dagData.stepStates}
+                          analysisPhase={dagData.analysisPhase}
+                          doneEvent={dagData.doneEvent}
+                          currentPhase={dagData.currentPhase}
+                          currentRound={dagData.currentRound}
+                          injectEvents={dagData.injectEvents}
+                          hideDagGraph
+                          onSuggestionSelect={handleSuggestionSelect}
+                        />
+                      )}
+                    </div>
                   )}
                   {/* Optimistic inject messages not yet confirmed by SSE */}
                   {injectedMessages
