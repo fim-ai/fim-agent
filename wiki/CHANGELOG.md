@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Docker i18n broken**: Copy `messages/` directory into standalone output and add `outputFileTracingIncludes` so next-intl can discover locale JSON files at runtime
 - **Docker startup race condition**: Add API readiness wait loop (Python socket poll) in entrypoint before starting Next.js, preventing `e.map is not a function` SSR errors
 - **Docker source code exposure**: Compile `.py` → `.pyc` with `compileall -b` and delete source files (except migrations/) to protect IP in distributed images
+- **Artifacts sort order unreliable after migration**: Artifacts list now sorts by conversation `created_at` (database) instead of file `st_mtime` (filesystem), which breaks after scp/backup-restore
 
 ### Changed
 - **README Quick Start restructured**: Docker (recommended), Local Development, and Production Deployment sections
