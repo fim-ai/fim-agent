@@ -57,7 +57,7 @@ Dify / Manus 是**替代类产品**——它们要求用户将工作迁移到一
 ```
 Platform (ReAct / DAG / Portal)
     ↓
-Connector Governance (audit, read_only, auth, 确认门)
+Connector Governance (audit, read_only, auth, confirmation gate)
     ↓
 MCP Protocol (standard transport, process isolation)
     ↓
@@ -71,9 +71,9 @@ Legacy System (DB / API / message bus)
 </div>
 
 ```
-独立模式:  Full web UI, independent AI assistant
-Embedded:    <script src="fim-agent.js"> injected into 宿主页面
-             OR 内嵌框架 / standalone URL with auth passthrough
+Standalone:  Full web UI, independent AI assistant
+Embedded:    <script src="fim-agent.js"> injected into host page
+             OR iframe / standalone URL with auth passthrough
 ```
 
 <div id="3-human-confirmation-gate">
@@ -150,7 +150,7 @@ Embedded:    <script src="fim-agent.js"> injected into 宿主页面
 | **What**            | 系统间 API 集成   | 面向系统集成的 AI 连接器枢纽                                                     |
 | **How**             | 连接器 + 声明式映射  | MCP 服务器 + 连接器治理层                                                     |
 | **Protocol**        | Anypoint SDK | MCP (开放标准) + 治理层                                                     |
-| **Standardization** | Anypoint 连接器 | Level 1 (Python MCP 服务器) -&gt; Level 2 (YAML) -&gt; Level 3 (AI 生成)  |
+| **Standardization** | Anypoint 连接器 | Level 1 (Python MCP 服务器) → Level 2 (YAML) → Level 3 (AI 生成) |
 | **Value**           | “连接一切”       | “所有系统与 AI 汇聚的枢纽”                                                     |
 
 这一类比对于企业级定位很有说服力。

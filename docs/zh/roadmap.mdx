@@ -59,7 +59,7 @@ flowchart LR
 
 **GTM 路径：落地并扩展**
 
-| Step | Mode | What happens |
+| 阶段 | 模式 | 内容 |
 |------|------|-------------|
 | 落地 | 副驾模式 | 嵌入一个系统，在其 UI 内证明价值 |
 | 扩展 | 副驾模式 → 枢纽 | 推广到更多系统；由枢纽统一汇聚 |
@@ -129,7 +129,7 @@ flowchart LR
 * **确认门**：写操作审批
 * **审计日志**：记录所有工具调用
 * **熔断机制**：故障时优雅降级
-* **实用工具**：发送电子邮件、json&#95;转换、模板渲染、文本工具
+* **实用工具**：email_send、json_transform、template_render、text_utils
 * **嵌入选项**：Jina、OpenAI、自定义提供商
 
 <div id="v07-2026-02-07-admin-platform-multi-tenant">
@@ -239,11 +239,11 @@ flowchart LR
 
 根据正交性策略，这些功能投入成本高，且存在被原生能力吸收的风险：
 
-| Feature | Why deferred                                               |
+| 功能 | 推迟原因 |
 | ------- | ---------------------------------------------------------- |
-| 多智能体编排  | 提供商正在原生构建相关能力 (OpenAI Swarm、Claude Code Teams、Google A2A)  |
-| 语义记忆存储  | 上下文窗口持续扩大；提供商也在增加原生记忆能力 (ChatGPT Memory、Claude Projects)   |
-| 记忆生命周期  | 同上；随着差距不断缩小，相比之下工程成本偏高                                     |
+| 多智能体编排 | 提供商正在原生构建相关能力 (OpenAI Swarm、Claude Code Teams、Google A2A) |
+| 语义记忆存储 | 上下文窗口持续扩大；提供商也在增加原生记忆能力 (ChatGPT Memory、Claude Projects) |
+| 记忆生命周期 | 同上；随着差距不断缩小，相比之下工程成本偏高 |
 
 <div id="how-versions-align-with-modes">
   ## 版本与模式的对应关系
@@ -266,11 +266,11 @@ flowchart LR
 
 正交性策略决定了资源投入的重点：
 
-| Category | Allocation | Versions | Why |
+| 类别 | 占比 | 版本 | 原因 |
 |----------|-----------|----------|-----|
 | **连接器平台** (v0.6+) | 60% | 持续 | 核心差异化能力；不存在被吸收的风险 |
 | **企业级功能** (RBAC、审计、安全) | 25% | v0.8–v1.0 | 不炫目但可持续；生产环境必需 |
-| **嵌入/交付** (widget、热插拔) | 10% | v0.9–v1.0 | 对“落地并扩展”GTM 具有战略意义 |
+| **嵌入/交付** (widget、热插拔) | 10% | v0.9–v1.0 | 对”落地并扩展”GTM 具有战略意义 |
 | **v0.1–v0.5 维护** | 5% | 持续 | 仅修复缺陷；不新增功能 |
 
 <div id="metric-driven-milestones">

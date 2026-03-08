@@ -15,11 +15,11 @@ cp example.env .env
 
 每个集成都有一个配置级别，用于表明其重要程度：
 
-| Level | Meaning | Behavior when not configured |
+| 级别 | 含义 | 未配置时的行为 |
 |-------|---------|------------------------------|
 | **必填** | 核心系统依赖 | 系统会报错——聊天和主要功能将无法使用 |
-| **Recommended** | 重要功能支持项 | 优雅降级——该功能会明确显示为不可用，但系统仍可运行 |
-| **Optional** | 增强能力 | 无感降级——系统可正常运行，只是该能力不存在 |
+| **推荐** | 重要功能支持项 | 优雅降级——该功能会明确显示为不可用，但系统仍可运行 |
+| **可选** | 增强能力 | 无感降级——系统可正常运行，只是该能力不存在 |
 
 > **注意**：管理员配置的模型（Admin → Models 页面）可替代 LLM 环境变量。健康检查会同时考虑这两种来源。
 
@@ -73,7 +73,7 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
   ## 智能体执行
 </div>
 
-| Variable | 必填 | Default | Description |
+| 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
 | `REACT_MAX_ITERATIONS` | 否 | `20` | 每个 ReAct 请求的最大工具调用迭代次数 |
 | `MAX_CONCURRENCY` | 否 | `5` | DAG 执行器中的最大并行步骤数 |
@@ -95,13 +95,13 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `WEB_SEARCH_PROVIDER` | 否  | `jina`                        | 搜索提供方选择器：`jina` / `tavily` / `brave`                           |
 | `WEB_FETCH_PROVIDER`  | 否  | `jina` (如果已设置密钥，否则为 `httpx`)  | 获取提供方：`jina` / `httpx`                                         |
 
-***
+---
 
 <div id="rag-knowledge-base-recommended">
   ## RAG 与知识库（推荐）
 </div>
 
-| Variable | 必填 | Default | Description |
+| 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
 | `EMBEDDING_MODEL` | 否 | `jina-embeddings-v3` | 嵌入模型标识符 |
 | `EMBEDDING_DIMENSION` | 否 | `1024` | 嵌入向量维度 |
@@ -122,15 +122,15 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
   ## 代码执行
 </div>
 
-| Variable | Required | Default | 说明 |
+| 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
-| `CODE_EXEC_BACKEND` | No | `local` | `local`（直接在主机上执行）或 `docker`（隔离容器） |
-| `DOCKER_PYTHON_IMAGE` | No | `python:3.11-slim` | 用于 Python 执行的 Docker 镜像 |
-| `DOCKER_NODE_IMAGE` | No | `node:20-slim` | 用于 Node.js 执行的 Docker 镜像 |
-| `DOCKER_SHELL_IMAGE` | No | `python:3.11-slim` | 用于 shell 执行的 Docker 镜像 |
-| `DOCKER_MEMORY` | No | *(Docker 默认值)* | 每个容器的 RAM 上限（例如 `256m`、`512m`、`1g`） |
-| `DOCKER_CPUS` | No | *(Docker 默认值)* | 每个容器的 CPU 配额（例如 `0.5`、`1.0`） |
-| `SANDBOX_TIMEOUT` | No | `120` | 默认执行超时时间（秒） |
+| `CODE_EXEC_BACKEND` | 否 | `local` | `local`（直接在主机上执行）或 `docker`（隔离容器） |
+| `DOCKER_PYTHON_IMAGE` | 否 | `python:3.11-slim` | 用于 Python 执行的 Docker 镜像 |
+| `DOCKER_NODE_IMAGE` | 否 | `node:20-slim` | 用于 Node.js 执行的 Docker 镜像 |
+| `DOCKER_SHELL_IMAGE` | 否 | `python:3.11-slim` | 用于 shell 执行的 Docker 镜像 |
+| `DOCKER_MEMORY` | 否 | *(Docker 默认值)* | 每个容器的 RAM 上限（例如 `256m`、`512m`、`1g`） |
+| `DOCKER_CPUS` | 否 | *(Docker 默认值)* | 每个容器的 CPU 配额（例如 `0.5`、`1.0`） |
+| `SANDBOX_TIMEOUT` | 否 | `120` | 默认执行超时时间（秒） |
 
 > **安全**：`local` 模式会在主机上直接运行 AI 生成的代码。对于面向互联网或多用户的部署，请始终设置 `CODE_EXEC_BACKEND=docker`。
 
@@ -158,9 +158,9 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `IMAGE_GEN_PROVIDER` | 否  | `google`                         | `google` (Gemini 原生 API) 或 `openai` (兼容 OpenAI 的 `/v1/images/generations` 接口)                |
 | `IMAGE_GEN_API_KEY`  | 否  | —                                | Google AI Studio 密钥 (`google`) 或代理/OpenAI API 密钥 (`openai`)                                  |
 | `IMAGE_GEN_MODEL`    | 否  | `gemini-3.1-flash-image-preview` | 图像生成模型 (例如 `dall-e-3`、`gemini-nano-banana-2`)                                                |
-| `IMAGE_GEN_BASE_URL` | 否  | *&#x20;(因提供商而异)&#x20;*           | Google：`https://generativelanguage.googleapis.com/v1beta`；OpenAI：`https://api.openai.com/v1` |
+| `IMAGE_GEN_BASE_URL` | 否  | *(因提供商而异)* | Google：`https://generativelanguage.googleapis.com/v1beta`；OpenAI：`https://api.openai.com/v1` |
 
-***
+---
 
 <div id="email-smtp-recommended">
   ## 电子邮件（SMTP）（推荐）
@@ -191,13 +191,13 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `CONNECTOR_RESPONSE_MAX_CHARS` | 否  | `50000` | 非数组 JSON / 纯文本连接器响应的最大字符数 |
 | `CONNECTOR_RESPONSE_MAX_ITEMS` | 否  | `10`    | 当连接器响应为 JSON 数组时保留的最大数组项数 |
 
-***
+---
 
 <div id="platform">
   ## 平台
 </div>
 
-| Variable | 必填 | Default | Description |
+| 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
 | `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/fim_agent.db` | 数据库连接字符串（默认使用 SQLite；也支持通过 asyncpg 连接 PostgreSQL） |
 | `JWT_SECRET_KEY` | 否 | `CHANGE_ME` | 用于 JWT 令牌签名的密钥。占位值 `CHANGE_ME`（或任何旧版默认值）会在首次启动时触发自动生成一个安全的 256 位随机密钥，并回写到 `.env`。在生产环境中应显式设置，以确保在重启和多副本部署后令牌仍然有效。 |
