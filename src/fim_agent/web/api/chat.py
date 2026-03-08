@@ -1020,12 +1020,16 @@ async def react_endpoint(
     current_user_id, user_system_instructions, preferred_language = await _resolve_user(token)
     if current_user_id is None:
         raise AppError("authentication_required", status_code=401)
-    if conversation_id and current_user_id:
-        await _validate_conversation_ownership(conversation_id, current_user_id)
-    if current_user_id:
-        await _check_token_quota(current_user_id)
 
-    agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
+    # Run independent validations and agent config resolution in parallel
+    _parallel_tasks: list[Any] = [_check_token_quota(current_user_id)]
+    if conversation_id:
+        _parallel_tasks.append(_validate_conversation_ownership(conversation_id, current_user_id))
+    _parallel_tasks.append(_resolve_agent_config(agent_id, conversation_id, user_id=current_user_id))
+    _parallel_results = await asyncio.gather(*_parallel_tasks)
+    # _resolve_agent_config is always the last task appended
+    agent_cfg = _parallel_results[-1]
+
     from fim_agent.db import create_session as _create_session
     try:
         async with _create_session() as _llm_db:
@@ -1439,12 +1443,16 @@ async def dag_endpoint(
     current_user_id, user_system_instructions, preferred_language = await _resolve_user(token)
     if current_user_id is None:
         raise AppError("authentication_required", status_code=401)
-    if conversation_id and current_user_id:
-        await _validate_conversation_ownership(conversation_id, current_user_id)
-    if current_user_id:
-        await _check_token_quota(current_user_id)
 
-    agent_cfg = await _resolve_agent_config(agent_id, conversation_id, user_id=current_user_id)
+    # Run independent validations and agent config resolution in parallel
+    _parallel_tasks_dag: list[Any] = [_check_token_quota(current_user_id)]
+    if conversation_id:
+        _parallel_tasks_dag.append(_validate_conversation_ownership(conversation_id, current_user_id))
+    _parallel_tasks_dag.append(_resolve_agent_config(agent_id, conversation_id, user_id=current_user_id))
+    _parallel_results_dag = await asyncio.gather(*_parallel_tasks_dag)
+    # _resolve_agent_config is always the last task appended
+    agent_cfg = _parallel_results_dag[-1]
+
     from fim_agent.db import create_session as _create_session
     try:
         async with _create_session() as _llm_db:

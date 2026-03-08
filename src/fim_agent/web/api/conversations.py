@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import math
@@ -183,11 +184,11 @@ async def batch_delete_conversations(
         await db.delete(conv)
         sandbox_dir = _CONVERSATIONS_DIR / conv.id
         if sandbox_dir.exists():
-            shutil.rmtree(sandbox_dir, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, sandbox_dir, True)
             _logger.info("Removed sandbox dir for conversation %s", conv.id)
         uploads_dir = _UPLOADS_CONVERSATIONS_DIR / conv.id
         if uploads_dir.exists():
-            shutil.rmtree(uploads_dir, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, uploads_dir, True)
             _logger.info("Removed uploads dir for conversation %s", conv.id)
         count += 1
     await db.commit()
@@ -277,13 +278,13 @@ async def delete_conversation(
     # Clean up per-conversation sandbox directory (workspace, sandbox, exec).
     sandbox_dir = _CONVERSATIONS_DIR / conversation_id
     if sandbox_dir.exists():
-        shutil.rmtree(sandbox_dir, ignore_errors=True)
+        await asyncio.to_thread(shutil.rmtree, sandbox_dir, True)
         _logger.info("Removed sandbox dir for conversation %s", conversation_id)
 
     # Clean up per-conversation uploads directory (generated images, etc.).
     uploads_dir = _UPLOADS_CONVERSATIONS_DIR / conversation_id
     if uploads_dir.exists():
-        shutil.rmtree(uploads_dir, ignore_errors=True)
+        await asyncio.to_thread(shutil.rmtree, uploads_dir, True)
         _logger.info("Removed uploads dir for conversation %s", conversation_id)
 
     return ApiResponse(data={"deleted": conversation_id})

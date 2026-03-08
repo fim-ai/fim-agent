@@ -270,34 +270,25 @@ async def get_stats(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> StatsResponse:
     """Return system-wide statistics. Requires admin privileges."""
-    # Total users
-    total_users_result = await db.execute(select(func.count()).select_from(User))
-    total_users: int = total_users_result.scalar_one()
-
-    # Total conversations and total tokens
-    conv_agg_result = await db.execute(
-        select(
-            func.count(),
-            func.coalesce(func.sum(Conversation.total_tokens), 0),
-            func.coalesce(func.sum(Conversation.fast_llm_tokens), 0),
-        ).select_from(Conversation)
+    # Consolidate all aggregate counts into a single query using scalar subqueries
+    stats_stmt = select(
+        select(func.count()).select_from(User).scalar_subquery().label("total_users"),
+        select(func.count()).select_from(Conversation).scalar_subquery().label("total_conversations"),
+        select(func.coalesce(func.sum(Conversation.total_tokens), 0)).scalar_subquery().label("total_tokens"),
+        select(func.coalesce(func.sum(Conversation.fast_llm_tokens), 0)).scalar_subquery().label("total_fast_llm_tokens"),
+        select(func.count()).select_from(Message).scalar_subquery().label("total_messages"),
+        select(func.count()).select_from(Agent).scalar_subquery().label("total_agents"),
+        select(func.count()).select_from(KnowledgeBase).scalar_subquery().label("total_kbs"),
     )
-    row = conv_agg_result.one()
-    total_conversations: int = row[0]
-    total_tokens: int = row[1]
-    total_fast_llm_tokens: int = row[2]
-
-    # Total messages
-    total_messages_result = await db.execute(select(func.count()).select_from(Message))
-    total_messages: int = total_messages_result.scalar_one()
-
-    # Total agents
-    total_agents_result = await db.execute(select(func.count()).select_from(Agent))
-    total_agents: int = total_agents_result.scalar_one()
-
-    # Total knowledge bases
-    total_kbs_result = await db.execute(select(func.count()).select_from(KnowledgeBase))
-    total_kbs: int = total_kbs_result.scalar_one()
+    stats_result = await db.execute(stats_stmt)
+    stats_row = stats_result.one()
+    total_users: int = stats_row.total_users
+    total_conversations: int = stats_row.total_conversations
+    total_tokens: int = stats_row.total_tokens
+    total_fast_llm_tokens: int = stats_row.total_fast_llm_tokens
+    total_messages: int = stats_row.total_messages
+    total_agents: int = stats_row.total_agents
+    total_kbs: int = stats_row.total_kbs
 
     # Conversations by model (top 10, ordered by count desc)
     # Group by LLM role: "LLM (model)" / "Fast LLM (model)" for known models
