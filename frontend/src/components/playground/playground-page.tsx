@@ -896,6 +896,11 @@ function PlaygroundContent({
 
   // Run with file content injection (text files) and image_ids passthrough
   const handleRunWithFiles = useCallback(() => {
+    // Reset IME composing state — compositionEnd may not fire when
+    // the user clicks the Send button instead of pressing Enter.
+    composingRef.current = false
+    setComposing(false)
+
     let finalQuery = query.trim()
     if (!finalQuery) return
 
