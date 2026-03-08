@@ -9,60 +9,142 @@
     "dark": "#92400E"
   },
   "navigation": {
-    "tabs": [
+    "languages": [
       {
-        "tab": "Documentation",
-        "groups": [
+        "tabs": [
           {
-            "group": "Getting Started",
-            "icon": "rocket",
-            "pages": ["index", "quickstart"]
-          },
-          {
-            "group": "Concepts",
-            "icon": "lightbulb",
-            "pages": ["concepts/execution-modes"]
-          },
-          {
-            "group": "Architecture",
-            "icon": "sitemap",
-            "pages": [
-              "architecture/philosophy",
-              "architecture/connector-architecture",
-              "architecture/planning-landscape"
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "Getting Started",
+                "icon": "rocket",
+                "pages": [
+                  "index",
+                  "quickstart"
+                ]
+              },
+              {
+                "group": "Concepts",
+                "icon": "lightbulb",
+                "pages": [
+                  "concepts/execution-modes"
+                ]
+              },
+              {
+                "group": "Architecture",
+                "icon": "sitemap",
+                "pages": [
+                  "architecture/philosophy",
+                  "architecture/connector-architecture",
+                  "architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "Configuration",
+                "icon": "gear",
+                "pages": [
+                  "configuration/environment-variables",
+                  "configuration/oauth-providers"
+                ]
+              },
+              {
+                "group": "Strategy",
+                "icon": "chess",
+                "pages": [
+                  "strategy/competitive-landscape",
+                  "strategy/orthogonality-strategy"
+                ]
+              },
+              {
+                "group": "Project",
+                "icon": "map",
+                "pages": [
+                  "roadmap"
+                ]
+              }
             ]
           },
           {
-            "group": "Configuration",
-            "icon": "gear",
-            "pages": [
-              "configuration/environment-variables",
-              "configuration/oauth-providers"
+            "tab": "Changelog",
+            "groups": [
+              {
+                "group": "Changelog",
+                "pages": [
+                  "changelog"
+                ]
+              }
             ]
-          },
-          {
-            "group": "Strategy",
-            "icon": "chess",
-            "pages": [
-              "strategy/competitive-landscape",
-              "strategy/orthogonality-strategy"
-            ]
-          },
-          {
-            "group": "Project",
-            "icon": "map",
-            "pages": ["roadmap"]
           }
-        ]
+        ],
+        "language": "en"
       },
       {
-        "tab": "Changelog",
-        "groups": [
+        "tabs": [
           {
-            "group": "Changelog",
-            "pages": ["changelog"]
+            "tab": "文档",
+            "groups": [
+              {
+                "group": "快速入门",
+                "icon": "rocket",
+                "pages": [
+                  "zh/index",
+                  "zh/quickstart"
+                ]
+              },
+              {
+                "group": "概念",
+                "icon": "lightbulb",
+                "pages": [
+                  "zh/concepts/execution-modes"
+                ]
+              },
+              {
+                "group": "架构",
+                "icon": "sitemap",
+                "pages": [
+                  "zh/architecture/philosophy",
+                  "zh/architecture/connector-architecture",
+                  "zh/architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "配置",
+                "icon": "gear",
+                "pages": [
+                  "zh/configuration/environment-variables",
+                  "zh/configuration/oauth-providers"
+                ]
+              },
+              {
+                "group": "策略",
+                "icon": "chess",
+                "pages": [
+                  "zh/strategy/competitive-landscape",
+                  "zh/strategy/orthogonality-strategy"
+                ]
+              },
+              {
+                "group": "项目",
+                "icon": "map",
+                "pages": [
+                  "zh/roadmap"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "变更日志",
+            "groups": [
+              {
+                "group": "变更日志",
+                "pages": [
+                  "zh/changelog"
+                ]
+              }
+            ]
           }
-        ]
+        ],
+        "language": "zh"
       }
     ]
   },

@@ -1,0 +1,156 @@
+---
+title: "竞争格局"
+description: "内部战略参考——FIM Agent 在竞争格局中的定位。"
+---
+
+> 内部战略参考。最后更新：2026-02。
+
+<div id="positioning">
+  ## 定位
+</div>
+
+```
+Dify:       "可视化构建 AI 工作流"
+Manus:      "为你完成工作的 AI"
+FIM Agent:  "连接你的系统与 AI 的枢纽"
+```
+
+Dify / Manus 是**替代类产品**——它们要求用户将工作迁移到一个新平台上。FIM Agent 是一个**连接器枢纽**——它连接用户现有的系统，让这些系统能够通过 AI 实现互通。
+
+<div id="competitive-matrix">
+  ## 竞品矩阵
+</div>
+
+| 维度 | Dify | Manus | Coze | FIM Agent |
+|-----------|------|-------|------|-----------|
+| **方案** | 可视化 DAG 工作流构建器 | 自主消费级智能体 | 可视化构建器 + 智能体空间 | AI 连接器枢纽 |
+| **交付形态** | 独立模式平台 | 云端 SaaS + API | 云端 SaaS + 自托管 (Coze Studio) | 平台 / API / 嵌入 |
+| **规划** | 人工设计的静态 DAG | 多智能体思维链 | 静态工作流 + 动态智能体 | LLM DAG 规划 + ReAct 循环 |
+| **遗留系统集成** | API 节点 (手动连线) | 无 | 插件市场 | 连接器平台 (标准化) |
+| **跨系统编排** | 否 | 否 | 否 | 枢纽模式 (N:N) |
+| **可嵌入式** | iframe + 脚本嵌入 | 仅 API | 聊天 SDK + 10+ 渠道 | API / iframe (计划支持 Widget) |
+| **人工确认** | 否 | 否 | 否 | 是 (执行前关卡) |
+| **自托管** | 是 (Docker Compose) | 否 | 是 (Coze Studio, Apache 2.0) | 是 (单进程) |
+| **许可证** | Apache 2.0 | 专有 | Apache 2.0 (Coze Studio) | 源码可用 |
+| **发展势头** | 121K+ stars | 被 Meta 收购 ($2B+, 中国监管审查中) | ByteDance 支持，20K+ stars (Studio) | 早期阶段 |
+
+<div id="benchmarking-strategy">
+  ## 对标策略
+</div>
+
+| 学习重点                          | 参考对象                    | 优先级       |
+| ----------------------------- | ----------------------- | --------- |
+| 平台基础能力 (多租户、智能体管理、知识库、UI 打磨)  | Dify                    | v0.4-v0.5 |
+| 上下文工程、plan-reflect 循环质量       | Manus                   | 持续        |
+| 企业集成模式、Lark/Feishu 生态         | Coze                    | v0.6+     |
+| 嵌入宿主环境的交互范式                   | Cursor / GitHub Copilot | v0.7      |
+| 连接器生态、声明式集成                   | MuleSoft / Zapier       | v0.8      |
+
+<div id="fim-agents-unique-differentiators">
+  ## FIM Agent 的独特优势
+</div>
+
+<div id="1-connector-architecture-mcp-governance">
+  ### 1. 连接器架构 (MCP + 治理)
+</div>
+
+```
+Platform (ReAct / DAG / Portal)
+    ↓
+Connector Governance (audit, read_only, auth, 确认门)
+    ↓
+MCP Protocol (standard transport, process isolation)
+    ↓
+Legacy System (DB / API / message bus)
+```
+
+连接器以 **MCP Servers** 的形式实现，并在其上叠加了一层治理层。智能体并不知道自己正在与遗留系统交互——连接器在 ToolRegistry 中呈现为普通工具。在这一领域，尚无其他平台拥有内置企业治理能力的标准化连接器架构。有关完整设计，请参阅 [Connector Architecture](/zh/architecture/connector-architecture)。
+
+<div id="2-dual-mode-delivery">
+  ### 2. 双模交付
+</div>
+
+```
+独立模式:  Full web UI, independent AI assistant
+Embedded:    <script src="fim-agent.js"> injected into 宿主页面
+             OR 内嵌框架 / standalone URL with auth passthrough
+```
+
+<div id="3-human-confirmation-gate">
+  ### 3. 人工确认门
+</div>
+
+对遗留系统的写入操作需要用户明确批准。它作为执行前钩子实现，不会修改智能体循环。SSE 事件 `confirmation_required` 会暂停执行，直到用户作出响应。
+
+<div id="4-page-context-injection">
+  ### 4. 页面上下文注入
+</div>
+
+嵌入后，小部件会从宿主页面读取上下文 (当前合同 ID、页面 URL、DOM 选择器) ，并将其注入智能体的上下文。智能体不仅理解用户*问了什么*，还理解用户*当前所处的位置*。
+
+<div id="category-durability-analysis">
+  ## 类别耐久性分析
+</div>
+
+**前沿模型会吸收这一类别吗？**
+
+| 层级                   | 被吸收风险  | 理由                              |
+| -------------------- | ------ | ------------------------------- |
+| 简单编排 (ReAct 循环)      | **高**  | Claude/GPT/Gemini 现在已原生具备这类能力   |
+| 动态规划                 | **高**  | AWS Strands 团队确认，前沿模型无需框架即可完成规划 |
+| 生产基础设施 (可观测性、鉴权、状态)  | **低**  | 模型并不提供运维工具链                     |
+| 多智能体协同               | **低**  | 治理、冲突解决和路由仍需要基础设施               |
+| 企业系统集成               | **很低** | 连接遗留 API/数据库属于集成工作，而非模型能力       |
+| 上下文工程                | **低**  | Manus 博客确认：性能提升来自上下文，而不是更聪明的模型  |
+
+**FIM Agent 的可防御性**：连接器平台和嵌入式交付模式处于“很低”的被吸收风险区间。我们越是从纯 LLM 编排走向企业系统集成，护城河就越稳固。
+
+<div id="key-competitors-deep-dive">
+  ## 主要竞争对手深度解析
+</div>
+
+<div id="dify-primary-reference-for-platform-features">
+  ### Dify (平台功能的主要参考)
+</div>
+
+* GitHub 星标 121K+，Apache 2.0
+* 提供包含 RAG、智能体和工具节点的可视化工作流构建器
+* 优势：社区规模庞大、经过生产环境验证、对非开发者友好
+* 劣势：静态 DAG 一旦需求变化就容易失效，且缺乏面向遗留系统的连接器架构
+* 我们的判断：借鉴其平台能力 (多租户、智能体管理、知识库) ，但不在可视化工作流上与其竞争。客户的固定流程早已存在于其 OA/ERP 中——他们需要的是能连接这些系统的 AI，而不是另一个工作流编辑器
+
+<div id="manus-category-validator">
+  ### Manus (类别验证者)
+</div>
+
+* 于 2025 年 12 月被 Meta 以超过 20 亿美元收购；该交易自 2026 年 1 月起一直处于中国商务部的监管审查中
+* 面向消费者的自主智能体 (Cloud SaaS + open.manus.im 上提供的 REST API)
+* 位居 GAIA 基准榜首；Browser Operator 扩展允许智能体使用用户本地浏览器中的现有会话
+* 其博客中的关键洞见：驱动性能的是 **上下文工程** (而非模型能力)
+* 我们的判断：这验证了该赛道；其上下文工程方面的洞见也为我们的架构提供了参考
+
+<div id="coze-bytedance">
+  ### Coze (ByteDance)
+</div>
+
+* 可视化构建器 + Coze Space 智能体
+* Coze Studio (20K+ stars) / Loop 已开源 (2025 年 7 月，Apache 2.0) ；支持通过 Docker 完全自托管
+* Chat SDK + 10+ 部署渠道 (Discord、Telegram、Slack、LINE、WhatsApp、WeChat 等)
+* 优势：字节跳动资源加持、渠道生态广泛、开源势头强劲
+* 我们的看法：嵌入能力和渠道覆盖最强；需关注企业集成模式
+
+<div id="the-mulesoft-analogy">
+  ## MuleSoft 类比
+</div>
+
+从概念上看，FIM Agent 的连接器架构就是 **AI 时代的 MuleSoft**：
+
+|                     | MuleSoft     | FIM Agent                                                            |
+| ------------------- | ------------ | -------------------------------------------------------------------- |
+| **What**            | 系统间 API 集成   | 面向系统集成的 AI 连接器枢纽                                                     |
+| **How**             | 连接器 + 声明式映射  | MCP 服务器 + 连接器治理层                                                     |
+| **Protocol**        | Anypoint SDK | MCP (开放标准) + 治理层                                                     |
+| **Standardization** | Anypoint 连接器 | Level 1 (Python MCP 服务器) -&gt; Level 2 (YAML) -&gt; Level 3 (AI 生成)  |
+| **Value**           | “连接一切”       | “所有系统与 AI 汇聚的枢纽”                                                     |
+
+这一类比对于企业级定位很有说服力。

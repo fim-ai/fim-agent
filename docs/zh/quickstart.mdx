@@ -1,0 +1,117 @@
+---
+title: "快速开始"
+description: "通过 Docker 或本地开发，在几分钟内运行 FIM Agent。"
+---
+
+<div id="option-a-docker-recommended">
+  ## 选项 A：Docker (推荐)
+</div>
+
+无需在本地安装 Python 或 Node.js——所有内容都在容器内完成构建。
+
+```bash
+git clone https://github.com/fim-ai/fim-agent.git
+cd fim-agent
+
+# 配置 — 仅需设置 LLM_API_KEY
+cp example.env .env
+# 编辑 .env：设置 LLM_API_KEY（可选：LLM_BASE_URL、LLM_MODEL）
+
+# 构建并运行（首次部署，或拉取新代码后）
+docker compose up --build -d
+```
+
+打开 http://localhost:3000——首次启动时，系统会引导你创建管理员账户。就这么简单。
+
+完成初始构建后，后续启动只需要：
+
+```bash
+docker compose up -d          # 启动（如镜像未变更则跳过重新构建）
+docker compose down           # 停止
+docker compose logs -f        # 查看日志
+```
+
+数据会持久化到 Docker 命名卷 (`fim-data`、`fim-uploads`) 中，容器重启后仍会保留。
+
+**注意：** Docker 模式不支持热重载。代码变更后需要重新构建镜像 (`docker compose up --build -d`) 。如果需要在开发过程中实时重载，请使用下面的 **选项 B**。
+
+<div id="option-b-local-development">
+  ## 选项 B：本地开发
+</div>
+
+先决条件：Python 3.11+、[uv](https://docs.astral.sh/uv/)、Node.js 18+、pnpm。
+
+```bash
+git clone https://github.com/fim-ai/fim-agent.git
+cd fim-agent
+
+cp example.env .env
+# 编辑 .env：设置 LLM_API_KEY
+
+# 安装依赖
+uv sync --all-extras
+cd frontend && pnpm install && cd ..
+
+# 启动（支持热重载）
+./start.sh
+```
+
+| 命令               | 启动内容                                         | URL                                       |
+| ---------------- | -------------------------------------------- | ----------------------------------------- |
+| `./start.sh`     | Next.js + FastAPI                            | http://localhost:3000 (UI) + :8000 (API)  |
+| `./start.sh dev` | 同上，但启用热重载 (Python `--reload` + Next.js HMR)  | 同上                                        |
+| `./start.sh api` | 仅启动 FastAPI (无头模式，用于集成或测试)                   | http://localhost:8000/api                 |
+
+<div id="configuration">
+  ## 配置
+</div>
+
+FIM Agent 支持**任何与 OpenAI 兼容的 LLM 提供商**——包括 OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。
+
+| 提供商              | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
+| ---------------- | ------------- | ------------------------------ | ------------------- |
+| **OpenAI**       | `sk-...`      | *(默认)*                         | `gpt-4o`            |
+| **DeepSeek**     | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`     |
+| **Anthropic**    | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
+| **Ollama** (本地)  | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`       |
+
+**[Jina AI](https://jina.ai/)** 可启用网页搜索/抓取、嵌入以及完整的 RAG 流程 (提供免费层) 。
+
+最小 `.env` 配置：
+
+```bash
+LLM_API_KEY=sk-your-key
+# LLM_BASE_URL=https://api.openai.com/v1   # 默认值 — 如需使用其他提供商请修改
+# LLM_MODEL=gpt-4o                         # 默认值 — 如需使用其他模型请修改
+
+JINA_API_KEY=jina_...                       # 启用网页工具 + RAG
+```
+
+有关所有配置选项的完整列表，请参阅[环境变量](/zh/configuration/environment-variables)参考文档。
+
+<div id="production-deployment">
+  ## 生产部署
+</div>
+
+这两种方式都可用于生产环境：
+
+| 方法         | 命令                     | 最适合            |
+| ---------- | ---------------------- | -------------- |
+| **Docker** | `docker compose up -d` | 省心部署，便于更新      |
+| **脚本**     | `./start.sh`           | 裸机服务器、自定义进程管理器 |
+
+无论采用哪种方式，都应在前端配置 Nginx 反向代理，以支持 HTTPS 和自定义域名：
+
+```
+User → Nginx (443/HTTPS) → localhost:3000
+```
+
+API 在内部运行于 8000 端口——Next.js 会自动代理 `/api/*` 请求。只需暴露 3000 端口。
+
+如果使用代码执行沙箱 (`CODE_EXEC_BACKEND=docker`) ，请挂载 Docker 套接字：
+
+```yaml
+# docker-compose.yml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```

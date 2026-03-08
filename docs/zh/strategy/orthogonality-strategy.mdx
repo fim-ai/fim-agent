@@ -1,0 +1,155 @@
+---
+title: "正交性策略"
+description: "架构决策记录——根据功能与 LLM 发展之间的关系对其进行分类。"
+---
+
+> **状态**: 已采纳 (2026年3月) 
+>
+> **背景**: 随着 LLM 能力快速演进，我们需要一套框架来判断哪些方向值得投入工程力量，哪些方面应暂时保持不变。
+
+<div id="decision">
+  ## 决策
+</div>
+
+我们根据每项功能与 LLM 进展之间的关系进行分类，并据此分配投入。
+
+| 分类 | 策略 | 投入 | 示例 |
+|----------|----------|------------|---------|
+| **Orthogonal** | 模型变得更智能并不会削弱这些能力——它们本质上是纯工程/集成问题 | 全面投入 | 连接器、凭证、OAuth、审计、RBAC、安全、部署 |
+| **Tailwind** | 模型能力提升会让这些功能*更好*，而不是让其变得多余——二者是共生关系 | 持续投入 (收益会叠加) | AI 连接器构建器 (模型越智能 = 连接器输出质量越高) |
+| **Frozen** | 已经交付且运行良好——但模型正在吸收这些能力 | 仅维护，不再新增功能 | ReAct 循环、DAG 规划、RAG 流水线、记忆、基于证据的生成 |
+| **考虑** | 提供商正在平台层原生构建这些能力——存在较高的功能重叠风险 | 无限期推迟 | 多智能体编排、语义记忆、记忆生命周期 |
+
+**经验法则**：如果一项功能解决的是*"如何让模型更智能"*，它就正在被吸收；如果它解决的是*"如何让模型安全地连接现实世界"*，它就是正交项。
+
+<div id="analysis">
+  ## 分析
+</div>
+
+<div id="why-connector-platform-is-fully-orthogonal">
+  ### 为什么连接器平台是完全正交的
+</div>
+
+模型永远不会原生支持：
+
+* 存储并加密 API 凭据 (AES-GCM) 
+* 管理 OAuth 流程 (授权页面 → 回调 → 刷新令牌) 
+* 连接到客户的 Kingdee/金蝶 ERP 数据库
+* 向 Lark/飞书 或 WeCom/企微 推送通知
+* 对谁能使用哪个连接器实施 RBAC
+* 为合规审计记录每一次工具调用
+
+这些是工程问题，不是智能问题。即便模型聪明 10 倍，没有基础设施也依然做不到这些事。
+
+<div id="why-ai-connector-builder-is-tailwind-not-being-absorbed">
+  ### 为什么 AI 连接器构建器属于“顺风项”，而不是“被吸收”
+</div>
+
+构建器智能体利用模型智能创建**受管理的、持久化的连接器实体**——这些实体存储在 DB 中，可跨智能体复用，并具备凭据管理和审计追踪能力。模型对 API 的理解不断提升，会让构建器产出*更好*的连接器，而不是让构建器变得没有必要。
+
+类比：Cursor 使用 Claude 编写代码。Claude 变得更聪明会让 Cursor *更强*，而不是*变得多余*，因为 Cursor 提供的是模型无法替代的工程价值 (项目管理、文件组织、版本控制) 。
+
+<div id="why-v01v05-features-are-frozen">
+  ### 为什么 v0.1–v0.5 的功能被“冻结”
+</div>
+
+| Feature | What's happening in the industry |
+|---------|--------------------------------|
+| ReAct loop | 模型已具备原生工具调用能力 (OpenAI、Anthropic)。随着模型将这部分能力内化，外部推理循环带来的价值正在下降。 |
+| DAG Planning | 模型推理能力正在快速提升。过去需要外部规划器的复杂任务拆解，正逐渐变成一次生成即可完成的能力。 |
+| Memory management | 上下文窗口正在快速增长 (Gemini 2M+、Claude 200K+)。对外部窗口管理、摘要和压缩的需求正在减弱。 |
+| RAG pipeline | 各提供方正在把检索能力内建到自己的平台中 (OpenAI file&#95;search、Google NotebookLM、Gemini Search Grounding)。对于公开知识，传统的 chunk-embed-retrieve 流程正在被取代。 |
+| Grounded Generation | 模型原生引用来源的能力正在不断增强。我们构建的 5 阶段 grounding 流程带来的价值正在递减。 |
+
+**这些功能并不差**——它们已经发布、能够运行，并且让产品在当前具备可用性。这个决定只是停止继续投入，并将精力重新转向其他方向。
+
+<div id="why-multi-agent-orchestration-was-deferred">
+  ### 为什么暂缓多智能体编排
+</div>
+
+LLM 提供商正在原生构建编排能力：
+
+* **OpenAI Swarm**: 具备交接协议的多智能体框架
+* **Anthropic Claude Code Teams**: 带有任务图的 Leader/Worker 智能体池
+* **Google A2A (Agent-to-Agent)**: 智能体间通信协议
+
+如果构建一套与之竞争的编排层，就意味着要与这些拥有更深模型集成能力的第一方实现正面竞争。这并不是一种可持续的差异化优势。
+
+<div id="why-semantic-memory-and-memory-lifecycle-were-deferred">
+  ### 为什么延后实现语义记忆和记忆生命周期
+</div>
+
+* 上下文窗口正在快速扩大，从而降低了对跨会话记忆检索的需求
+* 各服务提供商正在增加原生记忆功能 (ChatGPT Memory、Claude Projects) 
+* 构建可靠的记忆系统 (TTL、重要性评分、语义检索) 的工程成本很高，而它所填补的能力缺口却在不断缩小
+
+<div id="feature-level-classification">
+  ## 功能级别分类
+</div>
+
+<div id="orthogonal-v06">
+  ### 正交项 (v0.6+)
+</div>
+
+| Feature | Version | Why orthogonal |
+|---------|---------|---------------|
+| Connector entity + CRUD | v0.6.1 | 企业集成，纯工程能力 |
+| Per-user credentials (AES-GCM) | v0.6.2 | 安全基础设施 |
+| Confirmation Gate | v0.6.2 | 写操作的安全机制 |
+| Connector Export/Import/Fork | v0.7 | 分发机制 |
+| OAuth 2.0 | v0.7 | 协议实现 |
+| MCP Server Export | v0.7 | 互操作性 (取决于 MCP 的采用情况) |
+| Database Connector | v0.8 | 直接数据库访问、连接池 |
+| Message Push | v0.8 | 通知通道 |
+| RBAC | v0.8 | 访问控制、治理 |
+| Operation Audit Log | v0.8 | 合规性 |
+| Sandbox Hardening | v0.9 | 安全隔离 |
+| Observability (OTel, circuit breaker) | v0.9 | 生产运维 |
+| Connector Analytics | v0.9 | 使用情况跟踪 |
+| Docker Compose | v0.9 | 部署 |
+| Admin Dashboard | v1.0 | 管理界面 |
+| Scheduled Jobs / Webhooks | v1.0 | 自动化触发器 |
+| Batch Execution | v1.0 | 企业级大规模处理 |
+| Embeddable Widget / iframe | v1.0 | 交付方式 |
+| Enterprise Security | v1.0 | 合规性 (加密、IP 白名单) |
+
+<div id="tailwind">
+  ### 顺风项
+</div>
+
+| 功能                  | 版本     | 关系                           |
+| ------------------- | ------ | ---------------------------- |
+| AI 连接器构建器           | v0.6.3 | 模型越智能 → 构建器输出越优              |
+| AI 连接器生成 (OpenAPI)  | v1.0   | 同上——模型对 API 规范理解越好 → 自动生成越准确 |
+
+<div id="frozen-shipped-maintain-only">
+  ### 冻结项 (已发布，仅维护)
+</div>
+
+| Feature | Version | Status |
+|---------|---------|--------|
+| ReAct Agent | v0.1 | 已发布，正常运行 |
+| DAG Planning / Re-Planning | v0.1, v0.5 | 已发布，正常运行 |
+| Memory (Window, Summary, Compact) | v0.2, v0.5 | 已发布，正常运行 |
+| RAG pipeline (embedding, vector store, chunking, hybrid retrieval) | v0.5 | 已发布，正常运行 |
+| Grounded Generation | v0.5 | 已发布，正常运行 |
+| ContextGuard / Pinned Messages | v0.5 | 已发布，正常运行 |
+
+<div id="consider-deferred-indefinitely">
+  ### 考虑 (无限期推迟)
+</div>
+
+| 功能     | 初始版本 | 推迟原因                    |
+| ------ | ---- | ----------------------- |
+| 多智能体编排 | v1.0 | 提供方正在原生支持该能力            |
+| 语义记忆存储 | 待办列表 | 上下文窗口持续扩大；提供方也在增加原生记忆能力 |
+| 记忆生命周期 | 待办列表 | 同上                      |
+
+<div id="implications">
+  ## 影响
+</div>
+
+1. **不要回头恢复 v0.5 的功能。** 可以修复 bug，但不再新增能力。
+2. **连接器平台是核心投入方向。** v0.6–v0.8 应占用大部分工程资源。
+3. **企业级工程能力 (RBAC、审计、安全、部署) 是护城河。** 这些方面虽然不那么吸引人，但具备可防御性。
+4. **每年重新评估。** 如果模型进展停滞，或者某项“冻结项”功能后来被证明仍有明显缺口，则应重新考虑。

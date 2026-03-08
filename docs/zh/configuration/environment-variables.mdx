@@ -1,0 +1,244 @@
+---
+title: "环境变量"
+description: "FIM Agent 的完整配置参考。"
+---
+
+所有配置均通过 `.env` 进行。复制 `example.env` 并填入相应的值：
+
+```bash
+cp example.env .env
+```
+
+<div id="configuration-levels">
+  ## 配置级别
+</div>
+
+每个集成都有一个配置级别，用于表明其重要程度：
+
+| Level | Meaning | Behavior when not configured |
+|-------|---------|------------------------------|
+| **必填** | 核心系统依赖 | 系统会报错——聊天和主要功能将无法使用 |
+| **Recommended** | 重要功能支持项 | 优雅降级——该功能会明确显示为不可用，但系统仍可运行 |
+| **Optional** | 增强能力 | 无感降级——系统可正常运行，只是该能力不存在 |
+
+> **注意**：管理员配置的模型（Admin → Models 页面）可替代 LLM 环境变量。健康检查会同时考虑这两种来源。
+
+---
+
+<div id="frontend-local-dev-only">
+  ## 前端（仅限本地开发）
+</div>
+
+前端有一个单独的 env 文件，**仅用于本地开发**：`frontend/.env.local`。
+
+> **Docker 中不会使用此文件。** 在 Docker 容器内，Next.js 会在内部将 `/api/*` 代理到 Python 后端（端口 8000 仅在容器内部可用），因此前端不需要 env 文件。
+
+对于本地开发，默认配置开箱即用——你**不**需要创建 `frontend/.env.local`，除非你的后端运行在非默认端口上。
+
+如果需要覆盖默认配置，请手动创建 `frontend/.env.local`：
+
+```bash
+echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
+```
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` *(auto)* | **浏览器**用于直接调用 API 的后端 URL（OAuth 重定向、流式传输）。如果未设置，则会从 `window.location` 自动检测——仅当你的后端在本地运行于非标准端口时，才需要覆盖此值。 |
+
+> **构建时说明**：`NEXT_PUBLIC_*` 变量会在执行 `pnpm build` 时固化到 JS bundle 中。在运行时修改它们（例如通过根目录的 `.env`）不会生效——这就是为什么它们仅用于本地开发，并放在 `frontend/.env.local` 中。
+
+---
+
+<div id="llm-required">
+  ## LLM（必填）
+</div>
+
+| 变量 | 必填 | 默认值 | 说明 |
+|---|---|---|---|
+| `LLM_API_KEY` | **是** | — | LLM 提供商的 API 密钥 |
+| `LLM_BASE_URL` | 否 | `https://api.openai.com/v1` | 任何兼容 OpenAI 的 API 的基础 URL |
+| `LLM_MODEL` | 否 | `gpt-4o` | 主模型——用于规划、分析和 ReAct 智能体 |
+| `FAST_LLM_MODEL` | 否 | *(回退到 `LLM_MODEL`)* | 快速模型——用于 DAG 步骤执行（成本更低、速度更快） |
+| `LLM_TEMPERATURE` | 否 | `0.7` | 默认采样温度 |
+| `LLM_CONTEXT_SIZE` | 否 | `128000` | 主 LLM 的上下文窗口大小 |
+| `LLM_MAX_OUTPUT_TOKENS` | 否 | `64000` | 主 LLM 每次调用的最大输出令牌数 |
+| `FAST_LLM_CONTEXT_SIZE` | 否 | *(回退到 `LLM_CONTEXT_SIZE`)* | 快速 LLM 的上下文窗口大小 |
+| `FAST_LLM_MAX_OUTPUT_TOKENS` | 否 | *(回退到 `LLM_MAX_OUTPUT_TOKENS`)* | 快速 LLM 每次调用的最大输出令牌数 |
+
+> **解析顺序**：用户偏好 → 管理员模型（DB）→ ENV 回退。如果在 Admin → Models 中配置了角色为 "General" 的管理员模型，则这些 ENV 变量仅作为回退项。健康检查会同时考虑这两种来源。
+
+---
+
+<div id="agent-execution">
+  ## 智能体执行
+</div>
+
+| Variable | 必填 | Default | Description |
+|---|---|---|---|
+| `REACT_MAX_ITERATIONS` | 否 | `20` | 每个 ReAct 请求的最大工具调用迭代次数 |
+| `MAX_CONCURRENCY` | 否 | `5` | DAG 执行器中的最大并行步骤数 |
+| `DAG_STEP_MAX_ITERATIONS` | 否 | `15` | 每个 DAG 步骤内的最大工具调用迭代次数 |
+| `DAG_MAX_REPLAN_ROUNDS` | 否 | `3` | 目标未达成时的最大自主重新规划尝试次数 |
+| `DAG_REPLAN_STOP_CONFIDENCE` | 否 | `0.8` | 当智能体判断目标无法实现的置信度超过此阈值时，将停止重试（`0.0` = 永不提前停止，`1.0` = 任意失败时立即停止） |
+
+---
+
+<div id="web-tools-optional">
+  ## 网页工具 (可选)
+</div>
+
+| 变量                    | 必填 | 默认值                           | 说明                                                             |
+| --------------------- | -- | ----------------------------- | -------------------------------------------------------------- |
+| `JINA_API_KEY`        | 否  | —                             | Jina API 密钥——也用于嵌入和重排；可在 [jina.ai](https://jina.ai/) 获取        |
+| `TAVILY_API_KEY`      | 否  | —                             | Tavily Search API 密钥 (如果已设置且 `WEB_SEARCH_PROVIDER` 未设置，则自动选用)  |
+| `BRAVE_API_KEY`       | 否  | —                             | Brave Search API 密钥 (如果已设置且 `WEB_SEARCH_PROVIDER` 未设置，则自动选用)   |
+| `WEB_SEARCH_PROVIDER` | 否  | `jina`                        | 搜索提供方选择器：`jina` / `tavily` / `brave`                           |
+| `WEB_FETCH_PROVIDER`  | 否  | `jina` (如果已设置密钥，否则为 `httpx`)  | 获取提供方：`jina` / `httpx`                                         |
+
+***
+
+<div id="rag-knowledge-base-recommended">
+  ## RAG 与知识库（推荐）
+</div>
+
+| Variable | 必填 | Default | Description |
+|---|---|---|---|
+| `EMBEDDING_MODEL` | 否 | `jina-embeddings-v3` | 嵌入模型标识符 |
+| `EMBEDDING_DIMENSION` | 否 | `1024` | 嵌入向量维度 |
+| `EMBEDDING_API_KEY` | 否 | *(使用 `JINA_API_KEY`)* | 为其他嵌入服务提供商覆盖 API 密钥 |
+| `EMBEDDING_BASE_URL` | 否 | `https://api.jina.ai/v1` | 为其他嵌入服务提供商覆盖基础 URL |
+| `RETRIEVAL_MODE` | 否 | `grounding` | `grounding`（包含引用/冲突/置信度的完整流程）或 `simple`（基础 RAG） |
+| `RERANKER_MODEL` | 否 | `jina-reranker-v2-base-multilingual` | 重排模型标识符 |
+| `RERANKER_PROVIDER` | 否 | `jina` | 重排服务提供商：`jina` / `cohere` / `openai` |
+| `COHERE_API_KEY` | 否 | — | Cohere API 密钥（设置后会自动选择 Cohere 重排器） |
+| `COHERE_RERANKER_MODEL` | 否 | `rerank-multilingual-v3.0` | Cohere 重排模型 |
+| `VECTOR_STORE_DIR` | 否 | `./data/vector_store` | LanceDB 向量存储数据目录 |
+
+> 知识库功能**建议**启用嵌入。重排器为**可选项**——即使不启用，也可通过融合评分正常执行搜索。
+
+---
+
+<div id="code-execution">
+  ## 代码执行
+</div>
+
+| Variable | Required | Default | 说明 |
+|---|---|---|---|
+| `CODE_EXEC_BACKEND` | No | `local` | `local`（直接在主机上执行）或 `docker`（隔离容器） |
+| `DOCKER_PYTHON_IMAGE` | No | `python:3.11-slim` | 用于 Python 执行的 Docker 镜像 |
+| `DOCKER_NODE_IMAGE` | No | `node:20-slim` | 用于 Node.js 执行的 Docker 镜像 |
+| `DOCKER_SHELL_IMAGE` | No | `python:3.11-slim` | 用于 shell 执行的 Docker 镜像 |
+| `DOCKER_MEMORY` | No | *(Docker 默认值)* | 每个容器的 RAM 上限（例如 `256m`、`512m`、`1g`） |
+| `DOCKER_CPUS` | No | *(Docker 默认值)* | 每个容器的 CPU 配额（例如 `0.5`、`1.0`） |
+| `SANDBOX_TIMEOUT` | No | `120` | 默认执行超时时间（秒） |
+
+> **安全**：`local` 模式会在主机上直接运行 AI 生成的代码。对于面向互联网或多用户的部署，请始终设置 `CODE_EXEC_BACKEND=docker`。
+
+---
+
+<div id="tool-artifacts">
+  ## 工具制品
+</div>
+
+工具执行（代码执行、模板渲染、图像生成）所产生文件的大小限制。
+
+| 变量 | 必填 | 默认值 | 说明 |
+|---|---|---|---|
+| `MAX_ARTIFACT_SIZE` | 否 | `10485760` (10 MB) | 单个制品文件的最大大小（字节） |
+| `MAX_ARTIFACTS_TOTAL` | 否 | `52428800` (50 MB) | 每个会话的制品总大小上限（字节） |
+
+---
+
+<div id="image-generation-optional">
+  ## 图像生成 (可选)
+</div>
+
+| 变量                   | 必填 | 默认值                              | 说明                                                                                           |
+| -------------------- | -- | -------------------------------- | -------------------------------------------------------------------------------------------- |
+| `IMAGE_GEN_PROVIDER` | 否  | `google`                         | `google` (Gemini 原生 API) 或 `openai` (兼容 OpenAI 的 `/v1/images/generations` 接口)                |
+| `IMAGE_GEN_API_KEY`  | 否  | —                                | Google AI Studio 密钥 (`google`) 或代理/OpenAI API 密钥 (`openai`)                                  |
+| `IMAGE_GEN_MODEL`    | 否  | `gemini-3.1-flash-image-preview` | 图像生成模型 (例如 `dall-e-3`、`gemini-nano-banana-2`)                                                |
+| `IMAGE_GEN_BASE_URL` | 否  | *&#x20;(因提供商而异)&#x20;*           | Google：`https://generativelanguage.googleapis.com/v1beta`；OpenAI：`https://api.openai.com/v1` |
+
+***
+
+<div id="email-smtp-recommended">
+  ## 电子邮件（SMTP）（推荐）
+</div>
+
+当 `SMTP_HOST`、`SMTP_USER` 和 `SMTP_PASS` 均已设置时，会自动注册内置 `email_send` 工具。
+
+| 变量 | 必填 | 默认值 | 说明 |
+|---|---|---|---|
+| `SMTP_HOST` | 条件必填 | — | SMTP 服务器主机名 |
+| `SMTP_PORT` | 否 | `465` | SMTP 端口 |
+| `SMTP_SSL` | 否 | `ssl` | TLS 模式：`ssl`（端口 465）/ `tls`（STARTTLS，端口 587）/ `""`（明文） |
+| `SMTP_USER` | 条件必填 | — | SMTP 登录用户名 |
+| `SMTP_PASS` | 条件必填 | — | SMTP 登录密码 |
+| `SMTP_FROM` | 否 | *(使用 `SMTP_USER`)* | From 标头中显示的发件人地址 |
+| `SMTP_FROM_NAME` | 否 | — | From 标头中显示的名称 |
+| `SMTP_ALLOWED_DOMAINS` | 否 | — | 以逗号分隔的域名允许列表（例如 `example.com,corp.io`）；会阻止向列表外域名的收件人发送邮件 |
+| `SMTP_ALLOWED_ADDRESSES` | 否 | — | 以逗号分隔的精确地址允许列表；与 `SMTP_ALLOWED_DOMAINS` 结合使用；若两者都未设置，则允许向任意收件人发送（不建议用于共享邮箱） |
+
+---
+
+<div id="connectors">
+  ## 连接器
+</div>
+
+| 变量                             | 必填 | 默认值     | 说明                        |
+| ------------------------------ | -- | ------- | ------------------------- |
+| `CONNECTOR_RESPONSE_MAX_CHARS` | 否  | `50000` | 非数组 JSON / 纯文本连接器响应的最大字符数 |
+| `CONNECTOR_RESPONSE_MAX_ITEMS` | 否  | `10`    | 当连接器响应为 JSON 数组时保留的最大数组项数 |
+
+***
+
+<div id="platform">
+  ## 平台
+</div>
+
+| Variable | 必填 | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/fim_agent.db` | 数据库连接字符串（默认使用 SQLite；也支持通过 asyncpg 连接 PostgreSQL） |
+| `JWT_SECRET_KEY` | 否 | `CHANGE_ME` | 用于 JWT 令牌签名的密钥。占位值 `CHANGE_ME`（或任何旧版默认值）会在首次启动时触发自动生成一个安全的 256 位随机密钥，并回写到 `.env`。在生产环境中应显式设置，以确保在重启和多副本部署后令牌仍然有效。 |
+| `CORS_ORIGINS` | 否 | — | 除默认 localhost 条目外，额外允许的 CORS 源列表，以逗号分隔。当前端运行在非 localhost 域名上时必须设置（例如 `https://app.example.com`）。 |
+| `UPLOADS_DIR` | 否 | `./uploads` | 上传文件存放目录 |
+| `MCP_SERVERS` | 否 | — | MCP 服务器配置的 JSON 数组（需要 `uv sync --extra mcp`） |
+| `ALLOW_STDIO_MCP` | 否 | `true` | 是否允许 stdio MCP 服务器。对于公网/SaaS 部署，请设置为 `false` |
+| `LOG_LEVEL` | 否 | `INFO` | 日志级别：`DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL` |
+
+---
+
+<div id="oauth-optional">
+  ## OAuth（可选）
+</div>
+
+当某个提供商同时配置了 `CLIENT_ID` 和 `CLIENT_SECRET` 时，登录页面会自动显示对应的 OAuth 按钮。
+
+| 变量 | 必填 | 默认值 | 说明 |
+|---|---|---|---|
+| `GITHUB_CLIENT_ID` | 否 | — | GitHub OAuth App 的客户端 ID。可在 [github.com/settings/developers](https://github.com/settings/developers) → OAuth Apps 创建 |
+| `GITHUB_CLIENT_SECRET` | 否 | — | GitHub OAuth App 的客户端密钥 |
+| `GOOGLE_CLIENT_ID` | 否 | — | Google OAuth 客户端 ID。可在 [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials) 创建 |
+| `GOOGLE_CLIENT_SECRET` | 否 | — | Google OAuth 客户端密钥 |
+| `DISCORD_CLIENT_ID` | 否 | — | Discord OAuth2 客户端 ID。可在 [discord.com/developers](https://discord.com/developers/applications) 创建 |
+| `DISCORD_CLIENT_SECRET` | 否 | — | Discord OAuth2 客户端密钥 |
+| `FEISHU_APP_ID` | 否 | — | Feishu (Lark) App ID。可在 [open.feishu.cn](https://open.feishu.cn/app) 创建。需要 `contact:user.email:readonly` 权限 |
+| `FEISHU_APP_SECRET` | 否 | — | Feishu (Lark) App Secret |
+| `FRONTEND_URL` | **生产环境** | `http://localhost:3000` | OAuth 完成后浏览器最终跳转到的地址。生产环境中必须设置（例如 `https://yourdomain.com`） |
+| `API_BASE_URL` | **生产环境** | `http://localhost:8000` | 外部可访问的后端 URL，用于构建 OAuth 回调 URL。生产环境中必须设置 |
+| `NEXT_PUBLIC_API_URL` | **生产环境** | *(自动检测为 `<hostname>:8000`)* | 浏览器端用于 OAuth 重定向的 API 基础 URL。**这是一个前端构建时变量**——本地开发时请在 `frontend/.env.local` 中设置；如果是自定义生产部署，则作为 Docker 构建参数传入。自动检测适用于标准反向代理配置（80/443 端口）。 |
+
+> **生产环境** = 本地可选（默认值即可），但对于**任何面向互联网的部署都必须设置**。
+
+<div id="oauth-callback-urls-to-register-with-each-provider">
+  ### 需要向各提供商注册的 OAuth 回调 URL
+</div>
+
+后端会按如下格式构造回调 URL：`{API_BASE_URL}/api/auth/oauth/{provider}/callback`
+
+| 提供商     | 需注册的回调 URL                                               |
+| ------- | -------------------------------------------------------- |
+| GitHub  | `https://yourdomain.com/api/auth/oauth/github/callback`  |
+| Google  | `https://yourdomain.com/api/auth/oauth/google/callback`  |
+| Discord | `https://yourdomain.com/api/auth/oauth/discord/callback` |

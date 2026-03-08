@@ -1,0 +1,194 @@
+---
+title: "OAuth 提供商"
+description: "配置 GitHub、Google、Discord 和 Feishu 社交登录。"
+---
+
+FIM Agent 支持通过 GitHub、Google、Discord 和 Feishu (Lark) 进行社交登录。凡是在环境中配置了凭据的提供商，都会自动在登录页面显示对应的登录按钮——无需修改代码。
+
+**回调 URL 格式** —— 请在各提供商的开发者控制台中注册以下精确 URL：
+
+```
+{API_BASE_URL}/api/auth/oauth/{provider}/callback
+```
+
+`API_BASE_URL` 是 FIM Agent 后端对外可访问的地址。示例：
+
+| 场景           | 回调 URL 示例                                                   |
+| ------------ | ----------------------------------------------------------- |
+| 本地开发         | `http://localhost:8000/api/auth/oauth/github/callback`      |
+| 专用 API 子域名   | `https://api.yourdomain.com/api/auth/oauth/github/callback` |
+| 反向代理 (同一域名)  | `https://yourdomain.com/api/auth/oauth/github/callback`     |
+
+***
+
+<div id="github">
+  ## GitHub
+</div>
+
+**开发者控制台：** https://github.com/settings/developers
+
+1. 点击 **OAuth Apps** → **New OAuth App**。
+2. 填写：
+   * **Application name** — 任意名称 (例如 `FIM Agent`)
+   * **Homepage URL** — 你的前端 URL (例如 `https://yourdomain.com`)
+   * **Authorization callback URL** — `https://yourdomain.com/api/auth/oauth/github/callback`
+3. 点击 **Register application**，然后点击 **Generate a new client secret**。
+4. 将 **Client ID** 和生成的 **Client Secret** 复制到你的 `.env` 文件中。
+
+**自动请求的作用域：** `read:user`、`user:email`
+
+对于将主邮箱设为私密的 GitHub 账户，FIM Agent 也能正确处理——它始终从 `/user/emails` 获取已验证的主邮箱，而不是公开个人资料中的邮箱。
+
+```env
+GITHUB_CLIENT_ID=Ov23li...
+GITHUB_CLIENT_SECRET=...
+```
+
+***
+
+<div id="google">
+  ## Google
+</div>
+
+**开发者控制台：** https://console.cloud.google.com/apis/credentials
+
+1. 点击 **+ CREATE CREDENTIALS** → **OAuth client ID**。
+2. 如果出现提示，请先配置 **OAuth consent screen** (个人/公开应用请将“User Type”设为 &quot;External&quot;) 。
+3. 将 **Application type** 设置为 **Web application**。
+4. 在 **Authorized redirect URIs** 下添加：
+   ```
+   https://yourdomain.com/api/auth/oauth/google/callback
+   ```
+5. 点击 **Create**，然后复制 **Client ID** 和 **Client Secret**。
+
+**自动请求的作用域：** `openid`、`email`、`profile`
+
+> 注意：在开发阶段，同意屏幕会显示 &quot;This app is not verified&quot; 警告。你可以继续进行测试。若要为最终用户移除此警告，请发布同意屏幕。
+
+```env
+GOOGLE_CLIENT_ID=12345678-abc.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
+```
+
+***
+
+<div id="discord">
+  ## Discord
+</div>
+
+**开发者控制台：** https://discord.com/developers/applications
+
+1. 点击 **New Application** 并为应用命名。
+2. 在左侧边栏中，点击 **OAuth2**。
+3. 在 **Redirects** 下，点击 **Add Redirect** 并输入：
+   ```
+   https://api.yourdomain.com/api/auth/oauth/discord/callback
+   ```
+4. 复制 **Client ID** (显示在 OAuth2 页面顶部)，然后点击 **Reset Secret** 以显示 **Client Secret**。
+
+**自动请求的作用域：** `identify`, `email`
+
+> Discord 不保证所有账户都具有已验证的邮箱地址。如果用户尚未在 Discord 验证其邮箱，`email` 字段可能为 `null`。在这种情况下，FIM Agent 会创建一个邮箱为 `null` 的账户，用户之后可以在“设置”中补充。
+
+```env
+DISCORD_CLIENT_ID=123456789012345678
+DISCORD_CLIENT_SECRET=...
+```
+
+***
+
+<div id="feishu-lark">
+  ## Feishu (Lark)
+</div>
+
+**开发者控制台：** https://open.feishu.cn/app
+
+1. 点击 **Create App** → **In-house app** (自建应用)。需要使用公司/企业账户，个人账户无法使用 Feishu OAuth。
+2. 在 **Permissions &amp; Scopes** 下搜索并启用：
+   * `contact:user.email:readonly`
+3. 在 **Security Settings** → **Redirect URL** 中添加你的回调 URL：
+   ```
+   https://yourdomain.com/api/auth/oauth/feishu/callback
+   ```
+4. 从 **Credentials &amp; Basic Info** 部分复制 **App ID** 和 **App Secret**。
+
+**在控制台中配置的作用域 (不包含在授权 URL 中)：** `contact:user.email:readonly`
+
+> 注意：Feishu 使用 `App ID` / `App Secret`，而不是标准的 `Client ID` / `Client Secret`。相应的环境变量名称也采用这一命名方式：`FEISHU_APP_ID` 和 `FEISHU_APP_SECRET`。
+
+```env
+FEISHU_APP_ID=cli_a1b2c3d4e5f6...
+FEISHU_APP_SECRET=...
+```
+
+<div id="important-feishu-email-behavior">
+  ### 重要：Feishu 邮箱返回行为
+</div>
+
+Feishu 用户信息 API (`authen/v1/user_info`) 返回的是用户的**企业联系邮箱** (联系邮箱) ——即由组织管理员在 Feishu 管理后台配置的地址。这**不是**用户个人的 Feishu 登录邮箱。
+
+影响如下：
+
+* 如果组织管理员未为用户配置联系邮箱，即使用户拥有有效的 Feishu 账户，API 返回的邮箱字段也会为空。
+* 使用个人 Feishu 账户 (不属于企业) 的用户，返回的邮箱也始终为空。
+
+FIM Agent 已对此进行了妥善处理：请参见下方的[账户绑定规则](#account-binding-rules)。
+
+***
+
+<div id="account-binding-rules">
+  ## 账户绑定规则
+</div>
+
+已注册用户可在 **设置 → 账户** 中绑定其他 OAuth 提供商。用户发起绑定时，适用以下规则：
+
+<div id="general-rule-github-google-discord">
+  ### 通用规则 (GitHub、Google、Discord)
+</div>
+
+OAuth 提供商返回的邮箱必须与 FIM 账户的注册邮箱一致。这可避免误将他人的社交账号绑定到你的 FIM 账户。
+
+如果邮箱不一致，绑定将被拒绝，并返回 `email_mismatch` 错误。
+
+<div id="feishu-exception">
+  ### 飞书例外情况
+</div>
+
+由于飞书的 API 返回的是企业联系邮箱，而不是登录邮箱；并且对于个人账户，或管理员未配置该字段的组织账户，这个字段通常为空，因此飞书的邮箱匹配校验采用较宽松的规则：
+
+* **双方都有邮箱** → 邮箱必须一致 (与其他提供方的校验规则相同)。
+* **任一方没有邮箱** (飞书返回为空，或 FIM 账户没有邮箱) → 仅凭基于票据的认证即可绑定成功。
+
+<div id="feishu-login-no-binding-yet">
+  ### 飞书登录 (尚未绑定)
+</div>
+
+当用户首次通过飞书登录时 (此前不存在绑定关系)：
+
+1. FIM Agent 会查找是否存在邮箱与飞书企业联系邮箱匹配的账户。
+2. 如果找到匹配账户，系统会自动将该飞书账户绑定到现有的 FIM 账户，并让用户登录。
+3. 如果未找到匹配账户 (包括邮箱为空的情况)，则会创建一个以飞书 `open_id` 标识的新 FIM 账户。该账户的邮箱字段为 null，用户之后可在“设置”中补充填写。
+
+***
+
+<div id="environment-variables-quick-reference">
+  ## 环境变量速查
+</div>
+
+| 变量 | 提供商 | 是否必需 | 说明 |
+|---|---|---|---|
+| `GITHUB_CLIENT_ID` | GitHub | 两者 | GitHub OAuth App 客户端 ID |
+| `GITHUB_CLIENT_SECRET` | GitHub | 两者 | GitHub OAuth App 客户端密钥 |
+| `GOOGLE_CLIENT_ID` | Google | 两者 | Google OAuth 2.0 客户端 ID |
+| `GOOGLE_CLIENT_SECRET` | Google | 两者 | Google OAuth 2.0 客户端密钥 |
+| `DISCORD_CLIENT_ID` | Discord | 两者 | Discord OAuth2 应用客户端 ID |
+| `DISCORD_CLIENT_SECRET` | Discord | 两者 | Discord OAuth2 应用客户端密钥 |
+| `FEISHU_APP_ID` | Feishu | 两者 | Feishu 自建应用 ID (注意：不是 `CLIENT_ID`) |
+| `FEISHU_APP_SECRET` | Feishu | 两者 | Feishu 自建应用密钥 |
+| `FRONTEND_URL` | 全部 | 生产环境 | OAuth 完成后，浏览器重定向到的地址 (例如 `https://yourdomain.com`) |
+| `API_BASE_URL` | 全部 | 生产环境 | 可从外部访问的后端 URL，用于构建回调 URL |
+| `NEXT_PUBLIC_API_URL` | 全部 | 生产环境 | 用于 OAuth 重定向的浏览器端 API URL——在构建时写入 |
+
+“是否必需：两者”表示 `_ID` 和 `_SECRET` (Feishu 则为 `_APP_ID` 和 `_APP_SECRET`) 必须同时设置；只设置其中一个不会生效。
+
+> `FRONTEND_URL`、`API_BASE_URL` 和 `NEXT_PUBLIC_API_URL` 的完整说明，请参阅[环境变量](/zh/configuration/environment-variables)。
