@@ -2,14 +2,18 @@ services:
   fim-agent:
     build: .
     ports:
-      - "3000:3000"   # Next.js frontend
-      - "8000:8000"   # FastAPI backend
+      - "3000:3000"   # Next.js frontend (API is proxied internally via rewrites)
     volumes:
-      - ./data:/app/data           # SQLite database + vector store
-      - ./uploads:/app/uploads     # User-uploaded files
+      - fim-data:/app/data             # SQLite database + vector store (REQUIRED)
+      - fim-uploads:/app/uploads       # User-uploaded files (REQUIRED)
+      # Code sandbox: mount Docker socket to run AI-generated code in isolated containers.
+      # Required when CODE_EXEC_BACKEND=docker in .env (recommended for multi-user deployments).
+      # - /var/run/docker.sock:/var/run/docker.sock
     env_file: .env
     restart: unless-stopped
-    # If you use CODE_EXEC_BACKEND=docker (code sandbox), uncomment below
-    # to give the container access to the host Docker daemon:
-    # volumes:
-    #   - /var/run/docker.sock:/var/run/docker.sock
+    # Production: put an Nginx reverse proxy in front for HTTPS + custom domain.
+    # Example: nginx → http://fim-agent:3000
+
+volumes:
+  fim-data:       # Persistent: SQLite DB, LanceDB vectors, Alembic version
+  fim-uploads:    # Persistent: user-uploaded files

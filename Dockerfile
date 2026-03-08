@@ -18,7 +18,7 @@ RUN uv sync --frozen --all-extras --no-dev --no-install-project
 
 # Copy source and install the project itself
 COPY src/ src/
-COPY alembic.ini ./
+COPY alembic.ini README.md ./
 RUN uv sync --frozen --all-extras --no-dev
 
 # ---------------------------------------------------------------------------
@@ -75,6 +75,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Prevent Python from buffering stdout/stderr (important for Docker logs)
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 3000 8000
+EXPOSE 3000
 
 CMD ["/app/docker-entrypoint.sh"]
