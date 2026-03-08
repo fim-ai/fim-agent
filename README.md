@@ -46,12 +46,14 @@ FIM Agent is a provider-agnostic Python framework for building AI agents that dy
 | **Copilot** | AI embedded in a host system — works alongside users in their existing UI | iframe / widget / embed into host pages |
 | **Hub** | Central AI orchestration — all your systems connected, cross-system intelligence | Portal / API |
 
-```
-            ┌──────────────────────────┐
- ERP ──────►│                          │◄────── CRM
- Database ──►│    FIM Agent Hub         │◄────── OA
- Lark ──────►│    (AI orchestration)   │◄────── Custom API
-            └──────────────────────────┘
+```mermaid
+graph LR
+    ERP --> Hub["FIM Agent Hub<br/>(AI orchestration)"]
+    Database --> Hub
+    Lark --> Hub
+    CRM --> Hub
+    OA --> Hub
+    API[Custom API] --> Hub
 ```
 
 The core is always the same: ReAct reasoning loops, dynamic DAG planning with concurrent execution, pluggable tools, and a protocol-first architecture with zero vendor lock-in.
@@ -103,17 +105,20 @@ This is a deliberate architectural boundary, not a capability gap.
 
 ### Where FIM Agent Sits
 
-```
-                Static Execution          Dynamic Execution
-            ┌──────────────────────┬──────────────────────┐
- Static     │ BPM / Workflow       │ ACM                  │
- Planning   │ Camunda, Activiti    │ (Salesforce Case)    │
-            │ Dify, n8n, Coze     │                      │
-            ├──────────────────────┼──────────────────────┤
- Dynamic    │ (transitional —      │ Autonomous Agent     │
- Planning   │  unstable quadrant)  │ AutoGPT, Manus       │
-            │                      │ ★ FIM Agent (bounded)│
-            └──────────────────────┴──────────────────────┘
+```mermaid
+quadrantChart
+    title Planning vs Execution
+    x-axis Static Execution --> Dynamic Execution
+    y-axis Static Planning --> Dynamic Planning
+    quadrant-1 Autonomous Agent
+    quadrant-2 Transitional
+    quadrant-3 BPM / Workflow
+    quadrant-4 ACM
+    Camunda Activiti: [0.2, 0.2]
+    Dify n8n Coze: [0.3, 0.25]
+    Salesforce Case: [0.75, 0.2]
+    AutoGPT Manus: [0.8, 0.8]
+    FIM Agent: [0.7, 0.75]
 ```
 
 Dify/n8n are **Static Planning + Static Execution** — humans design the DAG on a visual canvas, nodes execute fixed operations. FIM Agent is **Dynamic Planning + Dynamic Execution** — LLM generates the DAG at runtime, each node runs a ReAct loop, with re-planning when goals aren't met. But bounded (max 3 re-plan rounds, token budgets, confirmation gates), so more controlled than AutoGPT.
@@ -174,42 +179,42 @@ FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Co
 
 ### System Overview
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                 Application & Interaction Layer               │
-│   Portal (Web UI)    API (Headless)    iframe (Embed)        │
-│   Lark / Slack Bot   Webhook           WeCom / DingTalk      │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-┌──────────────────────────▼───────────────────────────────────┐
-│                    FIM Agent Middleware                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  ┌──────┐ │
-│  │  Connectors  │  │ Orch Engine  │  │   RAG /  │  │Auth  │ │
-│  │  + MCP Hub   │  │ ReAct / DAG  │  │Knowledge │  │Admin │ │
-│  └──────────────┘  └──────────────┘  └──────────┘  └──────┘ │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-┌──────────────────────────▼───────────────────────────────────┐
-│                 Business Systems & Data Layer                  │
-│   ERP · CRM · OA · Finance · Databases · Custom APIs         │
-│   Lark · DingTalk · WeCom · Slack · Email · Webhook          │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph app["Application & Interaction Layer"]
+        a["Portal · API · iframe · Lark/Slack Bot · Webhook · WeCom/DingTalk"]
+    end
+    subgraph mid["FIM Agent Middleware"]
+        direction LR
+        m1["Connectors<br/>+ MCP Hub"] ~~~ m2["Orch Engine<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>Knowledge"] ~~~ m4["Auth /<br/>Admin"]
+    end
+    subgraph biz["Business Systems & Data Layer"]
+        b["ERP · CRM · OA · Finance · Databases · Custom APIs<br/>Lark · DingTalk · WeCom · Slack · Email · Webhook"]
+    end
+    app --> mid --> biz
 ```
 
 ### Connector Hub
 
+```mermaid
+graph LR
+    ERP["ERP<br/>(SAP/Kingdee)"] --> A
+    CRM["CRM<br/>(Salesforce)"] --> B
+    OA["OA<br/>(Seeyon/Weaver)"] --> C
+    DB["Custom DB<br/>(PG/MySQL)"] --> D
+    subgraph Hub["FIM Agent Hub"]
+        A["Agent A: Finance Audit"]
+        B["Agent B: Contract Review"]
+        C["Agent C: Approval Assist"]
+        D["Agent D: Data Reporting"]
+    end
+    A --> O1["Lark / Slack"]
+    B --> O2["Email / WeCom"]
+    C --> O3["Teams / Webhook"]
+    D --> O4["Any API"]
 ```
-                        ┌───────────────────────────┐
-                        │     FIM Agent Hub          │
-                        │                            │
- ERP (SAP/Kingdee) ────│►  Agent A: Finance Audit   │───► Lark / Slack
- CRM (Salesforce)  ────│►  Agent B: Contract Review  │───► Email / WeCom
- OA (Seeyon/Weaver) ───│►  Agent C: Approval Assist  │───► Teams / Webhook
- Custom DB (PG/MySQL) ──│►  Agent D: Data Reporting   │───► Any API
-                        │                            │
-                        └───────────────────────────┘
-                              Portal / API / iframe
-```
+
+*Portal / API / iframe*
 
 Each connector is a standardized bridge — the agent doesn't know or care whether it's talking to SAP or a custom PostgreSQL database. See [Connector Architecture](https://docs.fim.ai/connector-architecture) for details.
 
@@ -222,33 +227,15 @@ FIM Agent provides two execution modes:
 | ReAct | Single complex queries | Reason → Act → Observe loop with tools |
 | DAG Planning | Multi-step parallel tasks | LLM generates dependency graph, independent steps run concurrently |
 
-```
-User Query
-    |
-    v
-+--------------+
-|  DAG Planner |  LLM decomposes the goal into steps + dependency edges
-+--------------+
-    |
-    v
-+--------------+
-| DAG Executor |  Launches independent steps concurrently (asyncio)
-|              |  Each step is handled by a ReAct Agent
-+--------------+
-    |                         +-------+
-    +--- ReAct Agent [1] ---> | Tools |  (python_exec, custom, ...)
-    |                         +-------+
-    +--- ReAct Agent [2] ---> | RAG   |  (retriever interface)
-    |                         +-------+
-    +--- ReAct Agent [N] ---> | ...   |
-    |
-    v
-+---------------+
-| Plan Analyzer |  LLM evaluates results; re-plans if goal not met
-+---------------+
-    |
-    v
- Final Answer
+```mermaid
+graph TB
+    Q[User Query] --> P["DAG Planner<br/>LLM decomposes the goal into steps + dependency edges"]
+    P --> E["DAG Executor<br/>Launches independent steps concurrently via asyncio<br/>Each step is handled by a ReAct Agent"]
+    E --> R1["ReAct Agent 1 → Tools<br/>(python_exec, custom, ...)"]
+    E --> R2["ReAct Agent 2 → RAG<br/>(retriever interface)"]
+    E --> RN["ReAct Agent N → ..."]
+    R1 & R2 & RN --> An["Plan Analyzer<br/>LLM evaluates results · re-plans if goal not met"]
+    An --> F[Final Answer]
 ```
 
 ## Quick Start
