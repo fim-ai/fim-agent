@@ -40,6 +40,7 @@ export function AvatarPickerDialog({
   const tc = useTranslations("common")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadError, setUploadError] = useState("")
 
   const currentAvatar = user?.avatar
   const currentParsed = currentAvatar ? parseBuiltinAvatar(currentAvatar) : null
@@ -53,6 +54,7 @@ export function AvatarPickerDialog({
       const parsed = currentAvatar ? parseBuiltinAvatar(currentAvatar) : null
       setSelectedColor(parsed?.colorId || "blue")
       setSelectedIcon(parsed?.iconId || null)
+      setUploadError("")
     }
   }, [open, currentAvatar])
 
@@ -80,13 +82,14 @@ export function AvatarPickerDialog({
     if (!file) return
 
     e.target.value = ""
+    setUploadError("")
 
     if (!AVATAR_ALLOWED_TYPES.includes(file.type)) {
-      toast.error(t("invalidImageFormat"))
+      setUploadError(t("invalidImageFormat"))
       return
     }
     if (file.size > AVATAR_MAX_SIZE) {
-      toast.error(t("imageTooLarge"))
+      setUploadError(t("imageTooLarge"))
       return
     }
 
@@ -284,6 +287,9 @@ export function AvatarPickerDialog({
             className="hidden"
           />
         </div>
+        {uploadError && (
+          <p className="text-sm text-destructive">{uploadError}</p>
+        )}
       </DialogContent>
     </Dialog>
   )

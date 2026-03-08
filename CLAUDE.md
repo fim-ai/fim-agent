@@ -43,9 +43,16 @@ frontend/            # Next.js portal (shadcn/ui)
 - **No native `<select>`** — use shadcn `<Select>` with `<SelectTrigger className="w-full">`. For empty defaults, use `__default__` sentinel (Radix treats `""` as unset).
 - **Tab/filter state → URL query param**: any page with tabs or filter switching MUST sync to `?tab=xxx` via `useSearchParams` + `router.replace`. Default tab uses no param (clean URL). Wrap component in `<Suspense>`. See `admin/page.tsx`, `settings/page.tsx`, `artifacts/page.tsx` for reference.
 
-## Toast Feedback Convention (MANDATORY)
+## Error Feedback Convention (MANDATORY)
 
-Every user-triggered API call MUST show toast: success → `toast.success()`, failure → `toast.error(errMsg(err))`. Never silently close dialogs, never use only `console.error()`, never use inline flash state — always toast.
+**Two-tier strategy — inline for field errors, toast for system errors:**
+
+- **Field-level validation errors** (empty required field, invalid format, value conflict like "username taken") → **inline `<p className="text-sm text-destructive">` below the field**. Use `fieldErrors` state + `clearFieldError` on input change. Add `aria-invalid` for accessibility.
+- **System-level / API errors** (500, network timeout, auth failure, external service down) → **`toast.error(errMsg(err))`**
+- **Success feedback** → **`toast.success()`**
+- **Hybrid 400 responses**: parse the error — if it maps to a specific field (e.g., `email_already_registered`), show inline; otherwise toast.
+
+**Still mandatory**: never silently close dialogs, never use only `console.error()`. Every user action MUST have visible feedback (inline or toast).
 
 ## Dirty State Protection (MANDATORY)
 

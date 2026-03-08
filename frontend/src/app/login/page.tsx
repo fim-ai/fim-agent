@@ -10,7 +10,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Globe, Sun, Moon } from "lucide-react"
 import { APP_NAME, getApiBaseUrl, getApiDirectUrl } from "@/lib/constants"
-import { authApi } from "@/lib/api"
+import { authApi, ApiError } from "@/lib/api"
 import { getErrorMessage } from "@/lib/error-utils"
 import { toast } from "sonner"
 import { AnimatedLogo } from "@/components/layout/animated-logo"
@@ -60,6 +60,19 @@ function LoginPageInner() {
   const [regConfirm, setRegConfirm] = useState("")
   const [regInviteCode, setRegInviteCode] = useState("")
   const [regLoading, setRegLoading] = useState(false)
+
+  // Inline field errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // Clear a field error when user starts typing
+  const clearFieldError = (field: string) => {
+    setFieldErrors(prev => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
 
   // Email verification state
   const [emailVerificationEnabled, setEmailVerificationEnabled] = useState(false)
@@ -182,11 +195,11 @@ function LoginPageInner() {
 
   const handleSendCode = async () => {
     if (!regEmail.trim()) {
-      toast.error(t("emailRequired"))
+      setFieldErrors(prev => ({ ...prev, regEmail: t("emailRequired") }))
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) {
-      toast.error(t("emailInvalid"))
+      setFieldErrors(prev => ({ ...prev, regEmail: t("emailInvalid") }))
       return
     }
     setSendingCode(true)
@@ -256,7 +269,14 @@ function LoginPageInner() {
       })
       // Redirect is handled by the useEffect that watches user state
     } catch (err) {
-      toast.error(getErrorMessage(err, tError))
+      // Show inline error for field-level issues like "email already registered"
+      if (err instanceof ApiError && err.errorCode === "email_already_registered") {
+        setFieldErrors(prev => ({ ...prev, regEmail: getErrorMessage(err, tError) }))
+        // Go back to form view so user can see the inline error
+        setVerificationStep(false)
+      } else {
+        toast.error(getErrorMessage(err, tError))
+      }
       // Clear OTP so user can re-enter
       setVerificationCode("")
     } finally {
@@ -337,20 +357,20 @@ function LoginPageInner() {
     e.preventDefault()
 
     // Validate fields
+    const errors: Record<string, string> = {}
     if (!regEmail.trim()) {
-      toast.error(t("emailRequired"))
-      return
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) {
-      toast.error(t("emailInvalid"))
-      return
-    }
-    if (regPassword !== regConfirm) {
-      toast.error(t("passwordsDoNotMatch"))
-      return
+      errors.regEmail = t("emailRequired")
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) {
+      errors.regEmail = t("emailInvalid")
     }
     if (regPassword.length < 6) {
-      toast.error(t("passwordMinLength"))
+      errors.regPassword = t("passwordMinLength")
+    }
+    if (regPassword !== regConfirm) {
+      errors.regConfirm = t("passwordsDoNotMatch")
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(prev => ({ ...prev, ...errors }))
       return
     }
 
@@ -828,31 +848,46 @@ function LoginPageInner() {
                 {!verificationStep ? (
                   <>
                     <div className="space-y-2">
-                      <Input
-                        type="email"
-                        placeholder={t("emailPlaceholder")}
-                        value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                      />
-                      <Input
-                        type="password"
-                        placeholder={t("passwordMinLengthPlaceholder")}
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        required
-                        minLength={6}
-                        autoComplete="new-password"
-                      />
-                      <Input
-                        type="password"
-                        placeholder={t("confirmPasswordPlaceholder")}
-                        value={regConfirm}
-                        onChange={(e) => setRegConfirm(e.target.value)}
-                        required
-                        autoComplete="new-password"
-                      />
+                      <div>
+                        <Input
+                          type="email"
+                          placeholder={t("emailPlaceholder")}
+                          value={regEmail}
+                          onChange={(e) => { setRegEmail(e.target.value); clearFieldError("regEmail") }}
+                          required
+                          autoComplete="email"
+                        />
+                        {fieldErrors.regEmail && (
+                          <p className="mt-1 text-sm text-destructive">{fieldErrors.regEmail}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Input
+                          type="password"
+                          placeholder={t("passwordMinLengthPlaceholder")}
+                          value={regPassword}
+                          onChange={(e) => { setRegPassword(e.target.value); clearFieldError("regPassword") }}
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                        />
+                        {fieldErrors.regPassword && (
+                          <p className="mt-1 text-sm text-destructive">{fieldErrors.regPassword}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Input
+                          type="password"
+                          placeholder={t("confirmPasswordPlaceholder")}
+                          value={regConfirm}
+                          onChange={(e) => { setRegConfirm(e.target.value); clearFieldError("regConfirm") }}
+                          required
+                          autoComplete="new-password"
+                        />
+                        {fieldErrors.regConfirm && (
+                          <p className="mt-1 text-sm text-destructive">{fieldErrors.regConfirm}</p>
+                        )}
+                      </div>
                       {registrationMode === "invite" && (
                         <Input
                           placeholder={t("inviteCodePlaceholder")}

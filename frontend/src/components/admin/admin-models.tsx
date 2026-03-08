@@ -126,6 +126,7 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
   const [contextSize, setContextSize] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; modelName?: string; apiKey?: string }>({})
 
   useEffect(() => {
     if (open) {
@@ -149,6 +150,7 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
         setContextSize("")
       }
       setShowCloseConfirm(false)
+      setFieldErrors({})
     }
   }, [open, model])
 
@@ -168,12 +170,12 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
   }
 
   const handleSubmit = async () => {
-    if (!name.trim() || !modelName.trim()) {
-      toast.error(t("nameAndModelRequired"))
-      return
-    }
-    if (!isEdit && !apiKey.trim()) {
-      toast.error(t("apiKeyRequiredForNew"))
+    const errors: { name?: string; modelName?: string; apiKey?: string } = {}
+    if (!name.trim()) errors.name = t("nameRequired")
+    if (!modelName.trim()) errors.modelName = t("modelNameRequired")
+    if (!isEdit && !apiKey.trim()) errors.apiKey = t("apiKeyRequired")
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       return
     }
     setIsSaving(true)
@@ -234,8 +236,15 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
                   id="am-name"
                   placeholder="e.g. GPT-4o Production"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }))
+                  }}
+                  aria-invalid={!!fieldErrors.name}
                 />
+                {fieldErrors.name && (
+                  <p className="text-xs text-destructive">{fieldErrors.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="am-model-name">
@@ -245,8 +254,15 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
                   id="am-model-name"
                   placeholder="e.g. gpt-4o"
                   value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
+                  onChange={(e) => {
+                    setModelName(e.target.value)
+                    if (fieldErrors.modelName) setFieldErrors((prev) => ({ ...prev, modelName: undefined }))
+                  }}
+                  aria-invalid={!!fieldErrors.modelName}
                 />
+                {fieldErrors.modelName && (
+                  <p className="text-xs text-destructive">{fieldErrors.modelName}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="am-api-key">
@@ -257,14 +273,20 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
                   type="password"
                   placeholder={isEdit ? t("apiKeyEditHint") : t("apiKeyPlaceholder")}
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => {
+                    setApiKey(e.target.value)
+                    if (fieldErrors.apiKey) setFieldErrors((prev) => ({ ...prev, apiKey: undefined }))
+                  }}
                   autoComplete="new-password"
+                  aria-invalid={!!fieldErrors.apiKey}
                 />
-                {isEdit && (
+                {fieldErrors.apiKey ? (
+                  <p className="text-xs text-destructive">{fieldErrors.apiKey}</p>
+                ) : isEdit ? (
                   <p className="text-xs text-muted-foreground">
                     {t("apiKeyEditHint")}
                   </p>
-                )}
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="am-base-url">

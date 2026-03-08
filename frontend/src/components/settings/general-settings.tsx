@@ -30,6 +30,7 @@ export function GeneralSettings() {
 
   // --- Username ---
   const [username, setUsername] = useState("")
+  const [usernameError, setUsernameError] = useState("")
   const [savingUsername, setSavingUsername] = useState(false)
 
   // --- Profile ---
@@ -79,7 +80,7 @@ export function GeneralSettings() {
         (err as { error?: string })?.error ||
         ""
       if (msg.includes("username_taken")) {
-        toast.error(t("usernameTaken"))
+        setUsernameError(t("usernameTaken"))
       } else {
         toast.error(t("usernameSaveFailed"))
       }
@@ -162,11 +163,17 @@ export function GeneralSettings() {
             <label className="text-sm font-medium">{t("usernameLabel")}</label>
             <Input
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value)
+                setUsernameError("")
+              }}
               placeholder={t("usernamePlaceholder")}
               maxLength={MAX_USERNAME_LENGTH + 10}
               className="max-w-sm"
             />
+            {usernameError && (
+              <p className="text-sm text-destructive">{usernameError}</p>
+            )}
             <div className="flex items-center justify-between max-w-sm">
               <span
                 className={`text-xs ${
