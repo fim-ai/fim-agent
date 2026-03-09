@@ -35,6 +35,7 @@ description: "FIM Agent 的所有重要变更。"
   ### 已修复
 </div>
 
+* **导出：RFC 5987 文件名支持**：优先使用 Content-Disposition 头中 UTF-8 编码的 `filename*`，而非普通 `filename`，修复导出对话时中日韩文件名乱码问题
 * **Docker i18n 失效**：将 `messages/` 目录复制到独立输出中，并添加 `outputFileTracingIncludes`，以便 next-intl 在运行时发现 locale JSON 文件
 * **Docker 启动竞态条件**：在启动 Next.js 之前，于 entrypoint 中添加 API 就绪等待循环 (Python socket 轮询) ，避免出现 `e.map is not a function` SSR 错误
 * **工件：按会话 created&#95;at 排序**：按会话创建时间而不是文件 mtime 对工件进行排序 (mtime 在 Docker 卷上不可靠) 

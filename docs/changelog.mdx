@@ -24,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Docs: dark mode theme**: Refined Mintlify color config — warm amber accent in dark mode, gradient background decoration, proper background colors matching project theme
 
 ### Fixed
+- **Export: RFC 5987 filename support**: Prefer UTF-8 encoded `filename*` over plain `filename` in Content-Disposition header, fixing garbled CJK filenames when exporting conversations
 - **Docker i18n broken**: Copy `messages/` directory into standalone output and add `outputFileTracingIncludes` so next-intl can discover locale JSON files at runtime
 - **Docker startup race condition**: Add API readiness wait loop (Python socket poll) in entrypoint before starting Next.js, preventing `e.map is not a function` SSR errors
 - **Artifacts: sort by conversation created_at**: Sort artifacts by conversation creation time instead of file mtime (mtime is unreliable on Docker volumes)
