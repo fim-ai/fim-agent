@@ -287,4 +287,4 @@ class TestOpenAICompatibleLLMInit:
             model="gpt-4o",
         )
         assert llm._default_temperature == 0.7
-        assert llm._default_max_tokens == 4096
+        assert llm._default_max_tokens == 64000
