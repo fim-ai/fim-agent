@@ -171,7 +171,7 @@ FIM Agent 不做 BPM/FSM — 工作流逻辑归属目标系统，连接器只负
 #### 上下文与记忆
 - **LLM Compact** — 自动 LLM 驱动的摘要压缩，确保 Token 预算不超限。
 - **ContextGuard + 置顶消息** — Token 预算管理器；置顶消息受到压缩保护。
-- **单进程部署** — 无需 Redis、无需 PostgreSQL、无需消息队列。一个进程 + SQLite。`docker compose up` 即可上线。
+- **双数据库支持** — SQLite（零配置默认）秒级启动；PostgreSQL 适用于生产环境和多进程部署。Docker Compose 自动配置 PostgreSQL 并附带健康检查。`docker compose up` 即可上线。
 
 ## 架构设计
 

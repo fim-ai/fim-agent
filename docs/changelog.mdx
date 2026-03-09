@@ -10,6 +10,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Dual database support (SQLite + PostgreSQL)**: `DATABASE_URL` now accepts both SQLite (`sqlite+aiosqlite:///...`) and PostgreSQL (`postgresql+asyncpg://...`) connection strings. SQLite remains the zero-config default; PostgreSQL is recommended for production and multi-worker deployments. Docker Compose auto-provisions a PostgreSQL service with health checks. Alembic migrations are dialect-aware (json_extract vs `::json->>'key'`). Admin health dashboard shows the actual database engine and version
+- **Models configuration docs**: New `docs/configuration/models.mdx` page documenting model configuration reference, including extended thinking / reasoning setup for each provider
 - **Extended thinking / reasoning support**: Add `LLM_REASONING_EFFORT` (low/medium/high) and `LLM_REASONING_BUDGET_TOKENS` env vars for models with extended thinking (OpenAI o-series, Gemini 2.5+, Claude). Sends `reasoning_effort` for OpenAI/Gemini, `thinking` for Anthropic (auto-detected). Extracts `reasoning_content` from multiple provider field names (DeepSeek R1, Claude proxies) and surfaces it in the UI "thinking" step
 - **Admin: tool disable**: New admin Tools panel with per-tool enable/disable toggles (stored as `disabled_builtin_tools` setting). Disabled tools are filtered from chat tool resolution at runtime. The `/api/tools/catalog` endpoint returns a `disabled` flag, and the Tools page UI shows disabled state
 - **Admin: MCP servers on Connectors page**: MCP servers management moved from Tools page to Connectors page as a new tab. `MCPServersSection` extracted into a reusable component with imperative action refs

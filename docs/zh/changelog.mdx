@@ -15,6 +15,8 @@ description: "FIM Agent 的所有重要变更。"
   ### 新增
 </div>
 
+* **双数据库支持（SQLite + PostgreSQL）**：`DATABASE_URL` 现在同时支持 SQLite（`sqlite+aiosqlite:///...`）和 PostgreSQL（`postgresql+asyncpg://...`）连接字符串。SQLite 仍为零配置默认值；PostgreSQL 推荐用于生产环境和多进程部署。Docker Compose 自动配置 PostgreSQL 服务并附带健康检查。Alembic 迁移可感知数据库方言（json_extract vs `::json->>'key'`）。管理员健康看板显示实际数据库引擎和版本
+* **模型配置文档**：新增 `docs/configuration/models.mdx` 页面，记录模型配置参考，包括各提供商的扩展思考/推理设置
 * **扩展思考 / 推理支持**：新增 `LLM_REASONING_EFFORT`（low/medium/high）和 `LLM_REASONING_BUDGET_TOKENS` 环境变量，支持具备扩展思考能力的模型（OpenAI o 系列、Gemini 2.5+、Claude）。OpenAI/Gemini 发送 `reasoning_effort` 参数，Anthropic（自动检测）发送 `thinking`。从多个提供商字段名（DeepSeek R1、Claude 代理）中提取 `reasoning_content`，并在 UI 的"思考中"步骤中展示
 * **管理后台：工具禁用**：新增管理后台工具面板，支持逐工具启用/禁用切换（存储为 `disabled_builtin_tools` 设置）。禁用的工具在运行时会从聊天工具解析中过滤掉。`/api/tools/catalog` 端点返回 `disabled` 标志，工具页面 UI 显示禁用状态
 * **管理后台：MCP 服务器移至连接器页面**：MCP 服务器管理从工具页面移至连接器页面，作为新标签页。`MCPServersSection` 抽取为可复用组件，支持命令式操作引用

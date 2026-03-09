@@ -171,7 +171,7 @@ FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Co
 #### Context & Memory
 - **LLM Compact** — Automatic LLM-powered summarization to stay within token budgets.
 - **ContextGuard + Pinned Messages** — Token budget manager; pinned messages are protected from compaction.
-- **Single-Process Deployment** — No Redis, no PostgreSQL, no message queue. One process + SQLite. `docker compose up` and you're live.
+- **Dual Database Support** — SQLite (zero-config default) for getting started in seconds; PostgreSQL for production and multi-worker deployments. Docker Compose auto-provisions PostgreSQL with health checks. `docker compose up` and you're live.
 
 ## Architecture
 
