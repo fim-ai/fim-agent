@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { ReactOutput } from "@/components/playground/react-output"
-import { DagOutput } from "@/components/playground/dag-output"
+import { DagOutput, type DagOutputHandle } from "@/components/playground/dag-output"
 import { Examples } from "@/components/playground/examples"
 import { RightSidebar } from "@/components/playground/right-sidebar"
 import { DagFlowGraph } from "@/components/dag/dag-flow-graph"
@@ -497,7 +497,6 @@ function HistoryTurn({ userContent, userMetadata, sseMessages, mode, hideDagGrap
           currentRound={dagData.currentRound}
           injectEvents={dagData.injectEvents}
           hideDagGraph={hideDagGraph}
-          hideStepCards
         />
       )}
     </>
@@ -574,6 +573,7 @@ function PlaygroundContent({
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isNearBottomRef = useRef(true)
+  const dagOutputRef = useRef<DagOutputHandle>(null)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const composingRef = useRef(false)
   const [composing, setComposing] = useState(false)
@@ -816,7 +816,13 @@ function PlaygroundContent({
   }, [scrollInViewport, scrollViewportToBottom])
 
   const scrollToStep = useCallback((stepId: string) => {
-    scrollInViewport(`[data-step-id="${stepId}"]`)
+    // Expand the collapsed step section first (in case it's folded after completion)
+    dagOutputRef.current?.expandSteps()
+    // Double-rAF: first frame lets React commit the expansion re-render,
+    // second frame waits for browser layout so bounding rects are correct.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => scrollInViewport(`[data-step-id="${stepId}"]`))
+    )
   }, [scrollInViewport])
 
   // Fetch published agents on mount
@@ -1099,6 +1105,7 @@ function PlaygroundContent({
                         <ReactOutput items={reactItems} isStreaming={isRunning && modeMatches} onSuggestionSelect={handleSuggestionSelect} />
                       ) : (
                         <DagOutput
+                          ref={dagOutputRef}
                           planSteps={dagData.planSteps}
                           stepStates={dagData.stepStates}
                           analysisPhase={dagData.analysisPhase}

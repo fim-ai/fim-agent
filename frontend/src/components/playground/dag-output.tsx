@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
 import { fmtDuration } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { useTranslations } from "next-intl"
 import {
   Loader2,
@@ -46,6 +46,10 @@ import {
 } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+export interface DagOutputHandle {
+  expandSteps: () => void
+}
+
 interface DagOutputProps {
   planSteps: DagPhaseEvent["steps"]
   stepStates: StepState[]
@@ -59,7 +63,7 @@ interface DagOutputProps {
   onSuggestionSelect?: (query: string) => void
 }
 
-export function DagOutput({
+export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function DagOutput({
   planSteps,
   stepStates,
   analysisPhase,
@@ -70,11 +74,15 @@ export function DagOutput({
   hideStepCards,
   injectEvents = [],
   onSuggestionSelect,
-}: DagOutputProps) {
+}, ref) {
   const t = useTranslations("playground")
   const { user } = useAuth()
   const userFallback = (user?.display_name || user?.email || "U").charAt(0).toUpperCase()
   const [stepsExpanded, setStepsExpanded] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    expandSteps: () => setStepsExpanded(true),
+  }), [])
 
   const completedSteps = stepStates.filter(
     (s) => s.status === "completed",
@@ -211,7 +219,7 @@ export function DagOutput({
       {doneEvent && <DagDoneCard done={doneEvent} stepStates={stepStates} onSuggestionSelect={onSuggestionSelect} />}
     </div>
   )
-}
+})
 
 /* ------------------------------------------------------------------ */
 /*  Restored from commit 44ca9e1 — battle-tested components            */
@@ -461,9 +469,10 @@ function AnalysisCard({ phase }: { phase: DagPhaseEvent }) {
             )}
           </div>
           {phase.reasoning && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {phase.reasoning}
-            </p>
+            <MarkdownContent
+              content={phase.reasoning}
+              className="prose-sm text-sm text-muted-foreground"
+            />
           )}
         </div>
       </CardContent>

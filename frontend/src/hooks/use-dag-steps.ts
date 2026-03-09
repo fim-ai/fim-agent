@@ -86,6 +86,7 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
         }
         if (phase.name === "replanning") {
           currentPhase = "replanning"
+          analysisPhase = null
         }
         if (phase.name === "planning" && phase.status === "start") {
           currentPhase = "planning"
