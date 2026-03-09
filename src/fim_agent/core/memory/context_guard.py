@@ -194,16 +194,26 @@ class ContextGuard:
         old_messages = compactable[:-keep_recent]
         recent_messages = compactable[-keep_recent:]
 
-        # Warn if pinned messages consume too much of the budget.
+        # Unpin oldest inject messages if pinned tokens exceed 50% of budget.
         pinned_tokens = CompactUtils.estimate_messages_tokens(pinned_msgs)
-        if pinned_tokens > budget * 0.5:
+        if pinned_tokens > budget * 0.5 and len(pinned_msgs) > 1:
             logger.warning(
                 "ContextGuard: pinned messages consume %d tokens "
-                "(%.0f%% of budget %d)",
+                "(%.0f%% of budget %d) — unpinning oldest inject messages",
                 pinned_tokens,
-                pinned_tokens / budget * 100,
+                pinned_tokens / budget * 0.5 * 100,
                 budget,
             )
+            # Keep only the most recent pinned message (the current user
+            # query).  Move older pinned messages into compactable so
+            # they can be summarised instead of silently exceeding budget.
+            overflow = list(pinned_msgs[:-1])
+            pinned_msgs = pinned_msgs[-1:]
+            for msg in overflow:
+                msg.pinned = False
+            compactable = overflow + compactable
+            old_messages = compactable[:-keep_recent]
+            recent_messages = compactable[-keep_recent:]
 
         # Build the text block to summarise.
         lines: list[str] = []

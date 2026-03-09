@@ -257,11 +257,20 @@ class PlanAnalyzer:
         return None
 
     @staticmethod
-    def _format_step_results(plan: ExecutionPlan) -> str:
+    def _format_step_results(
+        plan: ExecutionPlan,
+        *,
+        max_result_chars: int = 10_000,
+    ) -> str:
         """Format all step results into a readable summary.
+
+        Each step result is truncated to *max_result_chars* to prevent the
+        analyzer prompt from exceeding the LLM's context window when steps
+        produce very large outputs.
 
         Args:
             plan: The execution plan with populated step results.
+            max_result_chars: Maximum characters per step result.
 
         Returns:
             A multi-line summary of each step's status and result.
@@ -274,6 +283,8 @@ class PlanAnalyzer:
             deps = ", ".join(step.dependencies) if step.dependencies else "none"
             hint = step.tool_hint or "none"
             result_text = step.result or "(no result)"
+            if len(result_text) > max_result_chars:
+                result_text = result_text[:max_result_chars] + "\n  [Result truncated]"
             lines.append(
                 f"[{step.id}] (status: {step.status}, deps: {deps}, tool_hint: {hint})\n"
                 f"  Task: {step.task}\n"

@@ -117,14 +117,7 @@ class CompactUtils:
         for msg in messages:
             total += 4  # per-message overhead
             content = msg.content or ""
-            if isinstance(content, list):
-                # Multimodal content blocks — only count text parts
-                text = " ".join(
-                    part.get("text", "") for part in content if isinstance(part, dict)
-                )
-                total += cls.estimate_tokens(text)
-            else:
-                total += cls.estimate_tokens(content)
+            total += cls.estimate_tokens(content)
         return total
 
     @classmethod
