@@ -35,6 +35,7 @@ export default function AgentEditorPage() {
   const [isLoading, setIsLoading] = useState(id !== "new")
   const [formDirty, setFormDirty] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [builderActive, setBuilderActive] = useState(false)
 
   // Warn on browser refresh / tab close
   useEffect(() => {
@@ -70,6 +71,14 @@ export default function AgentEditorPage() {
     if (user && id !== "new") loadAgent()
   }, [user, id, loadAgent])
 
+  const handleBuilderModeChange = useCallback((active: boolean) => {
+    setBuilderActive(active)
+    if (!active && agent) {
+      // Reload agent to pick up changes made by the builder
+      loadAgent()
+    }
+  }, [agent, loadAgent])
+
   const handleAgentSaved = (saved: AgentResponse) => {
     setAgent(saved)
     if (isNew) {
@@ -94,7 +103,11 @@ export default function AgentEditorPage() {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
-            {formDirty ? (
+            {builderActive ? (
+              <Button variant="ghost" size="icon-xs" disabled>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            ) : formDirty ? (
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -143,19 +156,20 @@ export default function AgentEditorPage() {
 
       {/* Main content: left AI chat + right form */}
       <div className="flex flex-1 min-h-0">
-        {/* Left: AI Chat Panel (1/3) */}
-        <div className="w-1/3 border-r border-border flex flex-col min-h-0">
+        {/* Left: AI Chat Panel (1/3 → 1/2 in builder mode) */}
+        <div className={`${builderActive ? "w-1/2" : "w-1/3"} border-r border-border flex flex-col min-h-0 transition-all duration-300`}>
           <AgentAIPanel
             agentId={agent?.id ?? null}
             onAgentUpdated={(updated) => setAgent(updated)}
             formDirty={formDirty}
             isNewMode={isNew}
             onAgentCreated={handleAgentSaved}
+            onBuilderModeChange={handleBuilderModeChange}
           />
         </div>
 
-        {/* Right: Settings Form (2/3) */}
-        <div className="w-2/3 flex flex-col min-h-0 px-4 py-4">
+        {/* Right: Settings Form (2/3 → 1/2 in builder mode) */}
+        <div className={`${builderActive ? "w-1/2" : "w-2/3"} flex flex-col min-h-0 px-4 py-4 transition-all duration-300`}>
           <AgentSettingsForm
             agent={agent}
             onSaved={handleAgentSaved}

@@ -47,6 +47,10 @@ from .connector_builder import (
     ConnectorUpdateSettingsTool,
     ConnectorTestActionTool,
 )
+from .agent_builder import (
+    AgentGetSettingsTool,
+    AgentUpdateSettingsTool,
+)
 
 __all__ = [
     "CalculatorTool",
@@ -72,6 +76,8 @@ __all__ = [
     "ConnectorDeleteActionTool",
     "ConnectorUpdateSettingsTool",
     "ConnectorTestActionTool",
+    "AgentGetSettingsTool",
+    "AgentUpdateSettingsTool",
     "discover_builtin_tools",
 ]
 
@@ -113,6 +119,8 @@ _SKIP_AUTO_DISCOVER: set[type] = {
     ConnectorDeleteActionTool,
     ConnectorUpdateSettingsTool,
     ConnectorTestActionTool,
+    AgentGetSettingsTool,    # agent builder tools — injected by chat.py for agent builder agents
+    AgentUpdateSettingsTool,
 }
 
 

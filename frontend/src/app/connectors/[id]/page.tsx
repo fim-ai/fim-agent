@@ -27,6 +27,7 @@ export default function ConnectorEditorPage() {
   const [activeTab, setActiveTab] = useState<string>("connector")
   const [isLoading, setIsLoading] = useState(id !== "new")
   const [formDirty, setFormDirty] = useState(false)
+  const [builderActive, setBuilderActive] = useState(false)
 
   // Auth guard
   useEffect(() => {
@@ -53,6 +54,13 @@ export default function ConnectorEditorPage() {
   useEffect(() => {
     if (user && id !== "new") loadConnector()
   }, [user, id, loadConnector])
+
+  const handleBuilderModeChange = useCallback((active: boolean) => {
+    setBuilderActive(active)
+    if (!active) {
+      loadConnector()
+    }
+  }, [loadConnector])
 
   const handleConnectorSaved = (saved: ConnectorResponse) => {
     setConnector(saved)
@@ -88,15 +96,17 @@ export default function ConnectorEditorPage() {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              asChild
-            >
-              <Link href="/connectors">
+            {builderActive ? (
+              <Button variant="ghost" size="icon-xs" disabled>
                 <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon-xs" asChild>
+                <Link href="/connectors">
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </TooltipTrigger>
           <TooltipContent side="right" sideOffset={5}>{t("backToConnectors")}</TooltipContent>
         </Tooltip>
@@ -112,8 +122,8 @@ export default function ConnectorEditorPage() {
 
       {/* Main content: left AI chat + right tabs */}
       <div className="flex flex-1 min-h-0">
-        {/* Left: AI Chat Panel (1/3) */}
-        <div className="w-1/3 border-r border-border flex flex-col min-h-0">
+        {/* Left: AI Chat Panel (1/3 → 1/2 in builder mode) */}
+        <div className={`${builderActive ? "w-1/2" : "w-1/3"} border-r border-border flex flex-col min-h-0 transition-all duration-300`}>
           <AIActionPanel
             connectorId={connector?.id ?? null}
             onActionsChanged={reload}
@@ -121,11 +131,12 @@ export default function ConnectorEditorPage() {
             formDirty={formDirty}
             isNewMode={isNew}
             onConnectorCreated={handleConnectorSaved}
+            onBuilderModeChange={handleBuilderModeChange}
           />
         </div>
 
-        {/* Right: Tabs (2/3) */}
-        <div className="w-2/3 flex flex-col min-h-0">
+        {/* Right: Tabs (2/3 → 1/2 in builder mode) */}
+        <div className={`${builderActive ? "w-1/2" : "w-2/3"} flex flex-col min-h-0 transition-all duration-300`}>
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}

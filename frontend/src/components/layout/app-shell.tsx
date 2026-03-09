@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -267,6 +267,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", String(collapsed))
   }, [collapsed])
+
+  const prevCollapsedRef = useRef(false)
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ active: boolean }>).detail
+      if (detail.active) {
+        prevCollapsedRef.current = collapsed
+        setCollapsed(true)
+      } else {
+        setCollapsed(prevCollapsedRef.current)
+      }
+    }
+    window.addEventListener("builder-mode-change", handler)
+    return () => window.removeEventListener("builder-mode-change", handler)
+  }, [collapsed])
+
   const pathname = usePathname()
   const { user, isLoading } = useAuth()
 

@@ -2,13 +2,15 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useTranslations } from "next-intl"
-import { Sparkles, Send, Loader2, Wand2 } from "lucide-react"
+import { Sparkles, Send, Loader2, Wand2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { agentApi, ApiError } from "@/lib/api"
-import { BuilderDialog } from "@/components/builder/builder-dialog"
+import { builderApi } from "@/lib/builder-api"
+import { PlaygroundPage } from "@/components/playground/playground-page"
+import { ConversationProvider } from "@/contexts/conversation-context"
 import type { AgentResponse } from "@/types/agent"
 
 interface AIMessage {
@@ -22,6 +24,7 @@ interface AgentAIPanelProps {
   formDirty?: boolean
   isNewMode?: boolean
   onAgentCreated?: (agent: AgentResponse) => void
+  onBuilderModeChange?: (active: boolean) => void
 }
 
 export function AgentAIPanel({
@@ -30,12 +33,15 @@ export function AgentAIPanel({
   formDirty = false,
   isNewMode = false,
   onAgentCreated,
+  onBuilderModeChange,
 }: AgentAIPanelProps) {
   const t = useTranslations("agents")
   const [messages, setMessages] = useState<AIMessage[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [builderOpen, setBuilderOpen] = useState(false)
+  const [builderMode, setBuilderMode] = useState(false)
+  const [builderAgentId, setBuilderAgentId] = useState<string | null>(null)
+  const [builderLoading, setBuilderLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -48,6 +54,34 @@ export function AgentAIPanel({
       inputRef.current?.focus()
     }
   }, [agentId])
+
+  // Reset builder state when agentId changes
+  useEffect(() => {
+    setBuilderMode(false)
+    setBuilderAgentId(null)
+  }, [agentId])
+
+  const openBuilder = async () => {
+    if (!agentId) return
+    if (builderAgentId) {
+      setBuilderMode(true)
+      window.dispatchEvent(new CustomEvent("builder-mode-change", { detail: { active: true } }))
+      onBuilderModeChange?.(true)
+      return
+    }
+    setBuilderLoading(true)
+    try {
+      const res = await builderApi.createSession({ target_type: "agent", target_id: agentId })
+      setBuilderAgentId(res.builder_agent_id)
+      setBuilderMode(true)
+      window.dispatchEvent(new CustomEvent("builder-mode-change", { detail: { active: true } }))
+      onBuilderModeChange?.(true)
+    } catch {
+      toast.error(t("builderInitFailed"))
+    } finally {
+      setBuilderLoading(false)
+    }
+  }
 
   const handleSend = async () => {
     const trimmed = input.trim()
@@ -148,23 +182,74 @@ export function AgentAIPanel({
 
   const isDisabled = !isNewMode && agentId === null
 
+  // ── Builder mode: inline chat with builder agent ──────────────────────────
+  if (builderMode && builderAgentId) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  setBuilderMode(false)
+                  window.dispatchEvent(new CustomEvent("builder-mode-change", { detail: { active: false } }))
+                  onBuilderModeChange?.(false)
+                }}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={5}>{t("backToAssistant")}</TooltipContent>
+          </Tooltip>
+          <Wand2 className="h-3.5 w-3.5 text-primary" />
+          <span className="text-sm font-medium flex-1">{t("advancedBuilder")}</span>
+        </div>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ConversationProvider>
+            <PlaygroundPage
+              embedded
+              initialAgentId={builderAgentId}
+              isNewChat
+              onClose={() => setBuilderMode(false)}
+              onTurnComplete={() => {
+                if (!agentId) return
+                agentApi.get(agentId).then(onAgentUpdated).catch(() => {})
+              }}
+            />
+          </ConversationProvider>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Default: AI assistant mode ────────────────────────────────────────────
   return (
-    <>
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
         <Sparkles className="h-3.5 w-3.5 text-amber-500" />
         <span className="text-sm font-medium flex-1">{t("aiAssistant")}</span>
         {agentId && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setBuilderOpen(true)}
-            className="h-7 text-xs gap-1.5"
-          >
-            <Wand2 className="h-3 w-3" />
-            {t("advancedBuilder")}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openBuilder}
+                disabled={builderLoading}
+                className="h-7 text-xs gap-1.5"
+              >
+                {builderLoading
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <Wand2 className="h-3 w-3" />}
+                {t("advancedBuilder")}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={5}>{t("advancedBuilderDesc")}</TooltipContent>
+          </Tooltip>
         )}
       </div>
 
@@ -257,14 +342,5 @@ export function AgentAIPanel({
         </Tooltip>
       </div>
     </div>
-    {agentId && (
-      <BuilderDialog
-        open={builderOpen}
-        onClose={() => setBuilderOpen(false)}
-        targetType="agent"
-        targetId={agentId}
-      />
-    )}
-    </>
   )
 }

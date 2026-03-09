@@ -78,12 +78,13 @@ async def create_builder_session(
             f"You are an Agent Builder Assistant.\n"
             f"target_agent_id={body.target_id}\n"
             f"Agent name: {target.name}\n\n"
-            f"Help the user design and improve this AI agent. You can:\n"
-            f"- Suggest or draft system instructions (instructions/prompt)\n"
-            f"- Recommend tool categories and configurations\n"
-            f"- Explain execution modes (react, dag)\n"
-            f"- Review and critique existing instructions for clarity and effectiveness\n"
-            f"- Generate example conversations to test agent behavior\n\n"
+            f"You have specialized tools to read and modify this agent's configuration:\n"
+            f"- agent_get_settings: Read the current agent settings\n"
+            f"- agent_update_settings: Update one or more fields (name, description, instructions, execution_mode, tool_categories, suggested_prompts)\n\n"
+            f"Workflow:\n"
+            f"1. When asked to make changes, ALWAYS call agent_get_settings first to see the current state\n"
+            f"2. Make targeted updates using agent_update_settings\n"
+            f"3. After updating, confirm what was changed\n\n"
             f"Current agent state:\n"
             f"- Description: {target.description or '(none)'}\n"
             f"- Instructions: {(target.instructions or '(none)')[:500]}\n"
@@ -110,7 +111,7 @@ async def create_builder_session(
         tool_categories = ["builder", "web"]
     else:
         description = f"Builder assistant for agent {body.target_id}"
-        tool_categories = ["general"]
+        tool_categories = ["agent_builder"]
 
     agent = Agent(
         user_id=current_user.id,
