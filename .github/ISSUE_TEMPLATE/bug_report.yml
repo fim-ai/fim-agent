@@ -1,0 +1,86 @@
+name: Bug Report
+description: Report a bug to help us improve FIM Agent
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in the details below to help us reproduce and fix it.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "Crash / Data Loss"
+        - "Wrong Result / Broken Feature"
+        - "Degraded Performance"
+        - "Cosmetic / Minor"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of FIM Agent is affected?
+      options:
+        - "Agent (ReAct reasoning)"
+        - "DAG Planning / Execution"
+        - "Connector / Tools"
+        - "RAG / Knowledge Base"
+        - "Chat / Streaming"
+        - "Frontend UI"
+        - "Admin Platform"
+        - "Auth / Login"
+        - "API"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: Describe what you expected vs what actually happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the issue.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Send query '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Screenshots
+      description: Paste error messages, browser console output, server logs, or screenshots.
+      render: shell
+
+  - type: input
+    id: llm
+    attributes:
+      label: LLM Provider & Model
+      placeholder: "e.g., OpenAI gpt-4o, DeepSeek deepseek-chat, Ollama qwen2.5:14b"
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your deployment details.
+      placeholder: |
+        - Deployment: Docker / Local
+        - OS: macOS 15 / Ubuntu 24.04 / Windows 11
+        - Python: 3.11
+        - Browser: Chrome 120

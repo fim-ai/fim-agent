@@ -51,6 +51,7 @@ All admin pages that display a data table **MUST** follow the `admin-users.tsx` 
 - **NEVER expose inline icon buttons** (trash, edit, eye, power, toggle) directly in table rows
 - **NEVER make rows clickable** (`cursor-pointer` + row `onClick`) — use a DropdownMenuItem instead (e.g. "View Details")
 - **Column header**: last `<th>` must be `{tc("actions")}` with `text-right font-medium text-muted-foreground`
+- **Every `DropdownMenuItem` MUST have a lucide icon** (`<Icon className="mr-2 h-4 w-4" />`) — no text-only menu items
 - **Item order**: safe actions first (View, Edit), then state-toggle (Enable/Disable), then destructive last (Delete) with `variant="destructive"` and a `DropdownMenuSeparator` before it
 - **Dialogs/Sheets stay as siblings** of the table — only the trigger moves into the dropdown, never the modal itself
 - **Reference**: `admin-users.tsx` (full pattern), `admin-api-keys.tsx` (minimal pattern)

@@ -1,0 +1,79 @@
+name: Field Test Report
+description: Share your real-world experience using FIM Agent
+title: "[Field Test] "
+labels: ["field-test", "pioneer"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Your real-world feedback is incredibly valuable! This report counts toward the [Pioneer Program](../../CONTRIBUTING.md#-pioneer-program).
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker
+        - Local (start.sh)
+        - Custom
+    validations:
+      required: true
+
+  - type: input
+    id: llm
+    attributes:
+      label: LLM Provider & Model
+      placeholder: "e.g., OpenAI gpt-4o, DeepSeek deepseek-chat"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scale
+    attributes:
+      label: Scale
+      options:
+        - Solo (personal use)
+        - Small team (2-10 users)
+        - Organization (10+ users)
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case
+      description: What are you trying to accomplish? What systems are you connecting?
+      placeholder: |
+        e.g., "I connected our ERP (SAP) and approval system (Seeyon) to automate
+        expense report processing. The agent pulls expense data, validates against
+        policy, and submits for approval."
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_worked
+    attributes:
+      label: What Worked
+      description: Things that went smoothly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_didnt
+    attributes:
+      label: What Didn't Work
+      description: Bugs, confusing UX, wrong agent behavior, missing features.
+    validations:
+      required: true
+
+  - type: textarea
+    id: edge_cases
+    attributes:
+      label: Edge Cases Found
+      description: Queries or scenarios that produced unexpected results.
+
+  - type: textarea
+    id: suggestions
+    attributes:
+      label: Suggestions
+      description: What would make FIM Agent more useful for your workflow?

@@ -8,12 +8,13 @@
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/network)
 [![GitHub issues](https://img.shields.io/github/issues/fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/issues)
 [![Follow on X](https://img.shields.io/twitter/follow/FIM_Agent?style=social)](https://x.com/FIM_Agent)
+[![Discord](https://img.shields.io/discord/1480638265206771742?logo=discord&label=discord)](https://discord.gg/z64czxdC7z)
 
 🌐 **English** | [🇨🇳 中文](README.zh.md)
 
 **AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.**
 
-🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_Agent)
+🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent)
 
 </div>
 
@@ -31,6 +32,7 @@
 - [Configuration](#configuration)
 - [Development](#development)
 - [Roadmap](#roadmap)
+- [Contributing](#contributing)
 - [Star History](#star-history)
 - [Activity](#activity)
 - [Contributors](#contributors)
@@ -370,7 +372,17 @@ mypy src/
 
 See the full [Roadmap](https://docs.fim.ai/roadmap) for version history and what's next.
 
-Contributions and ideas are welcome. Open an issue or submit a PR on [GitHub](https://github.com/fim-ai/fim-agent).
+## Contributing
+
+We welcome contributions of all kinds — code, docs, translations, bug reports, and ideas.
+
+> **Pioneer Program**: The first 100 contributors who get a PR merged are recognized as **Founding Contributors** with permanent credits in the project, a badge on their profile, and priority issue support. [Learn more &rarr;](CONTRIBUTING.md#-pioneer-program)
+
+**Quick links:**
+
+- [**Contributing Guide**](CONTRIBUTING.md) — setup, conventions, PR process
+- [**Good First Issues**](https://github.com/fim-ai/fim-agent/labels/good%20first%20issue) — curated for newcomers
+- [**Open Issues**](https://github.com/fim-ai/fim-agent/issues) — bugs & feature requests
 
 ## Star History
 
@@ -388,7 +400,18 @@ Contributions and ideas are welcome. Open an issue or submit a PR on [GitHub](ht
 
 ## Contributors
 
+Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
 [![Contributors](https://contrib.rocks/image?repo=fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/graphs/contributors)
+
+This project follows the [all-contributors](https://allcontributors.org/) specification. Contributions of any kind welcome!
 
 ## License
 
@@ -406,6 +429,6 @@ See [LICENSE](LICENSE) for full terms.
 
 <div align="center">
 
-🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💡 [Request Feature](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_Agent)
+🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent)
 
 </div>

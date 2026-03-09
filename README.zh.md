@@ -8,12 +8,13 @@
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/network)
 [![GitHub issues](https://img.shields.io/github/issues/fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/issues)
 [![Follow on X](https://img.shields.io/twitter/follow/FIM_Agent?style=social)](https://x.com/FIM_Agent)
+[![Discord](https://img.shields.io/discord/1480638265206771742?logo=discord&label=discord)](https://discord.gg/z64czxdC7z)
 
 [🌐 English](README.md) | 🇨🇳 **中文**
 
 **AI 驱动的连接器中枢 — 嵌入单个系统作为 Copilot，或连接所有系统成为 Hub。**
 
-🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_Agent)
+🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent)
 
 </div>
 
@@ -31,6 +32,7 @@
 - [配置说明](#配置说明)
 - [开发指南](#开发指南)
 - [路线图](#路线图)
+- [参与贡献](#参与贡献)
 - [Star 趋势](#star-趋势)
 - [项目活跃度](#项目活跃度)
 - [贡献者](#贡献者)
@@ -370,7 +372,17 @@ mypy src/
 
 完整 [路线图](https://docs.fim.ai/roadmap) 包含版本历史和未来规划。
 
-欢迎贡献建议和想法。请在 [GitHub](https://github.com/fim-ai/fim-agent) 上提 Issue 或提交 PR。
+## 参与贡献
+
+我们欢迎各种形式的贡献 — 代码、文档、翻译、Bug 报告和创意建议。
+
+> **先锋计划**：前 100 位合并 PR 的贡献者将被授予 **Founding Contributor（创始贡献者）** 称号，获得项目永久署名、专属徽章和 Issue 优先响应。[了解更多 &rarr;](CONTRIBUTING.md#-pioneer-program)
+
+**快速入口：**
+
+- [**贡献指南**](CONTRIBUTING.md) — 环境搭建、代码规范、PR 流程
+- [**Good First Issues**](https://github.com/fim-ai/fim-agent/labels/good%20first%20issue) — 新手友好的入门任务
+- [**Open Issues**](https://github.com/fim-ai/fim-agent/issues) — Bug 和功能需求
 
 ## Star 趋势
 
@@ -388,7 +400,18 @@ mypy src/
 
 ## 贡献者
 
+感谢这些出色的贡献者（[表情符号说明](https://allcontributors.org/docs/en/emoji-key)）：
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
 [![Contributors](https://contrib.rocks/image?repo=fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/graphs/contributors)
+
+本项目遵循 [all-contributors](https://allcontributors.org/) 规范，欢迎任何形式的贡献！
 
 ## 许可证
 
@@ -406,6 +429,6 @@ FIM Agent Source Available License。这 **不是** OSI 批准的开源许可证
 
 <div align="center">
 
-🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💡 [功能建议](https://github.com/fim-ai/fim-agent/issues) · 🐦 [Twitter](https://x.com/FIM_Agent)
+🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent)
 
 </div>

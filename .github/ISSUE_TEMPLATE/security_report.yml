@@ -1,0 +1,53 @@
+name: Security Report (Non-Critical)
+description: Report a non-critical security concern. For critical vulnerabilities, use GitHub Security Advisories instead.
+title: "[Security] "
+labels: ["security", "pioneer"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **For critical vulnerabilities** (RCE, auth bypass, data exposure): please use [GitHub Security Advisories](https://github.com/fim-ai/fim-agent/security/advisories/new) or email security@fim.ai instead of this public form.
+
+        This template is for non-critical security concerns: hardening suggestions, dependency warnings, best practice improvements, etc.
+
+        All confirmed security reports count toward the [Pioneer Program](../../CONTRIBUTING.md#-pioneer-program).
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - "Hardening suggestion"
+        - "Dependency vulnerability (CVE)"
+        - "Input validation gap"
+        - "Information disclosure (non-critical)"
+        - "Best practice violation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is the security concern?
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could go wrong if this is not addressed?
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Fix
+      description: How would you recommend fixing this?
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: CVE IDs, OWASP references, blog posts, etc.
