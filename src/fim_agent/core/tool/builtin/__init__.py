@@ -39,6 +39,14 @@ from .template_render import TemplateRenderTool
 from .text_utils import TextUtilsTool
 from .web_fetch import WebFetchTool
 from .web_search import WebSearchTool
+from .connector_builder import (
+    ConnectorListActionsTool,
+    ConnectorCreateActionTool,
+    ConnectorUpdateActionTool,
+    ConnectorDeleteActionTool,
+    ConnectorUpdateSettingsTool,
+    ConnectorTestActionTool,
+)
 
 __all__ = [
     "CalculatorTool",
@@ -58,6 +66,12 @@ __all__ = [
     "TextUtilsTool",
     "WebFetchTool",
     "WebSearchTool",
+    "ConnectorListActionsTool",
+    "ConnectorCreateActionTool",
+    "ConnectorUpdateActionTool",
+    "ConnectorDeleteActionTool",
+    "ConnectorUpdateSettingsTool",
+    "ConnectorTestActionTool",
     "discover_builtin_tools",
 ]
 
@@ -93,6 +107,12 @@ _ARTIFACTS_KWARGS: dict[type, str] = {
 _SKIP_AUTO_DISCOVER: set[type] = {
     GroundedRetrieveTool,  # requires kb_ids — registered by _resolve_tools()
     EmailSendTool,         # requires SMTP_HOST/SMTP_USER/SMTP_PASS — registered below
+    ConnectorListActionsTool,   # builder tools — injected by chat.py for builder agents
+    ConnectorCreateActionTool,
+    ConnectorUpdateActionTool,
+    ConnectorDeleteActionTool,
+    ConnectorUpdateSettingsTool,
+    ConnectorTestActionTool,
 }
 
 

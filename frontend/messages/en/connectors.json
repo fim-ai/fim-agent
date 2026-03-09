@@ -63,6 +63,7 @@
   "responseExtract": "Response Extract (JMESPath)",
   "responseExtractHelp": "JMESPath expression to extract relevant data from the API response.",
   "requiresConfirmation": "Requires user confirmation before execution",
+  "advancedBuilder": "Advanced Builder",
   "aiAssistant": "AI Assistant",
   "saveConnectorFirst": "Save the connector first to use AI assistant",
   "aiEmptyNewMode": "Describe the connector you want to create, or paste an OpenAPI spec URL.",

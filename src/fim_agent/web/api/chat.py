@@ -642,6 +642,34 @@ async def _resolve_tools(
         except Exception:
             logger.warning("Failed to load connector tools", exc_info=True)
 
+    # Inject Connector Builder tools when this is a Builder Agent.
+    if agent_cfg and "builder" in (agent_cfg.get("tool_categories") or []):
+        import re as _re
+        _instructions = agent_cfg.get("instructions") or ""
+        _m = _re.search(r"connector_id=([a-f0-9-]{36})", _instructions)
+        if _m:
+            _builder_cid = _m.group(1)
+            from fim_agent.core.tool.builtin.connector_builder import (
+                ConnectorListActionsTool,
+                ConnectorCreateActionTool,
+                ConnectorUpdateActionTool,
+                ConnectorDeleteActionTool,
+                ConnectorUpdateSettingsTool,
+                ConnectorTestActionTool,
+            )
+            for _BCls in [
+                ConnectorListActionsTool,
+                ConnectorCreateActionTool,
+                ConnectorUpdateActionTool,
+                ConnectorDeleteActionTool,
+                ConnectorUpdateSettingsTool,
+                ConnectorTestActionTool,
+            ]:
+                tools.register(_BCls(connector_id=_builder_cid, user_id=user_id or ""))
+            logger.info(
+                "Injected connector builder tools for connector_id=%s", _builder_cid
+            )
+
     # Filter out globally disabled built-in tools (admin setting).
     try:
         from fim_agent.db import create_session as _cs_disabled

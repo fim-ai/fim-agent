@@ -1,0 +1,7 @@
+{
+  "title": "高级构建器",
+  "previewTitle": "实时预览",
+  "noActions": "暂无 Action，请让构建器创建。",
+  "actionCount": "{count} 个 Action",
+  "initializingSession": "正在初始化构建器..."
+}

@@ -110,6 +110,7 @@
   "agentCreated": "智能体已创建",
   "agentSaveFailed": "保存智能体失败：{message}",
 
+  "advancedBuilder": "高级构建器",
   "aiAssistant": "AI 助手",
   "saveFirst": "请先保存智能体才能使用 AI 助手",
   "describeCreate": "描述你想创建的智能体...",

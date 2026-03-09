@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Sparkles, Send, Loader2 } from "lucide-react"
+import { Sparkles, Send, Loader2, Wand2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { connectorApi, ApiError } from "@/lib/api"
+import { BuilderDialog } from "@/components/builder/builder-dialog"
 import type { ConnectorResponse } from "@/types/connector"
 
 interface AIMessage {
@@ -37,6 +38,7 @@ export function AIActionPanel({
   const [messages, setMessages] = useState<AIMessage[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [builderOpen, setBuilderOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -171,11 +173,23 @@ export function AIActionPanel({
   const isDisabled = !isNewMode && connectorId === null
 
   return (
+    <>
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
         <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-        <span className="text-sm font-medium">{t("aiAssistant")}</span>
+        <span className="text-sm font-medium flex-1">{t("aiAssistant")}</span>
+        {connectorId && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBuilderOpen(true)}
+            className="h-7 text-xs gap-1.5"
+          >
+            <Wand2 className="h-3 w-3" />
+            {t("advancedBuilder")}
+          </Button>
+        )}
       </div>
 
       {/* Messages area */}
@@ -267,5 +281,15 @@ export function AIActionPanel({
         </Tooltip>
       </div>
     </div>
+    {connectorId && (
+      <BuilderDialog
+        open={builderOpen}
+        onClose={() => setBuilderOpen(false)}
+        targetType="connector"
+        targetId={connectorId}
+        onTargetUpdated={onActionsChanged}
+      />
+    )}
+    </>
   )
 }

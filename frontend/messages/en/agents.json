@@ -110,6 +110,7 @@
   "agentCreated": "Agent created",
   "agentSaveFailed": "Failed to save agent: {message}",
 
+  "advancedBuilder": "Advanced Builder",
   "aiAssistant": "AI Assistant",
   "saveFirst": "Save the agent first to use AI assistant",
   "describeCreate": "Describe the agent you want to create...",

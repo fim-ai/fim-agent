@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Loader2, PanelRightOpen, PanelRightClose, ArrowDown, Square, Zap, GitBranch, Bot, Paperclip, X, Plus, ChevronsUpDown, Check, Undo2, RotateCcw, Download } from "lucide-react"
+import { Send, Loader2, PanelRightOpen, PanelRightClose, ArrowDown, Square, Zap, GitBranch, Bot, Paperclip, X, Plus, ChevronsUpDown, Check, Undo2, RotateCcw, Download, FileText, ChevronDown, ChevronUp } from "lucide-react"
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/error-utils"
@@ -65,12 +65,25 @@ import type { FileUploadResponse } from "@/types/file"
 import type { AgentMode } from "@/components/playground/examples"
 
 
+interface PastedClip {
+  id: string
+  content: string
+  preview: string
+  charCount: number
+}
+
 interface PlaygroundPageProps {
   /** When true, this is a fresh "new chat" page — no conversation should be loaded from URL */
   isNewChat?: boolean
+  /** When true, skip auth redirect and URL sync (used inside BuilderDialog) */
+  embedded?: boolean
+  /** Close callback for embedded mode */
+  onClose?: () => void
+  /** Pre-select a specific agent on mount */
+  initialAgentId?: string
 }
 
-export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
+export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId }: PlaygroundPageProps) {
   const t = useTranslations("playground")
   const tc = useTranslations("common")
   const tError = useTranslations("errors")
@@ -116,10 +129,11 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
 
   // Auth guard
   useEffect(() => {
+    if (embedded) return
     if (!authLoading && !user) {
       router.replace("/login")
     }
-  }, [authLoading, user, router])
+  }, [embedded, authLoading, user, router])
 
   // For /new route: ensure active conversation is cleared on mount
   const clearedForNewRef = useRef(false)
@@ -147,6 +161,7 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
   // Skip the first run -- on mount activeId is null but URL may have ?c=xxx from direct navigation
   const urlSyncSkipRef = useRef(true)
   useEffect(() => {
+    if (embedded) return
     if (!initializedRef.current) return
     if (urlSyncSkipRef.current) {
       urlSyncSkipRef.current = false
@@ -320,7 +335,7 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
     [activeId],
   )
 
-  if (authLoading || !user) return null
+  if (!embedded && (authLoading || !user)) return null
 
   return (
     <div className="flex h-full flex-col">
@@ -354,10 +369,10 @@ export function PlaygroundPage({ isNewChat }: PlaygroundPageProps) {
           setPendingQuery(null)
           setSourceMode(null)
           clearActive()
-          router.push("/new")
+          if (!embedded) router.push("/new")
         }}
         isNewChat={isNewChat}
-        initialAgentId={agentParam}
+        initialAgentId={initialAgentId ?? agentParam}
       />
 
       {/* Mode switch confirmation dialog */}
@@ -608,6 +623,10 @@ function PlaygroundContent({
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Pasted clips (long text folded into cards)
+  const [clips, setClips] = useState<PastedClip[]>([])
+  const [expandedClips, setExpandedClips] = useState<Set<string>>(new Set())
+
   // Slash commands
   const slashCommands = useSlashCommands({
     query,
@@ -699,10 +718,12 @@ function PlaygroundContent({
   }, [])
 
   const handleSuggestionSelect = useCallback((q: string) => {
-    // Clear any attached files/images so they don't show up as "still attached"
+    // Clear any attached files/images/clips so they don't show up as "still attached"
     // on the follow-up turn. The suggestion never sends them to the backend anyway.
     setAttachedFiles([])
     setPendingImages([])
+    setClips([])
+    setExpandedClips(new Set())
     onRunWithQuery(q)
     requestAnimationFrame(() => scrollViewportToBottom())
   }, [onRunWithQuery, scrollViewportToBottom, setAttachedFiles, setPendingImages])
@@ -877,7 +898,7 @@ function PlaygroundContent({
     if (fileInputRef.current) fileInputRef.current.value = ""
   }, [uploadFiles])
 
-  // Paste handler — extract images from clipboard
+  // Paste handler — extract images from clipboard & fold long text into clips
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
     if (!items) return
@@ -891,6 +912,20 @@ function PlaygroundContent({
     if (imageFiles.length > 0) {
       e.preventDefault()
       uploadFiles(imageFiles)
+      return
+    }
+
+    // Long text paste → fold into clip card
+    const text = e.clipboardData?.getData("text/plain")
+    if (text && text.length > 500) {
+      e.preventDefault()
+      const clip: PastedClip = {
+        id: crypto.randomUUID(),
+        content: text,
+        preview: text.slice(0, 80).replace(/\n/g, " ") + (text.length > 80 ? "..." : ""),
+        charCount: text.length,
+      }
+      setClips((prev) => [...prev, clip])
     }
   }, [uploadFiles])
 
@@ -902,7 +937,28 @@ function PlaygroundContent({
     })
   }, [])
 
-  // Run with file content injection (text files) and image_ids passthrough
+  const removeClip = useCallback((clipId: string) => {
+    setClips((prev) => prev.filter((c) => c.id !== clipId))
+    setExpandedClips((prev) => {
+      const next = new Set(prev)
+      next.delete(clipId)
+      return next
+    })
+  }, [])
+
+  const toggleClipExpand = useCallback((clipId: string) => {
+    setExpandedClips((prev) => {
+      const next = new Set(prev)
+      if (next.has(clipId)) {
+        next.delete(clipId)
+      } else {
+        next.add(clipId)
+      }
+      return next
+    })
+  }, [])
+
+  // Run with file content injection (text files), clips, and image_ids passthrough
   const handleRunWithFiles = useCallback(() => {
     // Reset IME composing state — compositionEnd may not fire when
     // the user clicks the Send button instead of pressing Enter.
@@ -910,10 +966,25 @@ function PlaygroundContent({
     setComposing(false)
 
     let finalQuery = query.trim()
-    if (!finalQuery) return
+    if (!finalQuery && clips.length === 0) return
 
     const textFiles = attachedFiles.filter((f) => !isImageFile(f))
     const imageFiles = attachedFiles.filter((f) => isImageFile(f))
+
+    // Clips: prepend pasted content before user query
+    if (clips.length > 0) {
+      const clipContext = clips
+        .map((c, i) => {
+          const label = clips.length > 1
+            ? `${t("pastedContent")} ${i + 1}:`
+            : `${t("pastedContent")}:`
+          return `${label}\n\`\`\`\n${c.content}\n\`\`\``
+        })
+        .join("\n\n")
+      finalQuery = finalQuery
+        ? `${clipContext}\n\n${finalQuery}`
+        : clipContext
+    }
 
     // Text files: inject content into query (existing behavior)
     if (textFiles.length > 0) {
@@ -934,10 +1005,12 @@ function PlaygroundContent({
       if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
     })
     setAttachedFiles([])
+    setClips([])
+    setExpandedClips(new Set())
 
     onRunWithQuery(finalQuery, imageIds.length > 0 ? imageIds : undefined)
     requestAnimationFrame(() => scrollViewportToBottom())
-  }, [attachedFiles, query, onRunWithQuery, scrollViewportToBottom])
+  }, [attachedFiles, clips, query, onRunWithQuery, scrollViewportToBottom, t])
 
   const handleKeyDownWithFiles = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1255,6 +1328,57 @@ function PlaygroundContent({
             })}
           </div>
         )}
+        {/* Pasted clips */}
+        {clips.length > 0 && (
+          <div className="flex flex-col gap-2 pb-2">
+            {clips.map((clip) => {
+              const isExpanded = expandedClips.has(clip.id)
+              return (
+                <div
+                  key={clip.id}
+                  className="rounded-lg border border-border/60 bg-muted/50 text-xs overflow-hidden"
+                >
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 min-w-0 truncate text-foreground">{clip.preview}</span>
+                    <span className="shrink-0 text-muted-foreground">({clip.charCount.toLocaleString()} {t("chars")})</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleClipExpand(clip.id)}
+                      className="shrink-0 inline-flex items-center gap-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={isExpanded ? t("collapseClip") : t("expandClip")}
+                    >
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="h-3 w-3" />
+                          <span>{t("collapseClip")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3 w-3" />
+                          <span>{t("expandClip")}</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeClip(clip.id)}
+                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={t("removeClip")}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {isExpanded && (
+                    <div className="border-t border-border/40 bg-muted px-3 py-2 max-h-[200px] overflow-y-auto">
+                      <pre className="whitespace-pre-wrap break-words font-mono text-xs text-foreground/80">{clip.content}</pre>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -1292,7 +1416,7 @@ function PlaygroundContent({
           />
           <Button
             onClick={isRunning ? ((query.trim() || composing) ? handleRunWithFiles : onAbort) : handleRunWithFiles}
-            disabled={!isRunning && !query.trim() && !composing}
+            disabled={!isRunning && !query.trim() && !composing && clips.length === 0}
             className="h-[72px] w-16 shrink-0"
             variant={isRunning && !query.trim() && !composing ? "destructive" : "default"}
           >
