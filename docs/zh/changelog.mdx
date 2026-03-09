@@ -60,6 +60,11 @@ description: "FIM Agent 的所有重要变更。"
   ### 已修复
 </div>
 
+* **安全：Python 沙箱 AST dunder 校验**：通过 AST dunder 属性校验阻止沙箱逃逸
+* **安全：MCP stdio 默认值 + 命令允许列表**：统一 MCP stdio 传输默认值（现默认禁用），并新增命令允许列表（`ALLOWED_STDIO_COMMANDS`）
+* **安全：SSRF DNS 重绑定防护**：通过传输层 IP 锁定（`SSRFSafeTransport`）防止 SSRF DNS 重绑定攻击
+* **安全：Shell 元字符逃逸检测**：在执行黑名单检查之前，检测 shell 元字符逃逸手段（命令替换、反引号、变量展开、空引号插入）
+* **安全：连接器模板注入防护**：转义连接器模板的内联替换，防止 JSON 注入
 * **DAG：AnalysisCard Markdown 渲染**：分析推理内容现在使用 `MarkdownContent` 渲染，修复了多步骤分析中粗体/列表无法显示的问题
 * **DAG：折叠步骤时的滚动定位**：点击侧边栏中的步骤节点时，现在会先自动展开折叠的步骤区域，再滚动定位
 * **DAG：历史记录显示步骤卡片**：历史轮次现在在展开的折叠区域中渲染步骤卡片（之前被 `hideStepCards` 隐藏）

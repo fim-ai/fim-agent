@@ -248,7 +248,8 @@ LiteLLM 根据 `LLM_BASE_URL` 自动检测提供商，并映射到正确的 API 
 | `CORS_ORIGINS` | 否 | — | 除默认 localhost 条目外，额外允许的 CORS 源列表，以逗号分隔。当前端运行在非 localhost 域名上时必须设置（例如 `https://app.example.com`）。 |
 | `UPLOADS_DIR` | 否 | `./uploads` | 上传文件存放目录 |
 | `MCP_SERVERS` | 否 | — | MCP 服务器配置的 JSON 数组（需要 `uv sync --extra mcp`） |
-| `ALLOW_STDIO_MCP` | 否 | `true` | 是否允许 stdio MCP 服务器。对于公网/SaaS 部署，请设置为 `false` |
+| `ALLOW_STDIO_MCP` | 否 | `false` | 是否允许 stdio MCP 服务器。仅在受信任的本地部署中设置为 `true` |
+| `ALLOWED_STDIO_COMMANDS` | 否 | `npx,uvx,node,python,python3,deno,bun` | 以逗号分隔的 stdio MCP 服务器允许的基础命令列表。仅在 `ALLOW_STDIO_MCP=true` 时生效 |
 | `LOG_LEVEL` | 否 | `INFO` | 日志级别：`DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL` |
 | `REDIS_URL` | 否 | — | 跨进程中断中继的 Redis 连接 URL。Docker Compose 自动配置，仅本地多进程开发时需手动设置（`WORKERS>1`）。 |
 | `WORKERS` | 否 | `1` | Uvicorn 工作进程数。`1` 为安全默认值，无需额外服务。`>1` **必须使用 PostgreSQL**（SQLite 为单写者）。认证、OAuth、文件操作均为多进程安全（基于 JWT）。**限制**：未配置 `REDIS_URL` 时，流式中断/注入仅在同一工作进程内有效。Docker Compose 自动配置 Redis。 |

@@ -37,6 +37,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Smart relay routing**: Automatically detects API protocol from URL path patterns (e.g., `/claude` or `/anthropic` → Anthropic native, `/gemini` → Google native), enabling proper authentication headers and parameter translation for third-party relay platforms without manual provider configuration
 
 ### Fixed
+- **Security: Python sandbox AST dunder validation**: Block sandbox escape via AST dunder attribute validation
+- **Security: MCP stdio defaults + command allowlist**: Harmonize MCP stdio transport defaults (now disabled by default) and add command allowlist (`ALLOWED_STDIO_COMMANDS`)
+- **Security: SSRF DNS rebinding prevention**: Prevent SSRF DNS rebinding via transport-level IP pinning (`SSRFSafeTransport`)
+- **Security: shell metacharacter evasion detection**: Detect shell metacharacter evasion (command substitution, backticks, variable expansion, empty quote insertion) before blocklist
+- **Security: connector template injection**: Escape connector template inline substitutions to prevent JSON injection
 - **DAG: AnalysisCard markdown**: Analysis reasoning is now rendered with `MarkdownContent` instead of plain `<p>`, fixing bold/lists in multi-step analysis
 - **DAG: scroll-to-step with collapsed steps**: Clicking a step node in the sidebar now auto-expands the collapsed step section before scrolling
 - **DAG: history turn shows step cards**: History turns now render step cards in the expanded collapsible (previously hidden by `hideStepCards`)

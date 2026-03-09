@@ -224,7 +224,8 @@ Auto-registers the `email_send` built-in tool when `SMTP_HOST`, `SMTP_USER`, and
 | `CORS_ORIGINS` | No | — | Comma-separated list of extra allowed CORS origins beyond the default localhost entries. Required when the frontend runs on a non-localhost domain (e.g. `https://app.example.com`). |
 | `UPLOADS_DIR` | No | `./uploads` | Directory for uploaded files |
 | `MCP_SERVERS` | No | — | JSON array of MCP server configs (requires `uv sync --extra mcp`) |
-| `ALLOW_STDIO_MCP` | No | `true` | Allow stdio MCP servers. Set `false` for public/SaaS deployments |
+| `ALLOW_STDIO_MCP` | No | `false` | Allow stdio MCP servers. Set `true` only for trusted local deployments |
+| `ALLOWED_STDIO_COMMANDS` | No | `npx,uvx,node,python,python3,deno,bun` | Comma-separated list of allowed base commands for stdio MCP servers. Only effective when `ALLOW_STDIO_MCP=true` |
 | `LOG_LEVEL` | No | `INFO` | Logging level: `DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL` |
 | `REDIS_URL` | No | — | Redis connection URL for cross-worker interrupt relay. Auto-configured by Docker Compose. Only needed for local multi-worker setups (`WORKERS>1`). |
 | `WORKERS` | No | `1` | Uvicorn worker processes. `1` is safe and needs no external services. `>1` **requires PostgreSQL** (SQLite is single-writer). Auth, OAuth, and file operations are fully multi-worker safe (JWT-based). **Limitation**: without `REDIS_URL`, mid-stream interrupt/inject only works within the same worker process. Docker Compose auto-configures Redis. |
