@@ -81,17 +81,19 @@ All UI text must use `next-intl` — **never hardcode English strings**. Add key
 - Tests alongside features: every new module → `tests/test_*.py`
 - Keep `__init__.py` imports minimal — only re-export public API
 
-## Post-Commit Documentation Sync (MANDATORY)
+## Post-Commit Documentation Sync (MANDATORY — DO NOT SKIP)
+
+> **CRITICAL**: After EVERY `git commit`, you MUST immediately run the checklist below BEFORE responding to the user or moving to the next task. This is non-negotiable. Failure to do this is a bug in your behavior.
 
 **English first, translate on commit.** During development only edit English versions. On commit, translate the staged diff into Chinese counterparts (`docs/*.mdx` → `docs/zh/*.mdx`, `README.md` → `README.zh.md`).
 
-After every commit, update docs silently (do NOT ask the user):
+After every commit, update docs silently (do NOT ask the user). Run ALL applicable items as a checklist:
 
-1. **`docs/changelog.mdx`** — append under `[Unreleased]` (`### Added/Changed/Fixed/Removed`)
-2. *(feat only)* **`docs/roadmap.mdx`** — check off completed items; add new user-facing items under current version (never retroactively add to already-shipped versions)
-3. *(feat only)* **`example.env`** — add any new env keys with placeholder + comment; then **sync `docs/configuration/environment-variables.mdx`** — add the new variable(s) to the correct section table
-4. *(feat only)* **`README.md`** — update Key Features and Project Structure if needed
-5. **Chinese sync** — translate the staged English doc diff into the corresponding `docs/zh/` and `README.zh.md` files. Commit EN + ZH together.
+- [ ] **`docs/changelog.mdx`** — append under `[Unreleased]` (`### Added/Changed/Fixed/Removed`). Applies to ALL commit types.
+- [ ] *(feat only)* **`docs/roadmap.mdx`** — check off completed items; add new user-facing items under current version (never retroactively add to already-shipped versions)
+- [ ] *(feat only)* **`example.env`** — add any new env keys with placeholder + comment; then **sync `docs/configuration/environment-variables.mdx`** — add the new variable(s) to the correct section table
+- [ ] *(feat only)* **`README.md`** — update Key Features and Project Structure if needed
+- [ ] **Chinese sync** — translate the staged English doc diff into the corresponding `docs/zh/` and `README.zh.md` files. Commit EN + ZH together.
 
 **Version alignment**: CHANGELOG `[Unreleased]` and Roadmap must use the same version numbers.
 
