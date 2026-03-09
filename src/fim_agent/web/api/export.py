@@ -771,8 +771,7 @@ class _DocxMarkdownRenderer(HTMLParser):
 
     def handle_charref(self, name: str) -> None:
         """Convert HTML numeric character references (&#123; / &#xAB;) to
-        characters and route through ``handle_data`` so emoji stripping
-        applies uniformly."""
+        characters and route through ``handle_data``."""
         try:
             codepoint = int(name[1:], 16) if name.startswith(("x", "X")) else int(name)
             self.handle_data(chr(codepoint))
@@ -879,9 +878,9 @@ def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLeve
                 _render_docx_react_details(doc, events, done)
 
         # Final answer
-        answer = _strip_emoji(asst_msg.content or "")
+        answer = asst_msg.content or ""
         if not answer and asst_msg.metadata_:
-            answer = _strip_emoji(asst_msg.metadata_.get("answer", ""))
+            answer = asst_msg.metadata_.get("answer", "")
         if answer:
             _md_to_docx(doc, answer)
 
@@ -1038,37 +1037,37 @@ def _build_pdf_styles(font_name: str) -> dict[str, Any]:
 
     return {
         "title": ParagraphStyle(
-            "pdf_title", fontSize=18, leading=24, spaceAfter=12,
+            "pdf_title", fontSize=18, leading=28, spaceAfter=14,
             **base,
         ),
         "heading2": ParagraphStyle(
-            "pdf_h2", fontSize=14, leading=18, spaceAfter=8, spaceBefore=12,
+            "pdf_h2", fontSize=14, leading=22, spaceAfter=10, spaceBefore=18,
             **base,
         ),
         "heading3": ParagraphStyle(
-            "pdf_h3", fontSize=12, leading=16, spaceAfter=6, spaceBefore=10,
+            "pdf_h3", fontSize=12, leading=18, spaceAfter=8, spaceBefore=14,
             **base,
         ),
         "body": ParagraphStyle(
-            "pdf_body", fontSize=10, leading=14, spaceAfter=6,
+            "pdf_body", fontSize=10, leading=17, spaceAfter=8,
             **base,
         ),
         "code": ParagraphStyle(
-            "pdf_code", fontName="Courier", fontSize=8, leading=10,
-            spaceAfter=6, leftIndent=0.3 * inch,
+            "pdf_code", fontName="Courier", fontSize=8, leading=12,
+            spaceAfter=8, leftIndent=0.3 * inch,
             backColor="#F8F4ED", wordWrap="CJK",
         ),
         "meta": ParagraphStyle(
-            "pdf_meta", fontSize=9, leading=12, spaceAfter=4,
+            "pdf_meta", fontSize=9, leading=14, spaceAfter=6,
             textColor="#6B5D4F", **base,
         ),
         "bullet": ParagraphStyle(
-            "pdf_bullet", fontSize=10, leading=14, spaceAfter=4,
+            "pdf_bullet", fontSize=10, leading=17, spaceAfter=5,
             leftIndent=0.4 * inch, bulletIndent=0.2 * inch,
             **base,
         ),
         "quote": ParagraphStyle(
-            "pdf_quote", fontSize=10, leading=14, spaceAfter=6,
+            "pdf_quote", fontSize=10, leading=17, spaceAfter=8,
             leftIndent=0.4 * inch, textColor="#6B5D4F",
             fontName=font_name, wordWrap="CJK",
         ),
@@ -1297,11 +1296,12 @@ class _PdfMarkdownRenderer(HTMLParser):
             ("BACKGROUND", (0, 0), (-1, 0), colors.Color(0.96, 0.93, 0.87)),
             ("FONTNAME", (0, 0), (-1, -1), self._font_name),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("LEADING", (0, 0), (-1, -1), 14),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
         ]))
         self.flowables.append(table)
 
@@ -1394,9 +1394,9 @@ def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel
                 _render_pdf_react_details(flowables, events, done, styles, font_name)
 
         # Final answer
-        answer = _strip_emoji(asst_msg.content or "")
+        answer = asst_msg.content or ""
         if not answer and asst_msg.metadata_:
-            answer = _strip_emoji(asst_msg.metadata_.get("answer", ""))
+            answer = asst_msg.metadata_.get("answer", "")
         if answer:
             answer_flowables = _md_to_pdf_flowables(answer, styles, font_name)
             flowables.extend(answer_flowables)
