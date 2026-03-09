@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Builder Dialog — ReAct agent for connector management**: Upgrades the AI assistant panel from a single-shot LLM call to a full ReAct agent loop. An "Advanced Builder" button opens a full-screen dialog with the embedded PlaygroundPage (chat on the left, live action preview on the right). Six connector builder tools (`connector_list_actions`, `connector_create_action`, `connector_update_action`, `connector_delete_action`, `connector_update_settings`, `connector_test_action`) operate directly on the DB and are auto-injected when the Builder Agent is active. `POST /api/builder/session` creates or reuses a per-connector builder agent that persists conversation history
 - **Dual database support (SQLite + PostgreSQL)**: `DATABASE_URL` now accepts both SQLite (`sqlite+aiosqlite:///...`) and PostgreSQL (`postgresql+asyncpg://...`) connection strings. SQLite remains the zero-config default; PostgreSQL is recommended for production and multi-worker deployments. Docker Compose auto-provisions a PostgreSQL service with health checks. Alembic migrations are dialect-aware (json_extract vs `::json->>'key'`). Admin health dashboard shows the actual database engine and version
 - **Models configuration docs**: New `docs/configuration/models.mdx` page documenting model configuration reference, including extended thinking / reasoning setup for each provider
 - **Extended thinking / reasoning support**: Add `LLM_REASONING_EFFORT` (low/medium/high) and `LLM_REASONING_BUDGET_TOKENS` env vars for models with extended thinking (OpenAI o-series, Gemini 2.5+, Claude). Sends `reasoning_effort` for OpenAI/Gemini, `thinking` for Anthropic (auto-detected). Extracts `reasoning_content` from multiple provider field names (DeepSeek R1, Claude proxies) and surfaces it in the UI "thinking" step
@@ -20,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **start.sh: WORKERS env var**: Set `WORKERS=N` to run uvicorn with multiple workers in portal/api mode
 
 ### Changed
+- **LLM layer**: Replaced direct `AsyncOpenAI` client with [LiteLLM](https://github.com/BerriAI/litellm) for universal provider support. All provider-specific conditionals (Anthropic thinking, `max_completion_tokens`, GPT-5 tools workaround) have been removed. Anthropic models now route through LiteLLM's native API, enabling proper `reasoning_content` (extended thinking) support
 - **Tools page simplification**: Tools page now shows only built-in tools (no more tabs); MCP management moved to Connectors page
 - **Redis interrupt broker**: Cross-worker interrupt/inject relay via Redis Pub/Sub. Auto-enabled when `REDIS_URL` is set; falls back to in-process queues otherwise. Docker Compose now includes a Redis service (auto-configured, no user action needed)
 - **Export: default detail level**: Export dialog now defaults to summary (no execution details) instead of full
