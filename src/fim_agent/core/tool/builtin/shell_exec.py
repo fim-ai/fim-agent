@@ -135,6 +135,35 @@ _WRITE_TO_SYSTEM_PATH_PATTERN = re.compile(
 )
 
 # -----------------------------------------------------------------------
+# Security: metacharacter evasion detection
+# -----------------------------------------------------------------------
+# These patterns detect shell metacharacters commonly used to bypass
+# word-boundary blocklist matching. Checked BEFORE the blocklist.
+
+_METACHAR_EVASION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r'\$\('), "command substitution $()"),
+    (re.compile(r'`'), "backtick substitution"),
+    (re.compile(r'\$\{'), "variable expansion ${}"),
+    (re.compile(r'\$[A-Za-z_]'), "variable reference $VAR"),
+    (re.compile(r'\w""\w'), 'empty quote insertion (e.g. su""do)'),
+    (re.compile(r"\w''\w"), "empty quote insertion (e.g. su''do)"),
+    (re.compile(r'base64\s+(-d|--decode)', re.IGNORECASE), "base64 decode obfuscation"),
+]
+
+
+def _check_shell_metacharacters(command: str) -> str | None:
+    """Pre-screen for shell metacharacter evasion patterns.
+
+    Returns a reason string if evasion is detected, None if clean.
+    Checked BEFORE the blocklist to prevent bypass techniques.
+    """
+    for pattern, reason in _METACHAR_EVASION_PATTERNS:
+        if pattern.search(command):
+            return reason
+    return None
+
+
+# -----------------------------------------------------------------------
 # Security: environment variable scrubbing
 # -----------------------------------------------------------------------
 
@@ -340,7 +369,13 @@ class ShellExecTool(BaseTool):
         if timeout <= 0:
             timeout = self._timeout
 
-        # 1. Validate command against blocklist.
+        # 1a. Pre-screen for metacharacter evasion patterns.
+        metachar_reason = _check_shell_metacharacters(command)
+        if metachar_reason is not None:
+            logger.warning("Blocked shell command (%s): %s", metachar_reason, command)
+            return f"[Error] Command blocked: {metachar_reason}"
+
+        # 1b. Validate command against blocklist.
         block_reason = _validate_command(command)
         if block_reason is not None:
             logger.warning("Blocked shell command (%s): %s", block_reason, command)
