@@ -847,10 +847,12 @@ def _kb_system_hint(agent_cfg: dict[str, Any]) -> str:
     return hint
 
 
-def _load_image_data_urls(
+async def _load_image_data_urls(
     image_ids: str, user_id: str | None,
 ) -> list[tuple[str, str, str]]:
     """Load images from disk and return list of ``(file_id, filename, data_url)``.
+
+    File reads are offloaded to a thread so the event loop stays unblocked.
 
     Returns an empty list if *user_id* is ``None`` or no valid images are
     found.
@@ -877,9 +879,9 @@ def _load_image_data_urls(
         if not file_path.exists():
             continue
         mime = meta.get("mime_type", "image/png")
-        raw = file_path.read_bytes()
-        b64 = base64.b64encode(raw).decode("ascii")
-        data_url = f"data:{mime};base64,{b64}"
+        raw = await asyncio.to_thread(file_path.read_bytes)
+        b64 = await asyncio.to_thread(base64.b64encode, raw)
+        data_url = f"data:{mime};base64,{b64.decode('ascii')}"
         results.append((fid, meta["filename"], data_url))
 
     return results
@@ -1105,10 +1107,10 @@ async def react_endpoint(
         grounding_hint = _kb_system_hint(agent_cfg)
         extra_instructions = (extra_instructions or "") + grounding_hint
 
-    # Load attached images
+    # Load attached images (async to avoid blocking the event loop)
     image_data: list[tuple[str, str, str]] = []
     if image_ids:
-        image_data = _load_image_data_urls(image_ids, current_user_id)
+        image_data = await _load_image_data_urls(image_ids, current_user_id)
 
     async def generate() -> AsyncGenerator[str, None]:  # noqa: C901
         t0 = time.time()
@@ -1538,10 +1540,10 @@ async def dag_endpoint(
     async with _create_session() as _fast_llm_db:
         fast_llm = await _resolve_fast_llm(agent_cfg, _fast_llm_db)
 
-    # Load attached images
+    # Load attached images (async to avoid blocking the event loop)
     dag_image_data: list[tuple[str, str, str]] = []
     if image_ids:
-        dag_image_data = _load_image_data_urls(image_ids, current_user_id)
+        dag_image_data = await _load_image_data_urls(image_ids, current_user_id)
 
     async def generate() -> AsyncGenerator[str, None]:  # noqa: C901
         t0 = time.time()

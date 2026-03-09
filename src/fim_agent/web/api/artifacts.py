@@ -152,39 +152,36 @@ async def list_all_artifacts(
 
     async with create_session() as session:
         result = await session.execute(
-            sa_select(Conversation.id, Conversation.title, Conversation.created_at).where(
+            sa_select(Conversation.id, Conversation.title).where(
                 Conversation.user_id == current_user.id,
             )
         )
         conversations = result.all()
 
     artifacts: list[dict] = []
-    for conv_id, conv_title, conv_created_at in conversations:
+    for conv_id, conv_title in conversations:
         artifacts_dir = _artifacts_dir(conv_id)
         if not artifacts_dir.exists():
             continue
-        # Use conversation creation time as the baseline; file mtime is
-        # unreliable after migration / scp / backup-restore.
-        conv_ts = (
-            conv_created_at.replace(tzinfo=timezone.utc).isoformat()
-            if conv_created_at
-            else datetime.now(timezone.utc).isoformat()
-        )
         for f in artifacts_dir.iterdir():
             if not f.is_file():
                 continue
             parts = f.name.split("_", 1)
             artifact_id = parts[0]
             original_name = parts[1] if len(parts) > 1 else f.name
+            stat = f.stat()
+            # Prefer file mtime for accurate per-file ordering; fall back
+            # to conversation creation time only when mtime is missing.
+            file_ts = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
             artifacts.append({
                 "id": artifact_id,
                 "name": original_name,
                 "mime_type": _guess_mime(str(f)),
-                "size": f.stat().st_size,
+                "size": stat.st_size,
                 "url": f"/api/conversations/{conv_id}/artifacts/{artifact_id}",
                 "conversation_id": conv_id,
                 "conversation_title": conv_title or "Untitled",
-                "created_at": conv_ts,
+                "created_at": file_ts,
             })
 
     artifacts.sort(key=lambda a: a["created_at"], reverse=True)
