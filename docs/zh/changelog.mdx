@@ -15,6 +15,9 @@ description: "FIM Agent 的所有重要变更。"
   ### 新增
 </div>
 
+* **导出：PDF 格式**：对话现在可以导出为 PDF 文档（需要 `reportlab` + `Markdown` 额外依赖）
+* **start.sh：WORKERS 环境变量**：设置 `WORKERS=N` 以在 portal/api 模式下以多 worker 运行 uvicorn
+
 * **Docker Compose 部署**：单镜像 (API + Frontend) 、用于数据持久化的命名卷，以及独立模式的 Next.js 输出模式
 * **管理后台：登录历史记录**：认证端点现在会将每次登录尝试 (IP 地址、User-Agent、成功/失败及原因) 记录到 `LoginHistory` 表中，用于安全审计
 * **管理后台：文件浏览器**：新增管理后台文件浏览器端点，用于列出和下载用户上传的文件，并支持分页
@@ -28,12 +31,22 @@ description: "FIM Agent 的所有重要变更。"
   ### 变更
 </div>
 
+* **导出：默认详情级别**：导出对话框现在默认为摘要模式（不含执行详情），而非完整模式
+* **工件：按文件 mtime 排序**：list-all-artifacts 现在使用每个文件的 mtime 进行精确排序（还原了之前使用会话创建时间的权宜做法）
+* **聊天：异步图片加载**：`_load_image_data_urls` 现在是异步函数，通过 `asyncio.to_thread` 将文件读取卸载到线程，避免阻塞事件循环
+
 * **文档：ASCII → Mermaid 图表**：所有使用框线字符绘制的 ASCII 图均已转换为原生 Mermaid 图表 (共 12 张，分布在 6 个页面) ，以获得更好的渲染效果和交互性
 * **文档：深色模式主题**：优化了 Mintlify 的颜色配置——深色模式下采用暖琥珀色强调色、渐变背景装饰，以及与项目主题一致的背景颜色
 
 <div id="fixed">
   ### 已修复
 </div>
+
+* **DAG：AnalysisCard Markdown 渲染**：分析推理内容现在使用 `MarkdownContent` 渲染，修复了多步骤分析中粗体/列表无法显示的问题
+* **DAG：折叠步骤时的滚动定位**：点击侧边栏中的步骤节点时，现在会先自动展开折叠的步骤区域，再滚动定位
+* **DAG：历史记录显示步骤卡片**：历史轮次现在在展开的折叠区域中渲染步骤卡片（之前被 `hideStepCards` 隐藏）
+* **DAG：重新规划时清除旧分析**：重新规划开始时，第一轮"目标未达成"的分析会立即清除，且第二轮的"正在分析结果..."加载提示可正确显示
+* **UI：聊天搜索框焦点环**：为搜索输入框添加 `focus-visible:outline-none`，防止焦点环溢出
 
 * **导出：RFC 5987 文件名支持**：优先使用 Content-Disposition 头中 UTF-8 编码的 `filename*`，而非普通 `filename`，修复导出对话时中日韩文件名乱码问题
 * **Docker i18n 失效**：将 `messages/` 目录复制到独立输出中，并添加 `outputFileTracingIncludes`，以便 next-intl 在运行时发现 locale JSON 文件

@@ -10,6 +10,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ## [Unreleased]
 
 ### Added
+- **Export: PDF format**: Conversations can now be exported as PDF documents (requires `reportlab` + `Markdown` extras)
+- **start.sh: WORKERS env var**: Set `WORKERS=N` to run uvicorn with multiple workers in portal/api mode
+
+### Changed
+- **Export: default detail level**: Export dialog now defaults to summary (no execution details) instead of full
+- **Artifacts: sort by file mtime**: List-all-artifacts now uses per-file mtime for accurate ordering (reverts conversation-time workaround)
+- **Chat: async image loading**: `_load_image_data_urls` is now async, offloading file reads to a thread via `asyncio.to_thread` to unblock the event loop
+
+### Fixed
+- **DAG: AnalysisCard markdown**: Analysis reasoning is now rendered with `MarkdownContent` instead of plain `<p>`, fixing bold/lists in multi-step analysis
+- **DAG: scroll-to-step with collapsed steps**: Clicking a step node in the sidebar now auto-expands the collapsed step section before scrolling
+- **DAG: history turn shows step cards**: History turns now render step cards in the expanded collapsible (previously hidden by `hideStepCards`)
+- **DAG: stale analysis on replan**: Round-1 "goal not achieved" analysis is now cleared immediately when replanning starts, and the round-2 "analyzing…" spinner appears correctly
+- **UI: chat search focus ring**: Added `focus-visible:outline-none` to search input to prevent focus ring bleed
+
 - **Docker Compose deployment**: Single image (API + Frontend), named volumes for data persistence, standalone Next.js output mode
 - **Admin: login history recording**: Auth endpoints now record every login attempt (IP address, User-Agent, success/failure with reason) to the `LoginHistory` table for security auditing
 - **Admin: file browser**: New admin file browser endpoints for listing and downloading user-uploaded files with pagination support
