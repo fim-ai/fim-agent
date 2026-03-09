@@ -33,6 +33,28 @@ logger = logging.getLogger(__name__)
 # Python sandbox helpers (local mode only — Docker mode doesn't need these)
 # -----------------------------------------------------------------------
 
+
+def _safe_getattr(obj: object, name: str, *args: object) -> object:
+    """getattr wrapper that blocks dunder attribute access."""
+    if isinstance(name, str) and name.startswith("__") and name.endswith("__"):
+        raise AttributeError(f"Access to '{name}' is not allowed in sandbox")
+    return getattr(obj, name, *args)
+
+
+def _safe_setattr(obj: object, name: str, value: object) -> None:
+    """setattr wrapper that blocks dunder attribute access."""
+    if isinstance(name, str) and name.startswith("__") and name.endswith("__"):
+        raise AttributeError(f"Access to '{name}' is not allowed in sandbox")
+    setattr(obj, name, value)
+
+
+def _safe_delattr(obj: object, name: str) -> None:
+    """delattr wrapper that blocks dunder attribute access."""
+    if isinstance(name, str) and name.startswith("__") and name.endswith("__"):
+        raise AttributeError(f"Access to '{name}' is not allowed in sandbox")
+    delattr(obj, name)
+
+
 # Whitelisted builtins exposed to executed code.
 _SAFE_BUILTINS: dict[str, Any] = {
     name: __builtins__[name] if isinstance(__builtins__, dict) else getattr(__builtins__, name)
@@ -67,6 +89,12 @@ _SAFE_BUILTINS: dict[str, Any] = {
     if (isinstance(__builtins__, dict) and name in __builtins__)
     or (not isinstance(__builtins__, dict) and hasattr(__builtins__, name))
 }
+
+# Override getattr/setattr/delattr with safe wrappers that block dunder access
+# (prevents bypass of AST-level dunder checks via getattr(obj, '__class__') etc.)
+_SAFE_BUILTINS["getattr"] = _safe_getattr
+_SAFE_BUILTINS["setattr"] = _safe_setattr
+_SAFE_BUILTINS["delattr"] = _safe_delattr
 
 # Whitelist of modules allowed to be imported by user code.
 _ALLOWED_MODULES: frozenset[str] = frozenset({
