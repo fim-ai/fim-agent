@@ -452,7 +452,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <AnnouncementBanner />
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <main className="flex-1 flex flex-col min-h-0 overflow-hidden">{children}</main>
         </div>
       </div>
       </TooltipProvider>

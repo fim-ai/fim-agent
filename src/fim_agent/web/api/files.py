@@ -38,12 +38,22 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
 _index_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 _MIME_MAP: dict[str, str] = {
+    # Images
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".gif": "image/gif",
     ".webp": "image/webp",
     ".svg": "image/svg+xml",
+    # Text / code (mimetypes.guess_type may return None for these)
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".py": "text/x-python",
+    ".js": "text/javascript",
+    ".json": "application/json",
+    ".csv": "text/csv",
+    ".html": "text/html",
+    ".htm": "text/html",
 }
 
 

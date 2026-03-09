@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
 import hljs from "highlight.js"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { MarkdownContent } from "@/lib/markdown"
 import {
   Download,
   Loader2,
@@ -81,6 +80,7 @@ const EXT_LANG: Record<string, string> = {
 function isTextPreviewable(mime: string, name: string): boolean {
   if (mime === "text/html" || mime.startsWith("image/")) return false
   if (mime.startsWith("text/") || mime === "application/json") return true
+  if (isMarkdownFile(name, mime)) return true
   return fileExt(name) in EXT_LANG
 }
 
@@ -252,9 +252,7 @@ function ArtifactPreviewSheet({
               title={artifact.name}
             />
           ) : isText && isMd && textContent !== null ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <Markdown remarkPlugins={[remarkGfm]}>{textContent}</Markdown>
-            </div>
+            <MarkdownContent content={textContent} />
           ) : isText && highlightedHtml !== null ? (
             <pre className="overflow-x-auto rounded border border-border bg-muted/30 p-4 text-xs leading-relaxed">
               <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedHtml }} />

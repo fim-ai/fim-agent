@@ -15,10 +15,21 @@ MAX_ARTIFACT_SIZE = int(os.environ.get("MAX_ARTIFACT_SIZE", str(10 * 1024 * 1024
 MAX_ARTIFACTS_TOTAL = int(os.environ.get("MAX_ARTIFACTS_TOTAL", str(50 * 1024 * 1024)))  # 50 MB
 
 
+_FALLBACK_MIMES: dict[str, str] = {
+    ".md": "text/markdown",
+    ".yaml": "text/yaml",
+    ".yml": "text/yaml",
+    ".toml": "application/toml",
+    ".csv": "text/csv",
+}
+
+
 def _guess_mime(path: Path) -> str:
     """Guess MIME type from file extension."""
     mime, _ = mimetypes.guess_type(str(path))
-    return mime or "application/octet-stream"
+    if mime:
+        return mime
+    return _FALLBACK_MIMES.get(path.suffix.lower(), "application/octet-stream")
 
 
 def scan_new_files(directory: Path, before: set[str], artifacts_dir: Path) -> list[Artifact]:

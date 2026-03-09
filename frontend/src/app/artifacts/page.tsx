@@ -5,8 +5,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import hljs from "highlight.js"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { MarkdownContent } from "@/lib/markdown"
 import {
   Layers,
   Loader2,
@@ -133,6 +132,7 @@ async function downloadArtifact(artifact: ArtifactItem) {
 function isTextPreviewable(mime: string, name: string): boolean {
   if (mime === "text/html" || mime.startsWith("image/")) return false
   if (mime.startsWith("text/") || mime === "application/json") return true
+  if (isMarkdownFile(name, mime)) return true
   return fileExt(name) in EXT_LANG
 }
 
@@ -264,7 +264,7 @@ function PreviewPanel({
   const handleDownload = useCallback(() => downloadArtifact(artifact), [artifact])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="absolute inset-0 flex flex-col">
       {/* Header */}
       <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b">
         <button
@@ -317,9 +317,7 @@ function PreviewPanel({
             title={artifact.name}
           />
         ) : isText && isMarkdown && textContent !== null ? (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <Markdown remarkPlugins={[remarkGfm]}>{textContent}</Markdown>
-          </div>
+          <MarkdownContent content={textContent} />
         ) : isText && highlightedHtml !== null ? (
           <pre className="overflow-x-auto rounded border border-border bg-muted/30 p-4 text-xs leading-relaxed">
             <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
@@ -444,7 +442,7 @@ function ArtifactsContent() {
   ]
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div className="flex-1 min-h-0 flex overflow-hidden">
       {/* Left: scrollable grid area */}
       <div className="flex-1 min-w-0 overflow-y-auto">
         <div className="px-6 py-6">
@@ -583,7 +581,7 @@ function ArtifactsContent() {
       {/* Right: preview panel — width animates 0 → 420px */}
       <aside
         className={cn(
-          "shrink-0 border-l flex flex-col overflow-hidden transition-all duration-200 ease-in-out",
+          "shrink-0 relative border-l overflow-hidden transition-all duration-200 ease-in-out",
           selected ? "w-1/2" : "w-0 border-l-0",
         )}
       >

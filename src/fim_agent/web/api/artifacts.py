@@ -27,6 +27,23 @@ global_artifacts_router = APIRouter(prefix="/api", tags=["artifacts"])
 
 UPLOAD_ROOT = Path(os.environ.get("UPLOADS_DIR", "uploads"))
 
+_FALLBACK_MIMES: dict[str, str] = {
+    ".md": "text/markdown",
+    ".yaml": "text/yaml",
+    ".yml": "text/yaml",
+    ".toml": "application/toml",
+    ".csv": "text/csv",
+}
+
+
+def _guess_mime(path: str) -> str:
+    """Guess MIME type, with fallbacks for extensions that mimetypes misses."""
+    mime, _ = mimetypes.guess_type(path)
+    if mime:
+        return mime
+    suffix = Path(path).suffix.lower()
+    return _FALLBACK_MIMES.get(suffix, "application/octet-stream")
+
 
 def _artifacts_dir(conversation_id: str) -> Path:
     return UPLOAD_ROOT / "conversations" / conversation_id / "artifacts"
@@ -71,11 +88,10 @@ async def list_artifacts(
         parts = f.name.split("_", 1)
         artifact_id = parts[0]
         original_name = parts[1] if len(parts) > 1 else f.name
-        mime, _ = mimetypes.guess_type(str(f))
         artifacts.append({
             "id": artifact_id,
             "name": original_name,
-            "mime_type": mime or "application/octet-stream",
+            "mime_type": _guess_mime(str(f)),
             "size": f.stat().st_size,
             "url": f"/api/conversations/{conversation_id}/artifacts/{artifact_id}",
         })
@@ -113,11 +129,10 @@ async def download_artifact(
         if f.name.startswith(f"{artifact_id}_"):
             parts = f.name.split("_", 1)
             original_name = parts[1] if len(parts) > 1 else f.name
-            mime, _ = mimetypes.guess_type(str(f))
             return FileResponse(
                 path=str(f),
                 filename=original_name,
-                media_type=mime or "application/octet-stream",
+                media_type=_guess_mime(str(f)),
             )
 
     raise AppError("artifact_not_found", status_code=404)
@@ -161,11 +176,10 @@ async def list_all_artifacts(
             parts = f.name.split("_", 1)
             artifact_id = parts[0]
             original_name = parts[1] if len(parts) > 1 else f.name
-            mime, _ = mimetypes.guess_type(str(f))
             artifacts.append({
                 "id": artifact_id,
                 "name": original_name,
-                "mime_type": mime or "application/octet-stream",
+                "mime_type": _guess_mime(str(f)),
                 "size": f.stat().st_size,
                 "url": f"/api/conversations/{conv_id}/artifacts/{artifact_id}",
                 "conversation_id": conv_id,
