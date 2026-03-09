@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -795,10 +796,15 @@ async def export_conversation(
 
     content_type = _CONTENT_TYPES[format]
 
+    # RFC 5987: use ASCII fallback + UTF-8 encoded filename for non-ASCII titles
+    ascii_filename = filename.encode("ascii", errors="ignore").decode("ascii") or f"export.{ext}"
+    utf8_filename = quote(filename)
+    disposition = f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{utf8_filename}"
+
     return StreamingResponse(
         stream,
         media_type=content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": disposition,
         },
     )
