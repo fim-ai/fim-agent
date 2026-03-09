@@ -70,6 +70,8 @@ async def create_builder_session(
         target = result.scalar_one_or_none()
         if target is None:
             raise AppError("agent_not_found", status_code=404)
+        if target.name.startswith("__builder_"):
+            raise AppError("unsupported_target_type", status_code=400)
 
         agent_name = f"__builder_agent_{body.target_id}"
         instructions = (
@@ -101,9 +103,6 @@ async def create_builder_session(
     )
     existing = result.scalar_one_or_none()
     if existing:
-        if existing.status != "published":
-            existing.status = "published"
-            await db.commit()
         return ApiResponse(data={"builder_agent_id": existing.id})
 
     if body.target_type == "connector":
@@ -121,7 +120,7 @@ async def create_builder_session(
         instructions=instructions,
         execution_mode="react",
         tool_categories=tool_categories,
-        status="published",
+        status="draft",
     )
     db.add(agent)
     await db.commit()
