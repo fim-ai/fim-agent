@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react"
+import { useTranslations } from "next-intl"
 
 export interface SlashCommand {
   id: string
@@ -41,6 +42,7 @@ export function useSlashCommands({
   onQueryChange,
   onAbort,
 }: UseSlashCommandsOptions) {
+  const t = useTranslations("playground")
   const [selectedIndex, setSelectedIndex] = useState(0)
   const selectedIndexRef = useRef(0)
 
@@ -82,7 +84,7 @@ export function useSlashCommands({
     if (!subMenuCommand) return []
     if (subMenuCommand === "agent") {
       const items: SlashSubItem[] = [
-        { id: "__none__", label: "No Agent" },
+        { id: "__none__", label: t("noAgent") },
         ...agents.map((a) => ({
           id: a.id,
           label: a.name,
@@ -98,8 +100,8 @@ export function useSlashCommands({
     }
     if (subMenuCommand === "mode") {
       const items: SlashSubItem[] = [
-        { id: "react", label: "Standard (ReAct)" },
-        { id: "dag", label: "Planner (DAG)" },
+        { id: "react", label: `${t("modeStandard")} (ReAct)` },
+        { id: "dag", label: `${t("modePlanner")} (DAG)` },
       ]
       if (subMenuSearch) {
         return items.filter(
@@ -111,7 +113,7 @@ export function useSlashCommands({
       return items
     }
     return []
-  }, [subMenuCommand, subMenuSearch, agents])
+  }, [subMenuCommand, subMenuSearch, agents, t])
 
   // The items currently visible in the menu
   const visibleItems = subMenuCommand ? subMenuItems : filteredCommands
@@ -164,7 +166,8 @@ export function useSlashCommands({
 
       if (e.key === "Escape") {
         e.preventDefault()
-        onQueryChange("")
+        // In sub-menu → go back to top-level; at top-level → close menu
+        onQueryChange(subMenuCommand ? "/" : "")
         return true
       }
 

@@ -14,7 +14,7 @@
   "modePlanner": "规划",
   "modeStandardTooltip": "标准 (ReAct) — 灵活的工具调用，快速响应",
   "modePlannerTooltip": "规划 (DAG) — 将任务拆解为结构化执行计划",
-  "noAgent": "无智能体",
+  "noAgent": "不使用",
   "searchAgents": "搜索智能体...",
   "noAgentFound": "未找到智能体。",
   "uploadFiles": "上传文件",
