@@ -284,3 +284,65 @@ async def get_current_admin(
             detail="Admin access required",
         )
     return user
+
+
+# ---------------------------------------------------------------------------
+# Organization authorization helpers
+# ---------------------------------------------------------------------------
+
+
+async def get_user_org_ids(user_id: str, db: AsyncSession) -> list[str]:
+    """All org IDs the user belongs to."""
+    from .models.organization import OrgMembership
+
+    result = await db.execute(
+        select(OrgMembership.org_id).where(OrgMembership.user_id == user_id)
+    )
+    return list(result.scalars().all())
+
+
+async def require_org_member(
+    org_id: str, user: User, db: AsyncSession
+) -> "OrgMembership":
+    """Return membership or raise 403."""
+    from .models.organization import OrgMembership
+
+    result = await db.execute(
+        select(OrgMembership).where(
+            OrgMembership.org_id == org_id,
+            OrgMembership.user_id == user.id,
+        )
+    )
+    membership = result.scalar_one_or_none()
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization",
+        )
+    return membership
+
+
+async def require_org_admin(
+    org_id: str, user: User, db: AsyncSession
+) -> "OrgMembership":
+    """Require admin or owner role. Returns membership or raises 403."""
+    membership = await require_org_member(org_id, user, db)
+    if membership.role not in ("admin", "owner"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organization admin access required",
+        )
+    return membership
+
+
+async def require_org_owner(
+    org_id: str, user: User, db: AsyncSession
+) -> "OrgMembership":
+    """Require owner role. Returns membership or raises 403."""
+    membership = await require_org_member(org_id, user, db)
+    if membership.role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organization owner access required",
+        )
+    return membership

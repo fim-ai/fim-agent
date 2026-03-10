@@ -49,6 +49,7 @@ from .api.agent_ai import router as agent_ai_router
 from .api.connector_ai import router as connector_ai_router
 from .api.builder import router as builder_router
 from .api.connectors import router as connectors_router
+from .api.organizations import router as organizations_router, admin_router as admin_organizations_router
 from .api.conversations import router as conversations_router
 from .api.export import router as export_router
 from .api.mcp_servers import router as mcp_servers_router
@@ -217,6 +218,8 @@ def create_app() -> FastAPI:
     app.include_router(agents_router)
     app.include_router(builder_router)
     app.include_router(connectors_router)
+    app.include_router(organizations_router)
+    app.include_router(admin_organizations_router)
     app.include_router(connector_ai_router)
     app.include_router(mcp_servers_router)
     app.include_router(agent_ai_router)
