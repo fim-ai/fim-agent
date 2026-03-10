@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from fim_agent.web.email import _smtp_configured
 from fim_agent.web.exceptions import AppError
-from sqlalchemy import func, literal, or_, select, text
+from sqlalchemy import func, literal_column, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -326,12 +326,13 @@ async def get_stats(
             return f"Fast LLM ({raw})"
         return raw
 
+    _model_col = func.coalesce(Conversation.model_name, literal_column("'Unknown'"))
     model_rows = await db.execute(
         select(
-            func.coalesce(Conversation.model_name, literal("Unknown")).label("model"),
+            _model_col.label("model"),
             func.count().label("cnt"),
         )
-        .group_by(func.coalesce(Conversation.model_name, literal("Unknown")))
+        .group_by(_model_col)
         .order_by(func.count().desc())
         .limit(20)
     )
@@ -344,14 +345,15 @@ async def get_stats(
     ]
 
     # Tokens by model (same grouping logic, but SUM(total_tokens))
+    _token_model_col = func.coalesce(Conversation.model_name, literal_column("'Unknown'"))
     token_model_rows = await db.execute(
         select(
-            func.coalesce(Conversation.model_name, literal("Unknown")).label("model"),
+            _token_model_col.label("model"),
             func.coalesce(
                 func.sum(Conversation.total_tokens - Conversation.fast_llm_tokens), 0
             ).label("tokens"),
         )
-        .group_by(func.coalesce(Conversation.model_name, literal("Unknown")))
+        .group_by(_token_model_col)
         .order_by(func.sum(Conversation.total_tokens - Conversation.fast_llm_tokens).desc())
         .limit(20)
     )
