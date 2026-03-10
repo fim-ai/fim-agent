@@ -8,19 +8,17 @@ description: "How FIM Agent connects legacy systems through AI — from Copilot 
 The architecture supports two integration scales:
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Copilot["Copilot (embedded)"]
-        direction TB
         subgraph Host["Host System (ERP)"]
-            C["FIM Agent Copilot<br/>(iframe / widget)"]
+            C["FIM Agent Copilot\n(iframe / widget)"]
         end
         C --> DB1["DB"]
         C --> API1["API"]
     end
 
     subgraph Hub["Hub (central portal)"]
-        direction TB
-        H["FIM Agent Hub<br/>(Portal / API)"]
+        H["FIM Agent Hub\n(Portal / API)"]
         H --> ERP["ERP"]
         H --> CRM["CRM"]
         H --> OA["OA"]
@@ -92,7 +90,7 @@ Protocol is commodity. The technical value is in the adapters themselves (domain
 Everything runs in a single Docker Compose deployment. The client installs nothing.
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Docker["FIM Agent Deployment (Docker Compose)"]
         subgraph Core["FIM Agent Core"]
             R["ReAct / DAG"]

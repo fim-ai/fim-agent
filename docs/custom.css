@@ -1,0 +1,9 @@
+/* Center all Mermaid diagrams */
+pre.mermaid,
+.mermaid {
+  text-align: center;
+}
+
+.mermaid svg {
+  display: inline-block;
+}
