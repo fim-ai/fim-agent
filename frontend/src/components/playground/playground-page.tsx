@@ -1059,7 +1059,7 @@ function PlaygroundContent({
     if (!finalQuery && clips.length === 0 && pendingFiles.length === 0) return
 
     // Lazy upload: send pending files to server NOW
-    let uploadedFiles: (FileUploadResponse & { previewUrl?: string })[] = []
+    const uploadedFiles: (FileUploadResponse & { previewUrl?: string })[] = []
     if (pendingFiles.length > 0) {
       setIsUploading(true)
       try {
