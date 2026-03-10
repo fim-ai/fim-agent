@@ -1,6 +1,14 @@
 services:
   fim-agent:
-    build: .
+    build:
+      context: .
+      args:
+        # Analytics — forwarded from .env so Next.js can inline at build time
+        NEXT_PUBLIC_GA_MEASUREMENT_ID: ${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}
+        NEXT_PUBLIC_UMAMI_SCRIPT_URL: ${NEXT_PUBLIC_UMAMI_SCRIPT_URL:-}
+        NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
+        NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${NEXT_PUBLIC_PLAUSIBLE_DOMAIN:-}
+        NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL: ${NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL:-}
     ports:
       - "3000:3000"   # Next.js frontend (API is proxied internally via rewrites)
       - "8000:8000"   # Python API backend (for direct SSE streaming via NGINX)
