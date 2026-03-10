@@ -150,7 +150,7 @@ sequenceDiagram
     Chat->>Agent: run(query)
     Agent->>Agent: 组装：system + history + 固定查询
 
-    loop 每轮迭代
+    loop 每轮迭代（非流式）
         Agent->>CG: check_and_compact(messages, hint="react_iteration")
         CG->>CG: 截断超大消息，估算，需要时压缩
         CG-->>Agent: messages（在预算内）
@@ -159,9 +159,15 @@ sequenceDiagram
         Agent->>Agent: 解析 action，执行工具，追加结果
     end
 
-    Agent-->>Chat: 最终答案
+    Agent-->>Chat: AgentResult（工具轨迹 + 简短答案）
+    Chat->>Agent: stream_answer(query, result)
+    Agent->>LLM: stream_chat(合成提示词)
+    LLM-->>Agent: token 流
+    Agent-->>Chat: 流式答案 → SSE 发送到前端
     Chat->>Chat: 持久化，如有压缩则发送 compact SSE
 ```
+
+工具迭代使用非流式 `chat()` 以获得速度；答案合成使用流式 `stream_chat()`（通过 `stream_answer()`）。这种两阶段分离——快速工具循环后跟流式合成——同时优化了延迟和用户体验。完整的 ReAct 引擎架构（包括双模式执行和工具选择），请参阅 [ReAct 引擎](/zh/architecture/react-engine)。
 
 关键洞察：**DbMemory 处理历史上下文问题（来自之前请求的轮次），而 ContextGuard 处理请求内增长问题（智能体循环中累积的工具结果）。** 它们在不同时间尺度上运行，捕获不同的故障模式。
 
@@ -177,19 +183,19 @@ flowchart TD
     B --> C{"enriched_query > 16K token?"}
     C -->|是| D["用 planner_input 提示做 LLM 摘要"]
     C -->|否| E["直接使用"]
-    D --> F["3. 规划：system + enriched_query"]
+    D --> F["3. DAGPlanner（structured_llm_call）"]
     E --> F
     F --> G["4. 执行：并行步骤"]
     G --> H["步骤 1：独立 ReAct"]
     G --> I["步骤 2：独立 ReAct"]
     G --> J["步骤 N：独立 ReAct"]
-    H --> K["5. 分析：格式化结果"]
+    H --> K["5. PlanAnalyzer（structured_llm_call）"]
     I --> K
     J --> K
     K --> L{"达成目标？"}
     L -->|否，低置信度| M["6. 重规划：500 字符步骤摘要"]
     M --> F
-    L -->|是| N["最终答案"]
+    L -->|是| N["stream_synthesize → 最终答案"]
 ```
 
 **阶段 1 — 历史加载。** DbMemory 加载并压缩对话历史，与 ReAct 相同。压缩后的历史被格式化为以 `"Previous conversation:"` 为前缀的文本块。
@@ -203,6 +209,8 @@ flowchart TD
 **阶段 5 — 分析。** 步骤结果被格式化给分析器 LLM，每步截断限制为 10K 字符。这防止某个步骤的冗长输出主导分析上下文。
 
 **阶段 6 — 重规划。** 当分析器判定目标未达成且置信度低于阈值时，步骤结果被截断到仅 500 字符用于重规划上下文。重规划需要知道*发生了什么*和*出了什么问题*，而不是每个步骤输出的完整细节。这种激进截断使重规划提示足够紧凑，规划器可以高效处理。
+
+完整的 DAG 流水线架构（包括 LLM 调用图和重规划逻辑），请参阅 [DAG 引擎](/zh/architecture/dag-engine)。
 
 ## 固定消息
 

@@ -1,6 +1,7 @@
 ---
 title: "Environment Variables"
 description: "Complete configuration reference for FIM Agent."
+mode: "wide"
 ---
 
 All configuration is done via `.env`. Copy `example.env` and fill in your values:
@@ -224,6 +225,8 @@ Auto-registers the `email_send` built-in tool when `SMTP_HOST`, `SMTP_USER`, and
 | `JWT_SECRET_KEY` | No | `CHANGE_ME` | Secret key for JWT token signing. Placeholder value `CHANGE_ME` (or any legacy default) triggers auto-generation of a secure 256-bit random key on first start, which is written back to `.env`. Set explicitly in production to keep tokens valid across restarts and replicas. |
 | `CORS_ORIGINS` | No | — | Comma-separated list of extra allowed CORS origins beyond the default localhost entries. Required when the frontend runs on a non-localhost domain (e.g. `https://app.example.com`). |
 | `UPLOADS_DIR` | No | `./uploads` | Directory for uploaded files |
+| `MAX_UPLOAD_SIZE_MB` | No | `50` | Max file upload size in megabytes (backend enforcement) |
+| `NEXT_PUBLIC_MAX_UPLOAD_SIZE_MB` | No | `50` | Max file upload size shown in frontend UI. **Build-time variable** — must match `MAX_UPLOAD_SIZE_MB`. |
 | `MCP_SERVERS` | No | — | JSON array of MCP server configs (requires `uv sync --extra mcp`) |
 | `ALLOW_STDIO_MCP` | No | `false` | Allow stdio MCP servers. Set `true` only for trusted local deployments |
 | `ALLOWED_STDIO_COMMANDS` | No | `npx,uvx,node,python,python3,deno,bun` | Comma-separated list of allowed base commands for stdio MCP servers. Only effective when `ALLOW_STDIO_MCP=true` |
@@ -262,3 +265,19 @@ The backend constructs callback URLs as: `{API_BASE_URL}/api/auth/oauth/{provide
 | GitHub | `https://yourdomain.com/api/auth/oauth/github/callback` |
 | Google | `https://yourdomain.com/api/auth/oauth/google/callback` |
 | Discord | `https://yourdomain.com/api/auth/oauth/discord/callback` |
+
+---
+
+## Analytics (Optional)
+
+All analytics providers are optional. Set any combination — all active providers load simultaneously. Leave all blank to disable analytics entirely (recommended for local dev).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | No | — | Google Analytics 4 measurement ID (e.g. `G-XXXXXXXXXX`). Get yours at [analytics.google.com](https://analytics.google.com) |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | No | — | Umami analytics script URL (e.g. `https://your-umami.com/script.js`). Self-hosted, privacy-friendly alternative — [umami.is](https://umami.is) |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | No | — | Umami website ID. Required when `NEXT_PUBLIC_UMAMI_SCRIPT_URL` is set |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | No | — | Plausible analytics domain (e.g. `yourdomain.com`). Lightweight, privacy-friendly — [plausible.io](https://plausible.io) |
+| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` | No | `https://plausible.io/js/script.js` | Custom Plausible script URL for self-hosted instances |
+
+> All `NEXT_PUBLIC_*` analytics variables are **build-time** — changes require a frontend rebuild to take effect.

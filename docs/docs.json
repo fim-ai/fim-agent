@@ -57,6 +57,14 @@
                 ]
               },
               {
+                "group": "Execution Engines",
+                "icon": "gears",
+                "pages": [
+                  "architecture/react-engine",
+                  "architecture/dag-engine"
+                ]
+              },
+              {
                 "group": "Strategy",
                 "icon": "chess",
                 "pages": [
@@ -132,6 +140,14 @@
                   "zh/architecture/context-management",
                   "zh/architecture/connector-architecture",
                   "zh/architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "执行引擎",
+                "icon": "gears",
+                "pages": [
+                  "zh/architecture/react-engine",
+                  "zh/architecture/dag-engine"
                 ]
               },
               {

@@ -1,6 +1,7 @@
 ---
 title: "环境变量"
 description: "FIM Agent 的完整配置参考。"
+mode: "wide"
 ---
 
 所有配置均通过 `.env` 进行。复制 `example.env` 并填入相应的值：
@@ -248,6 +249,8 @@ LiteLLM 根据 `LLM_BASE_URL` 自动检测提供商，并映射到正确的 API 
 | `JWT_SECRET_KEY` | 否 | `CHANGE_ME` | 用于 JWT 令牌签名的密钥。占位值 `CHANGE_ME`（或任何旧版默认值）会在首次启动时触发自动生成一个安全的 256 位随机密钥，并回写到 `.env`。在生产环境中应显式设置，以确保在重启和多副本部署后令牌仍然有效。 |
 | `CORS_ORIGINS` | 否 | — | 除默认 localhost 条目外，额外允许的 CORS 源列表，以逗号分隔。当前端运行在非 localhost 域名上时必须设置（例如 `https://app.example.com`）。 |
 | `UPLOADS_DIR` | 否 | `./uploads` | 上传文件存放目录 |
+| `MAX_UPLOAD_SIZE_MB` | 否 | `50` | 最大文件上传大小（MB），后端强制限制 |
+| `NEXT_PUBLIC_MAX_UPLOAD_SIZE_MB` | 否 | `50` | 前端 UI 显示的最大上传大小。**构建时变量**——需与 `MAX_UPLOAD_SIZE_MB` 保持一致。 |
 | `MCP_SERVERS` | 否 | — | MCP 服务器配置的 JSON 数组（需要 `uv sync --extra mcp`） |
 | `ALLOW_STDIO_MCP` | 否 | `false` | 是否允许 stdio MCP 服务器。仅在受信任的本地部署中设置为 `true` |
 | `ALLOWED_STDIO_COMMANDS` | 否 | `npx,uvx,node,python,python3,deno,bun` | 以逗号分隔的 stdio MCP 服务器允许的基础命令列表。仅在 `ALLOW_STDIO_MCP=true` 时生效 |
@@ -290,3 +293,21 @@ LiteLLM 根据 `LLM_BASE_URL` 自动检测提供商，并映射到正确的 API 
 | GitHub  | `https://yourdomain.com/api/auth/oauth/github/callback`  |
 | Google  | `https://yourdomain.com/api/auth/oauth/google/callback`  |
 | Discord | `https://yourdomain.com/api/auth/oauth/discord/callback` |
+
+---
+
+<div id="analytics-optional">
+  ## 分析统计（可选）
+</div>
+
+所有分析提供商均为可选项。可任意组合设置——所有已启用的提供商会同时加载。全部留空即可完全禁用分析功能（本地开发建议禁用）。
+
+| 变量 | 必填 | 默认值 | 说明 |
+|---|---|---|---|
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | 否 | — | Google Analytics 4 衡量 ID（例如 `G-XXXXXXXXXX`）。可在 [analytics.google.com](https://analytics.google.com) 获取 |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | 否 | — | Umami 分析脚本 URL（例如 `https://your-umami.com/script.js`）。自托管、注重隐私的替代方案——[umami.is](https://umami.is) |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | 否 | — | Umami 网站 ID。设置了 `NEXT_PUBLIC_UMAMI_SCRIPT_URL` 时必填 |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | 否 | — | Plausible 分析域名（例如 `yourdomain.com`）。轻量级、注重隐私——[plausible.io](https://plausible.io) |
+| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` | 否 | `https://plausible.io/js/script.js` | 自托管 Plausible 实例的自定义脚本 URL |
+
+> 所有 `NEXT_PUBLIC_*` 分析变量均为**构建时变量**——修改后需要重新构建前端才能生效。

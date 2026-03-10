@@ -150,7 +150,7 @@ sequenceDiagram
     Chat->>Agent: run(query)
     Agent->>Agent: Assemble: system + history + pinned query
 
-    loop Each iteration
+    loop Each iteration (non-streaming)
         Agent->>CG: check_and_compact(messages, hint="react_iteration")
         CG->>CG: Truncate oversized, estimate, compact if needed
         CG-->>Agent: messages (within budget)
@@ -159,9 +159,15 @@ sequenceDiagram
         Agent->>Agent: Parse action, execute tool, append result
     end
 
-    Agent-->>Chat: final answer
+    Agent-->>Chat: AgentResult (tool trace + brief answer)
+    Chat->>Agent: stream_answer(query, result)
+    Agent->>LLM: stream_chat(synthesis prompt)
+    LLM-->>Agent: token stream
+    Agent-->>Chat: streamed answer → SSE to frontend
     Chat->>Chat: Persist, emit compact SSE if compacted
 ```
+
+Tool iterations use non-streaming `chat()` for speed; answer synthesis uses streaming `stream_chat()` via `stream_answer()`. This two-phase split — fast tool loop followed by streaming synthesis — optimizes both latency and user experience. For full ReAct engine architecture including dual-mode execution and tool selection, see [ReAct Engine](/architecture/react-engine).
 
 The key insight: **DbMemory handles the historical context problem (turns from previous requests), while ContextGuard handles the within-request growth problem (tool results accumulating during an agent loop).** They operate at different timescales and catch different failure modes.
 
@@ -177,19 +183,19 @@ flowchart TD
     B --> C{"enriched_query > 16K tokens?"}
     C -->|Yes| D["LLM summarize with planner_input prompt"]
     C -->|No| E["Use as-is"]
-    D --> F["3. Planning: system + enriched_query"]
+    D --> F["3. DAGPlanner (structured_llm_call)"]
     E --> F
     F --> G["4. Execution: parallel steps"]
     G --> H["Step 1: independent ReAct"]
     G --> I["Step 2: independent ReAct"]
     G --> J["Step N: independent ReAct"]
-    H --> K["5. Analysis: format results"]
+    H --> K["5. PlanAnalyzer (structured_llm_call)"]
     I --> K
     J --> K
     K --> L{"Achieved?"}
     L -->|No, low confidence| M["6. Replan: 500-char step summaries"]
     M --> F
-    L -->|Yes| N["Final answer"]
+    L -->|Yes| N["stream_synthesize → Final answer"]
 ```
 
 **Phase 1 — History loading.** DbMemory loads and compacts conversation history, same as ReAct. The compacted history is formatted into a text block prefixed with `"Previous conversation:"`.
@@ -203,6 +209,8 @@ flowchart TD
 **Phase 5 — Analysis.** Step results are formatted for the analyzer LLM with per-step truncation at 10K characters. This prevents a single step's verbose output from dominating the analysis context.
 
 **Phase 6 — Replanning.** When the analyzer determines the goal was not achieved and confidence is below the threshold, step results are truncated to just 500 characters each for the replanning context. Replanning needs to know *what happened* and *what went wrong*, not the full detail of every step's output. This aggressive truncation keeps the replan prompt compact enough for the planner to process efficiently.
+
+For the full DAG pipeline architecture including the LLM Call Map and re-planning logic, see [DAG Engine](/architecture/dag-engine).
 
 ## Pinned messages
 

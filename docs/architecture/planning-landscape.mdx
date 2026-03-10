@@ -97,3 +97,17 @@ The boundary between "team collaboration" and "pipeline scheduling" is blurring:
 - **FIM Agent's DAG could benefit from agent autonomy** — instead of single LLM calls per step, letting each step run a full ReAct loop would handle complex sub-tasks better.
 
 **Takeaway:** Same Agent essence, converging parallel philosophies. Claude Code follows a **team collaboration** model — a Leader delegates to Workers who communicate via messages. FIM Agent follows a **pipeline scheduling** model — a DAG Executor dispatches steps based on dependency resolution. In practice, both implement dependency-driven parallel execution; the difference is coordination overhead (messages vs edges) and token economics (isolated contexts vs shared memory). The optimal architecture likely combines both: DAG scheduling for structured pipelines, agent pools for tasks that need autonomous multi-step reasoning.
+
+## Structured Output Degradation
+
+All structured LLM call sites in the DAG pipeline (Planner, Analyzer, Tool Selection) use a unified `structured_llm_call()` utility that implements a 3-level degradation chain:
+
+| Level | Condition | How it works |
+|---|---|---|
+| **Native FC** | `llm.abilities["tool_call"]` | Forces a virtual tool call; extracts from `tool_calls[0].arguments` |
+| **JSON Mode** | `llm.abilities["json_mode"]` | Sets `response_format={"type":"json_object"}`; parses with `extract_json()` |
+| **Plain text** | always available | Parses free-form content with `extract_json()`, then optional `regex_fallback()` |
+
+Each text-based level retries once with a reformat prompt before falling to the next. The result is a `StructuredCallResult` containing the parsed value, which extraction level succeeded, and accumulated token usage.
+
+This design means the same prompt works reliably across GPT-4 (native FC), Claude (JSON mode), and local models (plain text), with consistent error handling and retry logic in one place instead of scattered across four call sites.
