@@ -9,7 +9,7 @@ services:
       - ./uploads:/app/uploads       # User-uploaded files (REQUIRED)
       # Code sandbox: mount Docker socket to run AI-generated code in isolated containers.
       # Required when CODE_EXEC_BACKEND=docker in .env (recommended for multi-user deployments).
-      # - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file: .env
     environment:
       # Internal services — auto-configured by compose, no user action needed.

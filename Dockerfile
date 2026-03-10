@@ -44,6 +44,9 @@ RUN pnpm build
 # ---------------------------------------------------------------------------
 FROM python:3.11-slim AS runtime
 
+# Docker CLI — enables CODE_EXEC_BACKEND=docker (runs sandboxed code via host Docker)
+COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
+
 # Copy Node.js binary from build stage (avoids apt-get network issues)
 COPY --from=frontend-build /usr/local/bin/node /usr/local/bin/node
 
