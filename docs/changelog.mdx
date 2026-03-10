@@ -37,6 +37,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Smart relay routing**: Automatically detects API protocol from URL path patterns (e.g., `/claude` or `/anthropic` → Anthropic native, `/gemini` → Google native), enabling proper authentication headers and parameter translation for third-party relay platforms without manual provider configuration
 
 ### Fixed
+- **Docker sandbox (DooD) volume mount**: Fix empty `-v` bind mounts when `CODE_EXEC_BACKEND=docker` runs inside a container (docker-compose). Sandbox dir moved from `tmp/conversations/` to `data/sandbox/` (under the mounted `./data:/app/data` volume). New `DOCKER_HOST_DATA_DIR` env var translates container-internal paths to host-visible paths for the Docker daemon. Fixes `_PROJECT_ROOT` resolving to `/app/src/` (not `/app/`) by using `.parent`
 - **Security: Python sandbox AST dunder validation**: Block sandbox escape via AST dunder attribute validation
 - **Security: MCP stdio defaults + command allowlist**: Harmonize MCP stdio transport defaults (now disabled by default) and add command allowlist (`ALLOWED_STDIO_COMMANDS`)
 - **Security: SSRF DNS rebinding prevention**: Prevent SSRF DNS rebinding via transport-level IP pinning (`SSRFSafeTransport`)
@@ -69,6 +70,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Docker startup race condition**: Add API readiness wait loop (Python socket poll) in entrypoint before starting Next.js, preventing `e.map is not a function` SSR errors
 - **Artifacts: sort by conversation created_at**: Sort artifacts by conversation creation time instead of file mtime (mtime is unreliable on Docker volumes)
 - **OAuth: auto-detect production API URL from window.location port**: Browser auto-detection now works correctly for custom ports in production (not just 3000)
+- **Docker: DooD sandbox volume mount path mismatch**: When running inside a container with `CODE_EXEC_BACKEND=docker` (Docker-outside-of-Docker), sandbox scripts were written to container-internal paths invisible to the host Docker daemon, causing empty `-v` mounts and "No such file or directory" errors. Fixed by moving sandbox dir to `data/sandbox/`, adding `DOCKER_HOST_DATA_DIR` env var with `_resolve_host_path()` for path translation, and handling empty-string env var edge cases
 
 ## [v0.7.3] - 2026-03-06
 

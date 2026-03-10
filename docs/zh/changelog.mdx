@@ -60,6 +60,7 @@ description: "FIM Agent 的所有重要变更。"
   ### 已修复
 </div>
 
+* **Docker 沙箱 (DooD) 卷挂载修复**：修复 `CODE_EXEC_BACKEND=docker` 在容器内运行时（docker-compose 部署）`-v` 绑定挂载为空的问题。沙箱目录从 `tmp/conversations/` 迁移至 `data/sandbox/`（在已挂载的 `./data:/app/data` 卷下）。新增 `DOCKER_HOST_DATA_DIR` 环境变量，将容器内部路径翻译为宿主机可见路径。修复 `_PROJECT_ROOT` 解析为 `/app/src/`（而非 `/app/`）的问题
 * **安全：Python 沙箱 AST dunder 校验**：通过 AST dunder 属性校验阻止沙箱逃逸
 * **安全：MCP stdio 默认值 + 命令允许列表**：统一 MCP stdio 传输默认值（现默认禁用），并新增命令允许列表（`ALLOWED_STDIO_COMMANDS`）
 * **安全：SSRF DNS 重绑定防护**：通过传输层 IP 锁定（`SSRFSafeTransport`）防止 SSRF DNS 重绑定攻击
@@ -77,7 +78,8 @@ description: "FIM Agent 的所有重要变更。"
 * **Docker i18n 失效**：将 `messages/` 目录复制到独立输出中，并添加 `outputFileTracingIncludes`，以便 next-intl 在运行时发现 locale JSON 文件
 * **Docker 启动竞态条件**：在启动 Next.js 之前，于 entrypoint 中添加 API 就绪等待循环 (Python socket 轮询) ，避免出现 `e.map is not a function` SSR 错误
 * **工件：按会话 created&#95;at 排序**：按会话创建时间而不是文件 mtime 对工件进行排序 (mtime 在 Docker 卷上不可靠) 
-* **OAuth：根据 window.location 端口自动检测生产环境 API URL**：浏览器自动检测现在可在生产环境中正确处理自定义端口 (不再仅限于 3000) 
+* **OAuth：根据 window.location 端口自动检测生产环境 API URL**：浏览器自动检测现在可在生产环境中正确处理自定义端口 (不再仅限于 3000)
+* **Docker：DooD 沙箱卷挂载路径不匹配**：当在容器内以 `CODE_EXEC_BACKEND=docker`（Docker-outside-of-Docker）运行时，沙箱脚本被写入容器内部路径，对宿主机 Docker 守护进程不可见，导致空的 `-v` 挂载和"No such file or directory"错误。通过将沙箱目录移至 `data/sandbox/`、新增 `DOCKER_HOST_DATA_DIR` 环境变量及 `_resolve_host_path()` 路径转换函数，并处理空字符串环境变量边界情况来修复
 
 <div id="v073-2026-03-06">
   ## [v0.7.3] - 2026-03-06

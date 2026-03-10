@@ -175,6 +175,7 @@ LiteLLM 根据 `LLM_BASE_URL` 自动检测提供商，并映射到正确的 API 
 | `DOCKER_MEMORY` | 否 | *(Docker 默认值)* | 每个容器的 RAM 上限（例如 `256m`、`512m`、`1g`） |
 | `DOCKER_CPUS` | 否 | *(Docker 默认值)* | 每个容器的 CPU 配额（例如 `0.5`、`1.0`） |
 | `SANDBOX_TIMEOUT` | 否 | `120` | 默认执行超时时间（秒） |
+| `DOCKER_HOST_DATA_DIR` | 否 | *(未设置)* | `./data` 卷挂载的宿主机绝对路径。DooD（Docker-outside-of-Docker）部署时需要；`docker-compose.yml` 通过 `${PWD}/data` 自动设置。 |
 
 > **安全**：`local` 模式会在主机上直接运行 AI 生成的代码。对于面向互联网或多用户的部署，请始终设置 `CODE_EXEC_BACKEND=docker`。
 
