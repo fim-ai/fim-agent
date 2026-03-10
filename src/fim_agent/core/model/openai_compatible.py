@@ -310,7 +310,14 @@ class OpenAICompatibleLLM(BaseLLM):
                             partial.id = tc_delta.id
                         if tc_delta.function:
                             if tc_delta.function.name:
-                                partial.name += tc_delta.function.name
+                                # Index collision: provider reused the same
+                                # index for a different tool call.  Allocate
+                                # a fresh slot so names don't concatenate.
+                                if partial.name and partial.name != tc_delta.function.name:
+                                    idx = max(pending_tool_calls.keys()) + 1
+                                    pending_tool_calls[idx] = _PartialToolCall()
+                                    partial = pending_tool_calls[idx]
+                                partial.name = tc_delta.function.name
                             if tc_delta.function.arguments:
                                 partial.arguments += tc_delta.function.arguments
 
