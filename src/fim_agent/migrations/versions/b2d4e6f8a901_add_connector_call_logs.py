@@ -20,32 +20,40 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'connector_call_logs',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('connector_id', sa.String(36), sa.ForeignKey('connectors.id'), nullable=False),
-        sa.Column('connector_name', sa.String(200), nullable=False),
-        sa.Column('action_id', sa.String(36), nullable=True),
-        sa.Column('action_name', sa.String(200), nullable=False),
-        sa.Column('conversation_id', sa.String(36), sa.ForeignKey('conversations.id'), nullable=True),
-        sa.Column('user_id', sa.String(36), sa.ForeignKey('users.id'), nullable=True),
-        sa.Column('agent_id', sa.String(36), nullable=True),
-        sa.Column('request_method', sa.String(10), nullable=False),
-        sa.Column('request_url', sa.String(1000), nullable=False),
-        sa.Column('response_status', sa.Integer, nullable=True),
-        sa.Column('response_time_ms', sa.Integer, nullable=True),
-        sa.Column('success', sa.Boolean, nullable=False),
-        sa.Column('error_message', sa.Text, nullable=True),
-        sa.Column('created_at', sa.DateTime, nullable=True),
-        sa.Column('updated_at', sa.DateTime, nullable=True),
-    )
-    op.create_index('ix_connector_call_logs_connector_id', 'connector_call_logs', ['connector_id'])
-    op.create_index('ix_connector_call_logs_conversation_id', 'connector_call_logs', ['conversation_id'])
-    op.create_index('ix_connector_call_logs_user_id', 'connector_call_logs', ['user_id'])
-    op.create_index('ix_connector_call_logs_created_at', 'connector_call_logs', ['created_at'])
+    from fim_agent.migrations.helpers import table_exists, index_exists
+
+    bind = op.get_bind()
+
+    if not table_exists(bind, "connector_call_logs"):
+        op.create_table(
+            'connector_call_logs',
+            sa.Column('id', sa.String(36), primary_key=True),
+            sa.Column('connector_id', sa.String(36), sa.ForeignKey('connectors.id'), nullable=False),
+            sa.Column('connector_name', sa.String(200), nullable=False),
+            sa.Column('action_id', sa.String(36), nullable=True),
+            sa.Column('action_name', sa.String(200), nullable=False),
+            sa.Column('conversation_id', sa.String(36), sa.ForeignKey('conversations.id'), nullable=True),
+            sa.Column('user_id', sa.String(36), sa.ForeignKey('users.id'), nullable=True),
+            sa.Column('agent_id', sa.String(36), nullable=True),
+            sa.Column('request_method', sa.String(10), nullable=False),
+            sa.Column('request_url', sa.String(1000), nullable=False),
+            sa.Column('response_status', sa.Integer, nullable=True),
+            sa.Column('response_time_ms', sa.Integer, nullable=True),
+            sa.Column('success', sa.Boolean, nullable=False),
+            sa.Column('error_message', sa.Text, nullable=True),
+            sa.Column('created_at', sa.DateTime, nullable=True),
+            sa.Column('updated_at', sa.DateTime, nullable=True),
+        )
+    if not index_exists(bind, "connector_call_logs", "ix_connector_call_logs_connector_id"):
+        op.create_index('ix_connector_call_logs_connector_id', 'connector_call_logs', ['connector_id'])
+    if not index_exists(bind, "connector_call_logs", "ix_connector_call_logs_conversation_id"):
+        op.create_index('ix_connector_call_logs_conversation_id', 'connector_call_logs', ['conversation_id'])
+    if not index_exists(bind, "connector_call_logs", "ix_connector_call_logs_user_id"):
+        op.create_index('ix_connector_call_logs_user_id', 'connector_call_logs', ['user_id'])
+    if not index_exists(bind, "connector_call_logs", "ix_connector_call_logs_created_at"):
+        op.create_index('ix_connector_call_logs_created_at', 'connector_call_logs', ['created_at'])
 
     # Backfill NULL model_name on existing conversations from their agent's model config
-    bind = op.get_bind()
     if bind.dialect.name == "sqlite":
         op.execute("""
             UPDATE conversations SET model_name = (

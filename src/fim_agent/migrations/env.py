@@ -8,14 +8,8 @@ from sqlalchemy import create_engine
 
 from fim_agent.db.base import Base
 
-# Import all models so Base.metadata knows about them
-from fim_agent.web.models import (  # noqa: F401
-    Agent,
-    Conversation,
-    Message,
-    ModelConfig,
-    User,
-)
+# Import all models so Base.metadata is fully populated for autogenerate
+import fim_agent.web.models  # noqa: F401
 
 config = context.config
 

@@ -47,6 +47,10 @@ CMD="${1:-portal}"
 # Set WORKERS=4 (or higher) when Redis is configured for cross-worker state.
 WORKERS="${WORKERS:-1}"
 
+# Run database migrations (idempotent — safe on fresh, legacy, and current DBs)
+echo "Running database migrations..."
+uv run alembic upgrade head
+
 case "$CMD" in
   portal)
     free_port 8000

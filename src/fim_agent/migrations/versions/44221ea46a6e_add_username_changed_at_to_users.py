@@ -11,6 +11,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+from fim_agent.migrations.helpers import table_has_column
+
 
 # revision identifiers, used by Alembic.
 revision: str = '44221ea46a6e'
@@ -20,7 +22,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('users', sa.Column('username_changed_at', sa.DateTime(), nullable=True))
+    bind = op.get_bind()
+    if not table_has_column(bind, "users", "username_changed_at"):
+        op.add_column('users', sa.Column('username_changed_at', sa.DateTime(), nullable=True))
 
 
 def downgrade() -> None:
