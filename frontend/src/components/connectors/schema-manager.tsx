@@ -201,6 +201,35 @@ export function SchemaManager({ connectorId }: SchemaManagerProps) {
     }
   }
 
+  // Toggle column visibility — immediate save + toast
+  const handleToggleColumnVisible = async (
+    tableId: string,
+    col: SchemaColumn,
+  ) => {
+    const newVisible = !col.is_visible
+    setTables((prev) =>
+      prev.map((tb) =>
+        tb.id === tableId
+          ? { ...tb, columns: tb.columns.map((c) => c.id === col.id ? { ...c, is_visible: newVisible } : c) }
+          : tb,
+      ),
+    )
+    try {
+      await connectorApi.updateSchemaColumn(connectorId, tableId, col.id, { is_visible: newVisible })
+      const name = col.display_name || col.column_name
+      toast.success(t(newVisible ? "columnNowVisible" : "columnNowHidden", { column: name }))
+    } catch {
+      setTables((prev) =>
+        prev.map((tb) =>
+          tb.id === tableId
+            ? { ...tb, columns: tb.columns.map((c) => c.id === col.id ? { ...c, is_visible: col.is_visible } : c) }
+            : tb,
+        ),
+      )
+      toast.error(t("connectorSaveFailed", { message: "Column visibility update failed" }))
+    }
+  }
+
   // ------- Render -------
 
   return (
@@ -473,13 +502,8 @@ export function SchemaManager({ connectorId }: SchemaManagerProps) {
                             <Switch
                               size="sm"
                               checked={col.is_visible}
-                              onCheckedChange={(checked) =>
-                                updateColumnField(
-                                  selectedTable.id,
-                                  col.id,
-                                  "is_visible",
-                                  checked,
-                                )
+                              onCheckedChange={() =>
+                                handleToggleColumnVisible(selectedTable.id, col)
                               }
                             />
                           </td>
