@@ -175,6 +175,7 @@ flowchart LR
 * 所有资源类型的发布/取消发布 API；已发布智能体的所有者委托
 * 管理员设置可见性端点 (替代克隆为全局)；统一的 `build_visibility_filter()` 查询辅助函数
 * 数据库连接器 (Phase 1-3)：直接 SQL 访问 PG/MySQL/Oracle/SQL Server + 国产数据库；表结构发现、AI 标注、只读查询执行、密码加密存储、每个连接器 3 个工具 (`list_tables`、`describe_table`、`query`)
+* **评测中心**：Agent 质量量化评测——测试数据集 CRUD（提示词 + 期望行为 + 断言），评测运行（并行执行 + LLM 评分器 + 每条用例通过/失败/延迟/Token 结果），支持自动轮询的结果查看器；迁移文件 `r8t0v2x4z567`
 
 <div id="planned-versions">
   ## 规划版本
@@ -195,6 +196,7 @@ flowchart LR
 * **消息推送**：Lark、WeCom、Slack、Email 通知动作
 * ~~**RBAC**：按用户/角色控制连接器访问权限~~ *(已在 v0.7.x 发布——组织系统 + 三级可见性)*
 * **操作审计**：详细记录谁执行了哪些操作
+* **语义 Schema 标注**：为连接器 Schema 字段扩展 `semantic_tag`（语义标签）、`description`（字段说明）和 `pii`（隐私敏感）标志；标注内容在 LLM 工具描述中透出，让 Agent 无需靠猜列名就能理解字段含义
 
 **影响**：实施工程师 (无需 Python) 可在 1-2 小时内新增连接器。工具定义的 token 成本在规模化场景下降低 93%+。
 
@@ -212,8 +214,9 @@ flowchart LR
 * **沙箱加固**：代码执行隔离的 v2 改进
 * **Docker Compose**：完整部署栈
 * **性能测试**：并发负载基准测试
+* **计划任务 (Loop)**：类 cron 的后台任务触发器；`scheduled_jobs` + `job_runs` 数据表；APScheduler 集成；任务 CRUD API + 运行历史 UI；结果通过消息推送连接器通知
 
-**影响**：让 FIM Agent 能够自信地实现大规模运行。
+**影响**：计划自动化 + 可观测性构成完整的生产级后台自动化闭环，FIM Agent 可自信地大规模运行。
 
 <div id="v10-hot-plug-embeddable">
   ### v1.0 — 热插拔 + 可嵌入式
@@ -221,13 +224,13 @@ flowchart LR
 
 **目标**：无需重启即可添加连接器，并支持可嵌入式交付。
 
-* **连接器渐进式披露 (Phase 5)**：启发式预加载 (基于 query 预测相关连接器)；Scale 模式支持批量/ETL 连接器；CLI 化统一接口 `connector <name> <action> <params>`
+* **连接器渐进式披露 (Phase 5)**：~~启发式预加载~~ → **语义引导工具选择**（从 query 中抽取业务实体 → 查询 Ontology Registry → 缩减连接器候选集；50+ 连接器部署下 token 降低 90%+）；Scale 模式支持批量/ETL 连接器；CLI 化统一接口 `connector <name> <action> <params>`
+* **跨连接器实体对齐（Ontology Registry）**：定义共享实体类型（Customer、Order、Asset）并映射各连接器字段；DAGPlanner 自动推断跨系统 JOIN key；无需硬编码字段名即可执行跨连接器查询（例如"在 Salesforce 中注册但在 Shopify 有订单的客户"）
 * **热插拔连接器**：上传 OpenAPI 规范，AI 自动生成配置，5 分钟内即可上线 (无需重启)
 * **连接器市场**：社区共享模板
 * **可嵌入式组件**：将 `<script src="fim-agent.js">` 注入宿主页面
 * **页面上下文注入**：小部件读取宿主页面上下文 (当前 ID、URL、DOM 选择器)
-* **计划任务**：类 cron 的 DAG 触发器
-* **Webhook**：入站事件触发器
+* **高级触发器**：Webhook 入站事件；计划任务增强（多时区、日历感知）
 * **批量执行**：通过 DAG 处理 1000+ 条数据
 * **管理控制台**：完整的管理界面
 * **企业级安全**：IP 白名单、静态数据加密、SSO

@@ -147,6 +147,7 @@ flowchart LR
 - Publish/unpublish API for all resource types; owner delegation for published agents
 - Admin set-visibility endpoint (replaces clone-to-global); unified `build_visibility_filter()` query helper
 - Database Connectors (Phase 1-3): direct SQL access to PG/MySQL/Oracle/SQL Server + Chinese legacy DBs; schema introspection, AI annotation, read-only query execution, encrypted credentials, 3 tools per connector (`list_tables`, `describe_table`, `query`)
+- **Evaluation Center**: quantitative agent quality benchmarking — test dataset CRUD (prompt + expected behavior + assertions), eval runs (parallel execution + LLM grader + per-case pass/fail/latency/token results), results viewer with auto-polling; migration `r8t0v2x4z567`
 
 ## Planned Versions
 
@@ -163,6 +164,7 @@ flowchart LR
 - **Message push**: Lark, WeCom, Slack, Email notification actions
 - ~~**RBAC**: per-user/role connector access control~~ *(shipped in v0.7.x — org system + three-tier visibility)*
 - **Operation audit**: detailed logging of who did what
+- **Semantic Schema Annotations**: extend connector schema fields with `semantic_tag`, `description`, and `pii` flags; annotations surfaced in LLM tool descriptions so the agent understands field intent without guessing from column names
 
 **Impact**: Implementation engineers (no Python required) can add connectors in 1-2 hours. Token cost for tool definitions drops by 93%+ at scale.
 
@@ -178,20 +180,21 @@ flowchart LR
 - **Sandbox hardening**: v2 improvements to code execution isolation
 - **Docker Compose**: full deployment stack
 - **Performance testing**: concurrent load benchmarks
+- **Scheduled jobs (Loop)**: cron-like background task triggers; `scheduled_jobs` + `job_runs` DB tables; APScheduler integration; job CRUD API + job history UI; result notification via message push connectors
 
-**Impact**: Run FIM Agent at scale with confidence.
+**Impact**: Run FIM Agent at scale with confidence — scheduled automations + observability form a complete production background-automation story.
 
 ### v1.0 — Hot-Plug + Embeddable
 
 **Goal**: Zero-restart connector addition and embedded delivery.
 
-- **Connector Progressive Disclosure (Phase 5)**: heuristic preloading (query-based connector prediction); Scale mode for batch/ETL connectors; CLI-style universal `connector <name> <action> <params>` interface
+- **Connector Progressive Disclosure (Phase 5)**: ~~heuristic preloading~~ → **Semantic-Guided Tool Selection** (entity extraction from query → Ontology Registry lookup → connector set reduction; 90%+ token reduction for 50+ connector deployments); Scale mode for batch/ETL connectors; CLI-style universal `connector <name> <action> <params>` interface
+- **Cross-Connector Entity Alignment (Ontology Registry)**: define shared entity types (Customer, Order, Asset) with field mappings across connectors; DAGPlanner auto-resolves cross-system JOIN keys; enables cross-connector queries (e.g., "customers in Salesforce who ordered in Shopify") without hardcoded field names
 - **Hot-plug connectors**: upload OpenAPI spec, AI generates config, live in 5 minutes (no restart)
 - **Connector marketplace**: community-shared templates
 - **Embeddable widget**: `<script src="fim-agent.js">` injected into host page
 - **Page context injection**: widget reads host page context (current ID, URL, DOM selectors)
-- **Scheduled jobs**: cron-like DAG triggers
-- **Webhooks**: inbound event triggers
+- **Advanced triggers**: Webhook inbound events; scheduled job enhancements (multi-timezone, calendar-aware)
 - **Batch execution**: process 1000+ items via DAG
 - **Admin dashboard**: full management UI
 - **Enterprise security**: IP whitelisting, encryption at rest, SSO

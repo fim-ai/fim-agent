@@ -15,6 +15,7 @@ description: "FIM Agent 的所有重要变更。"
   ### 新增
 </div>
 
+* **评测中心** — 门户新增 `/eval` 区块，用于对 Agent 质量进行量化评估。功能包括：测试数据集管理（创建/编辑包含提示词 + 期望行为 + 断言的测试用例集合）；评测运行（选择 Agent 和数据集 → 通过 `asyncio.Semaphore(5)` 并行执行所有用例 → 使用快速 LLM 评分器为每条回答评级 → 持久化每条用例的通过/失败、延迟、Token 消耗）；结果查看器含可展开行、通过率进度条和运行中自动轮询（3 秒）。适用于企业采购评审。迁移文件 `r8t0v2x4z567`。
 * **管理后台：`json_mode_enabled` 每模型开关** — 每个模型配置现在在 Admin → Models → 高级设置 中新增了"JSON 模式"开关（默认开启）。关闭后，可阻止 LiteLLM 注入 assistant prefill 消息（`{"role":"assistant","content":"{"}`），避免 AWS Bedrock 在 Agent 第 2 次迭代时抛出 `ValidationException`。ENV 配置的模型通过新增的 `LLM_JSON_MODE_ENABLED` 环境变量控制。所有 URL 模式启发式判断（`is_bedrock`、`is_anthropic_relay`）已完全移除，能力标志改为显式声明。包含 Alembic 迁移（`q7s9u1w3y456`）。
 * **Admin 模型表单 UX 优化** — 重构添加/编辑模型对话框：默认仅显示名称、模型名称和 API Key 三个必填项；其余所有配置（API 地址、提供商、Temperature、最大输出 Token、上下文大小、JSON 模式）折叠在"高级"开关下，减少常规场景的视觉干扰。
 * **设置页：组织标签页** — 用户可在设置页直接创建、加入和管理组织。功能包括：创建组织对话框（名称、自动生成标识符、描述、Emoji 图标）、编辑对话框（仅所有者）、成员管理抽屉（所有者/管理员/成员角色，带颜色徽章），以及行内操作（非所有者可退出，所有者可删除）。所有组织操作调用用户侧 `/api/orgs` 端点。完整 i18n 支持（中英文）。
