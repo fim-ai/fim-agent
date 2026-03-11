@@ -116,11 +116,26 @@ def _schema_table_to_response(table: DatabaseSchema) -> SchemaTableResponse:
 async def test_connection_adhoc(
     body: TestConnectionRequest,
     current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
-    """Test database connectivity with provided config (no saved connector needed)."""
+    """Test database connectivity with provided config (no saved connector needed).
+
+    When the password field is the masked sentinel ``***`` and a
+    ``connector_id`` is supplied, the real password is fetched from
+    the saved connector's encrypted config.
+    """
     from fim_agent.core.tool.connector.database.drivers import DRIVER_REGISTRY
 
     config = body.db_config.model_dump(by_alias=True)
+
+    # Resolve masked password from saved connector
+    password = config.get("password", "")
+    if password == "***" and body.connector_id:
+        connector = await db.get(Connector, body.connector_id)
+        if connector and connector.db_config:
+            real_config = decrypt_db_config(connector.db_config)
+            config["password"] = real_config.get("password", "")
+
     driver_name = config.get("driver", "postgresql")
     driver_cls = DRIVER_REGISTRY.get(driver_name)
     if not driver_cls:

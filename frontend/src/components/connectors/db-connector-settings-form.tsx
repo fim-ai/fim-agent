@@ -173,8 +173,9 @@ export function DbConnectorSettingsForm({
         schema: dbSchema || undefined,
         ssl, read_only: readOnly, max_rows: maxRows, query_timeout: queryTimeout,
       }
-      // Always use ad-hoc endpoint with current form values
-      const result = await connectorApi.testConnectionAdhoc(dbConfig)
+      // Always use ad-hoc endpoint with current form values.
+      // Pass connector_id so backend can resolve masked "***" password.
+      const result = await connectorApi.testConnectionAdhoc(dbConfig, connector?.id)
       setTestResult(result)
       if (result.success) {
         toast.success(t("connectionSuccess"))

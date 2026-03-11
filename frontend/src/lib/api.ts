@@ -723,10 +723,16 @@ export const connectorApi = {
       { method: "POST" },
     ).then((r) => r.data),
 
-  testConnectionAdhoc: (dbConfig: Record<string, unknown>) =>
+  testConnectionAdhoc: (dbConfig: Record<string, unknown>, connectorId?: string) =>
     apiFetch<ApiResponse<TestConnectionResponse>>(
       `/api/connectors/test-connection`,
-      { method: "POST", body: JSON.stringify({ db_config: dbConfig }) },
+      {
+        method: "POST",
+        body: JSON.stringify({
+          db_config: dbConfig,
+          ...(connectorId && { connector_id: connectorId }),
+        }),
+      },
     ).then((r) => r.data),
 
   introspect: (connectorId: string) =>

@@ -45,9 +45,15 @@ class DbConnectorCreate(BaseModel):
 
 
 class TestConnectionRequest(BaseModel):
-    """Request body for ad-hoc connection test (no saved connector needed)."""
+    """Request body for ad-hoc connection test (no saved connector needed).
+
+    If ``connector_id`` is provided and the password is the masked
+    sentinel ``***``, the real password is looked up from the saved
+    connector's encrypted config.
+    """
 
     db_config: DbConnectionConfig
+    connector_id: str | None = None
 
 
 class TestConnectionResponse(BaseModel):
