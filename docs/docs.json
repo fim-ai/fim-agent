@@ -40,6 +40,13 @@
                   "concepts/execution-modes",
                   "concepts/ai-builder"
                 ]
+              },
+              {
+                "group": "Extending FIM Agent",
+                "icon": "plug",
+                "pages": [
+                  "extension-guide"
+                ]
               }
             ]
           },
@@ -62,7 +69,8 @@
                 "icon": "gears",
                 "pages": [
                   "architecture/react-engine",
-                  "architecture/dag-engine"
+                  "architecture/dag-engine",
+                  "architecture/llm-provider-guide"
                 ]
               },
               {
@@ -127,6 +135,13 @@
                   "zh/concepts/execution-modes",
                   "zh/concepts/ai-builder"
                 ]
+              },
+              {
+                "group": "扩展 FIM Agent",
+                "icon": "plug",
+                "pages": [
+                  "zh/extension-guide"
+                ]
               }
             ]
           },
@@ -149,7 +164,8 @@
                 "icon": "gears",
                 "pages": [
                   "zh/architecture/react-engine",
-                  "zh/architecture/dag-engine"
+                  "zh/architecture/dag-engine",
+                  "zh/architecture/llm-provider-guide"
                 ]
               },
               {
