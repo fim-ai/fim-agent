@@ -1,0 +1,183 @@
+---
+title: "Evaluation Center"
+description: "Quantitatively benchmark your agents with test datasets and automated LLM grading."
+---
+
+The Evaluation Center lets you verify agent quality **before** deploying to production. Create a dataset of test cases, run them against any published agent, and get a quantitative report with per-case pass/fail verdicts, latency, and token usage.
+
+<Info>
+Designed for enterprise procurement review — every result is auditable, reproducible, and stored persistently.
+</Info>
+
+## How It Works
+
+Each evaluation run executes a **three-stage pipeline** for every test case:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Stage 1 — Agent Execution                               │
+│                                                          │
+│  A real ReActAgent runs the test case prompt.             │
+│  Same engine as chat: same model, same tools, same       │
+│  instructions. No mocking, no shortcuts.                 │
+│                                                          │
+│  → Produces: answer, latency, token usage                │
+├──────────────────────────────────────────────────────────┤
+│  Stage 2 — LLM Grading                                   │
+│                                                          │
+│  A separate "grader" LLM (fast model) judges the answer  │
+│  against the expected behavior and assertions.            │
+│                                                          │
+│  Input:  prompt + expected_behavior + assertions + answer │
+│  Output: { verdict: "pass"|"fail", reasoning: "..." }    │
+├──────────────────────────────────────────────────────────┤
+│  Stage 3 — Persist & Aggregate                           │
+│                                                          │
+│  Each case result is saved to the database.               │
+│  After all cases finish: pass rate, avg latency,          │
+│  total tokens are computed and attached to the run.       │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+| Decision | Why |
+|----------|-----|
+| **Real ReActAgent** (not mock) | Tests actual agent behavior, including tool calls and multi-step reasoning |
+| **Separate grader LLM** (fast model) | Cheap and fast; the agent LLM already consumed tokens during execution |
+| **`asyncio.Semaphore(5)`** | Caps concurrency at 5 to avoid flooding the LLM provider with rate-limit errors |
+| **Each case is independent** | No conversation history between cases; each gets a fresh agent instance |
+| **Background execution** | The run fires as an async task — the API returns immediately, frontend polls every 3 seconds |
+
+## Workflow
+
+### 1. Create a Dataset
+
+Navigate to **Eval Center → Datasets** tab and click **New Dataset**.
+
+A dataset is a named collection of test cases. Give it a descriptive name (e.g., "Customer Support — Tier 1 Questions") and an optional description.
+
+### 2. Add Test Cases
+
+Click into your dataset and add test cases. Each case has three fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| **Prompt** | Yes | The exact question or instruction sent to the agent |
+| **Expected Behavior** | Yes | A natural-language description of what a correct answer looks like |
+| **Assertions** | No | A list of specific checks (e.g., "Answer mentions the refund policy", "Response is under 200 words") |
+
+<Tip>
+**Writing good test cases:**
+- **Prompt**: Be specific. "What is our refund policy for enterprise plans?" is better than "Tell me about refunds."
+- **Expected Behavior**: Describe the *outcome*, not the exact wording. "Explains the 30-day refund window and mentions the exception for annual plans."
+- **Assertions**: Use these for hard requirements. The grader will explicitly verify each assertion.
+</Tip>
+
+### 3. Start an Evaluation
+
+Go to the **Eval Runs** tab and click **New Evaluation**. Select:
+
+1. **Agent** — any agent you own
+2. **Dataset** — any dataset with at least one test case
+
+Click **Start Evaluation**. You'll be redirected to the results page.
+
+### 4. Read Results
+
+The results page shows:
+
+- **Header**: Agent name, dataset name, status badge, pass rate, avg latency, total tokens
+- **Progress bar**: Fills up as cases complete (green = pass proportion)
+- **Results table**: One row per test case with:
+  - Prompt (truncated — click to expand)
+  - Verdict: **Pass** (green), **Fail** (red), or **Error** (orange)
+  - Agent's answer (truncated — click to expand)
+  - Grader's reasoning (why it passed or failed)
+  - Latency (ms) and token count
+
+<Warning>
+While a run is in progress (`pending` or `running` status), the page auto-refreshes every 3 seconds. Do not navigate away if you want to see results appear in real time.
+</Warning>
+
+## What Gets Tested
+
+### Included
+- **Builtin tools**: calculator, web_search, web_fetch, python_exec, file_ops, etc.
+- **Agent instructions**: The agent's `extra_instructions` field is passed through
+- **Agent's configured model**: If the agent has a custom model config, that model is used
+
+### Not Included (by design)
+- **Connectors**: External HTTP connectors require live third-party services — skipped in eval to avoid flaky tests
+- **MCP servers**: Same reason — external process dependencies
+- **Conversation history**: Each case runs in isolation with no prior context
+- **Knowledge bases**: KB retrieval tools are not loaded in eval mode
+
+<Info>
+This means eval results reflect the agent's **reasoning and tool-use ability**, not its integration with external services. Test connectors separately via the Connector Test feature.
+</Info>
+
+## The Grader
+
+The grader is an LLM (the system's "fast" model) that receives four pieces of information and returns a structured JSON verdict:
+
+**System prompt:**
+> You are an impartial AI evaluator. Your job is to judge whether an AI agent's answer meets the expected behavior for a given prompt.
+>
+> Be strict but fair. A "pass" requires the answer to genuinely address the prompt according to the expected behavior. A "fail" means the answer is wrong, incomplete, off-topic, or misses key requirements.
+
+**User message includes:**
+1. The original prompt
+2. The expected behavior
+3. The list of assertions (or "None specified")
+4. The agent's actual answer
+
+**Output schema:**
+```json
+{
+  "verdict": "pass" | "fail",
+  "reasoning": "Explanation of why the answer passes or fails..."
+}
+```
+
+The grader uses `structured_llm_call` with function calling to enforce the schema. If the grader itself fails (network error, malformed response), the case is marked as `error`.
+
+## Best Practices
+
+### Dataset Design
+- **Start small**: 5–10 cases covering the agent's core use cases
+- **Cover edge cases**: Include at least 2–3 adversarial or out-of-scope prompts
+- **Be specific in expected behavior**: Vague expectations lead to inconsistent grading
+- **Use assertions for hard requirements**: "Must mention price" is more reliable than hoping the grader catches it
+
+### Interpreting Results
+- **80%+ pass rate** is a good baseline for a well-configured agent
+- **Low pass rate with high latency** suggests the agent is struggling with multi-step reasoning
+- **Error status** means the agent or grader crashed — check server logs for details
+- **Grader disagreements**: If you think the grader is wrong, read its reasoning. You may need to refine your expected behavior description
+
+### When to Re-evaluate
+- After changing agent instructions
+- After switching the agent's LLM model
+- After adding or removing tool categories
+- Before any production deployment (CI/CD integration coming in a future release)
+
+## API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/eval/datasets` | Create dataset |
+| `GET` | `/api/eval/datasets` | List datasets (paginated) |
+| `GET` | `/api/eval/datasets/{id}` | Get dataset |
+| `PUT` | `/api/eval/datasets/{id}` | Update dataset |
+| `DELETE` | `/api/eval/datasets/{id}` | Delete dataset (cascades cases) |
+| `POST` | `/api/eval/datasets/{id}/cases` | Add test case |
+| `GET` | `/api/eval/datasets/{id}/cases` | List cases (paginated) |
+| `PUT` | `/api/eval/datasets/{id}/cases/{caseId}` | Update case |
+| `DELETE` | `/api/eval/datasets/{id}/cases/{caseId}` | Delete case |
+| `POST` | `/api/eval/runs` | Start evaluation run |
+| `GET` | `/api/eval/runs` | List runs (paginated) |
+| `GET` | `/api/eval/runs/{id}` | Get run + all case results |
+| `DELETE` | `/api/eval/runs/{id}` | Delete run (cascades results) |
+
+All endpoints require JWT authentication (`Authorization: Bearer <token>`).

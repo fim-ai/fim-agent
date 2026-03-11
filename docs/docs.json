@@ -38,7 +38,8 @@
                 "icon": "puzzle-piece",
                 "pages": [
                   "concepts/execution-modes",
-                  "concepts/ai-builder"
+                  "concepts/ai-builder",
+                  "concepts/eval-center"
                 ]
               },
               {
@@ -133,7 +134,8 @@
                 "icon": "puzzle-piece",
                 "pages": [
                   "zh/concepts/execution-modes",
-                  "zh/concepts/ai-builder"
+                  "zh/concepts/ai-builder",
+                  "zh/concepts/eval-center"
                 ]
               },
               {
