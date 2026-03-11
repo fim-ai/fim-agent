@@ -15,6 +15,8 @@ description: "FIM Agent 的所有重要变更。"
   ### 新增
 </div>
 
+* **管理后台：`json_mode_enabled` 每模型开关** — 每个模型配置现在在 Admin → Models → 高级设置 中新增了"JSON 模式"开关（默认开启）。关闭后，可阻止 LiteLLM 注入 assistant prefill 消息（`{"role":"assistant","content":"{"}`），避免 AWS Bedrock 在 Agent 第 2 次迭代时抛出 `ValidationException`。ENV 配置的模型通过新增的 `LLM_JSON_MODE_ENABLED` 环境变量控制。所有 URL 模式启发式判断（`is_bedrock`、`is_anthropic_relay`）已完全移除，能力标志改为显式声明。包含 Alembic 迁移（`q7s9u1w3y456`）。
+* **Admin 模型表单 UX 优化** — 重构添加/编辑模型对话框：默认仅显示名称、模型名称和 API Key 三个必填项；其余所有配置（API 地址、提供商、Temperature、最大输出 Token、上下文大小、JSON 模式）折叠在"高级"开关下，减少常规场景的视觉干扰。
 * **设置页：组织标签页** — 用户可在设置页直接创建、加入和管理组织。功能包括：创建组织对话框（名称、自动生成标识符、描述、Emoji 图标）、编辑对话框（仅所有者）、成员管理抽屉（所有者/管理员/成员角色，带颜色徽章），以及行内操作（非所有者可退出，所有者可删除）。所有组织操作调用用户侧 `/api/orgs` 端点。完整 i18n 支持（中英文）。
 * **SSE 协议 v2 — 实时回答流式传输**：后端 `StreamChunk` 新增 `delta_reasoning` 和 `usage` 字段；LLM 请求包含用量追踪；ReAct `_run_native()` 现在通过 `stream_chat` 进行流式传输。SSE 协议在回答后立即发送 `done`，随后将 `suggestions`、`title` 和 `end` 作为独立事件发送。LLM 执行期间提前释放 DB 会话。SQLite 连接池大小从 5 提升至 20
 * **AI Builder 扩展 — 7 个新工具 + `is_builder` 标志**：三个新连接器构建器工具（`GetSettings`、`TestConnection`、`ImportOpenAPI`）和四个新智能体构建器工具（`ListConnectors`、`AddConnector`、`RemoveConnector`、`SetModel`）。智能体新增 `is_builder` 布尔字段及 Alembic 迁移。构建器提示词在会话创建时自动刷新。OpenAPI 导入新增 SSRF 防护
