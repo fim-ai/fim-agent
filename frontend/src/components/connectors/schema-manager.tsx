@@ -284,7 +284,7 @@ export function SchemaManager({ connectorId }: SchemaManagerProps) {
             <p className="text-sm text-muted-foreground">{t("selectTable")}</p>
           </div>
         ) : (
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-4 space-y-4">
               {/* Table header */}
               <div className="flex items-start justify-between gap-3">
