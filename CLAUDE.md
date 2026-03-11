@@ -89,6 +89,8 @@ Dev uses SQLite, production uses PostgreSQL. One set of migration files must wor
 - **Timestamps**: `server_default=sa.text('(CURRENT_TIMESTAMP)')` works on both.
 - **JSON operators**: SQLite uses `json_extract(col, '$.key')`, PG uses `col::json->>'key'`. When writing data migrations with JSON, check `bind.dialect.name` (see `b2d4e6f8a901` for reference).
 - **ORM model `server_default`**: same rule — use `"FALSE"` / `"TRUE"` for Boolean columns in model definitions, so future auto-generated migrations inherit correct defaults.
+- **SQLite ALTER COLUMN**: SQLite cannot `ALTER COLUMN` — use `op.batch_alter_table()` to modify column constraints (e.g., nullable). Always test both dialects.
+- **Auto-apply after creation**: After writing a migration file (in the main worktree, NOT in agent worktrees), **immediately run `uv run alembic upgrade head`** to apply it. Never leave migrations unapplied — it causes runtime errors that look unrelated.
 
 ## Code Conventions
 
