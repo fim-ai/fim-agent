@@ -157,8 +157,13 @@ export function AgentAIPanel({
         ...prev,
         { role: "assistant", content: summary },
       ])
-      toast.success(t("aiModifiedSuccess"))
-      onAgentUpdated(result.agent)
+      const hasChanges = result.modified_fields && result.modified_fields.length > 0
+      if (hasChanges) {
+        toast.success(t("aiModifiedSuccess"))
+        onAgentUpdated(result.agent)
+      } else {
+        toast.info(t("ai_no_changes"))
+      }
     } catch (err) {
       const errorMsg =
         err instanceof ApiError

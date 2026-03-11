@@ -315,6 +315,10 @@ async def ai_refine_agent(
         if field == "name" and isinstance(value, str):
             value = value[:200]
 
+        old_value = getattr(agent, field, None)
+        if old_value == value:
+            continue
+
         setattr(agent, field, value)
         modified_fields.append(field)
 
