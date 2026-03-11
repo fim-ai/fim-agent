@@ -2189,6 +2189,7 @@ class AdminModelCreate(BaseModel):
     context_size: int | None = None
     role: str | None = None
     is_active: bool = True
+    json_mode_enabled: bool = True
 
 
 class AdminModelUpdate(BaseModel):
@@ -2203,6 +2204,7 @@ class AdminModelUpdate(BaseModel):
     context_size: int | None = None
     role: str | None = None
     is_active: bool | None = None
+    json_mode_enabled: bool | None = None
 
 
 class AdminToggleActiveModelRequest(BaseModel):
@@ -2245,6 +2247,7 @@ def _model_config_to_response(cfg: ModelConfig) -> ModelConfigResponse:
         role=getattr(cfg, "role", None),
         is_default=cfg.is_default,
         is_active=cfg.is_active,
+        json_mode_enabled=getattr(cfg, "json_mode_enabled", True),
         created_at=cfg.created_at.isoformat() if cfg.created_at else "",
         updated_at=cfg.updated_at.isoformat() if cfg.updated_at else None,
     )
@@ -2338,6 +2341,7 @@ async def admin_create_model(
         context_size=body.context_size,
         role=body.role,
         is_active=body.is_active,
+        json_mode_enabled=body.json_mode_enabled,
     )
     db.add(cfg)
     await db.commit()

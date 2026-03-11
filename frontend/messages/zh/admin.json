@@ -1,6 +1,5 @@
 {
   "panelTitle": "管理后台",
-
   "tabs": {
     "overview": "概览",
     "health": "配置预览",
@@ -21,7 +20,6 @@
     "analytics": "数据分析",
     "settings": "设置"
   },
-
   "overview": {
     "title": "概览",
     "subtitle": "全平台使用统计与活动概况。",
@@ -57,7 +55,6 @@
     "noTokenUsage": "暂无 Token 使用数据。",
     "chartTokens": "Tokens"
   },
-
   "health": {
     "title": "配置预览",
     "subtitle": "当前部署的集成与分析配置概览。「必须」项未配置会导致核心功能不可用；「推荐」项影响关键功能；「可选」项提供增强能力，不影响核心运行。",
@@ -92,7 +89,6 @@
       "analytics_plausible": "设置 NEXT_PUBLIC_PLAUSIBLE_DOMAIN 以启用 Plausible 统计"
     }
   },
-
   "users": {
     "title": "用户",
     "subtitle": "管理用户账户、角色与访问权限。",
@@ -117,22 +113,18 @@
     "totalUsers": "共 {count} 个用户",
     "previous": "上一页",
     "pageOf": "第 {page} 页，共 {pages} 页",
-
     "createTitle": "创建用户",
     "createDesc": "向系统添加新用户账户。",
     "password": "密码",
     "displayName": "显示名称",
     "userCreated": "用户已创建",
-
     "editTitle": "编辑用户",
     "editDesc": "更新 {username} 的个人资料。",
     "userUpdated": "用户已更新",
-
     "resetPassword": "重置密码",
     "resetPasswordDesc": "为 {username} 设置新密码。",
     "newPassword": "新密码",
     "passwordResetSuccess": "密码重置成功",
-
     "setQuota": "设置配额",
     "setQuotaTitle": "设置 Token 配额",
     "setQuotaDesc": "为 {username} 设置每月 Token 配额。",
@@ -140,28 +132,23 @@
     "quotaPlaceholder": "0 = 无限制",
     "quotaHint": "输入 0 或留空表示无限制。",
     "quotaUpdated": "Token 配额已更新",
-
     "forceLogout": "强制下线",
     "userLoggedOut": "用户已被强制下线",
-
     "revokeAdmin": "撤销管理员",
     "makeAdmin": "授予管理员",
     "disableAccount": "禁用",
     "enableAccount": "启用",
     "deleteUser": "删除",
-
     "revokeAdminTitle": "撤销管理员权限？",
     "grantAdminTitle": "授予管理员权限？",
     "revokeAdminDesc": "{username} 将失去管理员权限，变为普通用户。",
     "grantAdminDesc": "{username} 将获得系统完整的管理员权限。",
     "adminStatusUpdated": "管理员状态已更新",
-
     "disableAccountTitle": "禁用账户？",
     "enableAccountTitle": "启用账户？",
     "disableAccountDesc": "{username} 将无法登录，直到被重新启用。",
     "enableAccountDesc": "{username} 将可以重新登录。",
     "userStatusUpdated": "用户状态已更新",
-
     "deleteUserTitle": "删除用户 \"{username}\"？",
     "deleteUserDesc": "此操作不可撤销，以下数据将被永久删除：",
     "deleteUserItem1": "账户信息（个人资料、登录凭证、偏好设置）",
@@ -172,7 +159,6 @@
     "deletePermanently": "永久删除",
     "userDeleted": "用户 \"{username}\" 已删除"
   },
-
   "conversations": {
     "title": "对话",
     "subtitle": "浏览和管理所有用户的对话记录。",
@@ -206,7 +192,6 @@
     "loadingMessages": "加载消息中...",
     "close": "关闭"
   },
-
   "connectors": {
     "title": "连接器",
     "subtitle": "连接器使用分析与性能概览。",
@@ -228,7 +213,6 @@
     "callTrendDesc": "过去 14 天的每日连接器调用量。",
     "noRecentActivity": "暂无近期活动数据。"
   },
-
   "mcpServers": {
     "title": "全局 MCP",
     "subtitle": "管理对所有用户可用的全局 MCP 服务",
@@ -240,7 +224,6 @@
     "serverDeleted": "服务已删除",
     "deleteTitle": "删除服务？",
     "deleteDesc": "删除全局 MCP 服务 \"{name}\"？所有用户将无法使用其工具。",
-
     "addDialogTitle": "添加全局 MCP 服务",
     "editDialogTitle": "编辑全局 MCP 服务",
     "addDialogDesc": "配置一个对所有用户可用的新 MCP 服务。",
@@ -264,10 +247,9 @@
     "serverUpdated": "MCP 服务已更新",
     "saveFailed": "保存 MCP 服务失败"
   },
-
   "models": {
     "title": "模型管理",
-    "description": "管理系统级 LLM 配置。解析顺序：用户偏好 \u2192 管理员模型 \u2192 环境变量。",
+    "description": "管理系统级 LLM 配置。解析顺序：用户偏好 → 管理员模型 → 环境变量。",
     "addModel": "添加模型",
     "editModel": "编辑模型",
     "deleteModel": "删除模型",
@@ -311,9 +293,10 @@
     "apiKeyRequired": "新模型需要提供 API 密钥",
     "nameAndModelRequired": "名称和模型名称为必填项",
     "apiKeyRequiredForNew": "新模型需要提供 API 密钥",
-    "resolutionChain": "解析：用户偏好 \u2192 管理员模型 \u2192 环境变量"
+    "resolutionChain": "解析：用户偏好 → 管理员模型 → 环境变量",
+    "jsonModeEnabled": "JSON 模式",
+    "jsonModeEnabledDesc": "禁用后，模型不会使用 response_format=json_object。对于通过 Bedrock 中转且拒绝 assistant prefill 的端点，请关闭此选项。"
   },
-
   "tools": {
     "title": "内置工具",
     "subtitle": "全局启用或禁用内置工具。",
@@ -322,7 +305,6 @@
     "toolEnabled": "工具已启用",
     "toolDisabled": "工具已禁用"
   },
-
   "audit": {
     "title": "审计日志",
     "subtitle": "记录系统关键操作以便追溯。",
@@ -395,7 +377,6 @@
     "exportError": "导出审计日志失败",
     "noResults": "没有符合当前筛选条件的审计日志"
   },
-
   "storage": {
     "title": "存储",
     "subtitle": "管理用户上传的文件。",
@@ -421,12 +402,10 @@
     "download": "下载",
     "downloading": "下载中..."
   },
-
   "settings": {
     "title": "设置",
     "subtitle": "影响所有用户的全局配置。",
     "loadingSettings": "加载设置中...",
-
     "registrationTitle": "用户注册",
     "registrationDesc": "控制新用户的注册方式。",
     "registrationMode": "注册模式",
@@ -439,16 +418,13 @@
     "registrationOpenToast": "注册已对所有人开放",
     "registrationInviteToast": "注册已设为仅限邀请",
     "registrationDisabledToast": "注册已关闭",
-
     "emailVerificationToggle": "邮箱验证",
     "emailVerificationDesc": "要求新用户在完成注册前通过 6 位验证码验证邮箱。需要先配置 SMTP。",
     "emailVerificationEnabled": "邮箱验证已开启",
     "emailVerificationDisabled": "邮箱验证已关闭",
-
     "tokenQuotaTitle": "默认每月 Token 配额",
     "tokenQuotaDesc": "适用于未设置个人配额的用户。0 表示无限制。",
     "tokenQuotaSaved": "默认 Token 配额已保存",
-
     "announcementTitle": "系统公告",
     "announcementDesc": "在所有页面顶部向用户展示横幅消息。",
     "announcementToggle": "显示公告横幅",
@@ -457,7 +433,6 @@
     "announcementEnabled": "公告横幅已启用",
     "announcementDisabled": "公告横幅已禁用",
     "announcementSaved": "公告内容已保存",
-
     "maintenanceTitle": "维护模式",
     "maintenanceDesc": "阻止所有非管理员访问。管理员仍可登录并管理系统。",
     "maintenanceToggle": "启用维护模式",
@@ -465,7 +440,6 @@
     "maintenanceOffDesc": "系统正常运行中。",
     "maintenanceOn": "维护模式已开启——用户被阻止访问",
     "maintenanceOff": "维护模式已关闭——系统已恢复",
-
     "dangerZone": "危险操作",
     "dangerZoneDesc": "不可逆或高影响的操作。",
     "forceLogoutAll": "强制登出所有用户",
@@ -475,7 +449,6 @@
     "forceLogoutDesc": "这将立即使所有活跃会话失效。所有用户都需要重新登录。您自己的会话不受影响。",
     "yesForceLogout": "确认，强制登出",
     "loggedOutSessions": "已登出 {count} 个活跃会话",
-
     "inviteCodes": "邀请码",
     "hideInactive": "隐藏失效的",
     "inactiveCount": "{count} 个已失效",
@@ -501,7 +474,6 @@
     "smtpRequired": "SMTP 未配置。请先配置 SMTP 才能使用此功能。",
     "smtpLostWhileEnabled": "SMTP 已不可用，邮箱验证已自动跳过。请关闭此开关或重新配置 SMTP。"
   },
-
   "security": {
     "title": "安全",
     "subtitle": "登录历史、活跃会话和 IP 访问规则。",
@@ -537,7 +509,6 @@
     "pageOf": "第 {page} 页，共 {pages} 页",
     "totalRecords": "共 {count} 条记录"
   },
-
   "apiKeys": {
     "title": "API 密钥",
     "subtitle": "管理 API 密钥以支持编程访问。",
@@ -580,7 +551,6 @@
     "comingSoonTitle": "功能开发中",
     "comingSoonDesc": "API 密钥认证功能正在开发中。目前仅支持密钥的创建和管理，尚不能用于 API 请求认证。权限范围校验、请求频率限制、用户自助管理等功能后续推出。"
   },
-
   "resources": {
     "title": "资源管理",
     "subtitle": "管理所有用户的智能体和知识库。",
@@ -620,7 +590,6 @@
     "adminNoticeTitle": "管理员总览",
     "adminNoticeDesc": "跨用户查看所有智能体和知识库（只读）。工具和知识库绑定以数量显示。如需编辑详情，请前往对应用户的管理页面。"
   },
-
   "content": {
     "title": "内容审核",
     "subtitle": "管理敏感词及内容审核规则。",
@@ -656,7 +625,6 @@
     "colActive": "状态",
     "wordToggled": "敏感词已更新"
   },
-
   "analytics": {
     "title": "数据分析",
     "subtitle": "用量分析、数据导出和公告管理。",
@@ -710,7 +678,6 @@
     "colActive": "状态",
     "colSchedule": "计划时间"
   },
-
   "globalAgents": {
     "title": "全局智能体",
     "subtitle": "管理对所有用户可用的全局智能体",
@@ -746,7 +713,6 @@
     "instructions": "指令",
     "instructionsPlaceholder": "智能体的系统提示词..."
   },
-
   "mcpClone": {
     "publishFromUser": "发布全局 MCP",
     "selectMcp": "选择要发布的 MCP 服务",

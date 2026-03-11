@@ -67,6 +67,7 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `FAST_LLM_MAX_OUTPUT_TOKENS` | 否 | *(回退到 `LLM_MAX_OUTPUT_TOKENS`)* | 快速 LLM 每次调用的最大输出令牌数 |
 | `LLM_REASONING_EFFORT` | 否 | *(禁用)* | 支持扩展思考的模型（OpenAI o 系列、Gemini 2.5+、Claude）的推理强度。可选值：`low`、`medium`、`high`。LiteLLM 会自动将此参数转换为各提供商的原生格式。模型的思维链将在 UI 的"思考中"步骤中显示。 |
 | `LLM_REASONING_BUDGET_TOKENS` | 否 | *(根据 effort 自动计算)* | Anthropic thinking 的显式 token 预算（最小 1024）。OpenAI/Gemini 直接使用 effort 级别。仅在设置了 `LLM_REASONING_EFFORT` 时生效。 |
+| `LLM_JSON_MODE_ENABLED` | 否 | `true` | 设为 `false` 可为 ENV 配置的模型禁用 `response_format=json_object`。当使用以 AWS Bedrock 为后端的第三方中转时必须关闭（新版 Bedrock 拒绝 LiteLLM 的 assistant prefill 注入，会在 Agent 第 2 次迭代时抛出 `ValidationException`）。DB 配置的模型可在 Admin → Models → 高级设置中单独覆盖此项。 |
 
 > **解析顺序**：用户偏好 → 管理员模型（DB）→ ENV 回退。如果在 Admin → Models 中配置了角色为 "General" 的管理员模型，则这些 ENV 变量仅作为回退项。健康检查会同时考虑这两种来源。
 

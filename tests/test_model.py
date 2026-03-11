@@ -271,6 +271,54 @@ class TestOpenAICompatibleLLMInit:
         assert abilities["vision"] is True
         assert abilities["streaming"] is True
 
+    def test_abilities_tool_call_false_when_anthropic_thinking(self) -> None:
+        """Anthropic + thinking active → tool_call=False to avoid forced-tool_choice 400."""
+        llm = OpenAICompatibleLLM(
+            api_key="sk-test",
+            base_url="https://api.anthropic.com/v1/",
+            model="claude-sonnet-4-6",
+            reasoning_effort="high",
+        )
+        assert llm.abilities["tool_call"] is False
+
+    def test_abilities_tool_call_false_when_anthropic_budget_tokens(self) -> None:
+        llm = OpenAICompatibleLLM(
+            api_key="sk-test",
+            base_url="https://api.anthropic.com/v1/",
+            model="claude-sonnet-4-6",
+            reasoning_effort="high",
+            reasoning_budget_tokens=8192,
+        )
+        assert llm.abilities["tool_call"] is False
+
+    def test_abilities_tool_call_true_for_non_thinking_anthropic(self) -> None:
+        """Anthropic without thinking still supports tool_call."""
+        llm = OpenAICompatibleLLM(
+            api_key="sk-test",
+            base_url="https://api.anthropic.com/v1/",
+            model="claude-sonnet-4-6",
+        )
+        assert llm.abilities["tool_call"] is True
+
+    def test_abilities_json_mode_disabled_explicitly(self) -> None:
+        """json_mode_enabled=False disables json_mode regardless of model/URL."""
+        llm = OpenAICompatibleLLM(
+            api_key="sk-test",
+            base_url="https://relay.example.com/v1",
+            model="claude-sonnet-4-6",
+            json_mode_enabled=False,
+        )
+        assert llm.abilities["json_mode"] is False
+
+    def test_abilities_json_mode_enabled_by_default(self) -> None:
+        """json_mode_enabled defaults to True — no behavioral change for most models."""
+        llm = OpenAICompatibleLLM(
+            api_key="sk-test",
+            base_url="https://relay.example.com/v1",
+            model="claude-sonnet-4-6",
+        )
+        assert llm.abilities["json_mode"] is True
+
     def test_default_config_values(self) -> None:
         """Verify factory defaults when no optional kwargs are provided."""
         llm = OpenAICompatibleLLM(
@@ -447,8 +495,8 @@ class TestBuildRequestKwargs:
         )
         assert kwargs["reasoning_effort"] == "high"
         assert "thinking" not in kwargs
-        # Temperature is NOT overridden — user must set LLM_TEMPERATURE=1
-        assert kwargs["temperature"] == 0.7
+        # Bedrock/Anthropic thinking requires temperature=1.0 — auto-forced
+        assert kwargs["temperature"] == 1.0
 
     def test_reasoning_budget_anthropic_explicit_thinking(self) -> None:
         """Explicit budget override → pass thinking directly, preserve user temperature."""
@@ -465,8 +513,8 @@ class TestBuildRequestKwargs:
         )
         assert kwargs["thinking"] == {"type": "enabled", "budget_tokens": 8192}
         assert "reasoning_effort" not in kwargs
-        # Temperature is NOT overridden — user must set LLM_TEMPERATURE=1
-        assert kwargs["temperature"] == 0.7
+        # Bedrock/Anthropic thinking requires temperature=1.0 — auto-forced
+        assert kwargs["temperature"] == 1.0
 
     def test_reasoning_effort_openai_keeps_temperature(self) -> None:
         """OpenAI: reasoning_effort does NOT force temperature=1."""

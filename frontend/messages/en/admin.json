@@ -1,6 +1,5 @@
 {
   "panelTitle": "Admin Panel",
-
   "tabs": {
     "overview": "Overview",
     "health": "Configuration",
@@ -21,7 +20,6 @@
     "analytics": "Analytics",
     "settings": "Settings"
   },
-
   "overview": {
     "title": "Overview",
     "subtitle": "Platform-wide usage statistics and activity.",
@@ -57,7 +55,6 @@
     "noTokenUsage": "No token usage data yet.",
     "chartTokens": "Tokens"
   },
-
   "health": {
     "title": "Configuration Preview",
     "subtitle": "A snapshot of your deployment's integration and analytics setup. Required items must be configured for core features to work. Recommended and Optional items enhance capabilities.",
@@ -89,7 +86,6 @@
       "redis": "Without Redis, mid-stream interrupt/inject does not work across workers (WORKERS>1)"
     }
   },
-
   "users": {
     "title": "Users",
     "subtitle": "Manage user accounts, roles, and access control.",
@@ -114,22 +110,18 @@
     "totalUsers": "{count, plural, one {# user} other {# users}} total",
     "previous": "Previous",
     "pageOf": "Page {page} of {pages}",
-
     "createTitle": "Create User",
     "createDesc": "Add a new user account to the system.",
     "password": "Password",
     "displayName": "Display Name",
     "userCreated": "User created",
-
     "editTitle": "Edit User",
     "editDesc": "Update profile information for {username}.",
     "userUpdated": "User updated",
-
     "resetPassword": "Reset Password",
     "resetPasswordDesc": "Set a new password for {username}.",
     "newPassword": "New Password",
     "passwordResetSuccess": "Password reset successfully",
-
     "setQuota": "Set Quota",
     "setQuotaTitle": "Set Token Quota",
     "setQuotaDesc": "Set a monthly token quota for {username}.",
@@ -137,28 +129,23 @@
     "quotaPlaceholder": "0 = unlimited",
     "quotaHint": "Enter 0 or leave empty for unlimited usage.",
     "quotaUpdated": "Token quota updated",
-
     "forceLogout": "Force Logout",
     "userLoggedOut": "User logged out",
-
     "revokeAdmin": "Revoke Admin",
     "makeAdmin": "Make Admin",
     "disableAccount": "Disable",
     "enableAccount": "Enable",
     "deleteUser": "Delete",
-
     "revokeAdminTitle": "Revoke admin privileges?",
     "grantAdminTitle": "Grant admin privileges?",
     "revokeAdminDesc": "{username} will lose admin access and become a regular user.",
     "grantAdminDesc": "{username} will gain full admin access to the system.",
     "adminStatusUpdated": "Admin status updated",
-
     "disableAccountTitle": "Disable account?",
     "enableAccountTitle": "Enable account?",
     "disableAccountDesc": "{username} will be unable to log in until re-enabled.",
     "enableAccountDesc": "{username} will be able to log in again.",
     "userStatusUpdated": "User status updated",
-
     "deleteUserTitle": "Delete user \"{username}\"?",
     "deleteUserDesc": "This action cannot be undone. The following data will be permanently deleted:",
     "deleteUserItem1": "Account information (profile, credentials, settings)",
@@ -169,7 +156,6 @@
     "deletePermanently": "Delete Permanently",
     "userDeleted": "User \"{username}\" deleted"
   },
-
   "conversations": {
     "title": "Conversations",
     "subtitle": "Browse and moderate all user conversations.",
@@ -203,7 +189,6 @@
     "loadingMessages": "Loading messages...",
     "close": "Close"
   },
-
   "connectors": {
     "title": "Connectors",
     "subtitle": "Connector usage analytics and performance overview.",
@@ -225,7 +210,6 @@
     "callTrendDesc": "Daily connector call volume over the last 14 days.",
     "noRecentActivity": "No recent activity yet."
   },
-
   "mcpServers": {
     "title": "Global MCP",
     "subtitle": "Manage globally available MCP servers for all users",
@@ -237,7 +221,6 @@
     "serverDeleted": "Server deleted",
     "deleteTitle": "Delete server?",
     "deleteDesc": "Delete global MCP server \"{name}\"? All users will lose access to its tools.",
-
     "addDialogTitle": "Add Global MCP Server",
     "editDialogTitle": "Edit Global MCP Server",
     "addDialogDesc": "Configure a new global MCP server available to all users.",
@@ -261,10 +244,9 @@
     "serverUpdated": "MCP server updated",
     "saveFailed": "Failed to save MCP server"
   },
-
   "models": {
     "title": "Model Management",
-    "description": "Manage system-level LLM configurations. Resolution order: User Preference \u2192 Admin Models \u2192 ENV Fallback.",
+    "description": "Manage system-level LLM configurations. Resolution order: User Preference → Admin Models → ENV Fallback.",
     "addModel": "Add Model",
     "editModel": "Edit Model",
     "deleteModel": "Delete Model",
@@ -308,9 +290,10 @@
     "apiKeyRequired": "API key is required for new models",
     "nameAndModelRequired": "Name and model name are required",
     "apiKeyRequiredForNew": "API key is required for new models",
-    "resolutionChain": "Resolution: User Preference \u2192 Admin Models \u2192 ENV Fallback"
+    "resolutionChain": "Resolution: User Preference → Admin Models → ENV Fallback",
+    "jsonModeEnabled": "JSON Mode",
+    "jsonModeEnabledDesc": "When disabled, the model will not use response_format=json_object. Turn off for Bedrock-backed relay endpoints that reject assistant prefill."
   },
-
   "tools": {
     "title": "Built-in Tools",
     "subtitle": "Enable or disable built-in tools globally.",
@@ -319,7 +302,6 @@
     "toolEnabled": "Tool enabled",
     "toolDisabled": "Tool disabled"
   },
-
   "audit": {
     "title": "Audit Log",
     "subtitle": "System actions recorded for accountability.",
@@ -392,7 +374,6 @@
     "exportError": "Failed to export audit log",
     "noResults": "No audit log entries match the current filters"
   },
-
   "storage": {
     "title": "Storage",
     "subtitle": "Manage user file uploads.",
@@ -418,12 +399,10 @@
     "download": "Download",
     "downloading": "Downloading..."
   },
-
   "settings": {
     "title": "Settings",
     "subtitle": "Global configuration that affects all users.",
     "loadingSettings": "Loading settings...",
-
     "registrationTitle": "User Registration",
     "registrationDesc": "Control how new users can join the system.",
     "registrationMode": "Registration Mode",
@@ -436,16 +415,13 @@
     "registrationOpenToast": "Registration open to everyone",
     "registrationInviteToast": "Registration set to invite-only",
     "registrationDisabledToast": "Registration disabled",
-
     "emailVerificationToggle": "Email Verification",
     "emailVerificationDesc": "Require new users to verify their email with a 6-digit code before completing registration. Requires SMTP to be configured.",
     "emailVerificationEnabled": "Email verification enabled",
     "emailVerificationDisabled": "Email verification disabled",
-
     "tokenQuotaTitle": "Default Monthly Token Quota",
     "tokenQuotaDesc": "Applied to users without a personal quota. 0 means unlimited.",
     "tokenQuotaSaved": "Default token quota saved",
-
     "announcementTitle": "System Announcement",
     "announcementDesc": "Show a banner message to all users at the top of every page.",
     "announcementToggle": "Show announcement banner",
@@ -454,7 +430,6 @@
     "announcementEnabled": "Announcement banner enabled",
     "announcementDisabled": "Announcement banner disabled",
     "announcementSaved": "Announcement text saved",
-
     "maintenanceTitle": "Maintenance Mode",
     "maintenanceDesc": "Block all non-admin access. Admins can still log in and manage the system.",
     "maintenanceToggle": "Enable maintenance mode",
@@ -462,7 +437,6 @@
     "maintenanceOffDesc": "System is operating normally.",
     "maintenanceOn": "Maintenance mode ON -- users are blocked",
     "maintenanceOff": "Maintenance mode OFF -- system restored",
-
     "dangerZone": "Danger Zone",
     "dangerZoneDesc": "Irreversible or high-impact actions.",
     "forceLogoutAll": "Force logout all users",
@@ -472,7 +446,6 @@
     "forceLogoutDesc": "This will immediately invalidate all active sessions. Every user will be signed out and must log in again. Your own session will not be affected.",
     "yesForceLogout": "Yes, Force Logout",
     "loggedOutSessions": "Logged out {count, plural, one {# active session} other {# active sessions}}",
-
     "inviteCodes": "Invite Codes",
     "hideInactive": "Hide inactive",
     "inactiveCount": "{count} inactive",
@@ -498,7 +471,6 @@
     "smtpRequired": "SMTP is not configured. Enable SMTP to use this feature.",
     "smtpLostWhileEnabled": "SMTP is no longer available. Email verification is automatically bypassed. Turn it off or configure SMTP."
   },
-
   "security": {
     "title": "Security",
     "subtitle": "Login history, active sessions, and IP access rules.",
@@ -534,7 +506,6 @@
     "pageOf": "Page {page} of {pages}",
     "totalRecords": "{count} records total"
   },
-
   "apiKeys": {
     "title": "API Keys",
     "subtitle": "Manage API keys for programmatic access.",
@@ -577,7 +548,6 @@
     "comingSoonTitle": "Coming Soon",
     "comingSoonDesc": "API key authentication is under development. Keys can be created and managed, but cannot yet authenticate API requests. Scope enforcement, rate limiting, and user self-service are planned."
   },
-
   "resources": {
     "title": "Resources",
     "subtitle": "Manage all agents and knowledge bases across users.",
@@ -617,7 +587,6 @@
     "adminNoticeTitle": "Admin Overview",
     "adminNoticeDesc": "Read-only view of all agents and knowledge bases across users. Tool bindings and knowledge base associations are displayed as counts. Detailed editing should be done from each user's own management page."
   },
-
   "content": {
     "title": "Content Moderation",
     "subtitle": "Manage sensitive words and content moderation rules.",
@@ -653,7 +622,6 @@
     "colActive": "Active",
     "wordToggled": "Sensitive word updated"
   },
-
   "analytics": {
     "title": "Analytics",
     "subtitle": "Usage analytics, data export, and announcement management.",
@@ -707,7 +675,6 @@
     "colActive": "Active",
     "colSchedule": "Schedule"
   },
-
   "globalAgents": {
     "title": "Global Agents",
     "subtitle": "Manage globally available agents for all users",
@@ -743,7 +710,6 @@
     "instructions": "Instructions",
     "instructionsPlaceholder": "System prompt for the agent..."
   },
-
   "mcpClone": {
     "publishFromUser": "Publish Global MCP",
     "selectMcp": "Select MCP Server to Publish",

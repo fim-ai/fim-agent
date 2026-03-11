@@ -19,6 +19,7 @@ class ModelConfigCreate(BaseModel):
     context_size: int | None = None
     is_default: bool = False
     role: Literal["general", "fast"] | None = None
+    json_mode_enabled: bool = True
 
 
 class ModelConfigUpdate(BaseModel):
@@ -34,6 +35,7 @@ class ModelConfigUpdate(BaseModel):
     is_default: bool | None = None
     is_active: bool | None = None
     role: str | None = None
+    json_mode_enabled: bool | None = None
 
 
 class ModelConfigResponse(BaseModel):
@@ -49,6 +51,7 @@ class ModelConfigResponse(BaseModel):
     role: str | None
     is_default: bool
     is_active: bool
+    json_mode_enabled: bool
     created_at: str
     updated_at: str | None
     # NEVER expose api_key in responses

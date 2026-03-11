@@ -91,6 +91,12 @@ def _reasoning_budget_tokens() -> int | None:
     return int(raw) if raw else None
 
 
+def _json_mode_enabled() -> bool:
+    """Return whether json_mode is enabled (env: LLM_JSON_MODE_ENABLED, default true)."""
+    val = os.environ.get("LLM_JSON_MODE_ENABLED", "true").strip().lower()
+    return val not in ("false", "0", "no")
+
+
 def get_max_concurrency() -> int:
     """Return the max parallel steps for the DAG executor."""
     return int(os.environ.get("MAX_CONCURRENCY", "5"))
@@ -170,6 +176,7 @@ def get_llm() -> OpenAICompatibleLLM:
         default_max_tokens=_main_max_output(),
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
+        json_mode_enabled=_json_mode_enabled(),
     )
 
 
@@ -186,6 +193,7 @@ def get_fast_llm() -> OpenAICompatibleLLM:
         default_max_tokens=_fast_max_output(),
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
+        json_mode_enabled=_json_mode_enabled(),
     )
 
 
@@ -369,6 +377,7 @@ async def get_system_llm_by_role(
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=cfg.provider or None,
+        json_mode_enabled=cfg.json_mode_enabled,
     )
 
 

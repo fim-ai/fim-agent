@@ -125,6 +125,7 @@ class OpenAICompatibleLLM(BaseLLM):
         reasoning_effort: str | None = None,
         reasoning_budget_tokens: int | None = None,
         provider: str | None = None,
+        json_mode_enabled: bool = True,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url
@@ -140,6 +141,7 @@ class OpenAICompatibleLLM(BaseLLM):
         )
         self._reasoning_effort = reasoning_effort
         self._reasoning_budget_tokens = reasoning_budget_tokens
+        self._json_mode_enabled = json_mode_enabled
 
     @property
     def model_id(self) -> str:
@@ -353,10 +355,20 @@ class OpenAICompatibleLLM(BaseLLM):
 
     @property
     def abilities(self) -> dict[str, bool]:
-        """All standard capabilities are supported."""
+        """Capability flags used by structured_llm_call to select extraction levels.
+
+        Anthropic/Bedrock rejects ``tool_choice`` that forces a specific function
+        when thinking/reasoning is active ("Thinking may not be enabled when
+        tool_choice forces tool use").  Advertising ``tool_call: False`` causes
+        structured_llm_call to skip native_fc and go straight to json_mode,
+        avoiding a wasted API call and a noisy 400 error.
+        """
+        is_anthropic_thinking = self._litellm_model.startswith("anthropic/") and bool(
+            self._reasoning_effort or self._reasoning_budget_tokens
+        )
         return {
-            "tool_call": True,
-            "json_mode": True,
+            "tool_call": not is_anthropic_thinking,
+            "json_mode": self._json_mode_enabled,
             "vision": True,
             "streaming": True,
         }
@@ -415,12 +427,18 @@ class OpenAICompatibleLLM(BaseLLM):
                     "type": "enabled",
                     "budget_tokens": self._reasoning_budget_tokens,
                 }
+                # Bedrock rejects temperature != 1.0 when thinking is enabled
+                kwargs["temperature"] = 1.0
             else:
                 # Let LiteLLM handle the translation for each provider:
                 #   - Anthropic: reasoning_effort → thinking param (auto budget)
                 #   - OpenAI o-series: reasoning_effort passed through
                 #   - Others: drop_params=True handles unsupported cases
                 kwargs["reasoning_effort"] = self._reasoning_effort
+                # LiteLLM maps reasoning_effort → thinking for Anthropic/Bedrock;
+                # Bedrock rejects temperature != 1.0 when thinking is enabled
+                if self._litellm_model.startswith("anthropic/"):
+                    kwargs["temperature"] = 1.0
         return kwargs
 
     @staticmethod
