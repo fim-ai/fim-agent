@@ -82,6 +82,7 @@
   "aiThinking": "Thinking...",
   "aiPlaceholderNewMode": "e.g. Import from https://petstore.swagger.io/v2/swagger.json",
   "aiPlaceholderExistingMode": "e.g. Create CRUD actions for /users...",
+  "aiPlaceholderDbMode": "e.g. Annotate all tables with Chinese names, or hide system tables",
   "send": "Send",
   "aiConnectorCreatedSuccess": "Connector created. Settings and actions have been populated.",
   "aiSaveSettingsFirst": "Please save your connector settings first.",

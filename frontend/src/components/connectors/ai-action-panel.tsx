@@ -257,7 +257,7 @@ export function AIActionPanel({
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
         <Sparkles className="h-3.5 w-3.5 text-amber-500" />
         <span className="text-sm font-medium flex-1">{t("aiAssistant")}</span>
-        {connectorId && (
+        {connectorId && connectorType !== "database" && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -295,17 +295,17 @@ export function AIActionPanel({
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">
-                    {isNewMode && !connectorId
-                      ? t("aiEmptyNewMode")
-                      : connectorType === "database"
-                        ? t("aiEmptyDbMode")
+                    {connectorType === "database"
+                      ? t("aiEmptyDbMode")
+                      : isNewMode && !connectorId
+                        ? t("aiEmptyNewMode")
                         : t("aiEmptyExistingMode")}
                   </p>
                   <p className="text-xs text-muted-foreground/50">
-                    {isNewMode && !connectorId
-                      ? t("aiSubtitleNewMode")
-                      : connectorType === "database"
-                        ? t("aiSubtitleDbMode")
+                    {connectorType === "database"
+                      ? t("aiSubtitleDbMode")
+                      : isNewMode && !connectorId
+                        ? t("aiSubtitleNewMode")
                         : t("aiSubtitleExistingMode")}
                   </p>
                 </div>
@@ -353,7 +353,9 @@ export function AIActionPanel({
           onKeyDown={handleKeyDown}
           placeholder={isNewMode && !connectorId
             ? t("aiPlaceholderNewMode")
-            : t("aiPlaceholderExistingMode")}
+            : connectorType === "database"
+              ? t("aiPlaceholderDbMode")
+              : t("aiPlaceholderExistingMode")}
           disabled={isLoading || isDisabled}
           className="flex-1 h-8 text-sm"
         />

@@ -82,6 +82,7 @@
   "aiThinking": "思考中...",
   "aiPlaceholderNewMode": "例如：从 https://petstore.swagger.io/v2/swagger.json 导入",
   "aiPlaceholderExistingMode": "例如：为 /users 创建 CRUD 操作...",
+  "aiPlaceholderDbMode": "例如：为所有表标注中文名，或隐藏系统表",
   "send": "发送",
   "aiConnectorCreatedSuccess": "连接器已创建，设置和操作已自动填充。",
   "aiSaveSettingsFirst": "请先保存连接器设置。",
