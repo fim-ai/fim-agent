@@ -284,7 +284,7 @@ cp example.env .env
 # Edit .env: set LLM_API_KEY
 
 # Install
-uv sync --extra web
+uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
 # Launch (with hot reload)

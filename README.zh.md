@@ -284,7 +284,7 @@ cp example.env .env
 # 编辑 .env：设置 LLM_API_KEY
 
 # 安装依赖
-uv sync --extra web
+uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
 # 启动（带热重载）
