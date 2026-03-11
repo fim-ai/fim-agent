@@ -50,6 +50,7 @@
                 "group": "Architecture",
                 "icon": "sitemap",
                 "pages": [
+                  "architecture/system-overview",
                   "architecture/philosophy",
                   "architecture/context-management",
                   "architecture/connector-architecture",
@@ -136,6 +137,7 @@
                 "group": "架构",
                 "icon": "sitemap",
                 "pages": [
+                  "zh/architecture/system-overview",
                   "zh/architecture/philosophy",
                   "zh/architecture/context-management",
                   "zh/architecture/connector-architecture",

@@ -150,10 +150,11 @@ flowchart LR
 
 ## Planned Versions
 
-### v0.8 — Connector Declarative Config + Enterprise
+### v0.8 — Connector Declarative Config + Progressive Disclosure
 
-**Goal**: Make it easier to define connectors without writing Python code.
+**Goal**: Make it easier to define connectors without writing Python code, and optimize how tools are exposed to the LLM.
 
+- **Connector Progressive Disclosure (Phase 1-2)**: single `ConnectorMetaTool` replaces per-action tools; Tier 1 connector catalog in system prompt (~30 tokens/connector vs ~250 tokens/action); `discover` + `execute` subcommands; feature flag for backward compatibility
 - **YAML/JSON connector config**: platform auto-generates MCP server
 - **Connector import/export**: share connector templates
 - **Connector fork**: clone + customize existing connectors
@@ -162,12 +163,13 @@ flowchart LR
 - ~~**RBAC**: per-user/role connector access control~~ *(shipped in v0.7.x — org system + three-tier visibility)*
 - **Operation audit**: detailed logging of who did what
 
-**Impact**: Implementation engineers (no Python required) can add connectors in 1-2 hours.
+**Impact**: Implementation engineers (no Python required) can add connectors in 1-2 hours. Token cost for tool definitions drops by 93%+ at scale.
 
 ### v0.9 — Observability + Production Hardening
 
 **Goal**: Production-grade operations, debugging, and monitoring.
 
+- **Connector Progressive Disclosure (Phase 3-4)**: unified `ConnectorExecutor` interface (API/DB/MCP behind one abstraction); action parameter validation with `jsonschema`; protocol-agnostic discover/execute
 - **Distributed tracing**: OpenTelemetry integration
 - **Circuit breaker**: exponential backoff, failure detection
 - **Observability**: metrics (latency, success rate, token usage)
@@ -182,6 +184,7 @@ flowchart LR
 
 **Goal**: Zero-restart connector addition and embedded delivery.
 
+- **Connector Progressive Disclosure (Phase 5)**: heuristic preloading (query-based connector prediction); Scale mode for batch/ETL connectors; CLI-style universal `connector <name> <action> <params>` interface
 - **Hot-plug connectors**: upload OpenAPI spec, AI generates config, live in 5 minutes (no restart)
 - **Connector marketplace**: community-shared templates
 - **Embeddable widget**: `<script src="fim-agent.js">` injected into host page

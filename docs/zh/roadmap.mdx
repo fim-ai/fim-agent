@@ -181,11 +181,12 @@ flowchart LR
 </div>
 
 <div id="v08-connector-declarative-config-enterprise">
-  ### v0.8 — 连接器声明式配置 + 企业级功能
+  ### v0.8 — 连接器声明式配置 + 渐进式披露
 </div>
 
-**目标**：让连接器定义更简单，无需编写 Python 代码。
+**目标**：让连接器定义更简单，无需编写 Python 代码；优化工具向 LLM 暴露的方式。
 
+* **连接器渐进式披露 (Phase 1-2)**：单个 `ConnectorMetaTool` 替代逐 action 注册；Tier 1 连接器名录注入 system prompt (~30 tokens/connector，对比原来 ~250 tokens/action)；`discover` + `execute` 子命令；feature flag 向后兼容
 * **YAML/JSON 连接器配置**：平台自动生成 MCP 服务器
 * **连接器导入/导出**：共享连接器模板
 * **连接器分叉**：复制并自定义现有连接器
@@ -194,7 +195,7 @@ flowchart LR
 * ~~**RBAC**：按用户/角色控制连接器访问权限~~ *(已在 v0.7.x 发布——组织系统 + 三级可见性)*
 * **操作审计**：详细记录谁执行了哪些操作
 
-**影响**：实施工程师 (无需 Python) 可在 1-2 小时内新增连接器。
+**影响**：实施工程师 (无需 Python) 可在 1-2 小时内新增连接器。工具定义的 token 成本在规模化场景下降低 93%+。
 
 <div id="v09-observability-production-hardening">
   ### v0.9 — 可观测性 + 生产环境加固
@@ -202,6 +203,7 @@ flowchart LR
 
 **目标**：实现面向生产环境的运维、调试与监控。
 
+* **连接器渐进式披露 (Phase 3-4)**：统一 `ConnectorExecutor` 接口 (API/DB/MCP 统一抽象)；`jsonschema` 参数校验；协议无关的 discover/execute
 * **分布式追踪**：集成 OpenTelemetry
 * **熔断机制**：指数退避、故障检测
 * **可观测性**：指标 (延迟、成功率、令牌使用量)
@@ -218,6 +220,7 @@ flowchart LR
 
 **目标**：无需重启即可添加连接器，并支持可嵌入式交付。
 
+* **连接器渐进式披露 (Phase 5)**：启发式预加载 (基于 query 预测相关连接器)；Scale 模式支持批量/ETL 连接器；CLI 化统一接口 `connector <name> <action> <params>`
 * **热插拔连接器**：上传 OpenAPI 规范，AI 自动生成配置，5 分钟内即可上线 (无需重启)
 * **连接器市场**：社区共享模板
 * **可嵌入式组件**：将 `<script src="fim-agent.js">` 注入宿主页面
