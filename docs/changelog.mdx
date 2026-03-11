@@ -38,6 +38,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Export: PDF format**: Conversations can now be exported as PDF documents (requires `reportlab` + `Markdown` extras)
 - **start.sh: WORKERS env var**: Set `WORKERS=N` to run uvicorn with multiple workers in portal/api mode
 - **Memory: compaction tracking**: `DbMemory` now tracks which messages were compacted away (`compacted_message_ids`), filters out empty assistant messages (native FC tool-calling intermediates with no content), and maps ChatMessage objects to their DB row IDs for accurate compaction auditing
+- **Ad-hoc DB connection testing**: New `POST /api/connectors/test-connection` endpoint allows testing database connectivity without saving a connector first. Frontend `testConnectionAdhoc()` API client method added; DB connector form now uses the adhoc endpoint when no `connector.id` exists, so "Test Connection" works before the first save
+- **KingbaseES/Highgo driver validation**: Added `kingbasees` and `highgo` to the database driver regex validation pattern
 
 ### Changed
 - **Tests: NativeToolFakeLLM updated for stream-based ReAct**: Test fake LLM now produces `StreamChunk` sequences matching the new stream-based `_run_native()` loop
@@ -56,7 +58,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Architecture diagrams layout fix**: Switched Mermaid flowcharts from left-right (`LR`) to top-down (`TD`) for better readability, removed `mode: "wide"` frontmatter, and added `custom.css` for centered Mermaid SVG rendering
 - **Mermaid node label line breaks**: Replaced `\n` with `<br/>` in all Mermaid flowchart node labels across architecture and concept docs (EN + ZH) — Mermaid renders `\n` as literal text in quoted labels
 
+### Changed
+- **DB connector: Test Connection placement**: Moved "Test Connection" button from the bottom of the form to right after the password field, so users can test connectivity immediately after filling connection details
+
 ### Fixed
+- **Connector settings tab scrolling**: Both API and DB connector settings forms now use `flex-1 min-h-0` instead of `h-full` for reliable height resolution in the flex chain; `ScrollArea` gains `min-h-0` to allow shrinking below content height
+- **Connector form nullable base_url**: Handle nullable `base_url` (introduced for DB connectors) with `|| ""` fallback in API connector form
 - **Docker sandbox (DooD) volume mount**: Fix empty `-v` bind mounts when `CODE_EXEC_BACKEND=docker` runs inside a container (docker-compose). Sandbox dir moved from `tmp/conversations/` to `data/sandbox/` (under the mounted `./data:/app/data` volume). New `DOCKER_HOST_DATA_DIR` env var translates container-internal paths to host-visible paths for the Docker daemon. Fixes `_PROJECT_ROOT` resolving to `/app/src/` (not `/app/`) by using `.parent`
 - **Security: Python sandbox AST dunder validation**: Block sandbox escape via AST dunder attribute validation
 - **Security: MCP stdio defaults + command allowlist**: Harmonize MCP stdio transport defaults (now disabled by default) and add command allowlist (`ALLOWED_STDIO_COMMANDS`)
@@ -71,6 +78,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Export: PDF readability**: Increased line spacing (leading) and cell padding across all PDF styles for better text readability
 - **Export: emoji stripping removed**: Removed unnecessary `_strip_emoji()` from final answer rendering in both DOCX and PDF exports, preserving original content
 - **Admin: dashboard stats PG crash**: Fixed admin dashboard stats page crash on PostgreSQL — `GROUP BY` with parameterized `coalesce()` caused `GroupingError`; replaced with `literal()` column default
+- **Connector settings tab scroll**: Fixed connector settings tab not scrolling by adding missing `overflow-hidden flex flex-col` on `TabsContent`
+- **Connector form base_url type error**: Fixed nullable `base_url` type error in connector-settings-form
 
 ### Added (Organization & Visibility)
 - **Organization system**: Full CRUD for organizations with role-based membership (owner/admin/member); auth helpers (`get_user_org_ids`, `require_org_member/admin/owner`); admin management at `/api/admin/organizations`; frontend admin-organizations component with member management UI

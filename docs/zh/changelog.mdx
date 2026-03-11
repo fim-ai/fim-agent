@@ -43,6 +43,8 @@ description: "FIM Agent 的所有重要变更。"
 * **导出：PDF 格式**：对话现在可以导出为 PDF 文档（需要 `reportlab` + `Markdown` 额外依赖）
 * **start.sh：WORKERS 环境变量**：设置 `WORKERS=N` 以在 portal/api 模式下以多 worker 运行 uvicorn
 * **记忆：压缩追踪**：`DbMemory` 现在追踪哪些消息在压缩中被移除（`compacted_message_ids`），过滤空的 assistant 消息（原生函数调用中间体，无内容），并将 ChatMessage 对象映射到其数据库行 ID，以实现精确的压缩审计
+* **临时数据库连接测试**：新增 `POST /api/connectors/test-connection` 端点，允许在保存连接器之前测试数据库连通性。前端新增 `testConnectionAdhoc()` API 客户端方法；数据库连接器表单在无 `connector.id` 时使用临时端点，首次保存前即可使用"测试连接"功能
+* **KingbaseES/瀚高驱动校验**：数据库驱动正则校验模式中新增 `kingbasees` 和 `highgo`
 
 <div id="changed">
   ### 变更
@@ -67,10 +69,18 @@ description: "FIM Agent 的所有重要变更。"
 * **架构图表布局修复**：将 Mermaid 流程图从左右布局（`LR`）切换为上下布局（`TD`）以提升可读性，移除 `mode: "wide"` frontmatter，新增 `custom.css` 实现 Mermaid SVG 居中渲染
 * **Mermaid 节点标签换行修复**：将所有架构和概念文档中 Mermaid 流程图节点标签的 `\n` 替换为 `<br/>`（中英文同步）——Mermaid 在带引号的标签中会将 `\n` 渲染为字面文本
 
+<div id="changed-2">
+  ### 变更
+</div>
+
+* **数据库连接器：测试连接位置调整**：将"测试连接"按钮从表单底部移至密码字段之后，用户填写完连接信息后即可测试连通性
+
 <div id="fixed">
   ### 已修复
 </div>
 
+* **连接器设置标签页滚动**：API 和数据库连接器设置表单均改用 `flex-1 min-h-0` 替代 `h-full`，确保 flex 链中高度正确解析；`ScrollArea` 添加 `min-h-0` 以允许缩小到内容高度以下
+* **连接器表单 nullable base_url**：处理数据库连接器引入的可空 `base_url`，API 连接器表单中添加 `|| ""` 回退
 * **Docker 沙箱 (DooD) 卷挂载修复**：修复 `CODE_EXEC_BACKEND=docker` 在容器内运行时（docker-compose 部署）`-v` 绑定挂载为空的问题。沙箱目录从 `tmp/conversations/` 迁移至 `data/sandbox/`（在已挂载的 `./data:/app/data` 卷下）。新增 `DOCKER_HOST_DATA_DIR` 环境变量，将容器内部路径翻译为宿主机可见路径。修复 `_PROJECT_ROOT` 解析为 `/app/src/`（而非 `/app/`）的问题
 * **安全：Python 沙箱 AST dunder 校验**：通过 AST dunder 属性校验阻止沙箱逃逸
 * **安全：MCP stdio 默认值 + 命令允许列表**：统一 MCP stdio 传输默认值（现默认禁用），并新增命令允许列表（`ALLOWED_STDIO_COMMANDS`）
@@ -85,6 +95,8 @@ description: "FIM Agent 的所有重要变更。"
 * **导出：PDF 可读性**：增加了所有 PDF 样式的行距 (leading) 和单元格内边距，提升文本可读性
 * **导出：移除表情符号过滤**：移除了 DOCX 和 PDF 导出中对最终回答内容不必要的 `_strip_emoji()` 调用，保留原始内容
 * **管理后台：统计页面 PG 崩溃**：修复管理后台统计页面在 PostgreSQL 上崩溃的问题 — `GROUP BY` 中使用参数化的 `coalesce()` 导致 `GroupingError`；已改用 `literal()` 列默认值
+* **连接器设置标签页滚动**：修复连接器设置标签页无法滚动的问题，在 `TabsContent` 上补充了缺失的 `overflow-hidden flex flex-col`
+* **连接器表单 base_url 类型错误**：修复 connector-settings-form 中可空 `base_url` 的类型错误
 
 <div id="added-org-visibility">
   ### 新增（组织与可见性）
