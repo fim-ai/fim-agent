@@ -45,6 +45,7 @@ description: "FIM Agent 的所有重要变更。"
 * **记忆：压缩追踪**：`DbMemory` 现在追踪哪些消息在压缩中被移除（`compacted_message_ids`），过滤空的 assistant 消息（原生函数调用中间体，无内容），并将 ChatMessage 对象映射到其数据库行 ID，以实现精确的压缩审计
 * **临时数据库连接测试**：新增 `POST /api/connectors/test-connection` 端点，允许在保存连接器之前测试数据库连通性。前端新增 `testConnectionAdhoc()` API 客户端方法；数据库连接器表单在无 `connector.id` 时使用临时端点，首次保存前即可使用"测试连接"功能
 * **KingbaseES/瀚高驱动校验**：数据库驱动正则校验模式中新增 `kingbasees` 和 `highgo`
+* **Schema 管理器：列可见性即时切换**：列可见性开关现在即时保存，采用乐观 UI 更新 + 错误时回滚，替代之前的批量保存方式
 
 <div id="changed">
   ### 变更
@@ -92,6 +93,7 @@ description: "FIM Agent 的所有重要变更。"
 * **DAG：历史记录显示步骤卡片**：历史轮次现在在展开的折叠区域中渲染步骤卡片（之前被 `hideStepCards` 隐藏）
 * **DAG：重新规划时清除旧分析**：重新规划开始时，第一轮"目标未达成"的分析会立即清除，且第二轮的"正在分析结果..."加载提示可正确显示
 * **UI：聊天搜索框焦点环**：为搜索输入框添加 `focus-visible:outline-none`，防止焦点环溢出
+* **Agent AI 优化无变更检测**：后端在应用修改前对比新旧值，跳过相同字段；前端在实际无变更时显示提示性 toast，而非误报成功
 * **导出：PDF 可读性**：增加了所有 PDF 样式的行距 (leading) 和单元格内边距，提升文本可读性
 * **导出：移除表情符号过滤**：移除了 DOCX 和 PDF 导出中对最终回答内容不必要的 `_strip_emoji()` 调用，保留原始内容
 * **管理后台：统计页面 PG 崩溃**：修复管理后台统计页面在 PostgreSQL 上崩溃的问题 — `GROUP BY` 中使用参数化的 `coalesce()` 导致 `GroupingError`；已改用 `literal()` 列默认值

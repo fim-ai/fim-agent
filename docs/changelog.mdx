@@ -40,6 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Memory: compaction tracking**: `DbMemory` now tracks which messages were compacted away (`compacted_message_ids`), filters out empty assistant messages (native FC tool-calling intermediates with no content), and maps ChatMessage objects to their DB row IDs for accurate compaction auditing
 - **Ad-hoc DB connection testing**: New `POST /api/connectors/test-connection` endpoint allows testing database connectivity without saving a connector first. Frontend `testConnectionAdhoc()` API client method added; DB connector form now uses the adhoc endpoint when no `connector.id` exists, so "Test Connection" works before the first save
 - **KingbaseES/Highgo driver validation**: Added `kingbasees` and `highgo` to the database driver regex validation pattern
+- **Schema Manager: immediate column visibility toggle**: Column visibility switches now save immediately with optimistic UI update and rollback on error, replacing the previous batch-save approach
 
 ### Changed
 - **Tests: NativeToolFakeLLM updated for stream-based ReAct**: Test fake LLM now produces `StreamChunk` sequences matching the new stream-based `_run_native()` loop
@@ -80,6 +81,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Admin: dashboard stats PG crash**: Fixed admin dashboard stats page crash on PostgreSQL — `GROUP BY` with parameterized `coalesce()` caused `GroupingError`; replaced with `literal()` column default
 - **Connector settings tab scroll**: Fixed connector settings tab not scrolling by adding missing `overflow-hidden flex flex-col` on `TabsContent`
 - **Connector form base_url type error**: Fixed nullable `base_url` type error in connector-settings-form
+- **Agent AI refinement no-op detection**: Backend now compares old vs new values before applying, skipping identical fields; frontend shows an info toast instead of falsely reporting success when no changes were actually made
 
 ### Added (Organization & Visibility)
 - **Organization system**: Full CRUD for organizations with role-based membership (owner/admin/member); auth helpers (`get_user_org_ids`, `require_org_member/admin/owner`); admin management at `/api/admin/organizations`; frontend admin-organizations component with member management UI
