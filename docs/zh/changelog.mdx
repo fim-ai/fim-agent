@@ -42,6 +42,7 @@ description: "FIM Agent 的所有重要变更。"
 * **管理后台：健康看板显示推理强度**：管理员健康检查看板现在显示推理强度标签
 * **导出：PDF 格式**：对话现在可以导出为 PDF 文档（需要 `reportlab` + `Markdown` 额外依赖）
 * **start.sh：WORKERS 环境变量**：设置 `WORKERS=N` 以在 portal/api 模式下以多 worker 运行 uvicorn
+* **记忆：压缩追踪**：`DbMemory` 现在追踪哪些消息在压缩中被移除（`compacted_message_ids`），过滤空的 assistant 消息（原生函数调用中间体，无内容），并将 ChatMessage 对象映射到其数据库行 ID，以实现精确的压缩审计
 
 <div id="changed">
   ### 变更

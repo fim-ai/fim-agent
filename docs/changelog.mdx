@@ -37,6 +37,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Admin: reasoning effort in health dashboard**: Reasoning effort label now displayed in the admin health check dashboard
 - **Export: PDF format**: Conversations can now be exported as PDF documents (requires `reportlab` + `Markdown` extras)
 - **start.sh: WORKERS env var**: Set `WORKERS=N` to run uvicorn with multiple workers in portal/api mode
+- **Memory: compaction tracking**: `DbMemory` now tracks which messages were compacted away (`compacted_message_ids`), filters out empty assistant messages (native FC tool-calling intermediates with no content), and maps ChatMessage objects to their DB row IDs for accurate compaction auditing
 
 ### Changed
 - **Tests: NativeToolFakeLLM updated for stream-based ReAct**: Test fake LLM now produces `StreamChunk` sequences matching the new stream-based `_run_native()` loop
