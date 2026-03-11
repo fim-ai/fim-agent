@@ -195,7 +195,7 @@ When `reasoning_effort` is set and the model is resolved as `anthropic/`, two ad
 Bedrock + json_mode. Set `LLM_JSON_MODE_ENABLED=false` or disable JSON Mode in the admin model settings.
 
 **"Thinking may not be enabled when tool_choice forces tool use"**
-Anthropic thinking + forced function call. This is handled automatically by `structured_llm_call`'s fallback chain. If you see this in logs, it is informational — the call recovered at a lower level. No action needed.
+Anthropic thinking + forced function call in `structured_llm_call`. This is **expected behavior, not an error**. The fallback chain catches the 400, skips native_fc, and succeeds at json_mode or plain_text. The log is at DEBUG level — you will only see it if `LOG_LEVEL=DEBUG`. Cost: ~300ms network round-trip, zero tokens (the model never runs on a 400). No action needed.
 
 **ReAct falls back to JSON mode unexpectedly**
 Check that the model's `abilities["tool_call"]` is `True`. This is always `True` for `OpenAICompatibleLLM`, but a custom `BaseLLM` subclass might override it. Verify with the model detail endpoint in the admin API.

@@ -195,7 +195,7 @@ FIM Agent 提供两个环境变量来控制扩展思考 / 推理：
 Bedrock + json_mode。设置 `LLM_JSON_MODE_ENABLED=false` 或在管理后台模型设置中禁用 JSON Mode。
 
 **"Thinking may not be enabled when tool_choice forces tool use"**
-Anthropic thinking + 强制函数调用。这由 `structured_llm_call` 的降级链自动处理。如果你在日志中看到此消息，它是信息性的 — 调用在较低级别恢复了。无需操作。
+Anthropic thinking + `structured_llm_call` 中的强制函数调用。这是**预期行为，不是错误**。降级链捕获 400，跳过 native_fc，在 json_mode 或 plain_text 层级成功完成。该日志级别为 DEBUG——只有 `LOG_LEVEL=DEBUG` 时才会显示。代价：约 300ms 网络往返，零 token 消耗（400 阶段模型未运行）。无需操作。
 
 **ReAct 意外回退到 JSON 模式**
 检查模型的 `abilities["tool_call"]` 是否为 `True`。对于 `OpenAICompatibleLLM` 始终为 `True`，但自定义的 `BaseLLM` 子类可能覆盖它。通过管理 API 的模型详情端点验证。

@@ -168,7 +168,7 @@ async def _call_llm(
         return data, content, result.usage
 
     except Exception:
-        logger.warning(
+        logger.debug(
             "structured_llm_call: %s call raised", level, exc_info=True,
         )
         return None, "", None
@@ -286,7 +286,7 @@ async def structured_llm_call(
                         total_usage=usage,
                     )
 
-        logger.info("structured_llm_call: level '%s' exhausted", level)
+        logger.debug("structured_llm_call: level '%s' exhausted", level)
 
     # --- All levels failed ---
     if default_value is not _SENTINEL:
