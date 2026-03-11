@@ -426,7 +426,9 @@ function LoginPageInner() {
         </div>
 
         {/* Top — logo */}
-        <AnimatedLogo appName={APP_NAME} />
+        <a href="https://agent.fim.ai" target="_blank" rel="noopener noreferrer">
+          <AnimatedLogo appName={APP_NAME} />
+        </a>
 
         {/* Middle-lower — tagline */}
         <div className="relative z-10 -mt-8">
@@ -474,7 +476,7 @@ function LoginPageInner() {
 
         <div className="w-full max-w-sm">
           {/* Mobile-only logo (< lg) */}
-          <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
+          <a href="https://agent.fim.ai" target="_blank" rel="noopener noreferrer" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
             <img src="/fim-mark-light.svg" alt="FIM" className="h-8 w-auto dark:hidden" />
             <img src="/fim-mark.svg" alt="FIM" className="h-8 w-auto hidden dark:block" />
             <span
@@ -483,7 +485,7 @@ function LoginPageInner() {
             >
               {APP_NAME}
             </span>
-          </div>
+          </a>
 
           {/* Heading */}
           <div className="mb-6 text-center lg:text-left">

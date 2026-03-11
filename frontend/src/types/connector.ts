@@ -58,13 +58,15 @@ export interface ConnectorResponse {
   description: string | null
   icon: string | null
   type: string // "api" | "database"
-  base_url: string
+  base_url: string | null
   auth_type: string // "api_key" | "bearer" | "oauth2" | "basic" | "none"
   auth_config: Record<string, unknown> | null
   db_config?: DbConnectionConfig | null // Present when type="database"
   is_official: boolean
   forked_from: string | null
   version: number
+  visibility: string // "personal" | "org" | "global"
+  org_id: string | null
   actions: ConnectorActionResponse[]
   created_at: string
   updated_at: string | null
@@ -137,19 +139,15 @@ export interface DbConnectorCreate {
 // Schema types
 export interface SchemaTable {
   id: string
-  connector_id: string
   table_name: string
   display_name: string | null
   description: string | null
   is_visible: boolean
   columns: SchemaColumn[]
-  created_at: string
-  updated_at: string | null
 }
 
 export interface SchemaColumn {
   id: string
-  schema_id: string
   column_name: string
   display_name: string | null
   description: string | null

@@ -122,7 +122,7 @@ export function MCPServerDialog({
             : []
         )
         setHeaderPairs([])
-        setIsActive(false)
+        setIsActive(true)
       }
     }
   }, [open, server])
