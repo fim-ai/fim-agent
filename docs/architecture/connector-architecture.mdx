@@ -1,6 +1,6 @@
 ---
 title: "Connector Architecture"
-description: "How FIM Agent connects legacy systems through AI — from Copilot to Hub."
+description: "How FIM One connects legacy systems through AI — from Copilot to Hub."
 ---
 
 ## Copilot vs Hub
@@ -11,14 +11,14 @@ The architecture supports two integration scales:
 flowchart TD
     subgraph Copilot["Copilot (embedded)"]
         subgraph Host["Host System (ERP)"]
-            C["FIM Agent Copilot<br/>(iframe / widget)"]
+            C["FIM One Copilot<br/>(iframe / widget)"]
         end
         C --> DB1["DB"]
         C --> API1["API"]
     end
 
     subgraph Hub["Hub (central portal)"]
-        H["FIM Agent Hub<br/>(Portal / API)"]
+        H["FIM One Hub<br/>(Portal / API)"]
         H --> ERP["ERP"]
         H --> CRM["CRM"]
         H --> OA["OA"]
@@ -36,13 +36,13 @@ Same connector architecture, different delivery. A Copilot uses the same `Connec
 
 ## Core Principle
 
-**The client changes zero code.** FIM Agent bridges into their systems proactively -- reading their databases, calling their APIs, pushing to their message bus. The client provides only credentials and network access.
+**The client changes zero code.** FIM One bridges into their systems proactively -- reading their databases, calling their APIs, pushing to their message bus. The client provides only credentials and network access.
 
 ## Three-Layer Architecture
 
 ```mermaid
 flowchart TB
-    A["<b>FIM Agent Platform</b><br/>ReAct / DAG / Portal UI<br/><i>Multi-tenant, scheduling, conversation persistence</i>"]
+    A["<b>FIM One Platform</b><br/>ReAct / DAG / Portal UI<br/><i>Multi-tenant, scheduling, conversation persistence</i>"]
     B["<b>Connector Governance Layer</b><br/>audit log, auth passthrough, operation classification<br/><i>read_only enforcement, confirmation gate, circuit breaker</i>"]
     C["<b>MCP Protocol (Transport)</b><br/>stdio / HTTP transport<br/><i>Standard tool description, process isolation</i>"]
     D["<b>Legacy System</b><br/>DB / API / MQ<br/><i>Client's existing systems</i>"]
@@ -63,7 +63,7 @@ Each layer has a distinct responsibility:
 
 Adapters are implemented as **MCP Servers**. This is a deliberate architectural choice:
 
-- **Reuse**: FIM Agent already ships an MCP Client (v0.3). Adding a legacy system adapter reuses the same infrastructure as adding any MCP tool.
+- **Reuse**: FIM One already ships an MCP Client (v0.3). Adding a legacy system adapter reuses the same infrastructure as adding any MCP tool.
 - **Standard protocol**: MCP is an open standard. No proprietary protocol to invent or maintain.
 - **Ecosystem**: Third-party MCP Servers (databases, APIs, SaaS tools) work out of the box.
 - **Process isolation**: Each MCP Server runs as a separate process. A misbehaving adapter cannot crash the platform.
@@ -83,7 +83,7 @@ The **Connector Governance Layer** adds enterprise governance that raw MCP lacks
 
 ### Why not invent a custom protocol
 
-Protocol is commodity. The technical value is in the adapters themselves (domain knowledge, schema mapping, edge-case handling) and the governance layer (audit, auth, safety). Inventing a transport protocol would add maintenance cost without adding capability. Stripe uses HTTPS; Docker uses cgroups; FIM Agent uses MCP.
+Protocol is commodity. The technical value is in the adapters themselves (domain knowledge, schema mapping, edge-case handling) and the governance layer (audit, auth, safety). Inventing a transport protocol would add maintenance cost without adding capability. Stripe uses HTTPS; Docker uses cgroups; FIM One uses MCP.
 
 ## Deployment Model
 
@@ -91,8 +91,8 @@ Everything runs in a single Docker Compose deployment. The client installs nothi
 
 ```mermaid
 flowchart TD
-    subgraph Docker["FIM Agent Deployment (Docker Compose)"]
-        subgraph Core["FIM Agent Core"]
+    subgraph Docker["FIM One Deployment (Docker Compose)"]
+        subgraph Core["FIM One Core"]
             R["ReAct / DAG"]
             P["Platform API"]
             U["Portal UI"]
@@ -122,15 +122,15 @@ flowchart TD
 ```
 
 <Note>
-All provided by FIM Agent. Client provides only:
+All provided by FIM One. Client provides only:
 - Database credentials (read-only account recommended)
 - API endpoints and keys (if available)
 - Network whitelist access
 </Note>
 
-**Access hierarchy**: FIM Agent adapts to whatever access the client can provide:
+**Access hierarchy**: FIM One adapts to whatever access the client can provide:
 
-| What client has | How FIM Agent connects |
+| What client has | How FIM One connects |
 |---|---|
 | API with documentation | HTTP API adapter (best case) |
 | API without documentation | HTTP API adapter + manual schema mapping |
@@ -183,7 +183,7 @@ User: "Check all overdue contracts from the finance system and push a summary to
 ```
 1. User sends message via Portal / API
 
-2. FIM Agent (ReAct mode):
+2. FIM One (ReAct mode):
    Think: I need to query the finance DB for overdue contracts, then push to Lark.
 
 3. Act: contract_query(status="overdue", days_past_due=">30")
@@ -207,13 +207,13 @@ User: "Check all overdue contracts from the finance system and push a summary to
 
 | Level | Version | Approach | Who builds it |
 |---|---|---|---|
-| **Level 1** | v0.6 | Python MCP Server with Connector Governance | FIM Agent developer |
+| **Level 1** | v0.6 | Python MCP Server with Connector Governance | FIM One developer |
 | **Level 2** | v0.8 | YAML/JSON config, platform auto-generates MCP Server | Implementation engineer (no Python needed) |
 | **Level 3** | v1.0 | Upload OpenAPI/Swagger spec, AI generates config | AI (with human review) |
 
 ## Relationship to Existing MCP Ecosystem
 
-FIM Agent's MCP Client (shipped in v0.3) already supports third-party MCP Servers. Legacy system adapters are simply **domain-specific MCP Servers** built with the Connector Governance Layer for enterprise governance.
+FIM One's MCP Client (shipped in v0.3) already supports third-party MCP Servers. Legacy system adapters are simply **domain-specific MCP Servers** built with the Connector Governance Layer for enterprise governance.
 
 ```mermaid
 flowchart TB
@@ -224,7 +224,7 @@ flowchart TB
         M4["any community MCP server"]
     end
 
-    subgraph CG["Connector Governance (FIM Agent)"]
+    subgraph CG["Connector Governance (FIM One)"]
         C1["read_only enforcement"]
         C2["audit logging"]
         C3["auth passthrough"]

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from fim_agent.core.model.retry import (
+from fim_one.core.model.retry import (
     RetryConfig,
     _compute_delay,
     is_retryable_error,
@@ -105,8 +105,8 @@ class TestComputeDelay:
     def test_delay_increases_with_attempt(self) -> None:
         """The *upper bound* of the jitter range should grow with attempt number."""
         config = RetryConfig(base_delay=1.0, max_delay=1000.0)
-        upper_0 = min(config.max_delay, config.base_delay * (2 ** 0))
-        upper_3 = min(config.max_delay, config.base_delay * (2 ** 3))
+        upper_0 = min(config.max_delay, config.base_delay * (2**0))
+        upper_3 = min(config.max_delay, config.base_delay * (2**3))
         assert upper_3 > upper_0
 
 
@@ -124,7 +124,7 @@ class TestRetryAsyncCall:
         assert result == "ok"
         assert func.call_count == 1
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_retries_on_retryable_error(self, mock_sleep: AsyncMock) -> None:
         func = AsyncMock(
             side_effect=[_make_status_error(429), _make_status_error(500), "ok"]
@@ -134,7 +134,7 @@ class TestRetryAsyncCall:
         assert func.call_count == 3
         assert mock_sleep.call_count == 2
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_raises_after_max_retries(self, mock_sleep: AsyncMock) -> None:
         error = _make_status_error(503)
         func = AsyncMock(side_effect=error)
@@ -160,14 +160,14 @@ class TestRetryAsyncCall:
         assert exc_info.value is error
         assert func.call_count == 1
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_retries_on_connection_error(self, mock_sleep: AsyncMock) -> None:
         func = AsyncMock(side_effect=[ConnectionError("fail"), "recovered"])
         result = await retry_async_call(func, RetryConfig(max_retries=2))
         assert result == "recovered"
         assert func.call_count == 2
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_retries_on_timeout_error(self, mock_sleep: AsyncMock) -> None:
         func = AsyncMock(side_effect=[TimeoutError("timeout"), "ok"])
         result = await retry_async_call(func, RetryConfig(max_retries=1))
@@ -194,6 +194,7 @@ class TestRetryAsyncIterator:
             async def _gen() -> AsyncIterator[str]:
                 yield "a"
                 yield "b"
+
             return _gen()
 
         chunks: list[str] = []
@@ -201,7 +202,7 @@ class TestRetryAsyncIterator:
             chunks.append(item)
         assert chunks == ["a", "b"]
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_retries_stream_creation_failure(self, mock_sleep: AsyncMock) -> None:
         call_count = 0
 
@@ -213,6 +214,7 @@ class TestRetryAsyncIterator:
 
             async def _gen() -> AsyncIterator[str]:
                 yield "ok"
+
             return _gen()
 
         chunks: list[str] = []
@@ -221,7 +223,7 @@ class TestRetryAsyncIterator:
         assert chunks == ["ok"]
         assert call_count == 2
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_retries_mid_stream_failure(self, mock_sleep: AsyncMock) -> None:
         """If iteration fails mid-stream, the whole stream is retried."""
         call_count = 0
@@ -235,6 +237,7 @@ class TestRetryAsyncIterator:
                 if call_count == 1:
                     raise _make_status_error(502)
                 yield "chunk2"
+
             return _gen()
 
         chunks: list[str] = []
@@ -255,7 +258,7 @@ class TestRetryAsyncIterator:
             async for _ in retry_async_iterator(factory, RetryConfig(max_retries=3)):
                 pass
 
-    @patch("fim_agent.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
+    @patch("fim_one.core.model.retry.asyncio.sleep", new_callable=AsyncMock)
     async def test_exhausted_retries_raises(self, mock_sleep: AsyncMock) -> None:
         async def factory() -> AsyncIterator[str]:
             raise _make_status_error(500)

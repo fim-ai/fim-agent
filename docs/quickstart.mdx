@@ -1,6 +1,6 @@
 ---
 title: "Quick Start"
-description: "Get FIM Agent running in minutes with Docker or local development."
+description: "Get FIM One running in minutes with Docker or local development."
 ---
 
 ## Option A: Docker (Recommended)
@@ -60,7 +60,7 @@ cd frontend && pnpm install && cd ..
 
 ## Configuration
 
-FIM Agent works with **any OpenAI-compatible LLM provider** — OpenAI, DeepSeek, Anthropic, Qwen, Ollama, vLLM, and more.
+FIM One works with **any OpenAI-compatible LLM provider** — OpenAI, DeepSeek, Anthropic, Qwen, Ollama, vLLM, and more.
 
 | Provider | `LLM_API_KEY` | `LLM_BASE_URL` | `LLM_MODEL` |
 | -------- | ------------- | -------------- | ----------- |
@@ -156,5 +156,5 @@ docker run -d --name redis -p 6379:6379 redis:7-alpine
 # Add to .env
 REDIS_URL=redis://localhost:6379/0
 WORKERS=4
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_agent
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_one
 ```

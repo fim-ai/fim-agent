@@ -11,9 +11,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from fim_agent.core.memory.compact import CompactUtils
-from fim_agent.core.memory.context_guard import ContextGuard
-from fim_agent.core.model.types import ChatMessage, LLMResult
+from fim_one.core.memory.compact import CompactUtils
+from fim_one.core.memory.context_guard import ContextGuard
+from fim_one.core.model.types import ChatMessage, LLMResult
 
 
 # ---------------------------------------------------------------------------
@@ -29,10 +29,12 @@ def _msg(role: str, text: str, *, pinned: bool = False) -> ChatMessage:
 def _make_fake_llm(summary: str = "Summary of old messages") -> AsyncMock:
     """Create a mock LLM that returns a fixed summary."""
     llm = AsyncMock()
-    llm.chat = AsyncMock(return_value=LLMResult(
-        message=ChatMessage(role="assistant", content=summary),
-        usage={},
-    ))
+    llm.chat = AsyncMock(
+        return_value=LLMResult(
+            message=ChatMessage(role="assistant", content=summary),
+            usage={},
+        )
+    )
     return llm
 
 
@@ -118,7 +120,8 @@ class TestContextGuardLLMCompactPinned:
 
         # Summary message should exist
         summary_msgs = [
-            m for m in result
+            m
+            for m in result
             if m.role == "system" and "[Conversation summary]" in (m.content or "")
         ]
         assert len(summary_msgs) == 1
@@ -213,7 +216,10 @@ class TestLLMCompactPreservesPinned:
         ]
 
         result = await CompactUtils.llm_compact(
-            messages, llm=fake_llm, max_tokens=200, keep_recent=4,
+            messages,
+            llm=fake_llm,
+            max_tokens=200,
+            keep_recent=4,
         )
 
         # Pinned must survive
@@ -226,10 +232,7 @@ class TestLLMCompactPreservesPinned:
         assert any("System." in (m.content or "") for m in system_in_result)
 
         # Summary must exist
-        assert any(
-            "[Conversation summary]" in (m.content or "")
-            for m in result
-        )
+        assert any("[Conversation summary]" in (m.content or "") for m in result)
 
 
 # ---------------------------------------------------------------------------
@@ -260,7 +263,9 @@ class TestPinnedBudgetWarning:
             _msg("assistant", "A5"),
         ]
 
-        with caplog.at_level(logging.WARNING, logger="fim_agent.core.memory.context_guard"):
+        with caplog.at_level(
+            logging.WARNING, logger="fim_one.core.memory.context_guard"
+        ):
             await guard.check_and_compact(messages, budget=100)
 
         assert any("pinned messages consume" in r.message for r in caplog.records)
@@ -275,8 +280,8 @@ class TestModelHintAgentContextGuard:
     def test_resolve_agent_passes_context_guard(self):
         """When model_hint routes to a different LLM, the new agent must
         receive context_guard and extra_instructions from the parent."""
-        from fim_agent.core.planner.executor import DAGExecutor
-        from fim_agent.core.planner.types import PlanStep
+        from fim_one.core.planner.executor import DAGExecutor
+        from fim_one.core.planner.types import PlanStep
 
         # Build a mock parent agent with context_guard set.
         # Use the public property names that _resolve_agent accesses
@@ -316,8 +321,8 @@ class TestModelHintAgentContextGuard:
 
 class TestBuildStepQueryOriginalGoal:
     def test_includes_original_goal(self):
-        from fim_agent.core.planner.executor import DAGExecutor
-        from fim_agent.core.planner.types import PlanStep
+        from fim_one.core.planner.executor import DAGExecutor
+        from fim_one.core.planner.types import PlanStep
 
         mock_agent = MagicMock()
         executor = DAGExecutor(
@@ -332,8 +337,8 @@ class TestBuildStepQueryOriginalGoal:
         assert "Task: Fetch CSV from URL" in query
 
     def test_no_original_goal(self):
-        from fim_agent.core.planner.executor import DAGExecutor
-        from fim_agent.core.planner.types import PlanStep
+        from fim_one.core.planner.executor import DAGExecutor
+        from fim_one.core.planner.types import PlanStep
 
         mock_agent = MagicMock()
         executor = DAGExecutor(agent=mock_agent)

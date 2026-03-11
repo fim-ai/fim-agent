@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from fim_agent.core.planner.types import AnalysisResult, ExecutionPlan, PlanStep
-from fim_agent.web.api.chat import _format_replan_context
+from fim_one.core.planner.types import AnalysisResult, ExecutionPlan, PlanStep
+from fim_one.web.api.chat import _format_replan_context
 
 
 class TestFormatReplanContext:
@@ -108,13 +108,18 @@ class TestFormatReplanContext:
         assert exact_result in text
         # Make sure there is no spurious "..." appended right after it.
         idx = text.index(exact_result)
-        after = text[idx + len(exact_result): idx + len(exact_result) + 3]
+        after = text[idx + len(exact_result) : idx + len(exact_result) + 3]
         assert after != "..."
 
     def test_format_replan_context_multiple_steps(self):
         """All steps in the plan are included in the output."""
         steps = [
-            PlanStep(id=f"step_{i}", task=f"Task {i}", status="completed", result=f"Result {i}")
+            PlanStep(
+                id=f"step_{i}",
+                task=f"Task {i}",
+                status="completed",
+                result=f"Result {i}",
+            )
             for i in range(1, 6)
         ]
         plan = ExecutionPlan(goal="Multi-step", steps=steps, current_round=3)

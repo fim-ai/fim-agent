@@ -1,4 +1,4 @@
-export const APP_NAME = "FIM Agent"
+export const APP_NAME = "FIM One"
 export const APP_VERSION = "0.4.0"
 /** All fetch() calls use empty base (same-origin), proxied by Next.js rewrites */
 export function getApiBaseUrl() {

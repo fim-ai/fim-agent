@@ -1,6 +1,6 @@
 ---
 title: "环境变量"
-description: "FIM Agent 的完整配置参考。"
+description: "FIM One 的完整配置参考。"
 mode: "wide"
 ---
 
@@ -73,7 +73,7 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 
 ### 扩展思考（Reasoning）
 
-设置 `LLM_REASONING_EFFORT` 后，FIM Agent 会启用模型的扩展思考能力，并将内部思维链展示在 UI 的"思考中"步骤中。FIM Agent 使用 [LiteLLM](https://github.com/BerriAI/litellm) 自动将推理强度参数转换为各提供商的原生格式。
+设置 `LLM_REASONING_EFFORT` 后，FIM One 会启用模型的扩展思考能力，并将内部思维链展示在 UI 的"思考中"步骤中。FIM One 使用 [LiteLLM](https://github.com/BerriAI/litellm) 自动将推理强度参数转换为各提供商的原生格式。
 
 #### 支持的提供商
 
@@ -246,7 +246,7 @@ LiteLLM 根据 `LLM_BASE_URL` 自动检测提供商，并映射到正确的 API 
 
 | 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
-| `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/fim_agent.db` | 数据库连接字符串。**SQLite**（零配置）：`sqlite+aiosqlite:///./data/fim_agent.db`。**PostgreSQL**（生产环境推荐）：`postgresql+asyncpg://user:pass@localhost:5432/fim_agent`。Docker Compose 自动配置 PostgreSQL。 |
+| `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/fim_one.db` | 数据库连接字符串。**SQLite**（零配置）：`sqlite+aiosqlite:///./data/fim_one.db`。**PostgreSQL**（生产环境推荐）：`postgresql+asyncpg://user:pass@localhost:5432/fim_one`。Docker Compose 自动配置 PostgreSQL。 |
 | `JWT_SECRET_KEY` | 否 | `CHANGE_ME` | 用于 JWT 令牌签名的密钥。占位值 `CHANGE_ME`（或任何旧版默认值）会在首次启动时触发自动生成一个安全的 256 位随机密钥，并回写到 `.env`。在生产环境中应显式设置，以确保在重启和多副本部署后令牌仍然有效。 |
 | `CORS_ORIGINS` | 否 | — | 除默认 localhost 条目外，额外允许的 CORS 源列表，以逗号分隔。当前端运行在非 localhost 域名上时必须设置（例如 `https://app.example.com`）。 |
 | `UPLOADS_DIR` | 否 | `./uploads` | 上传文件存放目录 |

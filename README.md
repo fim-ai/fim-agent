@@ -1,21 +1,21 @@
 <div align="center">
 
-![FIM Agent Banner](./assets/banner.jpg)
+![FIM One Banner](./assets/banner.jpg)
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-Source%20Available-orange)
 [![GitHub stars](https://img.shields.io/github/stars/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/network)
 [![GitHub issues](https://img.shields.io/github/issues/fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/issues)
-[![Follow on X](https://img.shields.io/twitter/follow/FIM_Agent?style=social)](https://x.com/FIM_Agent)
+[![Follow on X](https://img.shields.io/twitter/follow/fim_one?style=social)](https://x.com/fim_one)
 [![Discord](https://img.shields.io/discord/1480638265206771742?logo=discord&label=discord)](https://discord.gg/z64czxdC7z)
-[![Product Hunt](https://img.shields.io/badge/Product%20Hunt-FIM%20Agent-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/products/fim-agent)
+[![Product Hunt](https://img.shields.io/badge/Product%20Hunt-FIM%20One-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/products/fim-agent)
 
 🌐 **English** | [🇨🇳 中文](README.zh.md)
 
 **AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.**
 
-🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
+🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/fim_one) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
 
 </div>
 
@@ -25,8 +25,8 @@
 
 - [Overview](#overview)
 - [Use Cases](#use-cases)
-- [Why FIM Agent](#why-fim-agent)
-- [Where FIM Agent Sits](#where-fim-agent-sits)
+- [Why FIM One](#why-fim-one)
+- [Where FIM One Sits](#where-fim-one-sits)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start) (Docker / Local / Production)
@@ -41,17 +41,17 @@
 
 ## Overview
 
-FIM Agent is a provider-agnostic Python framework for building AI agents that dynamically plan and execute complex tasks. What makes it different is the **Connector Hub** architecture — three delivery modes, one agent core:
+FIM One is a provider-agnostic Python framework for building AI agents that dynamically plan and execute complex tasks. What makes it different is the **Connector Hub** architecture — three delivery modes, one agent core:
 
-| Mode | What it is | How you access it |
-|------|-----------|------------------|
-| **Standalone** | General-purpose AI assistant — search, code, knowledge base | Portal |
-| **Copilot** | AI embedded in a host system — works alongside users in their existing UI | iframe / widget / embed into host pages |
-| **Hub** | Central AI orchestration — all your systems connected, cross-system intelligence | Portal / API |
+| Mode           | What it is                                                                       | How you access it                       |
+| -------------- | -------------------------------------------------------------------------------- | --------------------------------------- |
+| **Standalone** | General-purpose AI assistant — search, code, knowledge base                      | Portal                                  |
+| **Copilot**    | AI embedded in a host system — works alongside users in their existing UI        | iframe / widget / embed into host pages |
+| **Hub**        | Central AI orchestration — all your systems connected, cross-system intelligence | Portal / API                            |
 
 ```mermaid
 graph LR
-    ERP --> Hub["FIM Agent Hub<br/>(AI orchestration)"]
+    ERP --> Hub["FIM One Hub<br/>(AI orchestration)"]
     Database --> Hub
     Lark --> Hub
     CRM --> Hub
@@ -63,18 +63,18 @@ The core is always the same: ReAct reasoning loops, dynamic DAG planning with co
 
 ## Use Cases
 
-Enterprise data and workflows are locked inside OA, ERP, finance, and approval systems. FIM Agent lets AI agents read and write those systems — automating cross-system processes without modifying your existing infrastructure.
+Enterprise data and workflows are locked inside OA, ERP, finance, and approval systems. FIM One lets AI agents read and write those systems — automating cross-system processes without modifying your existing infrastructure.
 
-| Scenario | Recommended Start | What it automates |
-|----------|------------------|-------------------|
-| **Legal & Compliance** | Copilot → Hub | Contract clause extraction, version diff, risk flagging with source citations, auto-trigger OA approval |
-| **IT Operations** | Hub | Alert fires → logs pulled → root cause analyzed → fix dispatched to Lark/Slack — one closed loop |
-| **Business Operations** | Copilot | Scheduled data summaries pushed to team channels; ad-hoc natural language queries against live databases |
-| **Finance Automation** | Hub | Invoice verification, expense approval routing, ledger reconciliation across ERP and accounting systems |
-| **Procurement** | Copilot → Hub | Requirements → vendor comparison → contract draft → approval — Agent handles the cross-system handoffs |
-| **Developer Integration** | API | Import an OpenAPI spec or describe an API in chat — connector created in minutes, auto-registered as agent tools |
+| Scenario                  | Recommended Start | What it automates                                                                                                |
+| ------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Legal & Compliance**    | Copilot → Hub     | Contract clause extraction, version diff, risk flagging with source citations, auto-trigger OA approval          |
+| **IT Operations**         | Hub               | Alert fires → logs pulled → root cause analyzed → fix dispatched to Lark/Slack — one closed loop                 |
+| **Business Operations**   | Copilot           | Scheduled data summaries pushed to team channels; ad-hoc natural language queries against live databases         |
+| **Finance Automation**    | Hub               | Invoice verification, expense approval routing, ledger reconciliation across ERP and accounting systems          |
+| **Procurement**           | Copilot → Hub     | Requirements → vendor comparison → contract draft → approval — Agent handles the cross-system handoffs           |
+| **Developer Integration** | API               | Import an OpenAPI spec or describe an API in chat — connector created in minutes, auto-registered as agent tools |
 
-## Why FIM Agent
+## Why FIM One
 
 ### Land and Expand
 
@@ -84,29 +84,29 @@ When the value is proven, set up a **Hub** — a central portal that connects al
 
 Copilot proves value inside one system. Hub unlocks value across all systems.
 
-### What FIM Agent Does NOT Do
+### What FIM One Does NOT Do
 
-FIM Agent does not replicate workflow logic that already exists in your target systems:
+FIM One does not replicate workflow logic that already exists in your target systems:
 
 - **No BPM/FSM engine** — Approval chains, routing, escalation, and state machines are the target system's responsibility. These systems spent years building this logic.
-- **No drag-and-drop workflow editor** — Use Dify if you need visual flowcharts. FIM Agent's DAG planner generates execution graphs dynamically.
-- **Connector = API call** — From the connector's perspective, "transfer approval" = one API call, "reject with reason" = one API call. All complex workflow operations collapse to HTTP requests. FIM Agent calls the API; the target system manages the state.
+- **No drag-and-drop workflow editor** — Use Dify if you need visual flowcharts. FIM One's DAG planner generates execution graphs dynamically.
+- **Connector = API call** — From the connector's perspective, "transfer approval" = one API call, "reject with reason" = one API call. All complex workflow operations collapse to HTTP requests. FIM One calls the API; the target system manages the state.
 
 This is a deliberate architectural boundary, not a capability gap.
 
 ### Competitive Positioning
 
-|  | Dify | Manus | Coze | FIM Agent |
-|--|------|-------|------|-----------|
-| **Approach** | Visual workflow builder | Autonomous agent | Builder + agent space | AI Connector Hub |
-| **Planning** | Human-designed static DAGs | Multi-agent CoT | Static + dynamic | LLM DAG planning + ReAct |
-| **Cross-system** | API nodes (manual) | No | Plugin marketplace | Hub Mode (N:N orchestration) |
-| **Human Confirmation** | No | No | No | Yes (pre-execution gate) |
-| **Self-hosted** | Yes (Docker stack) | No | Yes (Coze Studio) | Yes (single process) |
+|                        | Dify                       | Manus            | Coze                  | FIM One                      |
+| ---------------------- | -------------------------- | ---------------- | --------------------- | ---------------------------- |
+| **Approach**           | Visual workflow builder    | Autonomous agent | Builder + agent space | AI Connector Hub             |
+| **Planning**           | Human-designed static DAGs | Multi-agent CoT  | Static + dynamic      | LLM DAG planning + ReAct     |
+| **Cross-system**       | API nodes (manual)         | No               | Plugin marketplace    | Hub Mode (N:N orchestration) |
+| **Human Confirmation** | No                         | No               | No                    | Yes (pre-execution gate)     |
+| **Self-hosted**        | Yes (Docker stack)         | No               | Yes (Coze Studio)     | Yes (single process)         |
 
 > Deep dive: [Philosophy](https://docs.fim.ai/architecture/philosophy) | [Execution Modes](https://docs.fim.ai/concepts/execution-modes) | [Competitive Landscape](https://docs.fim.ai/strategy/competitive-landscape)
 
-### Where FIM Agent Sits
+### Where FIM One Sits
 
 ```
                 Static Execution          Dynamic Execution
@@ -117,13 +117,13 @@ This is a deliberate architectural boundary, not a capability gap.
             ├──────────────────────┼──────────────────────┤
  Dynamic    │ (transitional —      │ Autonomous Agent     │
  Planning   │  unstable quadrant)  │ AutoGPT, Manus       │
-            │                      │ ★ FIM Agent (bounded)│
+            │                      │ ★ FIM One (bounded)│
             └──────────────────────┴──────────────────────┘
 ```
 
-Dify/n8n are **Static Planning + Static Execution** — humans design the DAG on a visual canvas, nodes execute fixed operations. FIM Agent is **Dynamic Planning + Dynamic Execution** — LLM generates the DAG at runtime, each node runs a ReAct loop, with re-planning when goals aren't met. But bounded (max 3 re-plan rounds, token budgets, confirmation gates), so more controlled than AutoGPT.
+Dify/n8n are **Static Planning + Static Execution** — humans design the DAG on a visual canvas, nodes execute fixed operations. FIM One is **Dynamic Planning + Dynamic Execution** — LLM generates the DAG at runtime, each node runs a ReAct loop, with re-planning when goals aren't met. But bounded (max 3 re-plan rounds, token budgets, confirmation gates), so more controlled than AutoGPT.
 
-FIM Agent doesn't do BPM/FSM — workflow logic belongs to the target system, Connectors just call APIs.
+FIM One doesn't do BPM/FSM — workflow logic belongs to the target system, Connectors just call APIs.
 
 > Full explanation: [Philosophy](https://docs.fim.ai/architecture/philosophy)
 
@@ -186,7 +186,7 @@ graph TB
     subgraph app["Application & Interaction Layer"]
         a["Portal · API · iframe · Lark/Slack Bot · Webhook · WeCom/DingTalk"]
     end
-    subgraph mid["FIM Agent Middleware"]
+    subgraph mid["FIM One Middleware"]
         direction LR
         m1["Connectors<br/>+ MCP Hub"] ~~~ m2["Orch Engine<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>Knowledge"] ~~~ m4["Auth /<br/>Admin"]
     end
@@ -204,7 +204,7 @@ graph LR
     CRM["CRM<br/>(Salesforce)"] --> B
     OA["OA<br/>(Seeyon/Weaver)"] --> C
     DB["Custom DB<br/>(PG/MySQL)"] --> D
-    subgraph Hub["FIM Agent Hub"]
+    subgraph Hub["FIM One Hub"]
         A["Agent A: Finance Audit"]
         B["Agent B: Contract Review"]
         C["Agent C: Approval Assist"]
@@ -222,11 +222,11 @@ Each connector is a standardized bridge — the agent doesn't know or care wheth
 
 ### Internal Execution
 
-FIM Agent provides two execution modes:
+FIM One provides two execution modes:
 
-| Mode | Best for | How it works |
-|------|----------|-------------|
-| ReAct | Single complex queries | Reason → Act → Observe loop with tools |
+| Mode         | Best for                  | How it works                                                       |
+| ------------ | ------------------------- | ------------------------------------------------------------------ |
+| ReAct        | Single complex queries    | Reason → Act → Observe loop with tools                             |
 | DAG Planning | Multi-step parallel tasks | LLM generates dependency graph, independent steps run concurrently |
 
 ```mermaid
@@ -301,10 +301,10 @@ cd frontend && pnpm install && cd ..
 
 Both options work in production:
 
-| Method | Command | Best for |
-|--------|---------|----------|
-| **Docker** | `docker compose up -d` | Hands-off deployment, easy updates |
-| **Script** | `./start.sh` | Bare-metal servers, custom process managers |
+| Method     | Command                | Best for                                    |
+| ---------- | ---------------------- | ------------------------------------------- |
+| **Docker** | `docker compose up -d` | Hands-off deployment, easy updates          |
+| **Script** | `./start.sh`           | Bare-metal servers, custom process managers |
 
 For either method, put an Nginx reverse proxy in front for HTTPS and custom domain:
 
@@ -326,14 +326,14 @@ volumes:
 
 ### Recommended Setup
 
-FIM Agent works with **any OpenAI-compatible LLM provider** — OpenAI, DeepSeek, Anthropic, Qwen, Ollama, vLLM, and more. Pick whichever you prefer:
+FIM One works with **any OpenAI-compatible LLM provider** — OpenAI, DeepSeek, Anthropic, Qwen, Ollama, vLLM, and more. Pick whichever you prefer:
 
-| Provider | `LLM_API_KEY` | `LLM_BASE_URL` | `LLM_MODEL` |
-| -------- | ------------- | -------------- | ----------- |
-| **OpenAI** | `sk-...` | *(default)* | `gpt-4o` |
-| **DeepSeek** | `sk-...` | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| **Anthropic** | `sk-ant-...` | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
-| **Ollama** (local) | `ollama` | `http://localhost:11434/v1` | `qwen2.5:14b` |
+| Provider           | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
+| ------------------ | ------------- | ------------------------------ | ------------------- |
+| **OpenAI**         | `sk-...`      | *(default)*                    | `gpt-4o`            |
+| **DeepSeek**       | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`     |
+| **Anthropic**      | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
+| **Ollama** (local) | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`       |
 
 **[Jina AI](https://jina.ai/)** unlocks web search/fetch, embedding, and the full RAG pipeline (free tier available).
 
@@ -361,7 +361,7 @@ uv sync --all-extras
 pytest
 
 # Run tests with coverage
-pytest --cov=fim_agent --cov-report=term-missing
+pytest --cov=fim_one --cov-report=term-missing
 
 # Lint
 ruff check src/ tests/
@@ -417,7 +417,7 @@ This project follows the [all-contributors](https://allcontributors.org/) specif
 
 ## License
 
-FIM Agent Source Available License. This is **not** an OSI-approved open source license.
+FIM One Source Available License. This is **not** an OSI-approved open source license.
 
 **Permitted**: internal use, modification, distribution with license intact, embedding in your own (non-competing) applications.
 
@@ -431,6 +431,6 @@ See [LICENSE](LICENSE) for full terms.
 
 <div align="center">
 
-🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
+🌐 [Website](https://agent.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/fim_one) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
 
 </div>

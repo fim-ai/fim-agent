@@ -6,10 +6,10 @@ import os
 
 import pytest
 
-from fim_agent.core.web.fetch import HttpxFetch, JinaFetch, get_web_fetcher
-from fim_agent.core.web.fetch.base import BaseWebFetch
-from fim_agent.core.web.fetch.httpx_fetch import _strip_html
-from fim_agent.core.web.search import (
+from fim_one.core.web.fetch import HttpxFetch, JinaFetch, get_web_fetcher
+from fim_one.core.web.fetch.base import BaseWebFetch
+from fim_one.core.web.fetch.httpx_fetch import _strip_html
+from fim_one.core.web.search import (
     BraveSearch,
     JinaSearch,
     SearchResult,
@@ -17,16 +17,17 @@ from fim_agent.core.web.search import (
     format_results,
     get_web_searcher,
 )
-from fim_agent.core.web.search.base import BaseWebSearch
-from fim_agent.core.web.search.jina import _parse_jina_markdown
-from fim_agent.core.reranker.cohere import CohereReranker
-from fim_agent.core.reranker.openai import OpenAIReranker, _cosine
-from fim_agent.core.reranker.base import BaseReranker
+from fim_one.core.web.search.base import BaseWebSearch
+from fim_one.core.web.search.jina import _parse_jina_markdown
+from fim_one.core.reranker.cohere import CohereReranker
+from fim_one.core.reranker.openai import OpenAIReranker, _cosine
+from fim_one.core.reranker.base import BaseReranker
 
 
 # ---------------------------------------------------------------------------
 # SearchResult dataclass
 # ---------------------------------------------------------------------------
+
 
 def test_search_result_defaults():
     r = SearchResult(title="Test", url="https://example.com", snippet="hello")
@@ -41,6 +42,7 @@ def test_search_result_with_score():
 # ---------------------------------------------------------------------------
 # format_results
 # ---------------------------------------------------------------------------
+
 
 def test_format_results_with_url():
     results = [SearchResult(title="Foo", url="https://foo.com", snippet="bar")]
@@ -112,6 +114,7 @@ def test_parse_jina_markdown_fallback():
 # HttpxFetch HTML stripping
 # ---------------------------------------------------------------------------
 
+
 def test_strip_html_basic():
     html = "<html><head><title>T</title></head><body><p>Hello world</p></body></html>"
     text = _strip_html(html)
@@ -142,6 +145,7 @@ def test_strip_html_entities():
 # ---------------------------------------------------------------------------
 # Provider factories — env var routing
 # ---------------------------------------------------------------------------
+
 
 def test_get_web_searcher_default_is_jina(monkeypatch):
     monkeypatch.delenv("WEB_SEARCH_PROVIDER", raising=False)
@@ -197,6 +201,7 @@ def test_get_web_fetcher_httpx_explicit(monkeypatch):
 # Protocol conformance
 # ---------------------------------------------------------------------------
 
+
 def test_jina_search_is_base_web_search():
     assert isinstance(JinaSearch(), BaseWebSearch)
 
@@ -212,6 +217,7 @@ def test_httpx_fetch_is_base_web_fetch():
 # ---------------------------------------------------------------------------
 # New rerankers — instantiation & protocol
 # ---------------------------------------------------------------------------
+
 
 def test_cohere_reranker_is_base_reranker():
     r = CohereReranker(api_key="fake")
@@ -238,6 +244,7 @@ async def test_openai_reranker_empty_docs(monkeypatch):
 # ---------------------------------------------------------------------------
 # Cosine similarity helper
 # ---------------------------------------------------------------------------
+
 
 def test_cosine_identical():
     v = [1.0, 0.0, 0.0]

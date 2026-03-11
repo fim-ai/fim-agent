@@ -3,7 +3,7 @@
 import os
 
 import pytest
-from fim_agent.core.security.mcp import (
+from fim_one.core.security.mcp import (
     get_allowed_stdio_commands,
     is_stdio_allowed,
     validate_stdio_command,

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from fim_agent.core.tool.builtin.grounded_retrieve import GroundedRetrieveTool
+from fim_one.core.tool.builtin.grounded_retrieve import GroundedRetrieveTool
 
 
 # ---------------------------------------------------------------------------
@@ -46,8 +46,8 @@ def test_tool_without_bound_kbs():
 @pytest.mark.asyncio
 async def test_tool_output_format():
     """Mock the grounding pipeline and verify output format."""
-    from fim_agent.rag.base import Document
-    from fim_agent.rag.grounding import Citation, EvidenceUnit, GroundedResult
+    from fim_one.rag.base import Document
+    from fim_one.rag.grounding import Citation, EvidenceUnit, GroundedResult
 
     mock_result = GroundedResult(
         evidence=[
@@ -86,16 +86,16 @@ async def test_tool_output_format():
 
     with (
         patch(
-            "fim_agent.web.deps.get_kb_manager",
+            "fim_one.web.deps.get_kb_manager",
         ),
         patch(
-            "fim_agent.web.deps.get_embedding",
+            "fim_one.web.deps.get_embedding",
         ),
         patch(
-            "fim_agent.web.deps.get_fast_llm",
+            "fim_one.web.deps.get_fast_llm",
         ),
         patch(
-            "fim_agent.rag.grounding.GroundingPipeline",
+            "fim_one.rag.grounding.GroundingPipeline",
             mock_pipeline_cls,
         ),
     ):
@@ -132,8 +132,8 @@ async def test_tool_missing_kb_ids():
 
 def _make_mock_result(num_evidence: int, kb_id: str = "kb1"):
     """Build a GroundedResult with *num_evidence* evidence units."""
-    from fim_agent.rag.base import Document
-    from fim_agent.rag.grounding import Citation, EvidenceUnit, GroundedResult
+    from fim_one.rag.base import Document
+    from fim_one.rag.grounding import Citation, EvidenceUnit, GroundedResult
 
     evidence = []
     for idx in range(num_evidence):
@@ -174,10 +174,10 @@ def _patch_pipeline(mock_result):
     mock_pipeline_instance.ground = AsyncMock(return_value=mock_result)
     mock_pipeline_cls.return_value = mock_pipeline_instance
     return (
-        patch("fim_agent.web.deps.get_kb_manager"),
-        patch("fim_agent.web.deps.get_embedding"),
-        patch("fim_agent.web.deps.get_fast_llm"),
-        patch("fim_agent.rag.grounding.GroundingPipeline", mock_pipeline_cls),
+        patch("fim_one.web.deps.get_kb_manager"),
+        patch("fim_one.web.deps.get_embedding"),
+        patch("fim_one.web.deps.get_fast_llm"),
+        patch("fim_one.rag.grounding.GroundingPipeline", mock_pipeline_cls),
     )
 
 
@@ -202,8 +202,12 @@ async def test_cumulative_numbering_sequential():
 
     # --- First call: 3 evidence units ---
     result1 = _make_mock_result(3)
-    with _patch_pipeline(result1)[0], _patch_pipeline(result1)[1], \
-         _patch_pipeline(result1)[2], _patch_pipeline(result1)[3]:
+    with (
+        _patch_pipeline(result1)[0],
+        _patch_pipeline(result1)[1],
+        _patch_pipeline(result1)[2],
+        _patch_pipeline(result1)[3],
+    ):
         output1 = await tool.run(query="first query", top_k=5)
 
     nums1 = _extract_source_numbers(output1)
@@ -211,8 +215,12 @@ async def test_cumulative_numbering_sequential():
 
     # --- Second call: 3 evidence units ---
     result2 = _make_mock_result(3)
-    with _patch_pipeline(result2)[0], _patch_pipeline(result2)[1], \
-         _patch_pipeline(result2)[2], _patch_pipeline(result2)[3]:
+    with (
+        _patch_pipeline(result2)[0],
+        _patch_pipeline(result2)[1],
+        _patch_pipeline(result2)[2],
+        _patch_pipeline(result2)[3],
+    ):
         output2 = await tool.run(query="second query", top_k=5)
 
     nums2 = _extract_source_numbers(output2)
@@ -243,10 +251,10 @@ async def test_cumulative_numbering_error_no_increment():
     mock_pipeline_cls.return_value = mock_pipeline_instance
 
     with (
-        patch("fim_agent.web.deps.get_kb_manager"),
-        patch("fim_agent.web.deps.get_embedding"),
-        patch("fim_agent.web.deps.get_fast_llm"),
-        patch("fim_agent.rag.grounding.GroundingPipeline", mock_pipeline_cls),
+        patch("fim_one.web.deps.get_kb_manager"),
+        patch("fim_one.web.deps.get_embedding"),
+        patch("fim_one.web.deps.get_fast_llm"),
+        patch("fim_one.rag.grounding.GroundingPipeline", mock_pipeline_cls),
     ):
         output_err = await tool.run(query="bad query", top_k=5)
 
@@ -311,10 +319,10 @@ async def test_parallel_safety_non_overlapping():
     mock_pipeline_cls.return_value = mock_pipeline_instance
 
     with (
-        patch("fim_agent.web.deps.get_kb_manager"),
-        patch("fim_agent.web.deps.get_embedding"),
-        patch("fim_agent.web.deps.get_fast_llm"),
-        patch("fim_agent.rag.grounding.GroundingPipeline", mock_pipeline_cls),
+        patch("fim_one.web.deps.get_kb_manager"),
+        patch("fim_one.web.deps.get_embedding"),
+        patch("fim_one.web.deps.get_fast_llm"),
+        patch("fim_one.rag.grounding.GroundingPipeline", mock_pipeline_cls),
     ):
         output_a, output_b = await asyncio.gather(
             tool.run(query="query A", top_k=5),
@@ -331,17 +339,15 @@ async def test_parallel_safety_non_overlapping():
     # Ranges should not overlap
     set_a = set(nums_a)
     set_b = set(nums_b)
-    assert set_a.isdisjoint(set_b), (
-        f"Source numbers overlap: A={nums_a}, B={nums_b}"
-    )
+    assert set_a.isdisjoint(set_b), f"Source numbers overlap: A={nums_a}, B={nums_b}"
 
     # Combined numbers must be dense (no gaps): exactly {1,2,3,4,5,6}
     all_nums = sorted(nums_a + nums_b)
-    assert all_nums == list(range(1, 7)), (
-        f"Citation numbers have gaps — expected [1..6], got {all_nums}"
-    )
+    assert all_nums == list(
+        range(1, 7)
+    ), f"Citation numbers have gaps — expected [1..6], got {all_nums}"
 
     # Final offset should equal total evidence count (no over-reservation)
-    assert tool._source_offset == 6, (
-        f"Expected final offset 6, got {tool._source_offset}"
-    )
+    assert (
+        tool._source_offset == 6
+    ), f"Expected final offset 6, got {tool._source_offset}"

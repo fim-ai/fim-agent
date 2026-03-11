@@ -1,5 +1,5 @@
 # ============================================================================
-# FIM Agent — Multi-stage Docker Build
+# FIM One — Multi-stage Docker Build
 # Produces a single image running API (uvicorn :8000) + Frontend (Next.js :3000)
 # ============================================================================
 
@@ -59,7 +59,7 @@ COPY --from=python-build /app/alembic.ini /app/
 COPY --from=python-build /app/pyproject.toml /app/
 
 # Copy Alembic migrations (needed for `alembic upgrade head`)
-COPY src/fim_agent/migrations/ /app/src/fim_agent/migrations/
+COPY src/fim_one/migrations/ /app/src/fim_one/migrations/
 
 # Copy Next.js standalone output
 # standalone/ contains server.js + minimal node_modules + .next-build/server/
@@ -83,8 +83,8 @@ ENV PYTHONUNBUFFERED=1
 
 # Compile .py → .pyc (in-place with -b) and remove source files for protection.
 # Migrations are kept as-is because Alembic reads them at runtime.
-RUN python -m compileall -b /app/src/fim_agent/ \
-    && find /app/src/fim_agent/ -name "*.py" ! -path "*/migrations/*" -delete
+RUN python -m compileall -b /app/src/fim_one/ \
+    && find /app/src/fim_one/ -name "*.py" ! -path "*/migrations/*" -delete
 
 EXPOSE 3000
 

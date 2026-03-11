@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from fim_agent.core.tool.connector.database.safety import SqlSafetyError, validate_sql
+from fim_one.core.tool.connector.database.safety import SqlSafetyError, validate_sql
 
 
 class TestValidateSqlSelectAllowed:
@@ -104,9 +104,7 @@ class TestValidateSqlWriteAllowed:
         assert "UPDATE" in result
 
     def test_delete_allowed(self) -> None:
-        result = validate_sql(
-            "DELETE FROM users WHERE id = 1", allow_write=True
-        )
+        result = validate_sql("DELETE FROM users WHERE id = 1", allow_write=True)
         assert "DELETE" in result
 
 
@@ -168,7 +166,9 @@ class TestValidateSqlDangerousPatterns:
 
     def test_load_data(self) -> None:
         with pytest.raises(SqlSafetyError, match="LOAD DATA"):
-            validate_sql("LOAD DATA INFILE '/tmp/data' INTO TABLE users", allow_write=True)
+            validate_sql(
+                "LOAD DATA INFILE '/tmp/data' INTO TABLE users", allow_write=True
+            )
 
 
 class TestValidateSqlEdgeCases:

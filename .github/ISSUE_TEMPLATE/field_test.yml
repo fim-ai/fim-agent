@@ -1,5 +1,5 @@
 name: Field Test Report
-description: Share your real-world experience using FIM Agent
+description: Share your real-world experience using FIM One
 title: "[Field Test] "
 labels: ["field-test", "pioneer"]
 body:
@@ -76,4 +76,4 @@ body:
     id: suggestions
     attributes:
       label: Suggestions
-      description: What would make FIM Agent more useful for your workflow?
+      description: What would make FIM One more useful for your workflow?

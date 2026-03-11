@@ -1,7 +1,7 @@
 """Security tests for connector template rendering — JSON injection prevention."""
 
 import pytest
-from fim_agent.core.tool.connector.adapter import ConnectorToolAdapter
+from fim_one.core.tool.connector.adapter import ConnectorToolAdapter
 
 
 class TestRenderTemplate:
@@ -34,12 +34,16 @@ class TestRenderTemplate:
 
     def test_backslashes_in_value(self):
         template = {"path": "{{dir}}"}
-        result = ConnectorToolAdapter._render_template(template, {"dir": "C:\\Users\\test"})
+        result = ConnectorToolAdapter._render_template(
+            template, {"dir": "C:\\Users\\test"}
+        )
         assert result == {"path": "C:\\Users\\test"}
 
     def test_newlines_in_value(self):
         template = {"body": "prefix: {{content}}"}
-        result = ConnectorToolAdapter._render_template(template, {"content": "line1\nline2"})
+        result = ConnectorToolAdapter._render_template(
+            template, {"content": "line1\nline2"}
+        )
         assert result["body"] == "prefix: line1\nline2"
 
     def test_unicode_in_value(self):
@@ -68,7 +72,5 @@ class TestRenderTemplate:
     def test_inline_injection_multiple_placeholders(self):
         """Even with multiple placeholders, injection should be blocked."""
         template = {"q": "{{a}} and {{b}}"}
-        result = ConnectorToolAdapter._render_template(
-            template, {"a": 'x"', "b": '"y'}
-        )
+        result = ConnectorToolAdapter._render_template(template, {"a": 'x"', "b": '"y'})
         assert result["q"] == 'x" and "y'

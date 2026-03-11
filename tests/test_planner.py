@@ -8,8 +8,8 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.model import ChatMessage, LLMResult
-from fim_agent.core.planner import (
+from fim_one.core.model import ChatMessage, LLMResult
+from fim_one.core.planner import (
     AnalysisResult,
     DAGExecutor,
     DAGPlanner,
@@ -179,7 +179,7 @@ class TestDAGPlannerValidation:
             PlanStep(id="s1", task="a"),
             PlanStep(id="s2", task="b", dependencies=["s999"]),
         ]
-        with caplog.at_level(logging.WARNING, logger="fim_agent.core.planner.planner"):
+        with caplog.at_level(logging.WARNING, logger="fim_one.core.planner.planner"):
             planner._validate_dag(steps)  # should NOT raise
         # Dangling dep removed
         assert steps[1].dependencies == []
@@ -193,7 +193,7 @@ class TestDAGPlannerValidation:
             PlanStep(id="s1", task="a"),
             PlanStep(id="s2", task="b", dependencies=["s1", "ghost"]),
         ]
-        with caplog.at_level(logging.WARNING, logger="fim_agent.core.planner.planner"):
+        with caplog.at_level(logging.WARNING, logger="fim_one.core.planner.planner"):
             planner._validate_dag(steps)  # should NOT raise
         # Only the valid dep remains
         assert steps[1].dependencies == ["s1"]
@@ -213,7 +213,12 @@ class TestDAGPlannerPlan:
         plan_json = json.dumps(
             {
                 "steps": [
-                    {"id": "s1", "task": "research", "dependencies": [], "tool_hint": None},
+                    {
+                        "id": "s1",
+                        "task": "research",
+                        "dependencies": [],
+                        "tool_hint": None,
+                    },
                     {
                         "id": "s2",
                         "task": "summarise",
@@ -299,7 +304,9 @@ class TestDAGExecutorBuildStepContext:
         assert ctx == ""
 
     def test_single_dependency(self) -> None:
-        dep = PlanStep(id="s1", task="fetch data", status="completed", result="data here")
+        dep = PlanStep(
+            id="s1", task="fetch data", status="completed", result="data here"
+        )
         step = PlanStep(id="s2", task="process", dependencies=["s1"])
         step_index = {"s1": dep, "s2": step}
 
@@ -348,6 +355,7 @@ class TestDAGExecutorBuildStepQuery:
 
     def _make_executor(self, **kwargs: Any) -> DAGExecutor:
         from unittest.mock import MagicMock
+
         return DAGExecutor(agent=MagicMock(), **kwargs)
 
     def test_basic_query(self) -> None:
@@ -437,7 +445,9 @@ class TestPlanAnalyzer:
         analyzer = PlanAnalyzer(llm=llm)
 
         steps = [
-            PlanStep(id="s1", task="research", status="failed", result="Error occurred"),
+            PlanStep(
+                id="s1", task="research", status="failed", result="Error occurred"
+            ),
         ]
         plan = ExecutionPlan(goal="goal", steps=steps)
 
@@ -547,7 +557,7 @@ class TestRegexExtractAnalysis:
 
     def test_reasoning_with_unescaped_quotes(self) -> None:
         """Reasoning containing unescaped quotes should not be truncated."""
-        from fim_agent.core.planner.analyzer import _regex_extract_analysis
+        from fim_one.core.planner.analyzer import _regex_extract_analysis
 
         content = (
             '{"achieved": false, "confidence": 0.35, '
@@ -562,7 +572,7 @@ class TestRegexExtractAnalysis:
 
     def test_reasoning_not_truncated_at_inner_quotes(self) -> None:
         """Reasoning with Chinese-style quoting should be fully extracted."""
-        from fim_agent.core.planner.analyzer import _regex_extract_analysis
+        from fim_one.core.planner.analyzer import _regex_extract_analysis
 
         # Simulate the exact pattern from the user's screenshot:
         # reasoning ends with 得出"Google 远超..."的结论 — old regex would
@@ -578,7 +588,7 @@ class TestRegexExtractAnalysis:
 
     def test_reasoning_last_field(self) -> None:
         """Reasoning as the last field in JSON should be fully extracted."""
-        from fim_agent.core.planner.analyzer import _regex_extract_analysis
+        from fim_one.core.planner.analyzer import _regex_extract_analysis
 
         content = '{"achieved": true, "confidence": 0.9, "reasoning": "All steps completed successfully"}'
         data = _regex_extract_analysis(content)
@@ -587,7 +597,7 @@ class TestRegexExtractAnalysis:
 
     def test_reasoning_before_final_answer(self) -> None:
         """Reasoning followed by final_answer should extract correctly."""
-        from fim_agent.core.planner.analyzer import _regex_extract_analysis
+        from fim_one.core.planner.analyzer import _regex_extract_analysis
 
         content = (
             '{"achieved": true, "confidence": 0.8, '

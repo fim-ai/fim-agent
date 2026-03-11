@@ -8,14 +8,14 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.model import ChatMessage, LLMResult
-from fim_agent.core.model.usage import UsageSummary, UsageTracker
-from fim_agent.core.planner.analyzer import PlanAnalyzer
-from fim_agent.core.planner.executor import DAGExecutor
-from fim_agent.core.planner.planner import DAGPlanner
-from fim_agent.core.planner.types import ExecutionPlan, PlanStep
-from fim_agent.core.tool import ToolRegistry
+from fim_one.core.agent import ReActAgent
+from fim_one.core.model import ChatMessage, LLMResult
+from fim_one.core.model.usage import UsageSummary, UsageTracker
+from fim_one.core.planner.analyzer import PlanAnalyzer
+from fim_one.core.planner.executor import DAGExecutor
+from fim_one.core.planner.planner import DAGPlanner
+from fim_one.core.planner.types import ExecutionPlan, PlanStep
+from fim_one.core.tool import ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
 
@@ -42,11 +42,13 @@ def _final_answer_result(
     return LLMResult(
         message=ChatMessage(
             role="assistant",
-            content=json.dumps({
-                "type": "final_answer",
-                "reasoning": "done",
-                "answer": answer,
-            }),
+            content=json.dumps(
+                {
+                    "type": "final_answer",
+                    "reasoning": "done",
+                    "answer": answer,
+                }
+            ),
         ),
         usage=usage or {},
     )
@@ -61,12 +63,14 @@ def _tool_call_result(
     return LLMResult(
         message=ChatMessage(
             role="assistant",
-            content=json.dumps({
-                "type": "tool_call",
-                "reasoning": "calling tool",
-                "tool_name": tool_name,
-                "tool_args": tool_args,
-            }),
+            content=json.dumps(
+                {
+                    "type": "tool_call",
+                    "reasoning": "calling tool",
+                    "tool_name": tool_name,
+                    "tool_args": tool_args,
+                }
+            ),
         ),
         usage=usage or {},
     )
@@ -88,8 +92,12 @@ class TestUsageSummary:
         assert summary.llm_calls == 0
 
     def test_addition(self) -> None:
-        a = UsageSummary(prompt_tokens=10, completion_tokens=5, total_tokens=15, llm_calls=1)
-        b = UsageSummary(prompt_tokens=20, completion_tokens=10, total_tokens=30, llm_calls=2)
+        a = UsageSummary(
+            prompt_tokens=10, completion_tokens=5, total_tokens=15, llm_calls=1
+        )
+        b = UsageSummary(
+            prompt_tokens=20, completion_tokens=10, total_tokens=30, llm_calls=2
+        )
         c = a + b
         assert c.prompt_tokens == 30
         assert c.completion_tokens == 15
@@ -100,8 +108,12 @@ class TestUsageSummary:
         assert b.prompt_tokens == 20
 
     def test_in_place_addition(self) -> None:
-        a = UsageSummary(prompt_tokens=10, completion_tokens=5, total_tokens=15, llm_calls=1)
-        b = UsageSummary(prompt_tokens=20, completion_tokens=10, total_tokens=30, llm_calls=2)
+        a = UsageSummary(
+            prompt_tokens=10, completion_tokens=5, total_tokens=15, llm_calls=1
+        )
+        b = UsageSummary(
+            prompt_tokens=20, completion_tokens=10, total_tokens=30, llm_calls=2
+        )
         a += b
         assert a.prompt_tokens == 30
         assert a.completion_tokens == 15
@@ -206,9 +218,11 @@ class TestReActAgentUsage:
 
     async def test_immediate_final_answer_usage(self) -> None:
         """Single LLM call returns final answer -- usage should reflect 1 call."""
-        llm = FakeLLM(responses=[
-            _final_answer_result("hello", _make_usage(100, 50)),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _final_answer_result("hello", _make_usage(100, 50)),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=ToolRegistry())
         result = await agent.run("greet me")
 
@@ -224,10 +238,12 @@ class TestReActAgentUsage:
         registry = ToolRegistry()
         registry.register(EchoTool())
 
-        llm = FakeLLM(responses=[
-            _tool_call_result("echo", {"text": "ping"}, _make_usage(100, 50)),
-            _final_answer_result("pong", _make_usage(200, 80)),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _tool_call_result("echo", {"text": "ping"}, _make_usage(100, 50)),
+                _final_answer_result("pong", _make_usage(200, 80)),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=registry)
         result = await agent.run("echo test")
 
@@ -243,11 +259,13 @@ class TestReActAgentUsage:
         registry = ToolRegistry()
         registry.register(EchoTool())
 
-        llm = FakeLLM(responses=[
-            _tool_call_result("echo", {"text": "a"}, _make_usage(50, 20)),
-            _tool_call_result("echo", {"text": "b"}, _make_usage(60, 25)),
-            _final_answer_result("done", _make_usage(70, 30)),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _tool_call_result("echo", {"text": "a"}, _make_usage(50, 20)),
+                _tool_call_result("echo", {"text": "b"}, _make_usage(60, 25)),
+                _final_answer_result("done", _make_usage(70, 30)),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=registry)
         result = await agent.run("multi-step")
 
@@ -262,9 +280,11 @@ class TestReActAgentUsage:
         registry = ToolRegistry()
         registry.register(EchoTool())
 
-        llm = FakeLLM(responses=[
-            _tool_call_result("echo", {"text": "loop"}, _make_usage(30, 10)),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _tool_call_result("echo", {"text": "loop"}, _make_usage(30, 10)),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=registry, max_iterations=3)
         result = await agent.run("infinite loop")
 
@@ -276,9 +296,11 @@ class TestReActAgentUsage:
 
     async def test_no_usage_data_from_llm(self) -> None:
         """When LLM returns empty usage, summary should still be present with zeros."""
-        llm = FakeLLM(responses=[
-            _final_answer_result("hello"),  # No usage dict
-        ])
+        llm = FakeLLM(
+            responses=[
+                _final_answer_result("hello"),  # No usage dict
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=ToolRegistry())
         result = await agent.run("test")
 
@@ -296,17 +318,21 @@ class TestDAGPlannerUsage:
     """Verify that DAGPlanner captures planner LLM call usage."""
 
     async def test_planner_usage_in_plan(self) -> None:
-        plan_json = json.dumps({
-            "steps": [
-                {"id": "step_1", "task": "Do something", "dependencies": []},
+        plan_json = json.dumps(
+            {
+                "steps": [
+                    {"id": "step_1", "task": "Do something", "dependencies": []},
+                ]
+            }
+        )
+        llm = FakeLLM(
+            responses=[
+                LLMResult(
+                    message=ChatMessage(role="assistant", content=plan_json),
+                    usage=_make_usage(200, 100),
+                ),
             ]
-        })
-        llm = FakeLLM(responses=[
-            LLMResult(
-                message=ChatMessage(role="assistant", content=plan_json),
-                usage=_make_usage(200, 100),
-            ),
-        ])
+        )
         planner = DAGPlanner(llm=llm)
         plan = await planner.plan("test goal")
 
@@ -317,17 +343,21 @@ class TestDAGPlannerUsage:
         assert plan.total_usage.total_tokens == 300
 
     async def test_planner_no_usage(self) -> None:
-        plan_json = json.dumps({
-            "steps": [
-                {"id": "step_1", "task": "Do something", "dependencies": []},
+        plan_json = json.dumps(
+            {
+                "steps": [
+                    {"id": "step_1", "task": "Do something", "dependencies": []},
+                ]
+            }
+        )
+        llm = FakeLLM(
+            responses=[
+                LLMResult(
+                    message=ChatMessage(role="assistant", content=plan_json),
+                    usage={},
+                ),
             ]
-        })
-        llm = FakeLLM(responses=[
-            LLMResult(
-                message=ChatMessage(role="assistant", content=plan_json),
-                usage={},
-            ),
-        ])
+        )
         planner = DAGPlanner(llm=llm)
         plan = await planner.plan("test goal")
 
@@ -347,10 +377,12 @@ class TestDAGExecutorUsage:
         registry.register(EchoTool())
 
         # Agent will run twice (once per step), each returning final answer.
-        llm = FakeLLM(responses=[
-            _final_answer_result("result1", _make_usage(100, 50)),
-            _final_answer_result("result2", _make_usage(200, 80)),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _final_answer_result("result1", _make_usage(100, 50)),
+                _final_answer_result("result2", _make_usage(200, 80)),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=registry)
         executor = DAGExecutor(agent=agent, max_concurrency=1)
 
@@ -384,9 +416,11 @@ class TestDAGExecutorUsage:
         """When plan already has total_usage from the planner, executor adds to it."""
         registry = ToolRegistry()
 
-        llm = FakeLLM(responses=[
-            _final_answer_result("done", _make_usage(50, 20)),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _final_answer_result("done", _make_usage(50, 20)),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=registry)
         executor = DAGExecutor(agent=agent)
 
@@ -397,7 +431,10 @@ class TestDAGExecutorUsage:
             ],
             # Simulating usage already set by DAGPlanner
             total_usage=UsageSummary(
-                prompt_tokens=200, completion_tokens=100, total_tokens=300, llm_calls=1,
+                prompt_tokens=200,
+                completion_tokens=100,
+                total_tokens=300,
+                llm_calls=1,
             ),
         )
 
@@ -420,18 +457,22 @@ class TestPlanAnalyzerUsage:
     """Verify that PlanAnalyzer captures its LLM call usage."""
 
     async def test_analyzer_usage(self) -> None:
-        analysis_json = json.dumps({
-            "achieved": True,
-            "confidence": 0.95,
-            "final_answer": "All done.",
-            "reasoning": "Everything succeeded.",
-        })
-        llm = FakeLLM(responses=[
-            LLMResult(
-                message=ChatMessage(role="assistant", content=analysis_json),
-                usage=_make_usage(300, 150),
-            ),
-        ])
+        analysis_json = json.dumps(
+            {
+                "achieved": True,
+                "confidence": 0.95,
+                "final_answer": "All done.",
+                "reasoning": "Everything succeeded.",
+            }
+        )
+        llm = FakeLLM(
+            responses=[
+                LLMResult(
+                    message=ChatMessage(role="assistant", content=analysis_json),
+                    usage=_make_usage(300, 150),
+                ),
+            ]
+        )
         analyzer = PlanAnalyzer(llm=llm)
         plan = ExecutionPlan(
             goal="test",
@@ -447,18 +488,22 @@ class TestPlanAnalyzerUsage:
         assert analysis.usage.total_tokens == 450
 
     async def test_analyzer_no_usage(self) -> None:
-        analysis_json = json.dumps({
-            "achieved": False,
-            "confidence": 0.5,
-            "final_answer": None,
-            "reasoning": "Partial.",
-        })
-        llm = FakeLLM(responses=[
-            LLMResult(
-                message=ChatMessage(role="assistant", content=analysis_json),
-                usage={},
-            ),
-        ])
+        analysis_json = json.dumps(
+            {
+                "achieved": False,
+                "confidence": 0.5,
+                "final_answer": None,
+                "reasoning": "Partial.",
+            }
+        )
+        llm = FakeLLM(
+            responses=[
+                LLMResult(
+                    message=ChatMessage(role="assistant", content=analysis_json),
+                    usage={},
+                ),
+            ]
+        )
         analyzer = PlanAnalyzer(llm=llm)
         plan = ExecutionPlan(goal="test", steps=[])
         analysis = await analyzer.analyze("test", plan)

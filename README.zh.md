@@ -1,21 +1,21 @@
 <div align="center">
 
-![FIM Agent Banner](./assets/banner.jpg)
+![FIM One Banner](./assets/banner.jpg)
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-Source%20Available-orange)
 [![GitHub stars](https://img.shields.io/github/stars/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-agent?style=social)](https://github.com/fim-ai/fim-agent/network)
 [![GitHub issues](https://img.shields.io/github/issues/fim-ai/fim-agent)](https://github.com/fim-ai/fim-agent/issues)
-[![Follow on X](https://img.shields.io/twitter/follow/FIM_Agent?style=social)](https://x.com/FIM_Agent)
+[![Follow on X](https://img.shields.io/twitter/follow/fim_one?style=social)](https://x.com/fim_one)
 [![Discord](https://img.shields.io/discord/1480638265206771742?logo=discord&label=discord)](https://discord.gg/z64czxdC7z)
-[![Product Hunt](https://img.shields.io/badge/Product%20Hunt-FIM%20Agent-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/products/fim-agent)
+[![Product Hunt](https://img.shields.io/badge/Product%20Hunt-FIM%20One-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/products/fim-agent)
 
 [🌐 English](README.md) | 🇨🇳 **中文**
 
 **AI 驱动的连接器中枢 — 嵌入单个系统作为 Copilot，或连接所有系统成为 Hub。**
 
-🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
+🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/fim_one) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
 
 </div>
 
@@ -25,8 +25,8 @@
 
 - [概述](#概述)
 - [应用场景](#应用场景)
-- [为什么选择 FIM Agent](#为什么选择-fim-agent)
-- [FIM Agent 的定位](#fim-agent-的定位)
+- [为什么选择 FIM One](#为什么选择-fim-one)
+- [FIM One 的定位](#fim-one-的定位)
 - [核心特性](#核心特性)
 - [架构设计](#架构设计)
 - [快速开始](#快速开始)（Docker / 本地 / 生产环境）
@@ -41,17 +41,17 @@
 
 ## 概述
 
-FIM Agent 是一个与供应商无关的 Python 框架，用于构建能够动态规划和执行复杂任务的 AI Agent。它的独特之处在于 **连接器中枢（Connector Hub）** 架构 — 三种交付模式，一套 Agent 内核：
+FIM One 是一个与供应商无关的 Python 框架，用于构建能够动态规划和执行复杂任务的 AI Agent。它的独特之处在于 **连接器中枢（Connector Hub）** 架构 — 三种交付模式，一套 Agent 内核：
 
-| 模式 | 定义 | 访问方式 |
-|------|------|----------|
-| **Standalone（独立模式）** | 通用 AI 助手 — 搜索、编码、知识库 | Portal |
-| **Copilot（嵌入模式）** | AI 嵌入宿主系统 — 在用户现有界面中协同工作 | iframe / 小组件 / 嵌入宿主页面 |
-| **Hub（中枢模式）** | 中央 AI 编排 — 连接所有系统，跨系统智能协作 | Portal / API |
+| 模式                       | 定义                                        | 访问方式                       |
+| -------------------------- | ------------------------------------------- | ------------------------------ |
+| **Standalone（独立模式）** | 通用 AI 助手 — 搜索、编码、知识库           | Portal                         |
+| **Copilot（嵌入模式）**    | AI 嵌入宿主系统 — 在用户现有界面中协同工作  | iframe / 小组件 / 嵌入宿主页面 |
+| **Hub（中枢模式）**        | 中央 AI 编排 — 连接所有系统，跨系统智能协作 | Portal / API                   |
 
 ```mermaid
 graph LR
-    ERP --> Hub["FIM Agent Hub<br/>(AI orchestration)"]
+    ERP --> Hub["FIM One Hub<br/>(AI orchestration)"]
     Database --> Hub
     Lark --> Hub
     CRM --> Hub
@@ -63,18 +63,18 @@ graph LR
 
 ## 应用场景
 
-企业数据和业务流程被锁在 OA、ERP、财务和审批系统中。FIM Agent 让 AI Agent 能够读写这些系统 — 在不修改现有基础设施的前提下，实现跨系统流程自动化。
+企业数据和业务流程被锁在 OA、ERP、财务和审批系统中。FIM One 让 AI Agent 能够读写这些系统 — 在不修改现有基础设施的前提下，实现跨系统流程自动化。
 
-| 场景 | 推荐起步方式 | 自动化内容 |
-|------|-------------|-----------|
-| **法务与合规** | Copilot → Hub | 合同条款提取、版本比对、风险标注并附来源引用、自动触发 OA 审批 |
-| **IT 运维** | Hub | 告警触发 → 拉取日志 → 根因分析 → 将修复方案推送至飞书/Slack — 一个闭环 |
-| **业务运营** | Copilot | 定时数据摘要推送至团队频道；对实时数据库进行自然语言即席查询 |
-| **财务自动化** | Hub | 发票核验、报销审批路由、ERP 与会计系统间的账目核对 |
-| **采购管理** | Copilot → Hub | 需求 → 供应商比选 → 合同起草 → 审批 — Agent 负责跨系统的流程衔接 |
-| **开发者集成** | API | 导入 OpenAPI 规范或在对话中描述 API — 几分钟内创建连接器，自动注册为 Agent 工具 |
+| 场景           | 推荐起步方式  | 自动化内容                                                                      |
+| -------------- | ------------- | ------------------------------------------------------------------------------- |
+| **法务与合规** | Copilot → Hub | 合同条款提取、版本比对、风险标注并附来源引用、自动触发 OA 审批                  |
+| **IT 运维**    | Hub           | 告警触发 → 拉取日志 → 根因分析 → 将修复方案推送至飞书/Slack — 一个闭环          |
+| **业务运营**   | Copilot       | 定时数据摘要推送至团队频道；对实时数据库进行自然语言即席查询                    |
+| **财务自动化** | Hub           | 发票核验、报销审批路由、ERP 与会计系统间的账目核对                              |
+| **采购管理**   | Copilot → Hub | 需求 → 供应商比选 → 合同起草 → 审批 — Agent 负责跨系统的流程衔接                |
+| **开发者集成** | API           | 导入 OpenAPI 规范或在对话中描述 API — 几分钟内创建连接器，自动注册为 Agent 工具 |
 
-## 为什么选择 FIM Agent
+## 为什么选择 FIM One
 
 ### 渐进式落地
 
@@ -84,29 +84,29 @@ graph LR
 
 Copilot 在单个系统内验证价值。Hub 释放跨系统的全局价值。
 
-### FIM Agent 不做什么
+### FIM One 不做什么
 
-FIM Agent 不会复制目标系统中已有的工作流逻辑：
+FIM One 不会复制目标系统中已有的工作流逻辑：
 
 - **没有 BPM/FSM 引擎** — 审批链、路由、升级和状态机是目标系统的职责。这些系统花了多年时间构建这些逻辑。
-- **没有拖拽式工作流编辑器** — 如果你需要可视化流程图，请使用 Dify。FIM Agent 的 DAG 规划器在运行时动态生成执行图。
-- **连接器 = API 调用** — 从连接器的角度看，"转移审批" = 一次 API 调用，"附理由驳回" = 一次 API 调用。所有复杂的工作流操作都归结为 HTTP 请求。FIM Agent 负责调用 API；目标系统负责管理状态。
+- **没有拖拽式工作流编辑器** — 如果你需要可视化流程图，请使用 Dify。FIM One 的 DAG 规划器在运行时动态生成执行图。
+- **连接器 = API 调用** — 从连接器的角度看，"转移审批" = 一次 API 调用，"附理由驳回" = 一次 API 调用。所有复杂的工作流操作都归结为 HTTP 请求。FIM One 负责调用 API；目标系统负责管理状态。
 
 这是一个刻意的架构边界，而非能力缺失。
 
 ### 竞品对比
 
-|  | Dify | Manus | Coze | FIM Agent |
-|--|------|-------|------|-----------|
-| **方式** | 可视化工作流构建器 | 自主 Agent | 构建器 + Agent 空间 | AI 连接器中枢 |
-| **规划** | 人工设计的静态 DAG | 多 Agent 思维链 | 静态 + 动态 | LLM DAG 规划 + ReAct |
-| **跨系统** | API 节点（手动配置） | 否 | 插件市场 | Hub 模式（N:N 编排） |
-| **人工确认** | 否 | 否 | 否 | 是（执行前确认门控） |
-| **私有化部署** | 是（Docker 全家桶） | 否 | 是（Coze Studio） | 是（单进程） |
+|                | Dify                 | Manus           | Coze                | FIM One              |
+| -------------- | -------------------- | --------------- | ------------------- | -------------------- |
+| **方式**       | 可视化工作流构建器   | 自主 Agent      | 构建器 + Agent 空间 | AI 连接器中枢        |
+| **规划**       | 人工设计的静态 DAG   | 多 Agent 思维链 | 静态 + 动态         | LLM DAG 规划 + ReAct |
+| **跨系统**     | API 节点（手动配置） | 否              | 插件市场            | Hub 模式（N:N 编排） |
+| **人工确认**   | 否                   | 否              | 否                  | 是（执行前确认门控） |
+| **私有化部署** | 是（Docker 全家桶）  | 否              | 是（Coze Studio）   | 是（单进程）         |
 
 > 深入了解：[设计理念](https://docs.fim.ai/architecture/philosophy) | [执行模式](https://docs.fim.ai/concepts/execution-modes) | [竞争格局](https://docs.fim.ai/strategy/competitive-landscape)
 
-### FIM Agent 的定位
+### FIM One 的定位
 
 ```
                 Static Execution          Dynamic Execution
@@ -117,13 +117,13 @@ FIM Agent 不会复制目标系统中已有的工作流逻辑：
             ├──────────────────────┼──────────────────────┤
  Dynamic    │ (transitional —      │ Autonomous Agent     │
  Planning   │  unstable quadrant)  │ AutoGPT, Manus       │
-            │                      │ ★ FIM Agent (bounded)│
+            │                      │ ★ FIM One (bounded)│
             └──────────────────────┴──────────────────────┘
 ```
 
-Dify/n8n 属于 **静态规划 + 静态执行** — 人工在可视化画布上设计 DAG，节点执行固定操作。FIM Agent 属于 **动态规划 + 动态执行** — LLM 在运行时生成 DAG，每个节点运行 ReAct 循环，目标未达成时自动重新规划。但有边界约束（最多 3 轮重新规划、Token 预算、确认门控），因此比 AutoGPT 更可控。
+Dify/n8n 属于 **静态规划 + 静态执行** — 人工在可视化画布上设计 DAG，节点执行固定操作。FIM One 属于 **动态规划 + 动态执行** — LLM 在运行时生成 DAG，每个节点运行 ReAct 循环，目标未达成时自动重新规划。但有边界约束（最多 3 轮重新规划、Token 预算、确认门控），因此比 AutoGPT 更可控。
 
-FIM Agent 不做 BPM/FSM — 工作流逻辑归属目标系统，连接器只负责调用 API。
+FIM One 不做 BPM/FSM — 工作流逻辑归属目标系统，连接器只负责调用 API。
 
 > 完整说明：[设计理念](https://docs.fim.ai/architecture/philosophy)
 
@@ -186,7 +186,7 @@ graph TB
     subgraph app["应用与交互层"]
         a["Portal · API · iframe · 飞书/Slack 机器人 · Webhook · 企微/钉钉"]
     end
-    subgraph mid["FIM Agent 中间件"]
+    subgraph mid["FIM One 中间件"]
         direction LR
         m1["连接器<br/>+ MCP Hub"] ~~~ m2["编排引擎<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>知识库"] ~~~ m4["认证 /<br/>管理"]
     end
@@ -204,7 +204,7 @@ graph LR
     CRM["CRM<br/>(Salesforce)"] --> B
     OA["OA<br/>(致远/泛微)"] --> C
     DB["自定义 DB<br/>(PG/MySQL)"] --> D
-    subgraph Hub["FIM Agent Hub"]
+    subgraph Hub["FIM One Hub"]
         A["Agent A: 财务审计"]
         B["Agent B: 合同审查"]
         C["Agent C: 审批助手"]
@@ -222,12 +222,12 @@ graph LR
 
 ### 内部执行流程
 
-FIM Agent 提供两种执行模式：
+FIM One 提供两种执行模式：
 
-| 模式 | 适用场景 | 工作原理 |
-|------|---------|---------|
-| ReAct | 单个复杂查询 | 推理 → 行动 → 观察循环，配合工具使用 |
-| DAG 规划 | 多步骤并行任务 | LLM 生成依赖图，独立步骤并发执行 |
+| 模式     | 适用场景       | 工作原理                             |
+| -------- | -------------- | ------------------------------------ |
+| ReAct    | 单个复杂查询   | 推理 → 行动 → 观察循环，配合工具使用 |
+| DAG 规划 | 多步骤并行任务 | LLM 生成依赖图，独立步骤并发执行     |
 
 ```mermaid
 graph TB
@@ -291,20 +291,20 @@ cd frontend && pnpm install && cd ..
 ./start.sh dev
 ```
 
-| 命令 | 启动内容 | URL |
-|------|---------|-----|
-| `./start.sh` | Next.js + FastAPI | http://localhost:3000 (UI) + :8000 (API) |
-| `./start.sh dev` | 同上，带热重载（Python `--reload` + Next.js HMR） | 同上 |
-| `./start.sh api` | 仅 FastAPI（无头模式，用于集成或测试） | http://localhost:8000/api |
+| 命令             | 启动内容                                          | URL                                      |
+| ---------------- | ------------------------------------------------- | ---------------------------------------- |
+| `./start.sh`     | Next.js + FastAPI                                 | http://localhost:3000 (UI) + :8000 (API) |
+| `./start.sh dev` | 同上，带热重载（Python `--reload` + Next.js HMR） | 同上                                     |
+| `./start.sh api` | 仅 FastAPI（无头模式，用于集成或测试）            | http://localhost:8000/api                |
 
 ### 生产环境部署
 
 两种方式均可用于生产环境：
 
-| 方式 | 命令 | 适用场景 |
-|------|------|---------|
-| **Docker** | `docker compose up -d` | 免运维部署，便于更新 |
-| **脚本** | `./start.sh` | 裸金属服务器，自定义进程管理器 |
+| 方式       | 命令                   | 适用场景                       |
+| ---------- | ---------------------- | ------------------------------ |
+| **Docker** | `docker compose up -d` | 免运维部署，便于更新           |
+| **脚本**   | `./start.sh`           | 裸金属服务器，自定义进程管理器 |
 
 无论哪种方式，建议在前端配置 Nginx 反向代理以支持 HTTPS 和自定义域名：
 
@@ -326,14 +326,14 @@ volumes:
 
 ### 推荐配置
 
-FIM Agent 兼容 **任何 OpenAI 兼容的 LLM 供应商** — OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。选择你喜欢的即可：
+FIM One 兼容 **任何 OpenAI 兼容的 LLM 供应商** — OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。选择你喜欢的即可：
 
-| 供应商 | `LLM_API_KEY` | `LLM_BASE_URL` | `LLM_MODEL` |
-|--------|---------------|----------------|-------------|
-| **OpenAI** | `sk-...` | *（默认）* | `gpt-4o` |
-| **DeepSeek** | `sk-...` | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| **Anthropic** | `sk-ant-...` | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
-| **Ollama**（本地） | `ollama` | `http://localhost:11434/v1` | `qwen2.5:14b` |
+| 供应商             | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
+| ------------------ | ------------- | ------------------------------ | ------------------- |
+| **OpenAI**         | `sk-...`      | *（默认）*                     | `gpt-4o`            |
+| **DeepSeek**       | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`     |
+| **Anthropic**      | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
+| **Ollama**（本地） | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`       |
 
 **[Jina AI](https://jina.ai/)** 可解锁网页搜索/抓取、向量化及完整 RAG 管线（提供免费额度）。
 
@@ -361,7 +361,7 @@ uv sync --all-extras
 pytest
 
 # 运行测试并生成覆盖率报告
-pytest --cov=fim_agent --cov-report=term-missing
+pytest --cov=fim_one --cov-report=term-missing
 
 # 代码检查
 ruff check src/ tests/
@@ -417,7 +417,7 @@ mypy src/
 
 ## 许可证
 
-FIM Agent Source Available License。这 **不是** OSI 批准的开源许可证。
+FIM One Source Available License。这 **不是** OSI 批准的开源许可证。
 
 **允许**：内部使用、修改、保留许可证的分发、嵌入你自己的（非竞品）应用程序中。
 
@@ -431,6 +431,6 @@ FIM Agent Source Available License。这 **不是** OSI 批准的开源许可证
 
 <div align="center">
 
-🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_Agent) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
+🌐 [官网](https://agent.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-agent/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/fim_one) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-agent)
 
 </div>

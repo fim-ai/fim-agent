@@ -1,7 +1,7 @@
 """Security tests for shell_exec — metacharacter evasion detection."""
 
 import pytest
-from fim_agent.core.tool.builtin.shell_exec import _check_shell_metacharacters
+from fim_one.core.tool.builtin.shell_exec import _check_shell_metacharacters
 
 
 class TestMetacharEvasion:

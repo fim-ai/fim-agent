@@ -2,8 +2,8 @@
 
 import pytest
 
-from fim_agent.core.reranker.base import BaseReranker, RerankResult
-from fim_agent.core.reranker.jina import JinaReranker
+from fim_one.core.reranker.base import BaseReranker, RerankResult
+from fim_one.core.reranker.jina import JinaReranker
 
 
 class FakeReranker(BaseReranker):
@@ -30,9 +30,7 @@ async def test_fake_reranker():
 
 async def test_fake_reranker_top_k():
     reranker = FakeReranker()
-    results = await reranker.rerank(
-        "test query", ["a", "b", "c", "d", "e"], top_k=2
-    )
+    results = await reranker.rerank("test query", ["a", "b", "c", "d", "e"], top_k=2)
     assert len(results) == 2
 
 

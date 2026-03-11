@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fim-agent"
+name = "fim-one"
 version = "0.1.0"
 description = "LLM-powered Agent Runtime with dynamic DAG planning and concurrent execution"
 readme = "README.md"
-license = "LicenseRef-FIM-Agent"
+license = "LicenseRef-FIM-One"
 requires-python = ">=3.11"
 authors = [
     { name = "fim-ai", email = "dev@fim.ai" },
@@ -84,7 +84,7 @@ Repository = "https://github.com/fim-ai/fim-agent"
 Issues = "https://github.com/fim-ai/fim-agent/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/fim_agent"]
+packages = ["src/fim_one"]
 
 [tool.ruff]
 target-version = "py311"

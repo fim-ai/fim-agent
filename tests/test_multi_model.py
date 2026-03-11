@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.model import (
+from fim_one.core.agent import ReActAgent
+from fim_one.core.model import (
     BaseLLM,
     ChatMessage,
     LLMResult,
@@ -16,9 +16,9 @@ from fim_agent.core.model import (
     ModelRegistry,
     create_registry_from_configs,
 )
-from fim_agent.core.planner.executor import DAGExecutor
-from fim_agent.core.planner.types import ExecutionPlan, PlanStep
-from fim_agent.core.tool import ToolRegistry
+from fim_one.core.planner.executor import DAGExecutor
+from fim_one.core.planner.types import ExecutionPlan, PlanStep
+from fim_one.core.tool import ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
 
@@ -33,11 +33,13 @@ def _make_fake_llm(answer: str = "42") -> FakeLLM:
     response = LLMResult(
         message=ChatMessage(
             role="assistant",
-            content=json.dumps({
-                "type": "final_answer",
-                "reasoning": "Done.",
-                "answer": answer,
-            }),
+            content=json.dumps(
+                {
+                    "type": "final_answer",
+                    "reasoning": "Done.",
+                    "answer": answer,
+                }
+            ),
         ),
         usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
     )
@@ -237,7 +239,7 @@ class TestCreateRegistryFromConfigs:
         assert len(registry) == 2
         assert registry.list_models() == ["main", "fast"]
         # Each model should be an OpenAICompatibleLLM.
-        from fim_agent.core.model import OpenAICompatibleLLM
+        from fim_one.core.model import OpenAICompatibleLLM
 
         assert isinstance(registry.get("main"), OpenAICompatibleLLM)
         assert isinstance(registry.get("fast"), OpenAICompatibleLLM)

@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import fim_agent.core.tool.sandbox as _sandbox_module
-from fim_agent.core.tool.sandbox import (
+import fim_one.core.tool.sandbox as _sandbox_module
+from fim_one.core.tool.sandbox import (
     DockerBackend,
     LocalBackend,
     SandboxResult,
@@ -20,6 +20,7 @@ from fim_agent.core.tool.sandbox import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _reset_singleton() -> None:
     """Reset the module-level backend singleton between tests."""
@@ -59,7 +60,10 @@ class TestLocalBackendPython:
     @pytest.mark.asyncio
     async def test_exception_traceback(self) -> None:
         result = await self._backend().run_code(
-            "raise ValueError('boom')", language="python", exec_dir=self.exec_dir, timeout=10
+            "raise ValueError('boom')",
+            language="python",
+            exec_dir=self.exec_dir,
+            timeout=10,
         )
         assert "ValueError" in result.stdout
         assert "boom" in result.stdout
@@ -78,7 +82,10 @@ class TestLocalBackendPython:
     @pytest.mark.asyncio
     async def test_timeout(self) -> None:
         result = await self._backend().run_code(
-            "import time; time.sleep(60)", language="python", exec_dir=self.exec_dir, timeout=1
+            "import time; time.sleep(60)",
+            language="python",
+            exec_dir=self.exec_dir,
+            timeout=1,
         )
         assert result.timed_out
         assert result.exit_code == 124
@@ -148,7 +155,9 @@ class TestDockerBackendErrorHandling:
         self.sandbox_dir = tmp_path / "sandbox"
 
     @pytest.mark.asyncio
-    async def test_docker_not_found_run_code(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_docker_not_found_run_code(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """FileNotFoundError → friendly error message."""
         monkeypatch.setattr(
             "asyncio.create_subprocess_exec",
@@ -167,7 +176,9 @@ class TestDockerBackendErrorHandling:
         assert result.script_path.suffix == ".py"
 
     @pytest.mark.asyncio
-    async def test_docker_not_found_run_shell(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_docker_not_found_run_shell(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(
             "asyncio.create_subprocess_exec",
             AsyncMock(side_effect=FileNotFoundError("docker not found")),
@@ -273,7 +284,10 @@ class TestDockerBackendPython:
     @pytest.mark.asyncio
     async def test_basic_execution(self) -> None:
         result = await self._backend().run_code(
-            "print('docker works')", language="python", exec_dir=self.exec_dir, timeout=30
+            "print('docker works')",
+            language="python",
+            exec_dir=self.exec_dir,
+            timeout=30,
         )
         assert "docker works" in result.stdout
         assert result.exit_code == 0
@@ -293,7 +307,10 @@ class TestDockerBackendPython:
     @pytest.mark.asyncio
     async def test_timeout(self) -> None:
         result = await self._backend().run_code(
-            "import time; time.sleep(60)", language="python", exec_dir=self.exec_dir, timeout=3
+            "import time; time.sleep(60)",
+            language="python",
+            exec_dir=self.exec_dir,
+            timeout=3,
         )
         assert result.timed_out
         assert result.exit_code == 124

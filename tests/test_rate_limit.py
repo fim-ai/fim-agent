@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from fim_agent.core.model.rate_limit import RateLimitConfig, TokenBucketRateLimiter
+from fim_one.core.model.rate_limit import RateLimitConfig, TokenBucketRateLimiter
 
 
 # ======================================================================
@@ -79,7 +79,9 @@ class TestTokenBucketRateLimiter:
             # Actually sleep a tiny bit so the refill logic works.
             await original_sleep(0.01)
 
-        with patch("fim_agent.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep):
+        with patch(
+            "fim_one.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep
+        ):
             await limiter.acquire(estimated_tokens=100)
         assert sleep_called
 
@@ -101,7 +103,9 @@ class TestTokenBucketRateLimiter:
             sleep_called = True
             await original_sleep(0.01)
 
-        with patch("fim_agent.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep):
+        with patch(
+            "fim_one.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep
+        ):
             await limiter.acquire()
         assert sleep_called
 
@@ -140,7 +144,9 @@ class TestReportUsage:
             sleep_called = True
             await original_sleep(0.01)
 
-        with patch("fim_agent.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep):
+        with patch(
+            "fim_one.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep
+        ):
             await limiter.acquire(estimated_tokens=200)
         assert sleep_called
 

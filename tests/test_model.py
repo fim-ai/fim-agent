@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from fim_agent.core.model import (
+from fim_one.core.model import (
     BaseLLM,
     ChatMessage,
     LLMResult,
@@ -16,7 +16,7 @@ from fim_agent.core.model import (
     StreamChunk,
     ToolCallRequest,
 )
-from fim_agent.core.model.openai_compatible import _resolve_litellm_model
+from fim_one.core.model.openai_compatible import _resolve_litellm_model
 
 
 # ======================================================================
@@ -377,16 +377,12 @@ class TestResolveLiteLLMModel:
         assert base is None
 
     def test_resolve_unknown_proxy(self) -> None:
-        model, base = _resolve_litellm_model(
-            "https://my-proxy.com/v1", "qwen3.5-plus"
-        )
+        model, base = _resolve_litellm_model("https://my-proxy.com/v1", "qwen3.5-plus")
         assert model == "openai/qwen3.5-plus"
         assert base == "https://my-proxy.com/v1"
 
     def test_resolve_ollama_local(self) -> None:
-        model, base = _resolve_litellm_model(
-            "http://localhost:11434/v1", "llama3"
-        )
+        model, base = _resolve_litellm_model("http://localhost:11434/v1", "llama3")
         assert model == "openai/llama3"
         assert base == "http://localhost:11434/v1"
 
@@ -451,7 +447,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert kwargs["model"] == "openai/gpt-4o"
         assert kwargs["api_key"] == "sk-test"
@@ -468,7 +468,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert kwargs["api_base"] == "https://my-proxy.com/v1"
 
@@ -481,7 +485,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert kwargs["reasoning_effort"] == "high"
         assert "thinking" not in kwargs
@@ -496,7 +504,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert kwargs["reasoning_effort"] == "high"
         assert "thinking" not in kwargs
@@ -514,7 +526,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert kwargs["thinking"] == {"type": "enabled", "budget_tokens": 8192}
         assert "reasoning_effort" not in kwargs
@@ -532,7 +548,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert kwargs["temperature"] == 0.5  # NOT forced to 1
 
@@ -547,7 +567,11 @@ class TestBuildRequestKwargs:
         msgs = [ChatMessage(role="user", content="hi")]
         tools = [{"type": "function", "function": {"name": "test", "parameters": {}}}]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=tools, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=tools,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert "reasoning_effort" not in kwargs
         assert "thinking" not in kwargs
@@ -562,7 +586,11 @@ class TestBuildRequestKwargs:
         )
         msgs = [ChatMessage(role="user", content="hi")]
         kwargs = llm._build_request_kwargs(
-            msgs, tools=None, temperature=None, max_tokens=None, stream=False,
+            msgs,
+            tools=None,
+            temperature=None,
+            max_tokens=None,
+            stream=False,
         )
         assert "max_tokens" in kwargs
         assert "max_completion_tokens" not in kwargs

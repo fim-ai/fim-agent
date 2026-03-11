@@ -1,5 +1,5 @@
 services:
-  fim-agent:
+  fim-one:
     build: .
     ports:
       - "3000:3000"   # Next.js frontend (API is proxied internally via rewrites)
@@ -13,7 +13,7 @@ services:
     env_file: .env
     environment:
       # Internal services — auto-configured by compose, no user action needed.
-      DATABASE_URL: postgresql+asyncpg://fim:fim@postgres:5432/fim_agent
+      DATABASE_URL: postgresql+asyncpg://fim:fim@postgres:5432/fim_one
       REDIS_URL: redis://redis:6379/0
       # DooD sandbox: host-side absolute path of the ./data volume mount.
       # The sandbox writes scripts to /app/data/sandbox/ inside the container;
@@ -27,18 +27,18 @@ services:
         condition: service_healthy
     restart: unless-stopped
     # Production: put an Nginx reverse proxy in front for HTTPS + custom domain.
-    # Example: nginx → http://fim-agent:3000
+    # Example: nginx → http://fim-one:3000
 
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: fim
       POSTGRES_PASSWORD: fim
-      POSTGRES_DB: fim_agent
+      POSTGRES_DB: fim_one
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fim -d fim_agent"]
+      test: ["CMD-SHELL", "pg_isready -U fim -d fim_one"]
       interval: 5s
       timeout: 3s
       retries: 5

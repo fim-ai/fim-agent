@@ -18,7 +18,7 @@ WORKERS="${WORKERS:-1}"
 
 # Start API backend in background
 echo "Starting API backend on :8000 (workers=$WORKERS)..."
-uvicorn fim_agent.web:create_app \
+uvicorn fim_one.web:create_app \
   --factory \
   --host 0.0.0.0 \
   --port 8000 \

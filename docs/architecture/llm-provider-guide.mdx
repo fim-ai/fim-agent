@@ -1,11 +1,11 @@
 ---
 title: "LLM Provider Compatibility"
-description: "How FIM Agent routes LLM calls, the tool_choice architecture, and provider-specific pitfalls — especially Anthropic thinking + AWS Bedrock."
+description: "How FIM One routes LLM calls, the tool_choice architecture, and provider-specific pitfalls — especially Anthropic thinking + AWS Bedrock."
 ---
 
 ## Provider detection
 
-FIM Agent uses LiteLLM as a universal adapter. The `_resolve_litellm_model()` function in `core/model/openai_compatible.py` maps the user's `LLM_BASE_URL` + `LLM_MODEL` to a LiteLLM model identifier with a provider prefix. The prefix determines how LiteLLM routes the request — native API protocol (Anthropic Messages API, Gemini, etc.) or generic OpenAI-compatible `/v1/chat/completions`.
+FIM One uses LiteLLM as a universal adapter. The `_resolve_litellm_model()` function in `core/model/openai_compatible.py` maps the user's `LLM_BASE_URL` + `LLM_MODEL` to a LiteLLM model identifier with a provider prefix. The prefix determines how LiteLLM routes the request — native API protocol (Anthropic Messages API, Gemini, etc.) or generic OpenAI-compatible `/v1/chat/completions`.
 
 Resolution order:
 
@@ -28,7 +28,7 @@ Resolution order:
 When the provider prefix is a native protocol (anthropic, gemini, etc.) and the URL is not the official endpoint, LiteLLM uses the native protocol but sends requests to the relay's `api_base`. This means provider-specific behaviors — including the Bedrock prefill issue described below — apply regardless of whether the request goes to the official API or through a relay.
 
 <Warning>
-If your relay URL contains `/claude` in the path, FIM Agent automatically routes via Anthropic's native protocol. This is usually correct (better streaming, thinking support), but means provider-specific behaviors apply — including the Bedrock prefill issue described below.
+If your relay URL contains `/claude` in the path, FIM One automatically routes via Anthropic's native protocol. This is usually correct (better streaming, thinking support), but means provider-specific behaviors apply — including the Bedrock prefill issue described below.
 </Warning>
 
 ## tool_choice — the four modes
@@ -42,7 +42,7 @@ The `tool_choice` parameter is standardized via the OpenAI format. LiteLLM trans
 | `{"type":"function","function":{"name":"X"}}` | Must call function X specifically | Most providers — **incompatible with Anthropic thinking** |
 | `"none"` | Cannot use tools, text only | All providers |
 
-The distinction between `"auto"` and forced (`{"type":"function",...}`) is the crux of every compatibility issue in FIM Agent. These two modes are used by completely different subsystems with different requirements.
+The distinction between `"auto"` and forced (`{"type":"function",...}`) is the crux of every compatibility issue in FIM One. These two modes are used by completely different subsystems with different requirements.
 
 ## Where tool_choice is used
 
@@ -177,7 +177,7 @@ This eliminates all wasted calls. The degradation path becomes `native_fc → pl
 
 ## Reasoning effort and thinking configuration
 
-FIM Agent exposes two env vars for controlling extended thinking / reasoning:
+FIM One exposes two env vars for controlling extended thinking / reasoning:
 
 | Variable | Values | Effect |
 |---|---|---|
@@ -186,7 +186,7 @@ FIM Agent exposes two env vars for controlling extended thinking / reasoning:
 
 When `reasoning_effort` is set and the model is resolved as `anthropic/`, two additional behaviors apply:
 
-1. **Temperature is forced to 1.0.** Bedrock rejects `temperature != 1.0` when thinking is enabled. FIM Agent handles this automatically — no user action needed.
+1. **Temperature is forced to 1.0.** Bedrock rejects `temperature != 1.0` when thinking is enabled. FIM One handles this automatically — no user action needed.
 2. **GPT-5.x with tools**: `reasoning_effort` is silently dropped when `tools` are present, because the GPT-5 `/v1/chat/completions` endpoint rejects the combination. This only affects the ReAct tool loop; `structured_llm_call` calls that lack a `tools` parameter are unaffected.
 
 ## Troubleshooting

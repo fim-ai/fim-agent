@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from fim_agent.core.mcp.adapter import MCPToolAdapter
-from fim_agent.core.mcp.client import MCPClient
-from fim_agent.core.tool import Tool, ToolRegistry
+from fim_one.core.mcp.adapter import MCPToolAdapter
+from fim_one.core.mcp.client import MCPClient
+from fim_one.core.tool import Tool, ToolRegistry
 
 
 # ---------------------------------------------------------------------------

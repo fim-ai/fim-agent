@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from fim_agent.rag.base import Document
-from fim_agent.rag.grounding import (
+from fim_one.rag.base import Document
+from fim_one.rag.grounding import (
     Citation,
     Conflict,
     EvidenceUnit,
@@ -206,11 +206,15 @@ async def test_min_score_filter():
 @pytest.mark.asyncio
 async def test_citation_extraction_with_llm():
     content = "Python is a programming language. It was created by Guido van Rossum."
-    doc = _make_doc(content, 0.9, {
-        "chunk_id": "c1",
-        "document_id": "d1",
-        "source": "python_intro.pdf",
-    })
+    doc = _make_doc(
+        content,
+        0.9,
+        {
+            "chunk_id": "c1",
+            "document_id": "d1",
+            "source": "python_intro.pdf",
+        },
+    )
 
     llm = AsyncMock()
     llm_response = MagicMock()
@@ -246,18 +250,22 @@ async def test_citation_extraction_with_llm():
 async def test_citation_extraction_with_fenced_json():
     """LLM response wrapped in ```json ... ``` fences should be parsed correctly."""
     content = "Python is a programming language. It was created by Guido van Rossum."
-    doc = _make_doc(content, 0.9, {
-        "chunk_id": "c1",
-        "document_id": "d1",
-        "source": "python_intro.pdf",
-    })
+    doc = _make_doc(
+        content,
+        0.9,
+        {
+            "chunk_id": "c1",
+            "document_id": "d1",
+            "source": "python_intro.pdf",
+        },
+    )
 
     llm = AsyncMock()
     llm_response = MagicMock()
     llm_response.message.content = (
-        '```json\n'
+        "```json\n"
         '{"0": [{"text": "Python is a programming language", "char_offset": 0}]}\n'
-        '```'
+        "```"
     )
     llm.chat = AsyncMock(return_value=llm_response)
 
@@ -281,18 +289,22 @@ async def test_citation_extraction_with_fenced_json():
 async def test_citation_extraction_with_prose_wrapped_json():
     """LLM response with JSON embedded in prose should be parsed correctly."""
     content = "Python is a programming language. It was created by Guido van Rossum."
-    doc = _make_doc(content, 0.9, {
-        "chunk_id": "c1",
-        "document_id": "d1",
-        "source": "python_intro.pdf",
-    })
+    doc = _make_doc(
+        content,
+        0.9,
+        {
+            "chunk_id": "c1",
+            "document_id": "d1",
+            "source": "python_intro.pdf",
+        },
+    )
 
     llm = AsyncMock()
     llm_response = MagicMock()
     llm_response.message.content = (
-        'Here are the citations:\n'
+        "Here are the citations:\n"
         '{"0": [{"text": "Python is a programming language", "char_offset": 0}]}\n'
-        'Hope this helps!'
+        "Hope this helps!"
     )
     llm.chat = AsyncMock(return_value=llm_response)
 
@@ -316,11 +328,15 @@ async def test_citation_extraction_with_prose_wrapped_json():
 async def test_citation_extraction_unparseable_returns_empty():
     """When LLM returns completely unparseable content, citations should remain empty."""
     content = "Some document content."
-    doc = _make_doc(content, 0.9, {
-        "chunk_id": "c1",
-        "document_id": "d1",
-        "source": "test.pdf",
-    })
+    doc = _make_doc(
+        content,
+        0.9,
+        {
+            "chunk_id": "c1",
+            "document_id": "d1",
+            "source": "test.pdf",
+        },
+    )
 
     llm = AsyncMock()
     llm_response = MagicMock()
@@ -345,11 +361,15 @@ async def test_citation_extraction_unparseable_returns_empty():
 @pytest.mark.asyncio
 async def test_citation_extraction_fallback():
     content = "First sentence. Second sentence. Third sentence."
-    doc = _make_doc(content, 0.8, {
-        "chunk_id": "c1",
-        "document_id": "d1",
-        "source": "test.txt",
-    })
+    doc = _make_doc(
+        content,
+        0.8,
+        {
+            "chunk_id": "c1",
+            "document_id": "d1",
+            "source": "test.txt",
+        },
+    )
 
     embedding = _mock_embedding()
     manager = AsyncMock()

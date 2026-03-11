@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.memory import BaseMemory, SummaryMemory, WindowMemory
-from fim_agent.core.model import ChatMessage, LLMResult
-from fim_agent.core.tool import ToolRegistry
+from fim_one.core.agent import ReActAgent
+from fim_one.core.memory import BaseMemory, SummaryMemory, WindowMemory
+from fim_one.core.model import ChatMessage, LLMResult
+from fim_one.core.tool import ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
 
@@ -390,15 +390,16 @@ class TestReActAgentWithMemory:
 
     async def test_memory_with_max_iterations_exceeded(self) -> None:
         """Memory is saved even when the agent hits the iteration limit."""
-        llm = FakeLLM(
-            responses=[_tool_call_response("echo", {"text": "loop"})]
-        )
+        llm = FakeLLM(responses=[_tool_call_response("echo", {"text": "loop"})])
         registry = ToolRegistry()
         registry.register(EchoTool())
         memory = WindowMemory(max_messages=20)
 
         agent = ReActAgent(
-            llm=llm, tools=registry, max_iterations=2, memory=memory,
+            llm=llm,
+            tools=registry,
+            max_iterations=2,
+            memory=memory,
         )
         result = await agent.run("infinite loop")
 

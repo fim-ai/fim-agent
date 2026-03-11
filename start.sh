@@ -55,12 +55,12 @@ case "$CMD" in
   portal)
     free_port 8000
     free_port 3000
-    echo "Starting FIM Agent Portal..."
+    echo "Starting FIM One Portal..."
     WORKER_INFO=""; [ "$WORKERS" -gt 1 ] 2>/dev/null && WORKER_INFO=" (${WORKERS} workers)"
     echo "  API backend  → http://localhost:8000${WORKER_INFO}"
     echo "  Next.js app  → http://localhost:3000"
     # Start API in background, Next.js in foreground
-    uv run uvicorn fim_agent.web:create_app --factory --host 0.0.0.0 --port 8000 --workers "$WORKERS" --log-level "$UVICORN_LOG_LEVEL" &
+    uv run uvicorn fim_one.web:create_app --factory --host 0.0.0.0 --port 8000 --workers "$WORKERS" --log-level "$UVICORN_LOG_LEVEL" &
     API_PID=$!
     trap "kill $API_PID 2>/dev/null" EXIT
     cd frontend && pnpm dev
@@ -68,7 +68,7 @@ case "$CMD" in
   dev)
     free_port 8000
     free_port 3000
-    echo "Starting FIM Agent Portal (dev mode — hot reload)..."
+    echo "Starting FIM One Portal (dev mode — hot reload)..."
     echo "  API backend  → http://localhost:8000 (--reload)"
     echo "  Next.js app  → http://localhost:3000 (HMR)"
     rm -rf frontend/.next
@@ -78,7 +78,7 @@ case "$CMD" in
     touch frontend/.next/static/.metadata_never_index
     touch frontend/.next/static/development/.metadata_never_index
     mdutil -i off frontend/.next &>/dev/null || true
-    uv run uvicorn fim_agent.web:create_app --factory --host 0.0.0.0 --port 8000 --reload --reload-dir src --reload-exclude 'src/tmp/*' --reload-exclude 'uploads/*' --log-level "$UVICORN_LOG_LEVEL" &
+    uv run uvicorn fim_one.web:create_app --factory --host 0.0.0.0 --port 8000 --reload --reload-dir src --reload-exclude 'src/tmp/*' --reload-exclude 'uploads/*' --log-level "$UVICORN_LOG_LEVEL" &
     API_PID=$!
     trap "kill $API_PID 2>/dev/null" EXIT
     cd frontend
@@ -97,8 +97,8 @@ case "$CMD" in
   api)
     free_port 8000
     WORKER_INFO=""; [ "$WORKERS" -gt 1 ] 2>/dev/null && WORKER_INFO=" (${WORKERS} workers)"
-    echo "Starting FIM Agent API at http://localhost:8000${WORKER_INFO}"
-    uv run uvicorn fim_agent.web:create_app --factory --host 0.0.0.0 --port 8000 --workers "$WORKERS" --log-level "$UVICORN_LOG_LEVEL"
+    echo "Starting FIM One API at http://localhost:8000${WORKER_INFO}"
+    uv run uvicorn fim_one.web:create_app --factory --host 0.0.0.0 --port 8000 --workers "$WORKERS" --log-level "$UVICORN_LOG_LEVEL"
     ;;
   help|--help|-h)
     usage

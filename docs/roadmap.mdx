@@ -1,6 +1,6 @@
 ---
 title: "Roadmap"
-description: "Feature roadmap and version planning for FIM Agent."
+description: "Feature roadmap and version planning for FIM One."
 ---
 
 > Goal: Build an **AI-powered Connector Hub** — Standalone (portal assistant), Copilot (embedded in host system), Hub (central cross-system orchestration).
@@ -9,7 +9,7 @@ description: "Feature roadmap and version planning for FIM Agent."
 
 ## Product Vision
 
-FIM Agent is an **AI Connector Hub** that serves three progressive modes:
+FIM One is an **AI Connector Hub** that serves three progressive modes:
 
 ```
 Standalone   → Your own AI assistant (Portal)
@@ -28,7 +28,7 @@ flowchart LR
     DB["Custom DB<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM Agent Hub"]
+  subgraph Hub["FIM One Hub"]
     A["Agent A: Finance Audit"]
     B["Agent B: Contract Review"]
     C["Agent C: Approval Assist"]
@@ -183,7 +183,7 @@ flowchart LR
 - **Scheduled jobs (Loop)**: cron-like background task triggers; `scheduled_jobs` + `job_runs` DB tables; APScheduler integration; job CRUD API + job history UI; result notification via message push connectors
 - **DB Schema Advanced Builder**: AI-driven schema management agent for large-scale databases — strategic table annotation (pattern-based, SQL-execution-informed), bulk visibility management by domain prefix, iterative multi-round annotation for 1K–7K+ table deployments; complements existing batch-annotation job with selectivity and business-context reasoning
 
-**Impact**: Run FIM Agent at scale with confidence — scheduled automations + observability form a complete production background-automation story.
+**Impact**: Run FIM One at scale with confidence — scheduled automations + observability form a complete production background-automation story.
 
 ### v1.0 — Hot-Plug + Embeddable
 
@@ -201,7 +201,7 @@ flowchart LR
 - **Enterprise security**: IP whitelisting, encryption at rest, SSO
 - **KB Advanced Editor**: Builder-mode agent for power users managing large knowledge bases — bulk URL ingestion, duplicate detection, gap analysis, document lifecycle management; extends existing KB AI chat with ReAct tool loop
 
-**Impact**: Enterprises deploy FIM Agent from zero to multi-system orchestration in days.
+**Impact**: Enterprises deploy FIM One from zero to multi-system orchestration in days.
 
 ## Frozen Features (Shipped, Maintain Only)
 

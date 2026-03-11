@@ -1,8 +1,8 @@
-# FIM Agent — Claude Code Instructions
+# FIM One — Claude Code Instructions
 
 ## Project Overview
 
-FIM Agent is an AI-powered Connector Hub. Python async framework, provider-agnostic, protocol-first.
+FIM One is an AI-powered Connector Hub. Python async framework, provider-agnostic, protocol-first.
 
 - **Package manager**: `uv` (not pip)
 - **Frontend**: Next.js + pnpm (in `frontend/`)
@@ -12,7 +12,7 @@ FIM Agent is an AI-powered Connector Hub. Python async framework, provider-agnos
 ## Architecture
 
 ```
-src/fim_agent/
+src/fim_one/
 ├── core/
 │   ├── agent/       # ReActAgent (JSON mode + native function calling)
 │   ├── model/       # BaseLLM, OpenAICompatibleLLM, ModelRegistry, retry, rate limiting, usage tracking
@@ -83,7 +83,7 @@ Dev uses SQLite, production uses PostgreSQL. One set of migration files must wor
 
 - **Every new ORM model MUST have a migration** — never rely on `metadata.create_all()`. If you add a `__tablename__`, write a corresponding `op.create_table()` migration.
 - **Every new column MUST have a migration** — no ad-hoc `ALTER TABLE` in `engine.py`.
-- **All migrations MUST be idempotent** — use `table_exists()`, `table_has_column()`, `index_exists()` from `fim_agent.migrations.helpers`. Legacy DBs (created by `create_all()` with no `alembic_version`) run ALL migrations from scratch.
+- **All migrations MUST be idempotent** — use `table_exists()`, `table_has_column()`, `index_exists()` from `fim_one.migrations.helpers`. Legacy DBs (created by `create_all()` with no `alembic_version`) run ALL migrations from scratch.
 - **Boolean defaults**: always use `server_default=sa.text("FALSE")` / `sa.text("TRUE")`. Never `"0"` / `"1"` — PG rejects integer literals for Boolean columns.
 - **Integer defaults**: `server_default="0"` is fine for both engines.
 - **Timestamps**: `server_default=sa.text('(CURRENT_TIMESTAMP)')` works on both.

@@ -2,11 +2,11 @@
 
 import pytest
 
-from fim_agent.rag.chunking import MAX_CHUNK_SIZE, get_chunker, Chunk
-from fim_agent.rag.chunking.fixed import FixedSizeChunker
-from fim_agent.rag.chunking.markdown import MarkdownChunker
-from fim_agent.rag.chunking.recursive import RecursiveCharacterChunker
-from fim_agent.rag.chunking.semantic import SemanticChunker
+from fim_one.rag.chunking import MAX_CHUNK_SIZE, get_chunker, Chunk
+from fim_one.rag.chunking.fixed import FixedSizeChunker
+from fim_one.rag.chunking.markdown import MarkdownChunker
+from fim_one.rag.chunking.recursive import RecursiveCharacterChunker
+from fim_one.rag.chunking.semantic import SemanticChunker
 
 
 async def test_fixed_chunker_basic():

@@ -5,7 +5,7 @@ import time
 import jwt
 import pytest
 
-from fim_agent.web.auth import (
+from fim_one.web.auth import (
     create_bind_ticket,
     create_oauth_state,
     create_sse_ticket,

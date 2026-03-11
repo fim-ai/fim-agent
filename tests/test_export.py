@@ -15,6 +15,7 @@ import pytest
 # Helpers to build fake ORM objects without touching the DB
 # ---------------------------------------------------------------------------
 
+
 def _make_conv(
     *,
     title: str = "Test Conversation",
@@ -49,32 +50,42 @@ def _make_msg(
     return msg
 
 
-def _react_events(steps: list[dict[str, Any]], answer: str = "Final.") -> list[dict[str, Any]]:
+def _react_events(
+    steps: list[dict[str, Any]], answer: str = "Final."
+) -> list[dict[str, Any]]:
     """Build SSE events for a ReAct assistant message."""
     events: list[dict[str, Any]] = []
     for i, s in enumerate(steps, 1):
-        events.append({
-            "event": "step",
+        events.append(
+            {
+                "event": "step",
+                "data": {
+                    "type": "tool_call",
+                    "iteration": i,
+                    "tool_name": s.get("tool", "web_search"),
+                    "tool_args": s.get("args", {"query": "test"}),
+                    "reasoning": s.get("reasoning", "need to search"),
+                    "observation": s.get("observation", "result data"),
+                    "error": None,
+                    "iter_elapsed": s.get("elapsed", 1.0),
+                },
+            }
+        )
+    events.append(
+        {
+            "event": "done",
             "data": {
-                "type": "tool_call",
-                "iteration": i,
-                "tool_name": s.get("tool", "web_search"),
-                "tool_args": s.get("args", {"query": "test"}),
-                "reasoning": s.get("reasoning", "need to search"),
-                "observation": s.get("observation", "result data"),
-                "error": None,
-                "iter_elapsed": s.get("elapsed", 1.0),
+                "answer": answer,
+                "iterations": len(steps),
+                "elapsed": sum(s.get("elapsed", 1.0) for s in steps),
+                "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 50,
+                    "total_tokens": 150,
+                },
             },
-        })
-    events.append({
-        "event": "done",
-        "data": {
-            "answer": answer,
-            "iterations": len(steps),
-            "elapsed": sum(s.get("elapsed", 1.0) for s in steps),
-            "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
-        },
-    })
+        }
+    )
     return events
 
 
@@ -85,70 +96,95 @@ def _dag_events(
     """Build SSE events for a DAG assistant message."""
     events: list[dict[str, Any]] = []
     # Planning phase
-    events.append({"event": "phase", "data": {"name": "planning", "status": "start", "round": 1}})
-    events.append({
-        "event": "phase",
-        "data": {
-            "name": "planning",
-            "status": "done",
-            "round": 1,
-            "steps": plan_steps,
-        },
-    })
+    events.append(
+        {"event": "phase", "data": {"name": "planning", "status": "start", "round": 1}}
+    )
+    events.append(
+        {
+            "event": "phase",
+            "data": {
+                "name": "planning",
+                "status": "done",
+                "round": 1,
+                "steps": plan_steps,
+            },
+        }
+    )
     # Executing phase
-    events.append({"event": "phase", "data": {"name": "executing", "status": "start", "round": 1}})
+    events.append(
+        {"event": "phase", "data": {"name": "executing", "status": "start", "round": 1}}
+    )
     for ps in plan_steps:
         sid = ps["id"]
-        events.append({"event": "step_progress", "data": {"step_id": sid, "event": "started", "task": ps["task"]}})
-        events.append({
-            "event": "step_progress",
-            "data": {
-                "step_id": sid,
-                "event": "iteration",
-                "type": "tool_call",
-                "iteration": 1,
-                "tool_name": ps.get("tool_hint", "web_search"),
-                "tool_args": {"query": "test"},
-                "reasoning": "searching",
-                "observation": "found data",
-                "iter_elapsed": 1.2,
-            },
-        })
-        events.append({
-            "event": "step_progress",
-            "data": {
-                "step_id": sid,
-                "event": "completed",
-                "status": "completed",
-                "result": f"Result for {sid}",
-                "duration": 2.0,
-            },
-        })
-    events.append({"event": "phase", "data": {"name": "executing", "status": "done", "round": 1}})
+        events.append(
+            {
+                "event": "step_progress",
+                "data": {"step_id": sid, "event": "started", "task": ps["task"]},
+            }
+        )
+        events.append(
+            {
+                "event": "step_progress",
+                "data": {
+                    "step_id": sid,
+                    "event": "iteration",
+                    "type": "tool_call",
+                    "iteration": 1,
+                    "tool_name": ps.get("tool_hint", "web_search"),
+                    "tool_args": {"query": "test"},
+                    "reasoning": "searching",
+                    "observation": "found data",
+                    "iter_elapsed": 1.2,
+                },
+            }
+        )
+        events.append(
+            {
+                "event": "step_progress",
+                "data": {
+                    "step_id": sid,
+                    "event": "completed",
+                    "status": "completed",
+                    "result": f"Result for {sid}",
+                    "duration": 2.0,
+                },
+            }
+        )
+    events.append(
+        {"event": "phase", "data": {"name": "executing", "status": "done", "round": 1}}
+    )
     # Analysis
-    events.append({
-        "event": "phase",
-        "data": {
-            "name": "analyzing",
-            "status": "done",
-            "round": 1,
-            "achieved": True,
-            "confidence": 0.9,
-            "reasoning": "All tasks completed successfully.",
-        },
-    })
+    events.append(
+        {
+            "event": "phase",
+            "data": {
+                "name": "analyzing",
+                "status": "done",
+                "round": 1,
+                "achieved": True,
+                "confidence": 0.9,
+                "reasoning": "All tasks completed successfully.",
+            },
+        }
+    )
     # Done
-    events.append({
-        "event": "done",
-        "data": {
-            "answer": answer,
-            "achieved": True,
-            "confidence": 0.9,
-            "elapsed": 5.0,
-            "rounds": 1,
-            "usage": {"prompt_tokens": 200, "completion_tokens": 100, "total_tokens": 300},
-        },
-    })
+    events.append(
+        {
+            "event": "done",
+            "data": {
+                "answer": answer,
+                "achieved": True,
+                "confidence": 0.9,
+                "elapsed": 5.0,
+                "rounds": 1,
+                "usage": {
+                    "prompt_tokens": 200,
+                    "completion_tokens": 100,
+                    "total_tokens": 300,
+                },
+            },
+        }
+    )
     return events
 
 
@@ -156,7 +192,7 @@ def _dag_events(
 # Import the module under test
 # ---------------------------------------------------------------------------
 
-from fim_agent.web.api.export import (
+from fim_one.web.api.export import (
     DetailLevel,
     ExportFormat,
     _extract_dag_analysis,
@@ -296,8 +332,18 @@ class TestExtractReactSteps:
 
     def test_filters_tool_start(self):
         events = [
-            {"event": "step", "data": {"type": "tool_start", "tool_name": "web_search"}},
-            {"event": "step", "data": {"type": "tool_call", "tool_name": "web_search", "observation": "ok"}},
+            {
+                "event": "step",
+                "data": {"type": "tool_start", "tool_name": "web_search"},
+            },
+            {
+                "event": "step",
+                "data": {
+                    "type": "tool_call",
+                    "tool_name": "web_search",
+                    "observation": "ok",
+                },
+            },
         ]
         steps = _extract_react_steps(events)
         assert len(steps) == 1
@@ -414,12 +460,23 @@ class TestRenderMdReact:
         assert "Execution Details" not in md
 
     def test_full_mode_with_tool_calls(self):
-        events = _react_events([
-            {"tool": "web_search", "args": {"query": "python"}, "reasoning": "searching", "observation": "found", "elapsed": 1.5},
-        ], answer="Python is great.")
+        events = _react_events(
+            [
+                {
+                    "tool": "web_search",
+                    "args": {"query": "python"},
+                    "reasoning": "searching",
+                    "observation": "found",
+                    "elapsed": 1.5,
+                },
+            ],
+            answer="Python is great.",
+        )
         conv = _make_conv()
         msgs = [
-            _make_msg("user", "Tell me about Python", created_at=datetime(2026, 1, 1, 0, 0)),
+            _make_msg(
+                "user", "Tell me about Python", created_at=datetime(2026, 1, 1, 0, 0)
+            ),
             _make_msg(
                 "assistant",
                 "Python is great.",
@@ -445,13 +502,27 @@ class TestRenderMdReact:
 class TestRenderMdDag:
     def test_full_mode(self):
         plan = [
-            {"id": "S1", "task": "Search for data", "deps": [], "tool_hint": "web_search"},
-            {"id": "S2", "task": "Analyze results", "deps": ["S1"], "tool_hint": "python_exec"},
+            {
+                "id": "S1",
+                "task": "Search for data",
+                "deps": [],
+                "tool_hint": "web_search",
+            },
+            {
+                "id": "S2",
+                "task": "Analyze results",
+                "deps": ["S1"],
+                "tool_hint": "python_exec",
+            },
         ]
         events = _dag_events(plan, answer="DAG complete.")
         conv = _make_conv(mode="dag")
         msgs = [
-            _make_msg("user", "Run a multi-step analysis", created_at=datetime(2026, 1, 1, 0, 0)),
+            _make_msg(
+                "user",
+                "Run a multi-step analysis",
+                created_at=datetime(2026, 1, 1, 0, 0),
+            ),
             _make_msg(
                 "assistant",
                 "DAG complete.",
@@ -492,9 +563,11 @@ class TestRenderTxt:
         assert "#" not in txt
 
     def test_full_react(self):
-        events = _react_events([
-            {"tool": "calculator", "elapsed": 0.5},
-        ])
+        events = _react_events(
+            [
+                {"tool": "calculator", "elapsed": 0.5},
+            ]
+        )
         conv = _make_conv()
         msgs = [
             _make_msg("user", "2+2?", created_at=datetime(2026, 1, 1, 0, 0)),
@@ -520,7 +593,11 @@ class TestRenderDocx:
         conv = _make_conv()
         msgs = [
             _make_msg("user", "What is AI?", created_at=datetime(2026, 1, 1, 0, 0)),
-            _make_msg("assistant", "AI is artificial intelligence.", created_at=datetime(2026, 1, 1, 0, 1)),
+            _make_msg(
+                "assistant",
+                "AI is artificial intelligence.",
+                created_at=datetime(2026, 1, 1, 0, 1),
+            ),
         ]
         docx_bytes = _render_docx(conv, msgs, DetailLevel.SUMMARY)
         # DOCX files start with the PK zip header
@@ -528,12 +605,16 @@ class TestRenderDocx:
         assert len(docx_bytes) > 100
 
     def test_full_with_react_steps(self):
-        events = _react_events([
-            {"tool": "web_search", "elapsed": 1.0},
-        ])
+        events = _react_events(
+            [
+                {"tool": "web_search", "elapsed": 1.0},
+            ]
+        )
         conv = _make_conv()
         msgs = [
-            _make_msg("user", "Search something", created_at=datetime(2026, 1, 1, 0, 0)),
+            _make_msg(
+                "user", "Search something", created_at=datetime(2026, 1, 1, 0, 0)
+            ),
             _make_msg(
                 "assistant",
                 "Found it.",
@@ -550,11 +631,15 @@ class TestRenderDocx:
         assert docx_bytes[:2] == b"PK"
 
     def test_dag_full(self):
-        plan = [{"id": "S1", "task": "Fetch data", "deps": [], "tool_hint": "web_fetch"}]
+        plan = [
+            {"id": "S1", "task": "Fetch data", "deps": [], "tool_hint": "web_fetch"}
+        ]
         events = _dag_events(plan, answer="Done.")
         conv = _make_conv(mode="dag")
         msgs = [
-            _make_msg("user", "Fetch and analyze", created_at=datetime(2026, 1, 1, 0, 0)),
+            _make_msg(
+                "user", "Fetch and analyze", created_at=datetime(2026, 1, 1, 0, 0)
+            ),
             _make_msg(
                 "assistant",
                 "Done.",
@@ -677,9 +762,7 @@ class TestDocxMarkdownRendering:
         assert "**important**" not in all_text  # raw markers gone
         assert "important" in all_text  # content preserved
         # Check that at least one run is bold
-        has_bold = any(
-            run.bold for p in doc.paragraphs for run in p.runs if run.bold
-        )
+        has_bold = any(run.bold for p in doc.paragraphs for run in p.runs if run.bold)
         assert has_bold
 
     def test_code_block_rendered(self):
@@ -715,9 +798,7 @@ class TestDocxMarkdownRendering:
         from docx import Document
 
         doc = Document(io.BytesIO(docx_bytes))
-        bullet_styles = [
-            p.style.name for p in doc.paragraphs if "List" in p.style.name
-        ]
+        bullet_styles = [p.style.name for p in doc.paragraphs if "List" in p.style.name]
         assert len(bullet_styles) >= 3  # at least 3 list items
 
 
@@ -774,9 +855,7 @@ class TestRenderPdf:
         )
         conv = _make_conv()
         msgs = [
-            _make_msg(
-                "user", "Search for info", created_at=datetime(2026, 1, 1, 0, 0)
-            ),
+            _make_msg("user", "Search for info", created_at=datetime(2026, 1, 1, 0, 0)),
             _make_msg(
                 "assistant",
                 "Result.",
@@ -843,9 +922,7 @@ class TestRenderPdf:
             "```python\nprint('hi')\n```\n\n- item 1\n- item 2"
         )
         msgs = [
-            _make_msg(
-                "user", "Show me stuff", created_at=datetime(2026, 1, 1, 0, 0)
-            ),
+            _make_msg("user", "Show me stuff", created_at=datetime(2026, 1, 1, 0, 0)),
             _make_msg("assistant", answer, created_at=datetime(2026, 1, 1, 0, 1)),
         ]
         pdf_bytes = _render_pdf(conv, msgs, DetailLevel.SUMMARY)
@@ -864,14 +941,14 @@ class TestStripEmoji:
 
     def test_bmp_emoji_removed(self):
         """Emoji from BMP blocks (Misc Technical, Geometric Shapes, etc.)."""
-        assert _strip_emoji("⭐ star") == " star"         # U+2B50
-        assert _strip_emoji("⏰ alarm") == " alarm"       # U+23F0
-        assert _strip_emoji("▶ play") == " play"          # U+25B6
-        assert _strip_emoji("ℹ info") == " info"          # U+2139
+        assert _strip_emoji("⭐ star") == " star"  # U+2B50
+        assert _strip_emoji("⏰ alarm") == " alarm"  # U+23F0
+        assert _strip_emoji("▶ play") == " play"  # U+25B6
+        assert _strip_emoji("ℹ info") == " info"  # U+2139
 
     def test_enclosed_supplement_removed(self):
         """Emoji from Enclosed Ideographic Supplement (U+1F200 block)."""
-        assert _strip_emoji("🈁 koko") == " koko"         # U+1F201
+        assert _strip_emoji("🈁 koko") == " koko"  # U+1F201
 
     def test_normal_text_unchanged(self):
         assert _strip_emoji("Hello World") == "Hello World"

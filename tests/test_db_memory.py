@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from fim_agent.core.memory.db import DbMemory
-from fim_agent.core.model.types import ChatMessage
+from fim_one.core.memory.db import DbMemory
+from fim_one.core.model.types import ChatMessage
 
 
 @pytest.mark.asyncio
@@ -33,6 +33,7 @@ async def test_get_messages_returns_empty_on_db_error():
 @pytest.mark.asyncio
 async def test_get_messages_loads_and_trims(monkeypatch):
     """get_messages should load from DB, drop trailing user msg, and truncate."""
+
     # Build fake DB rows.
     class FakeRow:
         def __init__(self, role, content):
@@ -62,14 +63,14 @@ async def test_get_messages_loads_and_trims(monkeypatch):
 
     # Patch create_session to return our fake.
     monkeypatch.setattr(
-        "fim_agent.core.memory.db.create_session",
+        "fim_one.core.memory.db.create_session",
         lambda: FakeSession(),
         raising=False,
     )
 
     # We need to patch the import inside get_messages. The simplest way is
     # to pre-import and patch at the module level.
-    import fim_agent.core.memory.db as db_mod
+    import fim_one.core.memory.db as db_mod
 
     # Patch the lazy imports inside get_messages by injecting into the
     # function's globals.  Instead, we monkeypatch the module-level import.
@@ -82,8 +83,7 @@ async def test_get_messages_loads_and_trims(monkeypatch):
             result = await session.execute(None)
             rows = result.scalars().all()
             messages = [
-                ChatMessage(role=row.role, content=row.content or "")
-                for row in rows
+                ChatMessage(role=row.role, content=row.content or "") for row in rows
             ]
         finally:
             await session.close()
@@ -91,7 +91,8 @@ async def test_get_messages_loads_and_trims(monkeypatch):
         if messages and messages[-1].role == "user":
             messages.pop()
 
-        from fim_agent.core.memory.compact import CompactUtils
+        from fim_one.core.memory.compact import CompactUtils
+
         return CompactUtils.smart_truncate(messages, self._max_tokens)
 
     monkeypatch.setattr(DbMemory, "get_messages", patched_get)

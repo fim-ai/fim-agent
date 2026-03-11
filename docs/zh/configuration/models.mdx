@@ -1,15 +1,15 @@
 ---
 title: "推荐模型"
-description: "为你的 FIM Agent 部署选择合适的 LLM。"
+description: "为你的 FIM One 部署选择合适的 LLM。"
 ---
 
-FIM Agent 是**提供商无关**的——任何兼容 OpenAI 的端点都可以使用。本页帮助你为自己的使用场景选择最佳模型组合。配置详情请参阅[环境变量](/zh/configuration/environment-variables)。
+FIM One 是**提供商无关**的——任何兼容 OpenAI 的端点都可以使用。本页帮助你为自己的使用场景选择最佳模型组合。配置详情请参阅[环境变量](/zh/configuration/environment-variables)。
 
 <div id="how-fim-agent-uses-models">
-  ## FIM Agent 如何使用模型
+  ## FIM One 如何使用模型
 </div>
 
-FIM Agent 有两个模型槽位：
+FIM One 有两个模型槽位：
 
 | 槽位 | 环境变量 | 用途 |
 |---|---|---|
@@ -51,7 +51,7 @@ FIM Agent 有两个模型槽位：
 - 快速模型：`gpt-5-mini`（$0.25/$2.00 每 MTok）或 `gpt-5-nano`（最便宜，$0.05/$0.40 每 MTok）
 - 旧版：`gpt-4.1`（API 中仍可用，1M 上下文，适合编码）——已于 2026年2月从 ChatGPT 退役
 
-**推理：** 设置 `LLM_REASONING_EFFORT=medium` 即可——o 系列和 GPT-5.x 模型原生支持。o 系列需要 `max_completion_tokens` 而非 `max_tokens`，LiteLLM 会自动处理。注意：GPT-5.x 在 `/v1/chat/completions` 端点不支持 `reasoning_effort` 与工具调用同时使用——FIM Agent 会在 Agent 工具调用步骤中自动静默跳过，确保工作流不中断。此外，GPT-5.x 仅支持 `temperature=1`——FIM Agent 通过 LiteLLM 的参数过滤（`drop_params`）自动处理此限制。
+**推理：** 设置 `LLM_REASONING_EFFORT=medium` 即可——o 系列和 GPT-5.x 模型原生支持。o 系列需要 `max_completion_tokens` 而非 `max_tokens`，LiteLLM 会自动处理。注意：GPT-5.x 在 `/v1/chat/completions` 端点不支持 `reasoning_effort` 与工具调用同时使用——FIM One 会在 Agent 工具调用步骤中自动静默跳过，确保工作流不中断。此外，GPT-5.x 仅支持 `temperature=1`——FIM One 通过 LiteLLM 的参数过滤（`drop_params`）自动处理此限制。
 
 | 模型 | 输入 $/MTok | 输出 $/MTok | 上下文 |
 |---|---|---|---|
@@ -83,7 +83,7 @@ LLM_REASONING_EFFORT=medium
 
 ### Anthropic (Claude)
 
-Claude 在细腻推理和复杂多步骤任务方面表现出色。FIM Agent 通过 [LiteLLM](https://github.com/BerriAI/litellm) 连接，自动将 Anthropic 模型路由到其原生 API。当前最新一代为 Claude 4.6（2026年2月）。
+Claude 在细腻推理和复杂多步骤任务方面表现出色。FIM One 通过 [LiteLLM](https://github.com/BerriAI/litellm) 连接，自动将 Anthropic 模型路由到其原生 API。当前最新一代为 Claude 4.6（2026年2月）。
 
 **推荐模型：**
 - 主模型：`claude-sonnet-4-6`（能力与成本的最佳平衡——$3/$15 每 MTok）
@@ -306,11 +306,11 @@ LLM_MAX_OUTPUT_TOKENS=8192
   ## 第三方中转平台
 </div>
 
-许多用户通过单一中转（代理）服务访问多个模型提供商。FIM Agent 会根据 URL 路径模式自动检测正确的 API 协议——只需填写 `LLM_BASE_URL` 即可。
+许多用户通过单一中转（代理）服务访问多个模型提供商。FIM One 会根据 URL 路径模式自动检测正确的 API 协议——只需填写 `LLM_BASE_URL` 即可。
 
 ### 工作原理
 
-当 base URL 指向第三方中转时，FIM Agent 会检查 URL 路径来决定使用哪种协议：
+当 base URL 指向第三方中转时，FIM One 会检查 URL 路径来决定使用哪种协议：
 
 | URL 路径包含 | 检测到的协议 | 认证头 | 核心优势 |
 |---|---|---|---|
@@ -354,7 +354,7 @@ LLM_MODEL=gpt-5.4
 - **OpenAI 兼容**是通用兜底方案，适用于任何中转，但提供商特定功能（如扩展思考输出）可能不可用。
 
 <Note>
-如果你的中转平台使用非标准路径约定（例如 URL 中没有 `/claude` 或 `/anthropic`），FIM Agent 会回退到 OpenAI 兼容协议——这对大多数场景都能正常工作。如需完整的原生协议支持，可以通过管理后台的模型配置界面显式设置 `provider` 字段。
+如果你的中转平台使用非标准路径约定（例如 URL 中没有 `/claude` 或 `/anthropic`），FIM One 会回退到 OpenAI 兼容协议——这对大多数场景都能正常工作。如需完整的原生协议支持，可以通过管理后台的模型配置界面显式设置 `provider` 字段。
 </Note>
 
 ---

@@ -3,11 +3,11 @@
 import pytest
 from pathlib import Path
 
-from fim_agent.rag.loaders import loader_for_extension, LoadedDocument
-from fim_agent.rag.loaders.markdown import MarkdownLoader
-from fim_agent.rag.loaders.html import HTMLLoader
-from fim_agent.rag.loaders.csv import CSVLoader
-from fim_agent.rag.loaders.text import TextLoader
+from fim_one.rag.loaders import loader_for_extension, LoadedDocument
+from fim_one.rag.loaders.markdown import MarkdownLoader
+from fim_one.rag.loaders.html import HTMLLoader
+from fim_one.rag.loaders.csv import CSVLoader
+from fim_one.rag.loaders.text import TextLoader
 
 
 async def test_markdown_loader(tmp_path: Path):

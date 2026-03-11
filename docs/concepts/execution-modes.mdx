@@ -1,11 +1,11 @@
 ---
 title: "Execution Modes"
-description: "Standalone, Copilot, and Hub — three ways to deploy FIM Agent."
+description: "Standalone, Copilot, and Hub — three ways to deploy FIM One."
 ---
 
 ## Three modes
 
-FIM Agent operates in three modes, determined by how the agent is deployed and used:
+FIM One operates in three modes, determined by how the agent is deployed and used:
 
 | Mode | What it is | Delivery | Example |
 |------|-----------|----------|---------|
@@ -19,7 +19,7 @@ The progression is natural: start standalone, embed into a host system as a Copi
 
 ### Standalone (0 connectors)
 
-The default mode. FIM Agent works as a full-featured AI assistant:
+The default mode. FIM One works as a full-featured AI assistant:
 
 - Built-in tools: web search, Python execution, calculator, file operations, shell commands
 - Knowledge base with RAG (PDF, DOCX, Markdown, HTML, CSV)
@@ -30,12 +30,12 @@ No external system access needed. Useful for general analysis, research, and cod
 
 ### Copilot (embedded)
 
-Embed FIM Agent into a host system's web UI. The agent works alongside users in their familiar interface — no context switching required. Copilot mode can use multiple connectors (e.g., the host system's DB + a notification service).
+Embed FIM One into a host system's web UI. The agent works alongside users in their familiar interface — no context switching required. Copilot mode can use multiple connectors (e.g., the host system's DB + a notification service).
 
 ```mermaid
 flowchart LR
   subgraph Host["Host System (ERP / CRM / OA)"]
-    Copilot["FIM Agent Copilot<br/>(iframe / widget)"]
+    Copilot["FIM One Copilot<br/>(iframe / widget)"]
   end
   Copilot -- Connectors --> DB["DB"]
   Copilot -- Connectors --> API["API"]
@@ -55,7 +55,7 @@ The Hub is a standalone portal (or API) that serves as the central intelligence 
 
 ```mermaid
 flowchart LR
-  ERP --> Hub["FIM Agent Hub<br/>(AI orchestration)"]
+  ERP --> Hub["FIM One Hub<br/>(AI orchestration)"]
   Database --> Hub
   Lark --> Hub
   CRM --> Hub
@@ -82,7 +82,7 @@ Delivery and mode are related but not locked: you can access a Hub via API, or u
 
 ## Execution engines (internal implementation)
 
-Under the hood, FIM Agent provides two execution engines:
+Under the hood, FIM One provides two execution engines:
 
 | Engine | Best for | How it works |
 |--------|----------|-------------|
@@ -104,7 +104,7 @@ ReAct is the atomic unit; DAG is the orchestration layer. Both engines work in a
 
 ## Why no traditional workflow engine
 
-FIM Agent deliberately does **not** build a drag-and-drop workflow editor. This is a strategic choice:
+FIM One deliberately does **not** build a drag-and-drop workflow editor. This is a strategic choice:
 
 1. **Workflows already exist elsewhere.** Enterprise clients' fixed processes (approval chains, audit flows) live in their OA, ERP, and legacy systems. They need AI that connects to those systems, not another workflow editor.
 
@@ -112,4 +112,4 @@ FIM Agent deliberately does **not** build a drag-and-drop workflow editor. This 
 
 3. **Existing capabilities compose into fixed pipelines.** Scheduled Jobs (planned) trigger a DAG agent with a fixed prompt; the DAG plans the steps; Connectors bridge to target systems. The combination equals a static pipeline — but more flexible, because the LLM adjusts its plan based on data it encounters.
 
-4. **Connector = API call.** Complex workflow operations (transfer, reject, escalate) are the target system's responsibility. From the connector's perspective, each operation is just an HTTP request with parameters. FIM Agent calls the API; the target system manages the state machine.
+4. **Connector = API call.** Complex workflow operations (transfer, reject, escalate) are the target system's responsibility. From the connector's perspective, each operation is just an HTTP request with parameters. FIM One calls the API; the target system manages the state machine.

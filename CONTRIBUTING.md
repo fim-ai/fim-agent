@@ -1,6 +1,6 @@
-# Contributing to FIM Agent
+# Contributing to FIM One
 
-Thank you for your interest in FIM Agent! We value every form of contribution — especially bug reports, security reviews, and real-world usage feedback.
+Thank you for your interest in FIM One! We value every form of contribution — especially bug reports, security reviews, and real-world usage feedback.
 
 > **Pioneer Program**: The first 100 contributors are recognized as **Founding Contributors** with permanent credits in the project. [Details below](#-pioneer-program).
 
@@ -22,10 +22,10 @@ Thank you for your interest in FIM Agent! We value every form of contribution �
 
 We believe early contributors deserve lasting recognition. The **Pioneer Program** rewards the first 100 contributors:
 
-| Tier | Who | Perks |
-|------|-----|-------|
+| Tier                     | Who                    | Perks                                                                                                     |
+| ------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Founding Contributor** | First 100 contributors | Permanent avatar in README, `founding-contributor` GitHub badge, name in CREDITS, priority issue response |
-| **Early Adopter** | Contributors #101–500 | Avatar in README, `early-adopter` badge |
+| **Early Adopter**        | Contributors #101–500  | Avatar in README, `early-adopter` badge                                                                   |
 
 **What counts as a contribution?**
 
@@ -48,7 +48,7 @@ This is a solo-developer project. Here's what helps the most, in priority order:
 
 ### 1. Bug Hunting (Highest Impact)
 
-Deploy FIM Agent, use it in your workflow, and report what breaks. We especially need:
+Deploy FIM One, use it in your workflow, and report what breaks. We especially need:
 
 - **Edge cases in agent reasoning** — queries where the ReAct agent loops, gives wrong tool calls, or misinterprets intent
 - **DAG planning failures** — tasks where the planner generates bad dependency graphs or re-plans unnecessarily
@@ -62,7 +62,7 @@ See [Security Reports](#security-reports) below. We take security seriously and 
 
 ### 3. Real-World Usage Feedback
 
-We want to understand how people actually use FIM Agent. See [Field Testing Program](#-field-testing-program).
+We want to understand how people actually use FIM One. See [Field Testing Program](#-field-testing-program).
 
 ### 4. Code Contributions
 
@@ -79,13 +79,13 @@ If you discover a security issue, please report it responsibly:
 
 What we're looking for:
 
-| Area | Examples |
-|------|----------|
-| **Injection** | Prompt injection via tool outputs, SQL injection in search, XSS in rendered content |
-| **Auth & Access** | JWT bypass, privilege escalation, IDOR in API endpoints |
-| **Code Execution** | Sandbox escape in `python_exec`, path traversal in file tools |
-| **Data Exposure** | API keys leaked in logs, user data in error messages, connector credentials exposed |
-| **Dependency** | Known CVEs in dependencies, supply chain risks |
+| Area               | Examples                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| **Injection**      | Prompt injection via tool outputs, SQL injection in search, XSS in rendered content |
+| **Auth & Access**  | JWT bypass, privilege escalation, IDOR in API endpoints                             |
+| **Code Execution** | Sandbox escape in `python_exec`, path traversal in file tools                       |
+| **Data Exposure**  | API keys leaked in logs, user data in error messages, connector credentials exposed |
+| **Dependency**     | Known CVEs in dependencies, supply chain risks                                      |
 
 **Response timeline:**
 
@@ -101,11 +101,11 @@ What we're looking for:
 
 ## 🧪 Field Testing Program
 
-We need real-world feedback more than code. If you deploy FIM Agent in any environment — personal, team, or enterprise — your experience is incredibly valuable.
+We need real-world feedback more than code. If you deploy FIM One in any environment — personal, team, or enterprise — your experience is incredibly valuable.
 
 ### How to Participate
 
-1. **Deploy** FIM Agent (Docker or local)
+1. **Deploy** FIM One (Docker or local)
 2. **Use it** for your actual tasks — don't just test the demo
 3. **Open a GitHub Issue** with the `field-test` label using this template:
 
@@ -152,15 +152,15 @@ Bonus points:
 
 ### What's Welcome
 
-| Type | Examples |
-|------|----------|
-| **Bug fixes** | Fix UI glitch, resolve API error, correct edge case |
-| **Security patches** | Fix vulnerabilities, harden inputs |
-| **Test coverage** | Add tests for untested code paths |
-| **Documentation** | Improve guides, fix typos, add examples |
-| **Translations** | Improve i18n strings (EN/ZH) |
-| **Performance** | Optimize streaming, reduce latency |
-| **New features** | Welcome — open an issue to discuss first |
+| Type                 | Examples                                            |
+| -------------------- | --------------------------------------------------- |
+| **Bug fixes**        | Fix UI glitch, resolve API error, correct edge case |
+| **Security patches** | Fix vulnerabilities, harden inputs                  |
+| **Test coverage**    | Add tests for untested code paths                   |
+| **Documentation**    | Improve guides, fix typos, add examples             |
+| **Translations**     | Improve i18n strings (EN/ZH)                        |
+| **Performance**      | Optimize streaming, reduce latency                  |
+| **New features**     | Welcome — open an issue to discuss first            |
 
 ### What to Discuss First
 
@@ -229,7 +229,7 @@ cp example.env .env
 ## Project Structure
 
 ```
-src/fim_agent/
+src/fim_one/
 ├── core/
 │   ├── agent/       # ReAct agent (reasoning + action loop)
 │   ├── model/       # LLM abstraction (provider-agnostic)
@@ -324,13 +324,13 @@ Before submitting, ensure:
 - [Discord](https://discord.gg/z64czxdC7z) — chat with the maintainer and other users
 - [GitHub Issues](https://github.com/fim-ai/fim-agent/issues) — bugs, security, and field test reports
 - [GitHub Discussions](https://github.com/fim-ai/fim-agent/discussions) — questions, ideas, and use case sharing
-- [Twitter / X](https://x.com/FIM_Agent) — announcements and updates
+- [Twitter / X](https://x.com/fim_one) — announcements and updates
 - [Documentation](https://docs.fim.ai) — guides and API reference
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [FIM Agent Source Available License](LICENSE). This is not an OSI-approved open source license — please review it before contributing.
+By contributing, you agree that your contributions will be licensed under the [FIM One Source Available License](LICENSE). This is not an OSI-approved open source license — please review it before contributing.
 
 ---
 
-Thank you for helping build FIM Agent! Bug reports, security reviews, and field test stories are just as valuable as code. Every contribution counts.
+Thank you for helping build FIM One! Bug reports, security reviews, and field test stories are just as valuable as code. Every contribution counts.

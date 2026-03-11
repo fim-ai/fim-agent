@@ -1,11 +1,11 @@
 ---
 title: "Extension Guide"
-description: "How to plug custom LLM providers, tools, memory backends, embeddings, rerankers, web backends, and RAG components into FIM Agent."
+description: "How to plug custom LLM providers, tools, memory backends, embeddings, rerankers, web backends, and RAG components into FIM One."
 ---
 
 ## Overview
 
-FIM Agent is built around a set of thin abstract base classes — one per swappable component. Every component has a single responsibility and a minimal interface. You implement the abstract methods, wire the instance into the appropriate registry or injector, and the rest of the system uses your implementation automatically.
+FIM One is built around a set of thin abstract base classes — one per swappable component. Every component has a single responsibility and a minimal interface. You implement the abstract methods, wire the instance into the appropriate registry or injector, and the rest of the system uses your implementation automatically.
 
 | Extension point | Base class | File | Registration |
 |---|---|---|---|
@@ -31,8 +31,8 @@ FIM Agent is built around a set of thin abstract base classes — one per swappa
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fim_agent.core.model.base import BaseLLM
-from fim_agent.core.model.types import ChatMessage, LLMResult, StreamChunk
+from fim_one.core.model.base import BaseLLM
+from fim_one.core.model.types import ChatMessage, LLMResult, StreamChunk
 
 
 class MyLLM(BaseLLM):
@@ -85,7 +85,7 @@ class MyLLM(BaseLLM):
 `ModelRegistry` maps names to `BaseLLM` instances and resolves by role. The system uses four built-in roles: `general`, `fast`, `compact`, and `vision`. You can add your own.
 
 ```python
-from fim_agent.core.model.registry import ModelRegistry
+from fim_one.core.model.registry import ModelRegistry
 
 registry = ModelRegistry()
 registry.register("my-llm", MyLLM(api_key="...", model="my-v1"), roles=["general"])
@@ -107,7 +107,7 @@ Tools are the most common extension. `BaseTool` has three required pieces: `name
 
 ```python
 from typing import Any
-from fim_agent.core.tool.base import BaseTool
+from fim_one.core.tool.base import BaseTool
 
 
 class GitStatusTool(BaseTool):
@@ -149,10 +149,10 @@ class GitStatusTool(BaseTool):
 
 ### Auto-discovery
 
-Drop your file in `src/fim_agent/core/tool/builtin/`. The `discover_builtin_tools()` scanner will find any concrete (non-abstract) `BaseTool` subclass automatically — no manual registration needed.
+Drop your file in `src/fim_one/core/tool/builtin/`. The `discover_builtin_tools()` scanner will find any concrete (non-abstract) `BaseTool` subclass automatically — no manual registration needed.
 
 ```
-src/fim_agent/core/tool/builtin/
+src/fim_one/core/tool/builtin/
 ├── calculator.py       ← existing tool
 ├── git_status.py       ← your new file → auto-discovered
 └── ...
@@ -177,7 +177,7 @@ def availability(self) -> tuple[bool, str | None]:
 Return a `ToolResult` instead of a plain `str` when your tool produces files:
 
 ```python
-from fim_agent.core.tool.base import Artifact, ToolResult
+from fim_one.core.tool.base import Artifact, ToolResult
 
 async def run(self, **kwargs: Any) -> ToolResult:
     # ... produce a file at /tmp/report.html ...
@@ -196,8 +196,8 @@ async def run(self, **kwargs: Any) -> ToolResult:
 
 ```python
 import redis.asyncio as redis
-from fim_agent.core.memory.base import BaseMemory
-from fim_agent.core.model.types import ChatMessage
+from fim_one.core.memory.base import BaseMemory
+from fim_one.core.model.types import ChatMessage
 
 
 class RedisMemory(BaseMemory):
@@ -227,7 +227,7 @@ Inject via the agent constructor: `ReActAgent(llm=llm, memory=RedisMemory(conv_i
 `BaseEmbedding` provides two methods: `embed_texts` (batch) and `embed_query` (single), plus a `dimension` property.
 
 ```python
-from fim_agent.core.embedding.base import BaseEmbedding
+from fim_one.core.embedding.base import BaseEmbedding
 
 
 class MyEmbedding(BaseEmbedding):
@@ -257,7 +257,7 @@ The distinction between `embed_texts` and `embed_query` exists because many embe
 `BaseImageGen` has a single method `generate`. It saves the image to `output_dir` and returns an `ImageResult` with the file path and a server-relative URL.
 
 ```python
-from fim_agent.core.image_gen.base import BaseImageGen, ImageResult
+from fim_one.core.image_gen.base import BaseImageGen, ImageResult
 
 
 class StableDiffusionImageGen(BaseImageGen):
@@ -285,7 +285,7 @@ class StableDiffusionImageGen(BaseImageGen):
 `BaseReranker` takes a query and a list of document strings and returns them reordered with scores.
 
 ```python
-from fim_agent.core.reranker.base import BaseReranker, RerankResult
+from fim_one.core.reranker.base import BaseReranker, RerankResult
 
 
 class CrossEncoderReranker(BaseReranker):
@@ -311,7 +311,7 @@ class CrossEncoderReranker(BaseReranker):
 `BaseWebFetch` fetches a URL and returns its content as Markdown or plain text.
 
 ```python
-from fim_agent.core.web.fetch.base import BaseWebFetch
+from fim_one.core.web.fetch.base import BaseWebFetch
 
 
 class PlaywrightFetch(BaseWebFetch):
@@ -331,7 +331,7 @@ class PlaywrightFetch(BaseWebFetch):
 `BaseWebSearch` returns a ranked list of `SearchResult` objects.
 
 ```python
-from fim_agent.core.web.search.base import BaseWebSearch, SearchResult
+from fim_one.core.web.search.base import BaseWebSearch, SearchResult
 
 
 class BingSearch(BaseWebSearch):
@@ -356,7 +356,7 @@ The RAG pipeline has three independently swappable stages: loading, chunking, an
 
 ```python
 from pathlib import Path
-from fim_agent.rag.loaders.base import BaseLoader, LoadedDocument
+from fim_one.rag.loaders.base import BaseLoader, LoadedDocument
 
 
 class DocxLoader(BaseLoader):
@@ -373,7 +373,7 @@ class DocxLoader(BaseLoader):
 
 ```python
 from typing import Any
-from fim_agent.rag.chunking.base import BaseChunker, Chunk
+from fim_one.rag.chunking.base import BaseChunker, Chunk
 
 
 class SentenceChunker(BaseChunker):
@@ -395,7 +395,7 @@ class SentenceChunker(BaseChunker):
 `BaseRetriever` queries any backend and returns ranked `Document` objects.
 
 ```python
-from fim_agent.rag.base import BaseRetriever, Document
+from fim_one.rag.base import BaseRetriever, Document
 
 
 class ElasticsearchRetriever(BaseRetriever):

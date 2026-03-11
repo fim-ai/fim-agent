@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.tool import BaseTool, Tool, ToolRegistry
-from fim_agent.core.tool.builtin.python_exec import PythonExecTool
+from fim_one.core.tool import BaseTool, Tool, ToolRegistry
+from fim_one.core.tool.builtin.python_exec import PythonExecTool
 
 from .conftest import EchoTool
 

@@ -6,8 +6,8 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from fim_agent.core.memory.context_guard import ContextGuard, _COMPACT_PROMPTS
-from fim_agent.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
+from fim_one.core.memory.context_guard import ContextGuard, _COMPACT_PROMPTS
+from fim_one.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
 
 
 # ------------------------------------------------------------------
@@ -109,7 +109,11 @@ class TestOverBudgetTriggersCompact:
 
         assert llm.call_count == 1
         # Should have a summary system message.
-        summaries = [m for m in result if m.role == "system" and "[Conversation summary]" in (m.content or "")]
+        summaries = [
+            m
+            for m in result
+            if m.role == "system" and "[Conversation summary]" in (m.content or "")
+        ]
         assert len(summaries) == 1
 
     async def test_over_budget_without_llm_falls_back_to_truncate(self):
@@ -242,5 +246,7 @@ class TestSystemMessagesPreserved:
 
         # Original system message should be preserved.
         system_msgs = [m for m in result if m.role == "system"]
-        original_system = [m for m in system_msgs if m.content == "You are a helpful assistant."]
+        original_system = [
+            m for m in system_msgs if m.content == "You are a helpful assistant."
+        ]
         assert len(original_system) == 1

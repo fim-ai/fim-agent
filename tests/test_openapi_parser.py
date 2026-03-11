@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from fim_agent.core.tool.connector.openapi_parser import parse_openapi_spec
+from fim_one.core.tool.connector.openapi_parser import parse_openapi_spec
 
 
 # ---------------------------------------------------------------------------
@@ -13,7 +13,11 @@ from fim_agent.core.tool.connector.openapi_parser import parse_openapi_spec
 
 PETSTORE_SPEC: dict = {
     "openapi": "3.0.3",
-    "info": {"title": "Petstore", "version": "1.0.0", "description": "A sample pet store"},
+    "info": {
+        "title": "Petstore",
+        "version": "1.0.0",
+        "description": "A sample pet store",
+    },
     "servers": [{"url": "https://petstore.example.com/v1"}],
     "paths": {
         "/pets": {
@@ -94,9 +98,23 @@ GITHUB_SNIPPET_SPEC: dict = {
                 "operationId": "issues/list-for-repo",
                 "summary": "List repository issues",
                 "parameters": [
-                    {"name": "owner", "in": "path", "required": True, "schema": {"type": "string"}},
-                    {"name": "repo", "in": "path", "required": True, "schema": {"type": "string"}},
-                    {"name": "state", "in": "query", "schema": {"type": "string", "enum": ["open", "closed", "all"]}},
+                    {
+                        "name": "owner",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    },
+                    {
+                        "name": "repo",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "schema": {"type": "string", "enum": ["open", "closed", "all"]},
+                    },
                     {"name": "per_page", "in": "query", "schema": {"type": "integer"}},
                 ],
                 "responses": {"200": {"description": "OK"}},
@@ -105,8 +123,18 @@ GITHUB_SNIPPET_SPEC: dict = {
                 "operationId": "issues/create",
                 "summary": "Create an issue",
                 "parameters": [
-                    {"name": "owner", "in": "path", "required": True, "schema": {"type": "string"}},
-                    {"name": "repo", "in": "path", "required": True, "schema": {"type": "string"}},
+                    {
+                        "name": "owner",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    },
+                    {
+                        "name": "repo",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "requestBody": {
                     "content": {
@@ -116,7 +144,10 @@ GITHUB_SNIPPET_SPEC: dict = {
                                 "properties": {
                                     "title": {"type": "string"},
                                     "body": {"type": "string"},
-                                    "labels": {"type": "array", "items": {"type": "string"}},
+                                    "labels": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                    },
                                 },
                                 "required": ["title"],
                             }
@@ -381,7 +412,12 @@ class TestEdgeCases:
                     "get": {
                         "summary": "Get user",
                         "parameters": [
-                            {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                            {
+                                "name": "id",
+                                "in": "path",
+                                "required": True,
+                                "schema": {"type": "string"},
+                            }
                         ],
                         "responses": {"200": {}},
                     }
@@ -401,13 +437,22 @@ class TestEdgeCases:
             "paths": {
                 "/orgs/{org}/repos": {
                     "parameters": [
-                        {"name": "org", "in": "path", "required": True, "schema": {"type": "string"}}
+                        {
+                            "name": "org",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
                     ],
                     "get": {
                         "operationId": "listOrgRepos",
                         "summary": "List repos",
                         "parameters": [
-                            {"name": "page", "in": "query", "schema": {"type": "integer"}}
+                            {
+                                "name": "page",
+                                "in": "query",
+                                "schema": {"type": "integer"},
+                            }
                         ],
                         "responses": {"200": {}},
                     },
@@ -502,7 +547,9 @@ class TestEdgeCases:
                                             {"$ref": "#/components/schemas/Base"},
                                             {
                                                 "type": "object",
-                                                "properties": {"name": {"type": "string"}},
+                                                "properties": {
+                                                    "name": {"type": "string"}
+                                                },
                                             },
                                         ]
                                     }

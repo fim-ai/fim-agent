@@ -2,8 +2,8 @@
 
 import pytest
 
-from fim_agent.rag.chunking import get_chunker, Chunk
-from fim_agent.rag.chunking.markdown import MarkdownChunker
+from fim_one.rag.chunking import get_chunker, Chunk
+from fim_one.rag.chunking.markdown import MarkdownChunker
 
 
 async def test_markdown_splits_by_headers():
@@ -102,9 +102,9 @@ async def test_markdown_overlap():
         # `overlap` characters of chunk[i] come from the tail of the
         # previous chunk's content.
         prev_tail = chunks[i - 1].text[-overlap:]
-        assert chunks[i].text.startswith(prev_tail), (
-            f"Chunk {i} should begin with the last {overlap} chars of chunk {i - 1}"
-        )
+        assert chunks[i].text.startswith(
+            prev_tail
+        ), f"Chunk {i} should begin with the last {overlap} chars of chunk {i - 1}"
 
 
 async def test_markdown_factory():

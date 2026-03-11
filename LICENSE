@@ -1,4 +1,4 @@
-FIM Agent Source Available License
+FIM One Source Available License
 Version 1.1, March 2026
 
 Copyright 2024-2026 FIM AI / Beijing Feimu Network Technology Co., Ltd.
@@ -24,7 +24,7 @@ controlled by, or is under common control with You, where "control" means
 ownership of more than fifty percent (50%) of the voting equity or equivalent
 governing interest.
 
-"Software" shall mean the FIM Agent software, including all source code,
+"Software" shall mean the FIM One software, including all source code,
 object code, documentation, and associated files made available under this
 License.
 
@@ -68,7 +68,7 @@ The following restrictions apply to Your use of the Software:
     in part, to provide a Hosted Service to third parties without prior
     written authorization from Licensor. This includes, but is not limited
     to:
-    - Offering "FIM Agent-as-a-Service" or similar multi-tenant platforms;
+    - Offering "FIM One-as-a-Service" or similar multi-tenant platforms;
     - Operating a managed service where third parties create, configure, or
       run agents using the Software;
     - Reselling access to the Software's functionality as a cloud service.
@@ -82,7 +82,7 @@ The following restrictions apply to Your use of the Software:
           operations and is not offered as a reusable platform service
           across multiple customers;
     (iv)  the Software is not shared across multiple tenants; and
-    (v)   all FIM Agent trademarks, product names, copyright notices, and
+    (v)   all FIM One trademarks, product names, copyright notices, and
           branding remain visible and unaltered.
 
 (b) COMPETING PRODUCT RESTRICTION. You may NOT use the Software, in whole
@@ -91,7 +91,7 @@ The following restrictions apply to Your use of the Software:
     orchestration or workflow execution platform.
 
 (c) BRANDING AND ATTRIBUTION. You may NOT remove, alter, or obscure any
-    FIM Agent branding, logos, copyright notices, or license notices
+    FIM One branding, logos, copyright notices, or license notices
     included in the Software. White-labeling the Software is prohibited
     without a separate commercial license from Licensor.
 
@@ -101,7 +101,7 @@ The following restrictions apply to Your use of the Software:
 
 4. Trademarks.
 
-"FIM Agent" and the FIM Agent logo are registered trademarks of the Licensor.
+"FIM One" and the FIM One logo are registered trademarks of the Licensor.
 This License does not grant any right to use the Licensor's trademarks, trade
 names, service marks, or logos, except as reasonably necessary to describe the
 origin of the Software in compliance with Section 3(c). In particular, You may

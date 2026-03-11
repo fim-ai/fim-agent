@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from fim_agent.core.tool.connector.database.adapter import DatabaseToolAdapter
+from fim_one.core.tool.connector.database.adapter import DatabaseToolAdapter
 
 
 @pytest.fixture()

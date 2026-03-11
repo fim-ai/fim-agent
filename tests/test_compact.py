@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from fim_agent.core.memory.compact import CompactUtils
-from fim_agent.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
+from fim_one.core.memory.compact import CompactUtils
+from fim_one.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
 
 
 class TestEstimateTokens:
@@ -34,7 +34,9 @@ class TestEstimateTokens:
 
     def test_pure_chinese_longer(self):
         # 36 Chinese chars → 36 / 1.5 = 24
-        text = "这是一段较长的中文文本用来测试分词估算的准确性看看效果如何呢我觉得还行吧"
+        text = (
+            "这是一段较长的中文文本用来测试分词估算的准确性看看效果如何呢我觉得还行吧"
+        )
         tokens = CompactUtils.estimate_tokens(text)
         assert tokens == 24
 
@@ -116,10 +118,10 @@ class TestSmartTruncate:
         # Budget only fits the last 2 messages; after truncation the first
         # message would be "assistant" — smart_truncate must drop it.
         msgs = [
-            ChatMessage(role="user", content="a" * 200),       # ~54 tokens
-            ChatMessage(role="assistant", content="b" * 200),   # ~54 tokens
-            ChatMessage(role="user", content="hi"),             # ~5 tokens
-            ChatMessage(role="assistant", content="hello"),     # ~5 tokens
+            ChatMessage(role="user", content="a" * 200),  # ~54 tokens
+            ChatMessage(role="assistant", content="b" * 200),  # ~54 tokens
+            ChatMessage(role="user", content="hi"),  # ~5 tokens
+            ChatMessage(role="assistant", content="hello"),  # ~5 tokens
         ]
         result = CompactUtils.smart_truncate(msgs, max_tokens=20)
         if result:
@@ -181,7 +183,12 @@ class _MockLLM(BaseLLM):
 
     @property
     def abilities(self) -> dict[str, bool]:
-        return {"tool_call": False, "json_mode": False, "vision": False, "streaming": False}
+        return {
+            "tool_call": False,
+            "json_mode": False,
+            "vision": False,
+            "streaming": False,
+        }
 
 
 # ======================================================================
@@ -231,7 +238,10 @@ class TestLlmCompact:
         #  - smaller than total (~550) so compaction triggers
         #  - large enough to hold summary + 4 recent messages (~5 * 55 = 275)
         result = await CompactUtils.llm_compact(
-            msgs, llm=llm, max_tokens=400, keep_recent=4,
+            msgs,
+            llm=llm,
+            max_tokens=400,
+            keep_recent=4,
         )
 
         # LLM should have been called once for summarisation.
@@ -252,7 +262,10 @@ class TestLlmCompact:
         llm = _MockLLM(raise_exc=RuntimeError("API down"))
 
         result = await CompactUtils.llm_compact(
-            msgs, llm=llm, max_tokens=50, keep_recent=4,
+            msgs,
+            llm=llm,
+            max_tokens=50,
+            keep_recent=4,
         )
 
         # Should have attempted the LLM call.
@@ -269,12 +282,18 @@ class TestLlmCompact:
         llm = _MockLLM(response_content="")
 
         result = await CompactUtils.llm_compact(
-            msgs, llm=llm, max_tokens=50, keep_recent=4,
+            msgs,
+            llm=llm,
+            max_tokens=50,
+            keep_recent=4,
         )
 
         assert llm.call_count == 1
         # Fell back to smart_truncate — no system summary message.
-        assert all(m.role != "system" or "[Conversation summary]" not in (m.content or "") for m in result)
+        assert all(
+            m.role != "system" or "[Conversation summary]" not in (m.content or "")
+            for m in result
+        )
         assert len(result) < len(msgs)
 
     async def test_llm_compact_keeps_recent_messages(self):
@@ -285,7 +304,10 @@ class TestLlmCompact:
 
         # Budget must exceed 7 compacted messages (~385) but be under 12 original (~660).
         result = await CompactUtils.llm_compact(
-            msgs, llm=llm, max_tokens=500, keep_recent=6,
+            msgs,
+            llm=llm,
+            max_tokens=500,
+            keep_recent=6,
         )
 
         assert llm.call_count == 1
@@ -302,7 +324,10 @@ class TestLlmCompact:
         llm = _MockLLM(response_content="should not be called")
 
         result = await CompactUtils.llm_compact(
-            msgs, llm=llm, max_tokens=50, keep_recent=4,
+            msgs,
+            llm=llm,
+            max_tokens=50,
+            keep_recent=4,
         )
 
         # LLM should not have been called — fell straight to smart_truncate.

@@ -23,11 +23,11 @@ from __future__ import annotations
 import asyncio
 import os
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.model import OpenAICompatibleLLM
-from fim_agent.core.planner import DAGExecutor, DAGPlanner, PlanAnalyzer
-from fim_agent.core.tool import ToolRegistry
-from fim_agent.core.tool.builtin.python_exec import PythonExecTool
+from fim_one.core.agent import ReActAgent
+from fim_one.core.model import OpenAICompatibleLLM
+from fim_one.core.planner import DAGExecutor, DAGPlanner, PlanAnalyzer
+from fim_one.core.tool import ToolRegistry
+from fim_one.core.tool.builtin.python_exec import PythonExecTool
 
 
 def build_llm() -> OpenAICompatibleLLM:

@@ -1,11 +1,11 @@
 ---
 title: "LLM 供应商兼容性"
-description: "FIM Agent 如何路由 LLM 调用、tool_choice 架构，以及供应商特有的陷阱 — 尤其是 Anthropic thinking + AWS Bedrock。"
+description: "FIM One 如何路由 LLM 调用、tool_choice 架构，以及供应商特有的陷阱 — 尤其是 Anthropic thinking + AWS Bedrock。"
 ---
 
 ## 供应商检测
 
-FIM Agent 使用 LiteLLM 作为通用适配器。`core/model/openai_compatible.py` 中的 `_resolve_litellm_model()` 函数将用户的 `LLM_BASE_URL` + `LLM_MODEL` 映射为带有供应商前缀的 LiteLLM 模型标识符。该前缀决定了 LiteLLM 如何路由请求 — 使用原生 API 协议（Anthropic Messages API、Gemini 等）还是通用 OpenAI 兼容的 `/v1/chat/completions`。
+FIM One 使用 LiteLLM 作为通用适配器。`core/model/openai_compatible.py` 中的 `_resolve_litellm_model()` 函数将用户的 `LLM_BASE_URL` + `LLM_MODEL` 映射为带有供应商前缀的 LiteLLM 模型标识符。该前缀决定了 LiteLLM 如何路由请求 — 使用原生 API 协议（Anthropic Messages API、Gemini 等）还是通用 OpenAI 兼容的 `/v1/chat/completions`。
 
 解析顺序：
 
@@ -28,7 +28,7 @@ FIM Agent 使用 LiteLLM 作为通用适配器。`core/model/openai_compatible.p
 当供应商前缀是原生协议（anthropic、gemini 等）且 URL 不是官方端点时，LiteLLM 使用原生协议但将请求发送到中继的 `api_base`。这意味着供应商特有的行为 — 包括下文描述的 Bedrock prefill 问题 — 无论请求是发往官方 API 还是通过中继，都会生效。
 
 <Warning>
-如果你的中继 URL 路径中包含 `/claude`，FIM Agent 会自动通过 Anthropic 原生协议路由。这通常是正确的（更好的流式传输、thinking 支持），但意味着供应商特有的行为会生效 — 包括下文描述的 Bedrock prefill 问题。
+如果你的中继 URL 路径中包含 `/claude`，FIM One 会自动通过 Anthropic 原生协议路由。这通常是正确的（更好的流式传输、thinking 支持），但意味着供应商特有的行为会生效 — 包括下文描述的 Bedrock prefill 问题。
 </Warning>
 
 ## tool_choice — 四种模式
@@ -42,7 +42,7 @@ FIM Agent 使用 LiteLLM 作为通用适配器。`core/model/openai_compatible.p
 | `{"type":"function","function":{"name":"X"}}` | 必须调用指定的函数 X | 大多数供应商 — **与 Anthropic thinking 不兼容** |
 | `"none"` | 不能使用工具，仅文本 | 所有供应商 |
 
-`"auto"` 和强制模式（`{"type":"function",...}`）之间的区别是 FIM Agent 中每个兼容性问题的核心。这两种模式由完全不同的子系统以不同的方式使用。
+`"auto"` 和强制模式（`{"type":"function",...}`）之间的区别是 FIM One 中每个兼容性问题的核心。这两种模式由完全不同的子系统以不同的方式使用。
 
 ## tool_choice 的使用位置
 
@@ -177,7 +177,7 @@ LLM_JSON_MODE_ENABLED=false
 
 ## 推理能力与 thinking 配置
 
-FIM Agent 提供两个环境变量来控制扩展思考 / 推理：
+FIM One 提供两个环境变量来控制扩展思考 / 推理：
 
 | 变量 | 值 | 效果 |
 |---|---|---|
@@ -186,7 +186,7 @@ FIM Agent 提供两个环境变量来控制扩展思考 / 推理：
 
 当设置了 `reasoning_effort` 且模型解析为 `anthropic/` 时，有两个额外行为：
 
-1. **温度强制为 1.0。** Bedrock 在启用 thinking 时拒绝 `temperature != 1.0`。FIM Agent 自动处理此问题 — 无需用户操作。
+1. **温度强制为 1.0。** Bedrock 在启用 thinking 时拒绝 `temperature != 1.0`。FIM One 自动处理此问题 — 无需用户操作。
 2. **GPT-5.x + tools**：当存在 `tools` 时，`reasoning_effort` 被静默丢弃，因为 GPT-5 的 `/v1/chat/completions` 端点拒绝该组合。这仅影响 ReAct 工具循环；没有 `tools` 参数的 `structured_llm_call` 调用不受影响。
 
 ## 故障排查

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from fim_agent.rag.base import BaseRetriever, Document
-from fim_agent.rag.retriever.hybrid import HybridRetriever
-from fim_agent.core.reranker.base import BaseReranker, RerankResult
+from fim_one.rag.base import BaseRetriever, Document
+from fim_one.rag.retriever.hybrid import HybridRetriever
+from fim_one.core.reranker.base import BaseReranker, RerankResult
 
 
 class FakeRetriever(BaseRetriever):
@@ -40,14 +40,18 @@ class FakeReranker(BaseReranker):
 
 
 async def test_hybrid_rrf_fusion():
-    dense = FakeRetriever([
-        Document(content="doc_a", score=0.9),
-        Document(content="doc_b", score=0.8),
-    ])
-    sparse = FakeRetriever([
-        Document(content="doc_b", score=0.7),
-        Document(content="doc_c", score=0.6),
-    ])
+    dense = FakeRetriever(
+        [
+            Document(content="doc_a", score=0.9),
+            Document(content="doc_b", score=0.8),
+        ]
+    )
+    sparse = FakeRetriever(
+        [
+            Document(content="doc_b", score=0.7),
+            Document(content="doc_c", score=0.6),
+        ]
+    )
 
     hybrid = HybridRetriever(dense, sparse)
     results = await hybrid.retrieve("test", top_k=3)
@@ -60,9 +64,11 @@ async def test_hybrid_rrf_fusion():
 
 async def test_hybrid_fts_degradation():
     """When FTS fails, should fall back to dense-only."""
-    dense = FakeRetriever([
-        Document(content="dense_doc", score=0.9),
-    ])
+    dense = FakeRetriever(
+        [
+            Document(content="dense_doc", score=0.9),
+        ]
+    )
     sparse = FailingRetriever()
 
     hybrid = HybridRetriever(dense, sparse)
@@ -73,10 +79,12 @@ async def test_hybrid_fts_degradation():
 
 
 async def test_hybrid_with_reranker():
-    dense = FakeRetriever([
-        Document(content="first", score=0.9),
-        Document(content="second", score=0.8),
-    ])
+    dense = FakeRetriever(
+        [
+            Document(content="first", score=0.9),
+            Document(content="second", score=0.8),
+        ]
+    )
     sparse = FakeRetriever([])
     reranker = FakeReranker()
 
@@ -116,14 +124,18 @@ async def test_hybrid_top_k():
 
 async def test_hybrid_score_tracing():
     """Verify that fused results carry original scores and ranks."""
-    dense = FakeRetriever([
-        Document(content="doc_a", score=0.9),
-        Document(content="doc_b", score=0.8),
-    ])
-    sparse = FakeRetriever([
-        Document(content="doc_b", score=0.7),
-        Document(content="doc_c", score=0.6),
-    ])
+    dense = FakeRetriever(
+        [
+            Document(content="doc_a", score=0.9),
+            Document(content="doc_b", score=0.8),
+        ]
+    )
+    sparse = FakeRetriever(
+        [
+            Document(content="doc_b", score=0.7),
+            Document(content="doc_c", score=0.6),
+        ]
+    )
 
     hybrid = HybridRetriever(dense, sparse)
     results = await hybrid.retrieve("test", top_k=5)
@@ -160,14 +172,18 @@ async def test_hybrid_score_tracing():
 
 async def test_hybrid_linear_fusion():
     """Linear fusion: doc in both lists should score higher than unique docs."""
-    dense = FakeRetriever([
-        Document(content="shared", score=0.9),
-        Document(content="dense_only", score=0.5),
-    ])
-    sparse = FakeRetriever([
-        Document(content="shared", score=0.8),
-        Document(content="sparse_only", score=0.4),
-    ])
+    dense = FakeRetriever(
+        [
+            Document(content="shared", score=0.9),
+            Document(content="dense_only", score=0.5),
+        ]
+    )
+    sparse = FakeRetriever(
+        [
+            Document(content="shared", score=0.8),
+            Document(content="sparse_only", score=0.4),
+        ]
+    )
 
     hybrid = HybridRetriever(dense, sparse, fusion_mode="linear")
     results = await hybrid.retrieve("test", top_k=5)
@@ -185,19 +201,21 @@ async def test_hybrid_linear_fusion():
 
 async def test_hybrid_linear_with_reranker():
     """Linear fusion + reranker: score tracing should be preserved after rerank."""
-    dense = FakeRetriever([
-        Document(content="first", score=0.9),
-        Document(content="second", score=0.7),
-    ])
-    sparse = FakeRetriever([
-        Document(content="second", score=0.8),
-        Document(content="third", score=0.5),
-    ])
+    dense = FakeRetriever(
+        [
+            Document(content="first", score=0.9),
+            Document(content="second", score=0.7),
+        ]
+    )
+    sparse = FakeRetriever(
+        [
+            Document(content="second", score=0.8),
+            Document(content="third", score=0.5),
+        ]
+    )
     reranker = FakeReranker()
 
-    hybrid = HybridRetriever(
-        dense, sparse, reranker=reranker, fusion_mode="linear"
-    )
+    hybrid = HybridRetriever(dense, sparse, reranker=reranker, fusion_mode="linear")
     results = await hybrid.retrieve("test", top_k=3)
 
     assert len(results) == 3

@@ -7,13 +7,13 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.agent.react import (
+from fim_one.core.agent import ReActAgent
+from fim_one.core.agent.react import (
     TOOL_SELECTION_THRESHOLD,
     _TOOL_SELECTION_MAX,
 )
-from fim_agent.core.model import ChatMessage, LLMResult
-from fim_agent.core.tool import BaseTool, ToolRegistry
+from fim_one.core.model import ChatMessage, LLMResult
+from fim_one.core.tool import BaseTool, ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
 
@@ -81,11 +81,13 @@ def _final_answer_response(answer: str) -> LLMResult:
     return LLMResult(
         message=ChatMessage(
             role="assistant",
-            content=json.dumps({
-                "type": "final_answer",
-                "reasoning": "done",
-                "answer": answer,
-            }),
+            content=json.dumps(
+                {
+                    "type": "final_answer",
+                    "reasoning": "done",
+                    "answer": answer,
+                }
+            ),
         ),
     )
 
@@ -233,10 +235,12 @@ class TestToolSelection:
 
         # First call: selection phase returns tool_0 and tool_1
         # Second call: final answer
-        llm = FakeLLM(responses=[
-            _selection_response(["tool_0", "tool_1"]),
-            _final_answer_response("done"),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _selection_response(["tool_0", "tool_1"]),
+                _final_answer_response("done"),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=reg)
 
         result = await agent.run("test query")
@@ -250,12 +254,14 @@ class TestToolSelection:
 
         # First call: garbage (selection fails) -> fallback to all tools
         # Second call: final answer
-        llm = FakeLLM(responses=[
-            LLMResult(
-                message=ChatMessage(role="assistant", content="not json"),
-            ),
-            _final_answer_response("fallback"),
-        ])
+        llm = FakeLLM(
+            responses=[
+                LLMResult(
+                    message=ChatMessage(role="assistant", content="not json"),
+                ),
+                _final_answer_response("fallback"),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=reg)
 
         result = await agent.run("test")
@@ -266,10 +272,12 @@ class TestToolSelection:
         """If selection returns empty tool list, fall back to all tools."""
         reg = _make_large_registry(TOOL_SELECTION_THRESHOLD + 1)
 
-        llm = FakeLLM(responses=[
-            _selection_response([]),
-            _final_answer_response("ok"),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _selection_response([]),
+                _final_answer_response("ok"),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=reg)
 
         result = await agent.run("test")
@@ -279,10 +287,12 @@ class TestToolSelection:
         """If all selected names are invalid, fall back to all tools."""
         reg = _make_large_registry(TOOL_SELECTION_THRESHOLD + 1)
 
-        llm = FakeLLM(responses=[
-            _selection_response(["nonexistent_tool"]),
-            _final_answer_response("ok"),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _selection_response(["nonexistent_tool"]),
+                _final_answer_response("ok"),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=reg)
 
         result = await agent.run("test")
@@ -294,10 +304,12 @@ class TestToolSelection:
 
         # Request more than _TOOL_SELECTION_MAX tools
         many_names = [f"tool_{i}" for i in range(_TOOL_SELECTION_MAX + 5)]
-        llm = FakeLLM(responses=[
-            _selection_response(many_names),
-            _final_answer_response("done"),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _selection_response(many_names),
+                _final_answer_response("done"),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=reg)
 
         # Capture the effective tools via the system prompt
@@ -308,10 +320,12 @@ class TestToolSelection:
         """The selecting_tools phase event is emitted via on_iteration."""
         reg = _make_large_registry(TOOL_SELECTION_THRESHOLD + 1)
 
-        llm = FakeLLM(responses=[
-            _selection_response(["tool_0"]),
-            _final_answer_response("done"),
-        ])
+        llm = FakeLLM(
+            responses=[
+                _selection_response(["tool_0"]),
+                _final_answer_response("done"),
+            ]
+        )
         agent = ReActAgent(llm=llm, tools=reg)
 
         events: list[tuple] = []

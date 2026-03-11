@@ -7,11 +7,11 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.agent import AgentResult, ReActAgent
-from fim_agent.core.agent.react import ReActAgent as _ReActAgentDirect
-from fim_agent.core.agent.types import Action, StepResult
-from fim_agent.core.model import ChatMessage, LLMResult
-from fim_agent.core.tool import ToolRegistry
+from fim_one.core.agent import AgentResult, ReActAgent
+from fim_one.core.agent.react import ReActAgent as _ReActAgentDirect
+from fim_one.core.agent.types import Action, StepResult
+from fim_one.core.model import ChatMessage, LLMResult
+from fim_one.core.tool import ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
 
@@ -143,9 +143,7 @@ class TestReActAgentRun:
     async def test_max_iterations_protection(self) -> None:
         """Agent stops when max_iterations is exceeded."""
         # LLM always returns tool calls, never a final answer
-        llm = FakeLLM(
-            responses=[_tool_call_response("echo", {"text": "loop"})]
-        )
+        llm = FakeLLM(responses=[_tool_call_response("echo", {"text": "loop"})])
         registry = ToolRegistry()
         registry.register(EchoTool())
         agent = ReActAgent(llm=llm, tools=registry, max_iterations=3)

@@ -1,6 +1,6 @@
 ---
 title: "快速开始"
-description: "通过 Docker 或本地开发，在几分钟内运行 FIM Agent。"
+description: "通过 Docker 或本地开发，在几分钟内运行 FIM One。"
 ---
 
 <div id="option-a-docker-recommended">
@@ -66,7 +66,7 @@ cd frontend && pnpm install && cd ..
   ## 配置
 </div>
 
-FIM Agent 支持**任何与 OpenAI 兼容的 LLM 提供商**——包括 OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。
+FIM One 支持**任何与 OpenAI 兼容的 LLM 提供商**——包括 OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。
 
 | 提供商              | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
 | ---------------- | ------------- | ------------------------------ | ------------------- |
@@ -164,5 +164,5 @@ docker run -d --name redis -p 6379:6379 redis:7-alpine
 # 在 .env 中添加
 REDIS_URL=redis://localhost:6379/0
 WORKERS=4
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_agent
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_one
 ```

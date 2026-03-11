@@ -7,9 +7,9 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
-from fim_agent.core.tool import BaseTool, ToolRegistry
+from fim_one.core.agent import ReActAgent
+from fim_one.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
+from fim_one.core.tool import BaseTool, ToolRegistry
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
-  "name": "FIM Agent",
+  "name": "FIM One",
   "description": "AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.",
   "colors": {
     "primary": "#D97706",
@@ -43,7 +43,7 @@
                 ]
               },
               {
-                "group": "Extending FIM Agent",
+                "group": "Extending FIM One",
                 "icon": "plug",
                 "pages": [
                   "extension-guide"
@@ -139,7 +139,7 @@
                 ]
               },
               {
-                "group": "扩展 FIM Agent",
+                "group": "扩展 FIM One",
                 "icon": "plug",
                 "pages": [
                   "zh/extension-guide"
@@ -224,7 +224,7 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/FIM_Agent",
+      "x": "https://x.com/fim_one",
       "github": "https://github.com/fim-ai/fim-agent"
     }
   }

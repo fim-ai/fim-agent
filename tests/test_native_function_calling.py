@@ -7,11 +7,11 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from fim_agent.core.agent import ReActAgent
-from fim_agent.core.agent.types import Action, StepResult
-from fim_agent.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
-from fim_agent.core.model.types import ToolCallRequest
-from fim_agent.core.tool import BaseTool, ToolRegistry
+from fim_one.core.agent import ReActAgent
+from fim_one.core.agent.types import Action, StepResult
+from fim_one.core.model import BaseLLM, ChatMessage, LLMResult, StreamChunk
+from fim_one.core.model.types import ToolCallRequest
+from fim_one.core.tool import BaseTool, ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
 
@@ -211,11 +211,13 @@ class TestNativeModeDetection:
                 LLMResult(
                     message=ChatMessage(
                         role="assistant",
-                        content=json.dumps({
-                            "type": "final_answer",
-                            "reasoning": "done",
-                            "answer": "json fallback",
-                        }),
+                        content=json.dumps(
+                            {
+                                "type": "final_answer",
+                                "reasoning": "done",
+                                "answer": "json fallback",
+                            }
+                        ),
                     ),
                 ),
             ]
@@ -224,6 +226,7 @@ class TestNativeModeDetection:
         agent = ReActAgent(llm=llm, tools=registry, use_native_tools=True)
         # Should still work -- falls back to JSON mode.
         import asyncio
+
         result = asyncio.get_event_loop().run_until_complete(agent.run("test"))
         assert result.answer == "json fallback"
 
@@ -232,9 +235,7 @@ class TestNativeImmediateFinalAnswer:
     """LLM returns a final answer without making any tool calls."""
 
     async def test_simple_final_answer(self) -> None:
-        llm = NativeToolFakeLLM(
-            responses=[_native_final_answer("The answer is 42.")]
-        )
+        llm = NativeToolFakeLLM(responses=[_native_final_answer("The answer is 42.")])
         registry = ToolRegistry()
         registry.register(EchoTool())
         agent = ReActAgent(llm=llm, tools=registry, use_native_tools=True)
@@ -248,9 +249,7 @@ class TestNativeImmediateFinalAnswer:
 
     async def test_tools_passed_to_llm(self) -> None:
         """Verify that OpenAI tool definitions are forwarded to the LLM."""
-        llm = NativeToolFakeLLM(
-            responses=[_native_final_answer("done")]
-        )
+        llm = NativeToolFakeLLM(responses=[_native_final_answer("done")])
         registry = ToolRegistry()
         registry.register(EchoTool())
         agent = ReActAgent(llm=llm, tools=registry, use_native_tools=True)
@@ -263,9 +262,7 @@ class TestNativeImmediateFinalAnswer:
 
     async def test_tool_choice_auto(self) -> None:
         """Verify tools are passed to the LLM (stream_chat uses auto by default)."""
-        llm = NativeToolFakeLLM(
-            responses=[_native_final_answer("done")]
-        )
+        llm = NativeToolFakeLLM(responses=[_native_final_answer("done")])
         registry = ToolRegistry()
         registry.register(EchoTool())
         agent = ReActAgent(llm=llm, tools=registry, use_native_tools=True)
@@ -332,10 +329,12 @@ class TestNativeParallelToolCalls:
     async def test_two_parallel_calls(self) -> None:
         llm = NativeToolFakeLLM(
             responses=[
-                _native_tool_call([
-                    ("call-1", "echo", {"text": "first"}),
-                    ("call-2", "echo", {"text": "second"}),
-                ]),
+                _native_tool_call(
+                    [
+                        ("call-1", "echo", {"text": "first"}),
+                        ("call-2", "echo", {"text": "second"}),
+                    ]
+                ),
                 _native_final_answer("Both done"),
             ]
         )
@@ -357,10 +356,12 @@ class TestNativeParallelToolCalls:
         """Each parallel tool call should produce its own tool response message."""
         llm = NativeToolFakeLLM(
             responses=[
-                _native_tool_call([
-                    ("call-a", "echo", {"text": "aaa"}),
-                    ("call-b", "add", {"a": 1, "b": 2}),
-                ]),
+                _native_tool_call(
+                    [
+                        ("call-a", "echo", {"text": "aaa"}),
+                        ("call-b", "add", {"a": 1, "b": 2}),
+                    ]
+                ),
                 _native_final_answer("done"),
             ]
         )
@@ -383,11 +384,13 @@ class TestNativeParallelToolCalls:
         """Three parallel tool calls should all execute."""
         llm = NativeToolFakeLLM(
             responses=[
-                _native_tool_call([
-                    ("c1", "echo", {"text": "a"}),
-                    ("c2", "echo", {"text": "b"}),
-                    ("c3", "echo", {"text": "c"}),
-                ]),
+                _native_tool_call(
+                    [
+                        ("c1", "echo", {"text": "a"}),
+                        ("c2", "echo", {"text": "b"}),
+                        ("c3", "echo", {"text": "c"}),
+                    ]
+                ),
                 _native_final_answer("all done"),
             ]
         )
@@ -462,10 +465,12 @@ class TestNativeErrorHandling:
         """One tool succeeds, another fails -- both results reported."""
         llm = NativeToolFakeLLM(
             responses=[
-                _native_tool_call([
-                    ("call-ok", "echo", {"text": "success"}),
-                    ("call-bad", "fail", {}),
-                ]),
+                _native_tool_call(
+                    [
+                        ("call-ok", "echo", {"text": "success"}),
+                        ("call-bad", "fail", {}),
+                    ]
+                ),
                 _native_final_answer("handled"),
             ]
         )
@@ -496,7 +501,10 @@ class TestNativeMaxIterations:
         registry = ToolRegistry()
         registry.register(EchoTool())
         agent = ReActAgent(
-            llm=llm, tools=registry, use_native_tools=True, max_iterations=3,
+            llm=llm,
+            tools=registry,
+            use_native_tools=True,
+            max_iterations=3,
         )
 
         result = await agent.run("infinite loop")
@@ -510,15 +518,19 @@ class TestNativeOnIterationCallback:
     """Verify the on_iteration callback fires correctly in native mode."""
 
     async def test_callback_on_final_answer(self) -> None:
-        llm = NativeToolFakeLLM(
-            responses=[_native_final_answer("answer")]
-        )
+        llm = NativeToolFakeLLM(responses=[_native_final_answer("answer")])
         registry = ToolRegistry()
         agent = ReActAgent(llm=llm, tools=registry, use_native_tools=True)
 
         callbacks: list[tuple] = []
 
-        def on_iter(iteration: int, action: Action, obs: str | None, err: str | None, step: Any = None) -> None:
+        def on_iter(
+            iteration: int,
+            action: Action,
+            obs: str | None,
+            err: str | None,
+            step: Any = None,
+        ) -> None:
             callbacks.append((iteration, action.type, obs, err))
 
         await agent.run("test", on_iteration=on_iter)
@@ -540,7 +552,13 @@ class TestNativeOnIterationCallback:
 
         callbacks: list[tuple] = []
 
-        def on_iter(iteration: int, action: Action, obs: str | None, err: str | None, step: Any = None) -> None:
+        def on_iter(
+            iteration: int,
+            action: Action,
+            obs: str | None,
+            err: str | None,
+            step: Any = None,
+        ) -> None:
             callbacks.append((iteration, action.type, obs, err))
 
         await agent.run("test", on_iteration=on_iter)
@@ -561,10 +579,12 @@ class TestNativeOnIterationCallback:
         """Each parallel tool call should trigger its own callback."""
         llm = NativeToolFakeLLM(
             responses=[
-                _native_tool_call([
-                    ("c1", "echo", {"text": "a"}),
-                    ("c2", "echo", {"text": "b"}),
-                ]),
+                _native_tool_call(
+                    [
+                        ("c1", "echo", {"text": "a"}),
+                        ("c2", "echo", {"text": "b"}),
+                    ]
+                ),
                 _native_final_answer("done"),
             ]
         )
@@ -574,7 +594,13 @@ class TestNativeOnIterationCallback:
 
         callbacks: list[tuple] = []
 
-        def on_iter(iteration: int, action: Action, obs: str | None, err: str | None, step: Any = None) -> None:
+        def on_iter(
+            iteration: int,
+            action: Action,
+            obs: str | None,
+            err: str | None,
+            step: Any = None,
+        ) -> None:
             callbacks.append((iteration, action.type, obs, err))
 
         await agent.run("test", on_iteration=on_iter)
@@ -582,12 +608,12 @@ class TestNativeOnIterationCallback:
         # thinking + two tool_start + two tool results (all iteration 1)
         # + thinking + final answer (iteration 2)
         assert len(callbacks) == 7
-        assert callbacks[0] == (1, "thinking", None, None)   # thinking iter 1
+        assert callbacks[0] == (1, "thinking", None, None)  # thinking iter 1
         assert callbacks[1] == (1, "tool_call", None, None)  # tool_start a
         assert callbacks[2] == (1, "tool_call", None, None)  # tool_start b
-        assert callbacks[3] == (1, "tool_call", "a", None)   # result a
-        assert callbacks[4] == (1, "tool_call", "b", None)   # result b
-        assert callbacks[5] == (2, "thinking", None, None)   # thinking iter 2
+        assert callbacks[3] == (1, "tool_call", "a", None)  # result a
+        assert callbacks[4] == (1, "tool_call", "b", None)  # result b
+        assert callbacks[5] == (2, "thinking", None, None)  # thinking iter 2
         assert callbacks[6] == (2, "final_answer", None, None)
 
 
@@ -595,9 +621,7 @@ class TestNativeCustomSystemPrompt:
     """Verify that a custom system prompt overrides the native default."""
 
     async def test_custom_system_prompt_used_in_native_mode(self) -> None:
-        llm = NativeToolFakeLLM(
-            responses=[_native_final_answer("custom answer")]
-        )
+        llm = NativeToolFakeLLM(responses=[_native_final_answer("custom answer")])
         registry = ToolRegistry()
         agent = ReActAgent(
             llm=llm,
@@ -619,9 +643,7 @@ class TestNativeEmptyToolRegistry:
 
     async def test_no_tools_gives_immediate_answer(self) -> None:
         """With no tools, the LLM should still work and give an answer."""
-        llm = NativeToolFakeLLM(
-            responses=[_native_final_answer("no tools needed")]
-        )
+        llm = NativeToolFakeLLM(responses=[_native_final_answer("no tools needed")])
         registry = ToolRegistry()
         agent = ReActAgent(llm=llm, tools=registry, use_native_tools=True)
 
@@ -698,22 +720,26 @@ class TestBackwardCompatibility:
                 LLMResult(
                     message=ChatMessage(
                         role="assistant",
-                        content=json.dumps({
-                            "type": "tool_call",
-                            "reasoning": "need echo",
-                            "tool_name": "echo",
-                            "tool_args": {"text": "hello"},
-                        }),
+                        content=json.dumps(
+                            {
+                                "type": "tool_call",
+                                "reasoning": "need echo",
+                                "tool_name": "echo",
+                                "tool_args": {"text": "hello"},
+                            }
+                        ),
                     ),
                 ),
                 LLMResult(
                     message=ChatMessage(
                         role="assistant",
-                        content=json.dumps({
-                            "type": "final_answer",
-                            "reasoning": "got it",
-                            "answer": "hello back",
-                        }),
+                        content=json.dumps(
+                            {
+                                "type": "final_answer",
+                                "reasoning": "got it",
+                                "answer": "hello back",
+                            }
+                        ),
                     ),
                 ),
             ]

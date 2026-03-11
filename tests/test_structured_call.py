@@ -8,13 +8,13 @@ from typing import Any
 
 import pytest
 
-from fim_agent.core.model import ChatMessage, LLMResult
-from fim_agent.core.model.structured import (
+from fim_one.core.model import ChatMessage, LLMResult
+from fim_one.core.model.structured import (
     StructuredCallResult,
     StructuredOutputError,
     structured_llm_call,
 )
-from fim_agent.core.model.types import ToolCallRequest
+from fim_one.core.model.types import ToolCallRequest
 
 from .conftest import FakeLLM
 
@@ -253,9 +253,7 @@ class TestStructuredOutputError:
                 ),
             ],
         )
-        with pytest.raises(
-            StructuredOutputError, match="extraction levels failed"
-        ):
+        with pytest.raises(StructuredOutputError, match="extraction levels failed"):
             await structured_llm_call(
                 llm,
                 [ChatMessage(role="user", content="test")],

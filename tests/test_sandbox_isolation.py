@@ -13,11 +13,11 @@ from typing import Any
 
 import pytest
 
-import fim_agent.core.tool.sandbox as _sandbox_module
-from fim_agent.core.tool.builtin.file_ops import FileOpsTool, _DEFAULT_WORKSPACE_DIR
-from fim_agent.core.tool.builtin.shell_exec import ShellExecTool, _DEFAULT_SANDBOX_DIR
-from fim_agent.core.tool.builtin.python_exec import PythonExecTool, _DEFAULT_EXEC_DIR
-from fim_agent.core.tool.builtin import discover_builtin_tools
+import fim_one.core.tool.sandbox as _sandbox_module
+from fim_one.core.tool.builtin.file_ops import FileOpsTool, _DEFAULT_WORKSPACE_DIR
+from fim_one.core.tool.builtin.shell_exec import ShellExecTool, _DEFAULT_SANDBOX_DIR
+from fim_one.core.tool.builtin.python_exec import PythonExecTool, _DEFAULT_EXEC_DIR
+from fim_one.core.tool.builtin import discover_builtin_tools
 
 
 # Docker backend maps sandbox dirs to /workspace inside the container,
@@ -93,7 +93,8 @@ class TestFileOpsToolSandbox:
         assert (workspace / "subdir" / "nested").is_dir()
 
     async def test_path_traversal_blocked_in_custom_workspace(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         workspace = tmp_path / "conv_safe" / "workspace"
         tool = FileOpsTool(workspace_dir=workspace)

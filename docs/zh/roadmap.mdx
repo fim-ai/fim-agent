@@ -1,6 +1,6 @@
 ---
 title: "路线图"
-description: "FIM Agent 的功能路线图与版本规划。"
+description: "FIM One 的功能路线图与版本规划。"
 ---
 
 > 目标：构建一个**AI 驱动的连接器枢纽**——独立模式 (门户助手) 、副驾模式 (嵌入宿主系统) 、枢纽 (跨系统集中编排) 。
@@ -11,7 +11,7 @@ description: "FIM Agent 的功能路线图与版本规划。"
   ## 产品愿景
 </div>
 
-FIM Agent 是一个**AI 连接器枢纽**，服务于三种逐步演进的模式：
+FIM One 是一个**AI 连接器枢纽**，服务于三种逐步演进的模式：
 
 ```
 独立模式     → 您自己的 AI 助手（Portal）
@@ -30,7 +30,7 @@ flowchart LR
     DB["自定义数据库<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM Agent Hub"]
+  subgraph Hub["FIM One Hub"]
     A["智能体 A：财务审计"]
     B["智能体 B：合同审查"]
     C["智能体 C：审批辅助"]
@@ -217,7 +217,7 @@ flowchart LR
 * **计划任务 (Loop)**：类 cron 的后台任务触发器；`scheduled_jobs` + `job_runs` 数据表；APScheduler 集成；任务 CRUD API + 运行历史 UI；结果通过消息推送连接器通知
 * **数据库 Schema 高级构建器**：面向大规模数据库的 AI 驱动 Schema 管理 Agent——支持基于命名模式和 SQL 执行结果的策略性表注释、按业务域前缀批量管理可见性、针对 1K–7K+ 表场景的多轮迭代标注；与现有批量标注任务互补，增加选择性和业务语义推理能力
 
-**影响**：计划自动化 + 可观测性构成完整的生产级后台自动化闭环，FIM Agent 可自信地大规模运行。
+**影响**：计划自动化 + 可观测性构成完整的生产级后台自动化闭环，FIM One 可自信地大规模运行。
 
 <div id="v10-hot-plug-embeddable">
   ### v1.0 — 热插拔 + 可嵌入式
@@ -236,7 +236,7 @@ flowchart LR
 * **管理控制台**：完整的管理界面
 * **企业级安全**：IP 白名单、静态数据加密、SSO
 * **知识库高级编辑器**：面向管理大型知识库的高级用户的 Builder 模式 Agent——支持批量 URL 摄取、重复文档检测、内容缺口分析、文档生命周期管理；在现有 KB AI 问询基础上增加 ReAct 工具循环能力
-**影响**：企业可在数天内完成 FIM Agent 从零到多系统编排的部署。
+**影响**：企业可在数天内完成 FIM One 从零到多系统编排的部署。
 
 <div id="frozen-features-shipped-maintain-only">
   ## 冻结功能 (已发布，仅维护)

@@ -1,6 +1,6 @@
 ---
 title: "Context Management"
-description: "How FIM Agent manages conversation context — a five-layer defense-in-depth system that prevents token overflow while preserving conversation quality."
+description: "How FIM One manages conversation context — a five-layer defense-in-depth system that prevents token overflow while preserving conversation quality."
 ---
 
 ## The problem
@@ -11,7 +11,7 @@ The naive solution is truncation: drop old messages when the window fills up. Th
 
 The real challenge is not "fit into the window." It is: **degrade gracefully without losing critical information, without burning tokens on unnecessary compaction, and without adding latency the user can feel.**
 
-FIM Agent solves this with a five-layer defense-in-depth architecture. Each layer addresses a different scale of the problem, and they compose cleanly — no single layer needs to be perfect because the next one catches what it misses.
+FIM One solves this with a five-layer defense-in-depth architecture. Each layer addresses a different scale of the problem, and they compose cleanly — no single layer needs to be perfect because the next one catches what it misses.
 
 ## Five layers of defense
 
@@ -129,7 +129,7 @@ The memory layer defines the `BaseMemory` interface: `add_message()`, `get_messa
 
 - **DbMemory** — the production implementation (described in Layer 4). Database-backed, read-only, with LLM or heuristic compaction on load.
 
-WindowMemory and SummaryMemory remain in the codebase because they serve as useful primitives for testing and for users who embed FIM Agent's core library without the web layer. They are not dead code — they are the simple cases that the architecture grew out of.
+WindowMemory and SummaryMemory remain in the codebase because they serve as useful primitives for testing and for users who embed FIM One's core library without the web layer. They are not dead code — they are the simple cases that the architecture grew out of.
 
 ## How context flows through ReAct
 
@@ -226,7 +226,7 @@ This is a trade-off. Unpinning old injected messages means they might be summari
 
 ## Token estimation
 
-FIM Agent uses heuristic token estimation rather than a real tokenizer. This is a deliberate choice with clear trade-offs.
+FIM One uses heuristic token estimation rather than a real tokenizer. This is a deliberate choice with clear trade-offs.
 
 **Why not a real tokenizer?** Three reasons:
 

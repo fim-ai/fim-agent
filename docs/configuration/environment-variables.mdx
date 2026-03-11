@@ -1,6 +1,6 @@
 ---
 title: "Environment Variables"
-description: "Complete configuration reference for FIM Agent."
+description: "Complete configuration reference for FIM One."
 mode: "wide"
 ---
 
@@ -67,7 +67,7 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 
 ### Extended Thinking (Reasoning)
 
-When `LLM_REASONING_EFFORT` is set, FIM Agent enables the model's extended thinking capability so the internal chain-of-thought is surfaced in the UI "thinking" step. FIM Agent uses [LiteLLM](https://github.com/BerriAI/litellm) to translate the reasoning effort parameter into each provider's native format automatically.
+When `LLM_REASONING_EFFORT` is set, FIM One enables the model's extended thinking capability so the internal chain-of-thought is surfaced in the UI "thinking" step. FIM One uses [LiteLLM](https://github.com/BerriAI/litellm) to translate the reasoning effort parameter into each provider's native format automatically.
 
 #### Supported providers
 
@@ -222,7 +222,7 @@ Auto-registers the `email_send` built-in tool when `SMTP_HOST`, `SMTP_USER`, and
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DATABASE_URL` | No | `sqlite+aiosqlite:///./data/fim_agent.db` | Database connection string. **SQLite** (zero-config): `sqlite+aiosqlite:///./data/fim_agent.db`. **PostgreSQL** (production): `postgresql+asyncpg://user:pass@localhost:5432/fim_agent`. Docker Compose auto-sets PostgreSQL. |
+| `DATABASE_URL` | No | `sqlite+aiosqlite:///./data/fim_one.db` | Database connection string. **SQLite** (zero-config): `sqlite+aiosqlite:///./data/fim_one.db`. **PostgreSQL** (production): `postgresql+asyncpg://user:pass@localhost:5432/fim_one`. Docker Compose auto-sets PostgreSQL. |
 | `JWT_SECRET_KEY` | No | `CHANGE_ME` | Secret key for JWT token signing. Placeholder value `CHANGE_ME` (or any legacy default) triggers auto-generation of a secure 256-bit random key on first start, which is written back to `.env`. Set explicitly in production to keep tokens valid across restarts and replicas. |
 | `CORS_ORIGINS` | No | — | Comma-separated list of extra allowed CORS origins beyond the default localhost entries. Required when the frontend runs on a non-localhost domain (e.g. `https://app.example.com`). |
 | `UPLOADS_DIR` | No | `./uploads` | Directory for uploaded files |

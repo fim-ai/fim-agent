@@ -2,8 +2,8 @@
 
 import pytest
 
-from fim_agent.core.embedding.base import BaseEmbedding
-from fim_agent.core.embedding.openai_compatible import OpenAICompatibleEmbedding
+from fim_one.core.embedding.base import BaseEmbedding
+from fim_one.core.embedding.openai_compatible import OpenAICompatibleEmbedding
 
 
 class FakeEmbedding(BaseEmbedding):

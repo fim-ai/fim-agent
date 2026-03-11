@@ -3,14 +3,14 @@ title: "Database"
 description: "Choose and configure the right database backend for your deployment"
 ---
 
-FIM Agent supports two database backends: **SQLite** (default, zero-config) and **PostgreSQL** (recommended for production). The backend is determined by the `DATABASE_URL` environment variable.
+FIM One supports two database backends: **SQLite** (default, zero-config) and **PostgreSQL** (recommended for production). The backend is determined by the `DATABASE_URL` environment variable.
 
 ```bash
 # SQLite (default — no configuration needed)
-DATABASE_URL=sqlite+aiosqlite:///./data/fim_agent.db
+DATABASE_URL=sqlite+aiosqlite:///./data/fim_one.db
 
 # PostgreSQL (production)
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/fim_agent
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/fim_one
 ```
 
 Tables are created automatically on first start — no manual migration step is required.
@@ -41,7 +41,7 @@ Tables are created automatically on first start — no manual migration step is 
 <Warning>
 **SQLite can become a bottleneck under concurrent load.**
 
-FIM Agent uses Server-Sent Events (SSE) for streaming AI responses. During streaming, each active SSE connection holds a database connection from the pool for the duration of the stream. SQLite enforces a global write lock, meaning only one write operation can proceed at a time — all other writes queue behind it.
+FIM One uses Server-Sent Events (SSE) for streaming AI responses. During streaming, each active SSE connection holds a database connection from the pool for the duration of the stream. SQLite enforces a global write lock, meaning only one write operation can proceed at a time — all other writes queue behind it.
 
 Even though the connection pool supports up to 30 simultaneous connections (`pool_size=20` + `max_overflow=10`), the bottleneck is the lock itself, not the pool. When multiple users are chatting simultaneously, their write operations (saving messages, updating token counts) serialize against each other.
 
@@ -57,7 +57,7 @@ Even though the connection pool supports up to 30 simultaneous connections (`poo
 
 ## Connection Pool Configuration
 
-FIM Agent configures SQLAlchemy connection pool settings internally for each backend. These are tuned defaults that do not require environment variables — they are applied automatically based on the `DATABASE_URL` scheme. Understanding them helps explain runtime behavior.
+FIM One configures SQLAlchemy connection pool settings internally for each backend. These are tuned defaults that do not require environment variables — they are applied automatically based on the `DATABASE_URL` scheme. Understanding them helps explain runtime behavior.
 
 ### SQLite Pool Settings
 
@@ -94,7 +94,7 @@ The quickest way is with Docker:
 docker run -d \
   --name postgres \
   -e POSTGRES_PASSWORD=secret \
-  -e POSTGRES_DB=fim_agent \
+  -e POSTGRES_DB=fim_one \
   -p 5432:5432 \
   postgres:16-alpine
 ```
@@ -104,10 +104,10 @@ docker run -d \
 Add or update the following line in your `.env` file:
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://postgres:secret@localhost:5432/fim_agent
+DATABASE_URL=postgresql+asyncpg://postgres:secret@localhost:5432/fim_one
 ```
 
-### Step 3: Restart FIM Agent
+### Step 3: Restart FIM One
 
 ```bash
 # Local development
@@ -128,7 +128,7 @@ If you deploy with Docker Compose, **PostgreSQL and Redis are already included a
 
 ```yaml
 environment:
-  DATABASE_URL: postgresql+asyncpg://fim:fim@postgres:5432/fim_agent
+  DATABASE_URL: postgresql+asyncpg://fim:fim@postgres:5432/fim_one
 ```
 
 No additional database setup is needed when using Docker Compose.
@@ -139,7 +139,7 @@ No additional database setup is needed when using Docker Compose.
 
 There is no built-in migration tool from SQLite to PostgreSQL. For most deployments, the recommended approach depends on your situation:
 
-**Fresh deployment (no existing data):** Simply set `DATABASE_URL` to your PostgreSQL connection string and start FIM Agent. All tables are created automatically.
+**Fresh deployment (no existing data):** Simply set `DATABASE_URL` to your PostgreSQL connection string and start FIM One. All tables are created automatically.
 
 **Existing data that must be preserved:** Manual export/import is required. The general approach:
 

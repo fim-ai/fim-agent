@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug to help us improve FIM Agent
+description: Report a bug to help us improve FIM One
 title: "[Bug] "
 labels: ["bug"]
 body:
@@ -24,7 +24,7 @@ body:
     id: area
     attributes:
       label: Area
-      description: Which part of FIM Agent is affected?
+      description: Which part of FIM One is affected?
       options:
         - "Agent (ReAct reasoning)"
         - "DAG Planning / Execution"

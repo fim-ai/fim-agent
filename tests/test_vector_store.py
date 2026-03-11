@@ -3,7 +3,7 @@
 import pytest
 from pathlib import Path
 
-from fim_agent.rag.store.lancedb import LanceDBVectorStore
+from fim_one.rag.store.lancedb import LanceDBVectorStore
 
 
 @pytest.fixture
@@ -17,15 +17,21 @@ async def test_add_and_vector_search(store: LanceDBVectorStore):
     metadatas = [{"page": 1}, {"page": 2}]
 
     added = await store.add_documents(
-        texts, vectors, metadatas,
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        texts,
+        vectors,
+        metadatas,
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
     assert added == 2
 
     # Search with a vector close to first doc
     results = await store.vector_search(
         [0.9, 0.1, 0.0, 0.0],
-        kb_id="kb1", user_id="u1", top_k=2,
+        kb_id="kb1",
+        user_id="u1",
+        top_k=2,
     )
     assert len(results) == 2
     assert results[0].content == "hello world"
@@ -40,14 +46,22 @@ async def test_content_dedup(store: LanceDBVectorStore):
     metadatas = [{"page": 1}]
 
     added1 = await store.add_documents(
-        texts, vectors, metadatas,
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        texts,
+        vectors,
+        metadatas,
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
     assert added1 == 1
 
     added2 = await store.add_documents(
-        texts, vectors, metadatas,
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        texts,
+        vectors,
+        metadatas,
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
     assert added2 == 0  # Deduped
 
@@ -57,17 +71,26 @@ async def test_content_dedup(store: LanceDBVectorStore):
 
 async def test_delete_by_document(store: LanceDBVectorStore):
     await store.add_documents(
-        ["chunk1", "chunk2"], [[1.0, 0, 0, 0], [0, 1.0, 0, 0]],
+        ["chunk1", "chunk2"],
+        [[1.0, 0, 0, 0], [0, 1.0, 0, 0]],
         [{"p": 1}, {"p": 2}],
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
     await store.add_documents(
-        ["chunk3"], [[0, 0, 1.0, 0]], [{"p": 1}],
-        kb_id="kb1", user_id="u1", document_id="doc2",
+        ["chunk3"],
+        [[0, 0, 1.0, 0]],
+        [{"p": 1}],
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc2",
     )
 
     deleted = await store.delete_by_document(
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
     assert deleted == 2
 
@@ -77,8 +100,12 @@ async def test_delete_by_document(store: LanceDBVectorStore):
 
 async def test_delete_kb(store: LanceDBVectorStore):
     await store.add_documents(
-        ["text"], [[1.0, 0, 0, 0]], [{}],
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        ["text"],
+        [[1.0, 0, 0, 0]],
+        [{}],
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
 
     await store.delete_kb(kb_id="kb1", user_id="u1")
@@ -88,7 +115,9 @@ async def test_delete_kb(store: LanceDBVectorStore):
 
 async def test_empty_search(store: LanceDBVectorStore):
     results = await store.vector_search(
-        [1.0, 0, 0, 0], kb_id="kb1", user_id="u1",
+        [1.0, 0, 0, 0],
+        kb_id="kb1",
+        user_id="u1",
     )
     assert results == []
 
@@ -98,11 +127,16 @@ async def test_fts_search(store: LanceDBVectorStore):
         ["the quick brown fox", "lazy dog sleeps"],
         [[1.0, 0, 0, 0], [0, 1.0, 0, 0]],
         [{}, {}],
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
 
     results = await store.fts_search(
-        "quick fox", kb_id="kb1", user_id="u1", top_k=5,
+        "quick fox",
+        kb_id="kb1",
+        user_id="u1",
+        top_k=5,
     )
     # FTS should find at least the first document
     assert len(results) >= 1
@@ -112,12 +146,20 @@ async def test_fts_search(store: LanceDBVectorStore):
 async def test_data_isolation(store: LanceDBVectorStore):
     """Different users/KBs should be isolated."""
     await store.add_documents(
-        ["user1 data"], [[1.0, 0, 0, 0]], [{}],
-        kb_id="kb1", user_id="u1", document_id="doc1",
+        ["user1 data"],
+        [[1.0, 0, 0, 0]],
+        [{}],
+        kb_id="kb1",
+        user_id="u1",
+        document_id="doc1",
     )
     await store.add_documents(
-        ["user2 data"], [[0, 1.0, 0, 0]], [{}],
-        kb_id="kb1", user_id="u2", document_id="doc1",
+        ["user2 data"],
+        [[0, 1.0, 0, 0]],
+        [{}],
+        kb_id="kb1",
+        user_id="u2",
+        document_id="doc1",
     )
 
     count_u1 = await store.count(kb_id="kb1", user_id="u1")
