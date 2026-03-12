@@ -113,11 +113,7 @@ async def _record_login(
     email: str | None = None,
 ) -> None:
     """Record a login attempt in login_history for security auditing."""
-    # Extract IP: prefer X-Forwarded-For (first entry), fall back to client host
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    ip_address = forwarded.split(",")[0].strip() if forwarded else None
-    if not ip_address and request.client:
-        ip_address = request.client.host
+    ip_address = request.client.host if request.client else None
 
     user_agent = request.headers.get("User-Agent", "") or None
 
