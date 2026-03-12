@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, FlaskConical, Layers, Library, Loader2, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun, Wrench, X } from "lucide-react"
+import { Bot, FlaskConical, LayoutDashboard, Layers, Library, Loader2, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun, Wrench, X } from "lucide-react"
 import { getApiBaseUrl } from "@/lib/constants"
 import { setMaintenanceCallback } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -348,7 +348,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </SidebarTooltip>
             ) : (
               <>
-                <Link href="/new" className="flex items-center gap-2 rounded-md px-1 -mx-1 transition-colors hover:opacity-70">
+                <Link href="/" className="flex items-center gap-2 rounded-md px-1 -mx-1 transition-colors hover:opacity-70">
                   <img src="/fim-mark-light.svg" alt="FIM" className="h-5 w-auto shrink-0 dark:hidden" />
                   <img src="/fim-mark.svg" alt="FIM" className="h-5 w-auto shrink-0 hidden dark:block" />
                   <span className="text-base font-bold tracking-tight text-sidebar-foreground" style={{ fontFamily: 'var(--font-cabinet), sans-serif' }}>{APP_NAME}</span>
@@ -377,6 +377,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Navigation */}
           <div className={cn("px-3 py-2 shrink-0", collapsed && "flex flex-col items-center gap-1")}>
+            <SidebarTooltip label={t("dashboard")} collapsed={collapsed}>
+              <Link
+                href="/"
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                  pathname === "/"
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+                  collapsed && "h-9 w-9 justify-center px-0"
+                )}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                {!collapsed && <span>{t("dashboard")}</span>}
+              </Link>
+            </SidebarTooltip>
             <SidebarTooltip label={t("agents")} collapsed={collapsed}>
               <Link
                 href="/agents"

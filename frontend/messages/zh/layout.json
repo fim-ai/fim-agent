@@ -5,6 +5,7 @@
   "lightMode": "浅色模式",
   "darkMode": "深色模式",
   "dismiss": "关闭",
+  "dashboard": "首页",
   "agents": "智能体",
   "knowledge": "知识库",
   "connectors": "连接器",
