@@ -252,7 +252,7 @@ export function DashboardPage() {
             <div className="flex items-center gap-4">
               <SharedUserAvatar
                 avatar={user.avatar ?? null}
-                fallback={displayName.slice(0, 2).toUpperCase()}
+                fallback={displayName.charAt(0).toUpperCase()}
                 userId={user.id}
                 className="h-12 w-12"
                 iconClassName="h-6 w-6"
