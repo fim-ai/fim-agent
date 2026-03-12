@@ -145,5 +145,7 @@
   "ai_no_changes": "No changes applied.",
 
   "global": "Global",
-  "globalAgentNotice": "This is a global agent managed by an administrator."
+  "globalAgentNotice": "This is a global agent managed by an administrator.",
+  "discoverable": "Auto-discoverable",
+  "discoverableHelp": "Allow LLM to automatically discover and delegate tasks to this agent"
 }

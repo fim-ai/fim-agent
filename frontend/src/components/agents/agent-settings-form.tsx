@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
-import { Bot, Check, Loader2, Zap, GitBranch, Sparkles } from "lucide-react"
+import { Bot, Check, Loader2, Zap, GitBranch, Sparkles, Radar } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,8 @@ import type { AgentCreate, AgentResponse, SandboxConfig } from "@/types/agent"
 import type { ConnectorResponse } from "@/types/connector"
 import type { ModelConfigResponse } from "@/types/model_config"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useToolCatalog } from "@/hooks/use-tool-catalog"
 
@@ -62,6 +64,7 @@ export function AgentSettingsForm({
   const [sandboxTimeout, setSandboxTimeout] = useState<string>("")
   const [selectedModelConfigId, setSelectedModelConfigId] = useState<string>("")
   const [selectedFastModelConfigId, setSelectedFastModelConfigId] = useState<string>("")
+  const [discoverable, setDiscoverable] = useState<boolean>(false)
   const [systemModels, setSystemModels] = useState<ModelConfigResponse[]>([])
 
   const [availableKBs, setAvailableKBs] = useState<{ id: string; name: string; document_count: number }[]>([])
@@ -90,6 +93,7 @@ export function AgentSettingsForm({
       setSandboxTimeout(agent.sandbox_config?.timeout != null ? String(agent.sandbox_config.timeout) : "")
       setSelectedModelConfigId((agent.model_config_json?.model_config_id as string) ?? "")
       setSelectedFastModelConfigId((agent.model_config_json?.fast_model_config_id as string) ?? "")
+      setDiscoverable(agent.discoverable ?? false)
     } else {
       setName("")
       setIcon(null)
@@ -107,6 +111,7 @@ export function AgentSettingsForm({
       setSandboxTimeout("")
       setSelectedModelConfigId("")
       setSelectedFastModelConfigId("")
+      setDiscoverable(false)
     }
   }, [agent])
 
@@ -151,9 +156,10 @@ export function AgentSettingsForm({
       sandboxCpu !== (agent.sandbox_config?.cpu != null ? String(agent.sandbox_config.cpu) : "") ||
       sandboxTimeout !== (agent.sandbox_config?.timeout != null ? String(agent.sandbox_config.timeout) : "") ||
       selectedModelConfigId !== ((agent.model_config_json?.model_config_id as string) ?? "") ||
-      selectedFastModelConfigId !== ((agent.model_config_json?.fast_model_config_id as string) ?? "")
+      selectedFastModelConfigId !== ((agent.model_config_json?.fast_model_config_id as string) ?? "") ||
+      discoverable !== (agent.discoverable ?? false)
     onDirtyChange(dirty)
-  }, [agent, name, icon, description, instructions, executionMode, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, temperature, sandboxMemory, sandboxCpu, sandboxTimeout, selectedModelConfigId, selectedFastModelConfigId, onDirtyChange])
+  }, [agent, name, icon, description, instructions, executionMode, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, temperature, sandboxMemory, sandboxCpu, sandboxTimeout, selectedModelConfigId, selectedFastModelConfigId, discoverable, onDirtyChange])
 
   const toggleCategory = (cat: string) => {
     setToolCategories((prev) =>
@@ -200,7 +206,7 @@ export function AgentSettingsForm({
       if (sandboxTimeout) sandboxCfg.timeout = parseInt(sandboxTimeout, 10)
       const hasSandboxConfig = Object.keys(sandboxCfg).length > 0
 
-      const data: AgentCreate = {
+      const data: AgentCreate & { discoverable?: boolean } = {
         name: trimmedName,
         icon: icon || null,
         description: description.trim() || null,
@@ -215,6 +221,7 @@ export function AgentSettingsForm({
         }),
         ...(modelConfigJson !== undefined && { model_config_json: modelConfigJson }),
         ...(hasSandboxConfig && { sandbox_config: sandboxCfg }),
+        discoverable,
       }
 
       let result: AgentResponse
@@ -721,6 +728,24 @@ export function AgentSettingsForm({
             <SuggestedPromptsEditor
               value={suggestedPrompts}
               onChange={setSuggestedPrompts}
+            />
+          </div>
+
+          {/* Discoverable toggle */}
+          <div className="flex items-center justify-between rounded-md border border-border px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Radar className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <Label htmlFor="agent-discoverable" className="text-sm font-medium cursor-pointer">
+                  {t("discoverable")}
+                </Label>
+                <p className="text-xs text-muted-foreground">{t("discoverableHelp")}</p>
+              </div>
+            </div>
+            <Switch
+              id="agent-discoverable"
+              checked={discoverable}
+              onCheckedChange={setDiscoverable}
             />
           </div>
         </div>

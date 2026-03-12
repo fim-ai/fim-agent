@@ -126,5 +126,7 @@
   "ai_agent_updated": "已更新 {count} 个字段：{fields}。",
   "ai_no_changes": "未应用任何修改。",
   "global": "全局",
-  "globalAgentNotice": "这是由管理员管理的全局智能体。"
+  "globalAgentNotice": "这是由管理员管理的全局智能体。",
+  "discoverable": "自动发现",
+  "discoverableHelp": "允许 LLM 自动发现并委派任务给此智能体"
 }

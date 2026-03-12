@@ -45,7 +45,7 @@ import type {
   CredentialUpsertRequest,
   MyCredentialStatus,
 } from "@/types/connector"
-import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminGlobalAgentInfo, AdminAllMcpServer, AdminOrganization, OrgMember as AdminOrgMember } from "@/types/admin"
+import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminOrganization, OrgMember as AdminOrgMember } from "@/types/admin"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate } from "@/types/mcp-server"
 import type { ModelConfigResponse, ModelConfigCreate, ModelConfigUpdate } from "@/types/model_config"
 import type {
@@ -1059,24 +1059,6 @@ export const adminApi = {
     URL.revokeObjectURL(url)
   },
 
-  // Feature 7 -- global MCP servers
-  listGlobalMcpServers: () =>
-    apiFetch<AdminMCPServer[]>('/api/admin/mcp-servers'),
-  createGlobalMcpServer: (data: MCPServerCreate) =>
-    apiFetch<AdminMCPServer>('/api/admin/mcp-servers', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateGlobalMcpServer: (id: string, data: MCPServerUpdate) =>
-    apiFetch<AdminMCPServer>(`/api/admin/mcp-servers/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  deleteGlobalMcpServer: (id: string) =>
-    apiFetch(`/api/admin/mcp-servers/${id}`, { method: 'DELETE' }),
-  testGlobalMcpServer: (id: string) =>
-    apiFetch<{ ok: boolean; tool_count?: number; error?: string }>(`/api/admin/mcp-servers/${id}/test`, { method: 'POST' }),
-
   // Feature 4 -- invite codes
   listInviteCodes: () =>
     apiFetch<InviteCode[]>('/api/admin/invite-codes'),
@@ -1220,30 +1202,6 @@ export const adminApi = {
     apiFetch<AdminAnnouncement>(`/api/admin/announcements/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAnnouncement: (id: string) =>
     apiFetch(`/api/admin/announcements/${id}`, { method: 'DELETE' }),
-
-  // --- Global Agents ---
-  listGlobalAgents: (page = 1, size = 20, q?: string) => {
-    const sp = new URLSearchParams({ page: String(page), size: String(size) })
-    if (q) sp.set('q', q)
-    return apiFetch<{ items: AdminGlobalAgentInfo[]; total: number; page: number; size: number; pages: number }>(`/api/admin/global-agents?${sp}`)
-  },
-  cloneAgentToGlobal: (agentId: string) =>
-    apiFetch<AdminGlobalAgentInfo>(`/api/admin/global-agents/clone/${agentId}`, { method: 'POST' }),
-  updateGlobalAgent: (id: string, data: Record<string, unknown>) =>
-    apiFetch<AdminGlobalAgentInfo>(`/api/admin/global-agents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteGlobalAgent: (id: string) =>
-    apiFetch(`/api/admin/global-agents/${id}`, { method: 'DELETE' }),
-  toggleGlobalAgent: (id: string) =>
-    apiFetch<AdminGlobalAgentInfo>(`/api/admin/global-agents/${id}/toggle`, { method: 'POST' }),
-
-  // --- MCP clone ---
-  cloneMcpToGlobal: (serverId: string) =>
-    apiFetch<AdminMCPServer>(`/api/admin/mcp-servers/clone/${serverId}`, { method: 'POST' }),
-  listAllMcpServers: (page = 1, size = 20, q?: string) => {
-    const sp = new URLSearchParams({ page: String(page), size: String(size) })
-    if (q) sp.set('q', q)
-    return apiFetch<{ items: AdminAllMcpServer[]; total: number; page: number; size: number; pages: number }>(`/api/admin/all-mcp-servers?${sp}`)
-  },
 
   // --- Organizations (admin) ---
   listOrganizations: (page = 1, size = 20, q?: string) => {
@@ -1534,4 +1492,44 @@ export interface DashboardStats {
 // --- Dashboard API ---
 export const dashboardApi = {
   stats: () => apiFetch<DashboardStats>("/api/dashboard/stats"),
+}
+
+// --- Market API ---
+export const marketApi = {
+  browse: (params?: { org_id?: string; resource_type?: string; page?: number; size?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.org_id) sp.set('org_id', params.org_id)
+    if (params?.resource_type) sp.set('resource_type', params.resource_type)
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    return apiFetch<any>(`/api/market?${sp}`)
+  },
+
+  subscribe: (body: { resource_type: string; resource_id: string; org_id: string }) =>
+    apiFetch<any>('/api/market/subscribe', { method: 'POST', body: JSON.stringify(body) }),
+
+  unsubscribe: (body: { resource_type: string; resource_id: string; org_id: string }) =>
+    apiFetch<any>('/api/market/unsubscribe', { method: 'DELETE', body: JSON.stringify(body) }),
+
+  listSubscriptions: (resource_type?: string) => {
+    const sp = resource_type ? `?resource_type=${resource_type}` : ''
+    return apiFetch<any>(`/api/market/subscriptions${sp}`)
+  },
+}
+
+// --- Convenience api object (used by Market page) ---
+export const api = {
+  browseMarket: marketApi.browse,
+  subscribeResource: marketApi.subscribe,
+  unsubscribeResource: marketApi.unsubscribe,
+  listSubscriptions: marketApi.listSubscriptions,
+
+  setMcpMyCredentials: (serverId: string, body: { env?: Record<string, string>; headers?: Record<string, string> }) =>
+    apiFetch<any>(`/api/mcp-servers/${serverId}/my-credentials`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  toggleConnector: (connectorId: string) =>
+    apiFetch<any>(`/api/connectors/${connectorId}/toggle`, { method: 'POST', body: JSON.stringify({}) }),
+
+  toggleKnowledgeBase: (kbId: string) =>
+    apiFetch<any>(`/api/knowledge-bases/${kbId}/toggle`, { method: 'POST', body: JSON.stringify({}) }),
 }

@@ -1,0 +1,15 @@
+{
+  "title": "资源市场",
+  "description": "浏览并订阅来自您组织的共享资源",
+  "empty": "市场中暂无可用资源",
+  "subscribed": "已订阅",
+  "subscribe": "订阅",
+  "unsubscribe": "取消订阅",
+  "types": {
+    "all": "全部",
+    "agent": "智能体",
+    "connector": "连接器",
+    "knowledge_base": "知识库",
+    "mcp_server": "MCP 服务器"
+  }
+}

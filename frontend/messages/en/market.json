@@ -1,0 +1,15 @@
+{
+  "title": "Market",
+  "description": "Browse and subscribe to shared resources from your organizations",
+  "empty": "No resources available in the market",
+  "subscribed": "Subscribed",
+  "subscribe": "Subscribe",
+  "unsubscribe": "Unsubscribe",
+  "types": {
+    "all": "All",
+    "agent": "Agents",
+    "connector": "Connectors",
+    "knowledge_base": "Knowledge Bases",
+    "mcp_server": "MCP Servers"
+  }
+}

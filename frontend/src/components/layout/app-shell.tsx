@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, FlaskConical, LayoutDashboard, Layers, Library, Loader2, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, Sun, Wrench, X } from "lucide-react"
+import { Bot, FlaskConical, LayoutDashboard, Layers, Library, Loader2, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, ShoppingBag, Sun, Wrench, X } from "lucide-react"
 import { getApiBaseUrl } from "@/lib/constants"
 import { setMaintenanceCallback } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -361,6 +361,9 @@ function SidebarNav({ collapsed }: { collapsed: boolean }) {
       </SidebarTooltip>
       <SidebarTooltip label={t("eval")} collapsed={collapsed}>
         {navLink("/eval", pathname === "/eval" || pathname.startsWith("/eval/"), <FlaskConical className="h-4 w-4" />, t("eval"))}
+      </SidebarTooltip>
+      <SidebarTooltip label={t("market")} collapsed={collapsed}>
+        {navLink("/market", pathname === "/market", <ShoppingBag className="h-4 w-4" />, t("market"))}
       </SidebarTooltip>
     </div>
   )

@@ -100,5 +100,7 @@
   "unpublish": "Unpublish",
   "published": "Published",
   "unpublished": "Unpublished",
-  "draft": "Draft"
+  "draft": "Draft",
+  "subscribed": "Subscribed",
+  "unsubscribed": "Unsubscribed"
 }

@@ -100,5 +100,7 @@
   "unpublish": "取消发布",
   "published": "已发布",
   "unpublished": "未发布",
-  "draft": "草稿"
+  "draft": "草稿",
+  "subscribed": "已订阅",
+  "unsubscribed": "已取消订阅"
 }
