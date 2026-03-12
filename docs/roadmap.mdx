@@ -148,6 +148,11 @@ flowchart LR
 - Admin set-visibility endpoint (replaces clone-to-global); unified `build_visibility_filter()` query helper
 - Database Connectors (Phase 1-3): direct SQL access to PG/MySQL/Oracle/SQL Server + Chinese legacy DBs; schema introspection, AI annotation, read-only query execution, encrypted credentials, 3 tools per connector (`list_tables`, `describe_table`, `query`)
 - **Evaluation Center**: quantitative agent quality benchmarking — test dataset CRUD (prompt + expected behavior + assertions), eval runs (parallel execution + LLM grader + per-case pass/fail/latency/token results), results viewer with auto-polling; migration `r8t0v2x4z567`
+- Three model roles (General/Fast/Reasoning) with per-tier env config isolation; fast model no longer inherits main model settings
+- `StepOutput` dataclass replacing plain string step results for structured data and artifact passing
+- Tool cache for DAG execution — identical tool calls cached per-run with async lock stampede prevention (`DAG_TOOL_CACHE`)
+- Per-step LLM verification with 1 retry on failure (`DAG_STEP_VERIFICATION`)
+- Auto-routing: fast LLM classifies queries as ReAct or DAG; `/api/auto` endpoint; frontend 3-way mode toggle (`AUTO_ROUTING`)
 
 ## Planned Versions
 

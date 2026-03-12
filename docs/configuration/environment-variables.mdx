@@ -57,11 +57,22 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `LLM_TEMPERATURE` | No | `0.7` | Default sampling temperature |
 | `LLM_CONTEXT_SIZE` | No | `128000` | Context window size for the main LLM |
 | `LLM_MAX_OUTPUT_TOKENS` | No | `64000` | Max output tokens per call for the main LLM |
+| `FAST_LLM_API_KEY` | No | *(falls back to `LLM_API_KEY`)* | API key for the fast model provider. Use when the fast model is hosted by a different provider than the main model |
+| `FAST_LLM_BASE_URL` | No | *(falls back to `LLM_BASE_URL`)* | Base URL for the fast model provider |
+| `FAST_LLM_TEMPERATURE` | No | *(falls back to `LLM_TEMPERATURE`)* | Sampling temperature for the fast model |
 | `FAST_LLM_CONTEXT_SIZE` | No | *(falls back to `LLM_CONTEXT_SIZE`)* | Context window size for the fast LLM |
 | `FAST_LLM_MAX_OUTPUT_TOKENS` | No | *(falls back to `LLM_MAX_OUTPUT_TOKENS`)* | Max output tokens per call for the fast LLM |
 | `LLM_REASONING_EFFORT` | No | *(disabled)* | Extended thinking level for supported models (OpenAI o-series, Gemini 2.5+, Claude). Values: `low`, `medium`, `high`. LiteLLM translates this to each provider's native format automatically. The model's chain-of-thought is surfaced in the UI "thinking" step. |
 | `LLM_REASONING_BUDGET_TOKENS` | No | *(auto from effort)* | Explicit token budget for Anthropic thinking (minimum 1024). For OpenAI/Gemini the effort level is used directly. Only effective when `LLM_REASONING_EFFORT` is set. |
 | `LLM_JSON_MODE_ENABLED` | No | `true` | Set to `false` to disable `response_format=json_object` for ENV-configured models. Required when using a third-party relay backed by AWS Bedrock (newer versions reject LiteLLM's assistant prefill injection, causing a `ValidationException` on the 2nd+ agent iteration). DB-configured models override this per-model via Admin → Models → Advanced settings. |
+| `REASONING_LLM_MODEL` | No | *(falls back to `LLM_MODEL`)* | Model name for the reasoning tier. Used for tasks requiring deep analysis (e.g., DAG planning, plan analysis) |
+| `REASONING_LLM_API_KEY` | No | *(falls back to `LLM_API_KEY`)* | API key for the reasoning model provider |
+| `REASONING_LLM_BASE_URL` | No | *(falls back to `LLM_BASE_URL`)* | Base URL for the reasoning model provider |
+| `REASONING_LLM_TEMPERATURE` | No | *(falls back to `LLM_TEMPERATURE`)* | Sampling temperature for the reasoning model |
+| `REASONING_LLM_CONTEXT_SIZE` | No | *(falls back to `LLM_CONTEXT_SIZE`)* | Context window size for the reasoning model |
+| `REASONING_LLM_MAX_OUTPUT_TOKENS` | No | *(falls back to `LLM_MAX_OUTPUT_TOKENS`)* | Max output tokens per call for the reasoning model |
+| `REASONING_LLM_EFFORT` | No | *(falls back to `LLM_REASONING_EFFORT`)* | Reasoning effort level for the reasoning model tier. Values: `low`, `medium`, `high` |
+| `REASONING_LLM_BUDGET` | No | *(falls back to `LLM_REASONING_BUDGET_TOKENS`)* | Token budget for reasoning (primarily Anthropic). Overrides the auto-calculated budget for the reasoning tier |
 
 > **Resolution order**: User Preference → Admin Models (DB) → ENV Fallback. If an admin model with role "General" is configured in Admin → Models, these ENV vars serve as fallback only. The health check considers both sources.
 
@@ -118,6 +129,9 @@ For OpenAI and Gemini, the provider handles token allocation internally based on
 | `DAG_STEP_MAX_ITERATIONS` | No | `15` | Max tool-call iterations within each DAG step |
 | `DAG_MAX_REPLAN_ROUNDS` | No | `3` | Max autonomous re-plan attempts when goal is not achieved |
 | `DAG_REPLAN_STOP_CONFIDENCE` | No | `0.8` | Stop retrying when agent confidence that goal is unachievable exceeds this threshold (`0.0` = never stop early, `1.0` = stop on any failure) |
+| `DAG_TOOL_CACHE` | No | `true` | Cache identical tool calls within a single DAG execution. Per-key async locks prevent thundering herd. Set to `false` to disable caching |
+| `DAG_STEP_VERIFICATION` | No | `false` | Enable LLM-based quality check after each DAG step completes. On failure, the step retries once with verification feedback. Adds latency but improves result accuracy |
+| `AUTO_ROUTING` | No | `true` | Enable automatic query classification. A fast LLM analyzes each query and routes it to either ReAct (single-step) or DAG (multi-step) execution mode. The `/api/auto` endpoint uses this. Set to `false` to require explicit mode selection |
 
 ---
 

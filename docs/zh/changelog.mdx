@@ -11,7 +11,22 @@ description: "FIM One 的所有重要变更。"
   ## [未发布]
 </div>
 
-*(暂无内容)*
+<div id="added">
+  ### 新增
+</div>
+
+* **三级模型角色 (F5)**：General、Fast、Reasoning 三个模型层级的独立环境变量配置。Fast 模型不再继承主模型的推理相关设置。新增环境变量：`FAST_LLM_API_KEY`、`FAST_LLM_BASE_URL`、`FAST_LLM_TEMPERATURE`、`REASONING_LLM_MODEL`、`REASONING_LLM_API_KEY`、`REASONING_LLM_BASE_URL`、`REASONING_LLM_TEMPERATURE`、`REASONING_LLM_CONTEXT_SIZE`、`REASONING_LLM_MAX_OUTPUT_TOKENS`、`REASONING_LLM_EFFORT`、`REASONING_LLM_BUDGET`
+* **结构化步骤输出 (F2)**：`StepOutput` 数据类替代 DAG 步骤中的纯字符串结果，为后续支持步骤间的结构化数据和产物传递奠定基础
+* **工具缓存 (F3)**：单次 DAG 执行内的相同工具调用会被缓存，避免冗余 API 调用。按 key 的异步锁防止惊群效应。通过 `DAG_TOOL_CACHE` 配置（默认开启）
+* **逐步骤验证 (F4)**：可选的基于 LLM 的质量检查，在每个 DAG 步骤完成后执行。验证失败时携带反馈重试一次。通过 `DAG_STEP_VERIFICATION` 配置（默认关闭）
+* **自动路由 (F1)**：Fast LLM 将查询分类为 ReAct 或 DAG 执行模式。新增 `/api/auto` 端点及 SSE 路由事件。前端三态模式切换（自动/标准/规划器）。通过 `AUTO_ROUTING` 配置（默认开启）
+* **设计理念文档**：新增 `docs/design-philosophy.mdx`，记录架构决策——为何 Handoff、Backflow、Teams 和 agent_hint 被有意排除在 DAG 执行之外
+
+<div id="fixed">
+  ### 已修复
+</div>
+
+* Fast 模型（`get_fast_llm()`）不再继承主模型配置中的 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_TEMPERATURE` 及推理相关设置
 
 <div id="v074-2026-03-12">
   ## [v0.7.4] - 2026-03-12

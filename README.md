@@ -19,6 +19,10 @@
 
 </div>
 
+> [!TIP]
+> **☁️ Skip the setup — try FIM One on Cloud.**
+> A managed version is live at **[cloud.fim.ai](https://cloud.fim.ai/)**: no Docker, no API keys, no config. Sign in and start connecting your systems in seconds. _Early access, feedback welcome._
+
 ---
 
 ## Table of Contents
@@ -143,6 +147,7 @@ FIM One doesn't do BPM/FSM — workflow logic belongs to the target system, Conn
 - **Concurrent Execution** — Independent steps run in parallel via asyncio.
 - **DAG Re-Planning** — Auto-revises the plan up to 3 rounds when goals aren't met.
 - **ReAct Agent** — Structured reasoning-and-acting loop with automatic error recovery.
+- **Auto-Routing** — Automatic query classification routes each request to the optimal execution mode (ReAct or DAG). Frontend supports 3-way toggle (Auto/Standard/Planner). Configurable via `AUTO_ROUTING`.
 - **Extended Thinking** — Enable chain-of-thought reasoning for supported models (OpenAI o-series, Gemini 2.5+, Claude) via `LLM_REASONING_EFFORT`. The model's reasoning is surfaced in the UI "thinking" step.
 
 #### Tools & Integrations
@@ -222,10 +227,11 @@ Each connector is a standardized bridge — the agent doesn't know or care wheth
 
 ### Internal Execution
 
-FIM One provides two execution modes:
+FIM One provides two execution modes, with automatic routing between them:
 
 | Mode         | Best for                  | How it works                                                       |
 | ------------ | ------------------------- | ------------------------------------------------------------------ |
+| Auto         | All queries (default)     | Fast LLM classifies the query and routes to ReAct or DAG           |
 | ReAct        | Single complex queries    | Reason → Act → Observe loop with tools                             |
 | DAG Planning | Multi-step parallel tasks | LLM generates dependency graph, independent steps run concurrently |
 
