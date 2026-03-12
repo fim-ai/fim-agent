@@ -5,7 +5,6 @@
   "createAgent": "创建智能体",
   "emptyState": "暂无智能体，创建你的第一个智能体开始使用。",
   "agent": "智能体",
-
   "deleteDialogTitle": "删除智能体？",
   "deleteDialogDescription": "该智能体将被永久删除，此操作无法撤销。",
   "publishDialogTitle": "发布智能体？",
@@ -17,29 +16,24 @@
   "publishNoOrgs": "未找到组织，请在设置中加入或创建组织。",
   "unpublishDialogTitle": "取消发布智能体？",
   "unpublishDialogDescription": "该智能体将恢复为草稿状态，不再可用于对话。",
-
   "agentDeleted": "智能体已删除",
   "agentDeleteFailed": "删除智能体失败",
   "agentPublished": "智能体已发布",
   "agentPublishFailed": "发布智能体失败",
   "agentUnpublished": "智能体已取消发布",
   "agentUnpublishFailed": "取消发布智能体失败",
-
   "noDescription": "暂无描述",
   "startChat": "开始对话",
   "backToAgents": "返回智能体列表",
   "startChatTooltip": "与该智能体开始新对话",
-
   "stay": "留在此页",
   "discardAndLeave": "放弃并离开",
   "unsavedChangesTitle": "未保存的更改",
   "unsavedChangesDescription": "你有未保存的更改，离开此页将丢弃这些更改。",
-
-  "namePlaceholder": "我的智能体",
+  "namePlaceholder": "智能体",
   "descriptionPlaceholder": "简要描述该智能体的功能...",
   "instructionsLabel": "指令",
   "instructionsPlaceholder": "智能体的系统提示词，告诉它如何表现、关注什么...",
-
   "executionMode": "执行模式",
   "executionModeDescription": "设置新对话的默认模式。你可以在对话中随时切换模式。",
   "autoMode": "自动",
@@ -48,18 +42,15 @@
   "reactModeDescription": "快速响应，灵活处理",
   "dagMode": "规划模式 (DAG)",
   "dagModeDescription": "系统分解，逐步执行",
-
   "model": "模型",
   "generalModel": "通用模型",
   "generalModelDesc": "用于推理、规划和分析。",
   "fastModel": "快速模型",
   "fastModelDesc": "用于 DAG 步骤执行和摘要压缩。",
   "useSystemDefault": "使用系统默认",
-
   "temperature": "温度",
   "temperatureDefault": "默认",
   "temperatureDescription": "控制随机性。数值越低越聚焦，越高越有创造力。保持默认将使用服务器设置。",
-
   "sandboxResources": "沙箱资源",
   "sandboxDescription": "代码执行工具的资源限制。仅在使用 Docker 后端时生效 (CODE_EXEC_BACKEND=docker)。",
   "memory": "内存",
@@ -67,10 +58,8 @@
   "timeoutSeconds": "超时 (秒)",
   "defaultMemory": "默认 ({value})",
   "defaultCpu": "默认 ({value})",
-
   "toolCategories": "工具类别",
   "toolCategoriesHint": "将鼠标悬停在类别上查看包含的工具。",
-
   "toolCategoryConnector": "连接器",
   "toolCategoryConnectorDesc": "访问绑定到该智能体的外部 API 操作",
   "toolCategoryConnectorTools": "自定义 HTTP 连接器、CRM、Slack 等",
@@ -92,33 +81,27 @@
   "toolCategoryGeneral": "通用",
   "toolCategoryGeneralDesc": "杂项和未分类的内置工具",
   "toolCategoryGeneralTools": "未归类的实用工具",
-
   "knowledgeBases": "知识库",
   "knowledgeBasesDescription": "绑定知识库以启用带引用的证据检索",
   "kbDocCount": "{count} 篇文档",
   "deleted": "已删除",
-
   "confidenceThreshold": "置信度阈值",
   "confidenceOff": "关闭",
   "confidenceDescription": "设置后，低于该阈值的回答将被拒绝。关闭则始终显示结果。",
-
   "connectors": "连接器",
   "connectorsDescription": "绑定连接器以使智能体能够访问外部 API 操作",
   "connectorActionCount": "{count} 个操作",
   "connectorTypeDatabase": "数据库",
   "connectorTypeApi": "API",
-
   "suggestedPrompts": "建议提示词",
   "suggestedPromptsDescription": "在对话中显示为快速开始建议。",
   "promptPlaceholder": "输入建议提示词...",
   "addPrompt": "添加提示词",
   "dragToReorder": "拖拽排序",
   "removePrompt": "移除提示词",
-
   "agentUpdated": "智能体已更新",
   "agentCreated": "智能体已创建",
   "agentSaveFailed": "保存智能体失败：{message}",
-
   "advancedBuilder": "高级构建器",
   "advancedBuilderDesc": "适用于多轮迭代设计、复杂系统提示词优化、需要 AI 推理辅助的配置任务。",
   "backToAssistant": "返回 AI 助手",
@@ -139,11 +122,9 @@
   "aiAgentUpdated": "智能体已更新。",
   "saveSettingsFirst": "请先保存智能体设置。",
   "aiError": "出错了，请重试。",
-
   "ai_agent_created": "智能体创建成功。",
   "ai_agent_updated": "已更新 {count} 个字段：{fields}。",
   "ai_no_changes": "未应用任何修改。",
-
   "global": "全局",
   "globalAgentNotice": "这是由管理员管理的全局智能体。"
 }
