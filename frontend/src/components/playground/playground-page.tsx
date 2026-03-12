@@ -210,18 +210,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
         prevActiveIdRef.current = activeConversation.id
         return
       }
-      // Restore mode from last assistant message's metadata.mode, fallback "auto"
-      const msgs = activeConversation.messages
-      let restoredMode: AgentMode | null = null
-      if (msgs?.length) {
-        for (let i = msgs.length - 1; i >= 0; i--) {
-          if (msgs[i].role === "assistant" && msgs[i].metadata?.mode) {
-            restoredMode = msgs[i].metadata!.mode as AgentMode
-            break
-          }
-        }
-      }
-      setMode(restoredMode ?? "auto")
+      setMode("auto")
       reset()
       setQuery("")
       setSourceMode(null)
@@ -526,18 +515,6 @@ function HistoryTurn({ userContent, userMetadata, assistantMetadata, sseMessages
           </div>
         </div>
       )}
-      {/* Per-turn mode badge */}
-      <div className="flex items-center gap-1.5 mb-1">
-        <span className={cn(
-          "inline-flex items-center gap-1 text-[11px] text-muted-foreground/60",
-        )}>
-          {resolvedMode === "dag" ? (
-            <><GitBranch className="h-2.5 w-2.5" /> {t("modePlanner")}</>
-          ) : (
-            <><Zap className="h-2.5 w-2.5" /> {t("modeStandard")}</>
-          )}
-        </span>
-      </div>
       {resolvedMode === "react" ? (
         <ReactOutput items={reactItems} streamingAnswer={reactStreamingAnswer} suggestions={reactSuggestions} />
       ) : (
@@ -1226,15 +1203,6 @@ function PlaygroundContent({
                 <span className="flex items-center gap-1.5 ml-3 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span className="shiny-text">{statusText}</span>
-                </span>
-              )}
-              {hasLiveMessages && (
-                <span className="inline-flex items-center gap-1 ml-2 text-[11px] text-muted-foreground/60">
-                  {resolvedLiveMode === "dag" ? (
-                    <><GitBranch className="h-2.5 w-2.5" /> {t("modePlanner")}</>
-                  ) : (
-                    <><Zap className="h-2.5 w-2.5" /> {t("modeStandard")}</>
-                  )}
                 </span>
               )}
               {retryQuery && (
