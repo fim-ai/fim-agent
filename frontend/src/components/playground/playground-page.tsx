@@ -210,7 +210,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
         prevActiveIdRef.current = activeConversation.id
         return
       }
-      // Restore mode from last assistant message's metadata, fallback to conversation-level mode
+      // Restore mode from last assistant message's metadata.mode, fallback "auto"
       const msgs = activeConversation.messages
       let restoredMode: AgentMode | null = null
       if (msgs?.length) {
@@ -221,7 +221,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
           }
         }
       }
-      setMode(restoredMode ?? (activeConversation.mode as AgentMode))
+      setMode(restoredMode ?? "auto")
       reset()
       setQuery("")
       setSourceMode(null)

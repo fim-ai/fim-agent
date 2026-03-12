@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
-import { Plus, Star, Loader2, Trash2, MoreHorizontal, Check, Pencil, MessagesSquare, GitBranch } from "lucide-react"
+import { Plus, Star, Loader2, Trash2, MoreHorizontal, Check, Pencil, MessagesSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -328,9 +328,6 @@ export default function ChatsPage() {
               <span className="flex-1 truncate text-sm">
                 {conv.title || t("untitled")}
               </span>
-              {conv.mode === "dag" && (
-                <GitBranch className="shrink-0 h-3.5 w-3.5 text-muted-foreground/40" />
-              )}
               <span className="text-xs text-muted-foreground shrink-0">
                 {formatRelativeTime(conv.created_at, t)}
               </span>
