@@ -48,10 +48,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { ReactOutput } from "@/components/playground/react-output"
@@ -60,7 +57,7 @@ import { Examples } from "@/components/playground/examples"
 import { RightSidebar } from "@/components/playground/right-sidebar"
 import { DagFlowGraph } from "@/components/dag/dag-flow-graph"
 import { HistoryMessages } from "@/components/playground/history-messages"
-import { reconstructSSEMessages } from "@/lib/sse-utils"
+import { reconstructSSEMessages, detectTurnMode } from "@/lib/sse-utils"
 import type { SSEMessage } from "@/hooks/use-sse"
 import type { MessageResponse } from "@/types/conversation"
 import type { AgentResponse } from "@/types/agent"
@@ -106,7 +103,6 @@ interface PlaygroundPageProps {
 
 export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, onTurnComplete }: PlaygroundPageProps) {
   const t = useTranslations("playground")
-  const tc = useTranslations("common")
   const tError = useTranslations("errors")
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -126,7 +122,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
   const [query, setQuery] = useState("")
   const [sourceMode, setSourceMode] = useState<AgentMode | null>(null)
   const [pendingQuery, setPendingQuery] = useState<string | null>(null)
-  const [pendingMode, setPendingMode] = useState<AgentMode | null>(null)
+  // pendingMode removed — mode switching is now free within conversations
   const { messages, isRunning, isError, start, reset, abort } = useSSE()
   const [injectedMessages, setInjectedMessages] = useState<{id?: string; content: string; ts: number}[]>([])
   const failedInjectRef = useRef<string | null>(null)
@@ -214,7 +210,18 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
         prevActiveIdRef.current = activeConversation.id
         return
       }
-      setMode(activeConversation.mode as AgentMode)
+      // Restore mode from last assistant message's metadata, fallback to conversation-level mode
+      const msgs = activeConversation.messages
+      let restoredMode: AgentMode | null = null
+      if (msgs?.length) {
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].role === "assistant" && msgs[i].metadata?.mode) {
+            restoredMode = msgs[i].metadata!.mode as AgentMode
+            break
+          }
+        }
+      }
+      setMode(restoredMode ?? (activeConversation.mode as AgentMode))
       reset()
       setQuery("")
       setSourceMode(null)
@@ -381,11 +388,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
         onQueryChange={setQuery}
         onModeChange={(m) => {
           if (isRunning) return
-          if (activeId) {
-            setPendingMode(m)
-          } else {
-            setMode(m)
-          }
+          setMode(m)
         }}
         onRunWithQuery={runWithQuery}
         onAbort={abort}
@@ -402,38 +405,6 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
         initialAgentId={initialAgentId ?? agentParam}
         embedded={embedded}
       />
-
-      {/* Mode switch confirmation dialog */}
-      <Dialog open={pendingMode !== null} onOpenChange={(open) => { if (!open) setPendingMode(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("switchModeTitle", { mode: pendingMode === "auto" ? t("modeAuto") : pendingMode === "react" ? t("modeStandard") : t("modePlanner") })}</DialogTitle>
-            <DialogDescription>
-              {t("switchModeDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" className="px-6" onClick={() => setPendingMode(null)}>
-              {tc("cancel")}
-            </Button>
-            <Button className="px-6" onClick={() => {
-              if (pendingMode) {
-                reset()
-                setPendingQuery(null)
-          
-                setSourceMode(null)
-                clearActive()
-                setMode(pendingMode)
-                // Navigate to /new when switching mode (skip in embedded mode)
-                if (!embedded) router.push("/new")
-              }
-              setPendingMode(null)
-            }}>
-              {t("switchButton")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
     </div>
   )
@@ -500,22 +471,30 @@ function ImageThumbnail({ fileId, filename }: { fileId: string; filename: string
 }
 
 /** Renders a single history turn (user message + execution steps) using the same hooks as live mode. */
-function HistoryTurn({ userContent, userMetadata, sseMessages, mode, hideDagGraph }: {
+function HistoryTurn({ userContent, userMetadata, assistantMetadata, sseMessages, hideDagGraph }: {
   userContent: string | null
   userMetadata?: Record<string, unknown> | null
+  assistantMetadata?: Record<string, unknown> | null
   sseMessages: SSEMessage[]
-  mode: "react" | "dag" | "auto"
   hideDagGraph: boolean
 }) {
+  const t = useTranslations("playground")
   const { user } = useAuth()
   const userFallback = (user?.display_name || user?.email || "U").charAt(0).toUpperCase()
   const { items: reactItems, streamingAnswer: reactStreamingAnswer, suggestions: reactSuggestions } = useReactSteps(sseMessages, false)
   const dagData = useDagSteps(sseMessages, false)
 
-  // For auto mode, detect which renderer to use from routing event
-  const resolvedMode = mode === "auto"
-    ? (sseMessages.find(m => m.event === "routing")?.data as { mode?: string } | undefined)?.mode === "dag" ? "dag" : "react"
-    : mode
+  // Per-turn mode detection:
+  // 1. Check assistant message metadata (set by backend)
+  // 2. Fallback: detect from SSE event signatures
+  const resolvedMode: "react" | "dag" = (() => {
+    // First priority: assistant metadata.mode from backend
+    if (assistantMetadata?.mode === "react" || assistantMetadata?.mode === "dag") {
+      return assistantMetadata.mode as "react" | "dag"
+    }
+    // Second priority: detect from SSE events
+    return detectTurnMode(sseMessages)
+  })()
 
   // Detect clip metadata in user message
   const hasClipMeta = Array.isArray(userMetadata?.clips) && (userMetadata.clips as unknown[]).length > 0
@@ -547,6 +526,18 @@ function HistoryTurn({ userContent, userMetadata, sseMessages, mode, hideDagGrap
           </div>
         </div>
       )}
+      {/* Per-turn mode badge */}
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className={cn(
+          "inline-flex items-center gap-1 text-[11px] text-muted-foreground/60",
+        )}>
+          {resolvedMode === "dag" ? (
+            <><GitBranch className="h-2.5 w-2.5" /> {t("modePlanner")}</>
+          ) : (
+            <><Zap className="h-2.5 w-2.5" /> {t("modeStandard")}</>
+          )}
+        </span>
+      </div>
       {resolvedMode === "react" ? (
         <ReactOutput items={reactItems} streamingAnswer={reactStreamingAnswer} suggestions={reactSuggestions} />
       ) : (
@@ -733,7 +724,7 @@ function PlaygroundContent({
   // Available during BOTH live mode (shows previous turns) and history mode (shows all turns).
   const allHistoryTurns = useMemo(() => {
     if (!activeConversation?.messages?.length) return null
-    const turns: Array<{ user: MessageResponse | null; sseMessages: SSEMessage[] }> = []
+    const turns: Array<{ user: MessageResponse | null; assistantMetadata: Record<string, unknown> | null; sseMessages: SSEMessage[] }> = []
     const msgs = activeConversation.messages
     for (let i = 0; i < msgs.length; i++) {
       const msg = msgs[i]
@@ -748,7 +739,7 @@ function PlaygroundContent({
               break
             }
           }
-          turns.push({ user: userMsg, sseMessages: reconstructed })
+          turns.push({ user: userMsg, assistantMetadata: msg.metadata, sseMessages: reconstructed })
         }
       }
     }
@@ -1237,10 +1228,13 @@ function PlaygroundContent({
                   <span className="shiny-text">{statusText}</span>
                 </span>
               )}
-              {routingEvent && (
-                <span className="inline-flex items-center gap-1 ml-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-400">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  {t("autoRoutedTo", { mode: routingEvent.mode === "dag" ? t("modePlanner") : t("modeStandard") })}
+              {hasLiveMessages && (
+                <span className="inline-flex items-center gap-1 ml-2 text-[11px] text-muted-foreground/60">
+                  {resolvedLiveMode === "dag" ? (
+                    <><GitBranch className="h-2.5 w-2.5" /> {t("modePlanner")}</>
+                  ) : (
+                    <><Zap className="h-2.5 w-2.5" /> {t("modeStandard")}</>
+                  )}
                 </span>
               )}
               {retryQuery && (
@@ -1295,8 +1289,8 @@ function PlaygroundContent({
                         <HistoryTurn
                           userContent={turn.user?.content ?? null}
                           userMetadata={turn.user?.metadata}
+                          assistantMetadata={turn.assistantMetadata}
                           sseMessages={turn.sseMessages}
-                          mode={(activeConversation?.mode as AgentMode) ?? mode}
                           hideDagGraph={hasLiveMessages}
                         />
                       </Fragment>

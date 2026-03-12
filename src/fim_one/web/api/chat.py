@@ -1643,7 +1643,7 @@ async def react_endpoint(
                         role="assistant",
                         content=answer,
                         message_type="done",
-                        metadata_={**done_payload, "sse_events": sse_events},
+                        metadata_={**done_payload, "sse_events": sse_events, "mode": "react"},
                     )
                     db_session.add(assistant_msg)
                     if "usage" in done_payload:
@@ -2415,7 +2415,7 @@ async def dag_endpoint(
                         role="assistant",
                         content=answer,
                         message_type="done",
-                        metadata_={**dag_done_payload, "sse_events": sse_events},
+                        metadata_={**dag_done_payload, "sse_events": sse_events, "mode": "dag"},
                     )
                     db_session.add(assistant_msg)
                     if "usage" in dag_done_payload:
