@@ -15,6 +15,7 @@ description: "FIM One 的所有重要变更。"
   ### 新增
 </div>
 
+* **连接器凭据加密 + 用户级覆盖** — Bearer Token、API Key、Basic 认证等敏感字段现已从 `auth_config` 中提取，单独存储至新的 `connector_credentials` 表，支持通过 `CREDENTIAL_ENCRYPTION_KEY` 进行 Fernet 加密。所有 API 响应中的敏感字段均已自动屏蔽。新增端点 `GET/PUT/DELETE /api/connectors/{id}/my-credentials` 允许用户存储个人凭据覆盖。连接器新增 `allow_fallback` 字段，控制当用户无个人凭据时是否回退到连接器所有者的默认凭据。Chat 工具加载时优先使用用户个人凭据，`allow_fallback=true` 时自动回退到默认凭据。迁移文件 `s9u1w3y5a678` 自动将现有凭据从 `auth_config` 迁移至新表。
 * **评测中心** — 门户新增 `/eval` 区块，用于对 Agent 质量进行量化评估。功能包括：测试数据集管理（创建/编辑包含提示词 + 期望行为 + 断言的测试用例集合）；评测运行（选择 Agent 和数据集 → 通过 `asyncio.Semaphore(5)` 并行执行所有用例 → 使用快速 LLM 评分器为每条回答评级 → 持久化每条用例的通过/失败、延迟、Token 消耗）；结果查看器含可展开行、通过率进度条和运行中自动轮询（3 秒）。适用于企业采购评审。迁移文件 `r8t0v2x4z567`。
 * **管理后台：`json_mode_enabled` 每模型开关** — 每个模型配置现在在 Admin → Models → 高级设置 中新增了"JSON 模式"开关（默认开启）。关闭后，可阻止 LiteLLM 注入 assistant prefill 消息（`{"role":"assistant","content":"{"}`），避免 AWS Bedrock 在 Agent 第 2 次迭代时抛出 `ValidationException`。ENV 配置的模型通过新增的 `LLM_JSON_MODE_ENABLED` 环境变量控制。所有 URL 模式启发式判断（`is_bedrock`、`is_anthropic_relay`）已完全移除，能力标志改为显式声明。包含 Alembic 迁移（`q7s9u1w3y456`）。
 * **Admin 模型表单 UX 优化** — 重构添加/编辑模型对话框：默认仅显示名称、模型名称和 API Key 三个必填项；其余所有配置（API 地址、提供商、Temperature、最大输出 Token、上下文大小、JSON 模式）折叠在"高级"开关下，减少常规场景的视觉干扰。
