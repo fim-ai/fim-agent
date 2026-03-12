@@ -211,7 +211,14 @@ export async function apiFetch<T>(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     const detail = body.detail ?? body.error ?? res.statusText
-    const message = typeof detail === "string" ? detail : JSON.stringify(detail)
+    // Pydantic validation errors come back as an array of {loc, msg, type} objects.
+    // Extract the human-readable `msg` fields instead of dumping raw JSON.
+    const message =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((e: { msg?: string; loc?: string[] }) => e.msg ?? JSON.stringify(e)).join("; ")
+          : JSON.stringify(detail)
     throw new ApiError(
       res.status,
       message,

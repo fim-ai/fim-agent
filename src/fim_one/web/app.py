@@ -174,12 +174,26 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:  # noqa: ARG001
+        def _safe_errors(errors: list) -> list:
+            """Stringify any non-serializable values (e.g. Pydantic v2 ctx exception objects)."""
+            safe = []
+            for err in errors:
+                err = dict(err)
+                if "ctx" in err and isinstance(err["ctx"], dict):
+                    err["ctx"] = {
+                        k: str(v) if isinstance(v, Exception) else v
+                        for k, v in err["ctx"].items()
+                    }
+                safe.append(err)
+            return safe
+
+        errs = _safe_errors(exc.errors())
         return JSONResponse(
             status_code=422,
             content={
-                "detail": exc.errors(),
+                "detail": errs,
                 "error_code": "validation_error",
-                "error_args": {"errors": exc.errors()},
+                "error_args": {"errors": errs},
             },
         )
 

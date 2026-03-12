@@ -40,5 +40,12 @@
   "daysAgo": "{days}d ago",
   "monthsAgo": "{months}mo ago",
   "pastWeek": "Past week",
-  "pastMonth": "Past month"
+  "pastMonth": "Past month",
+  "gsTitle": "Getting Started",
+  "gsAllDone": "You're all set!",
+  "gsProgress": "completed",
+  "gsConnector": "Create a Connector",
+  "gsAgent": "Create an Agent",
+  "gsChat": "Start a Conversation",
+  "gsStart": "Start →"
 }

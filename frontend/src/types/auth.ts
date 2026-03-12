@@ -18,6 +18,9 @@ export interface UserInfo {
   has_password?: boolean
   oauth_bindings?: OAuthBindingInfo[]
   onboarding_completed: boolean
+  has_connector?: boolean
+  has_agent?: boolean
+  has_conversation?: boolean
 }
 
 export interface ChangePasswordRequest {

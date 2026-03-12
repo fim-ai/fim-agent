@@ -32,6 +32,7 @@ function getTokenExpiry(token: string): number | null {
 interface AuthContextValue {
   user: UserInfo | null
   isLoading: boolean
+  meLoaded: boolean   // true once /api/auth/me has responded with fresh server data
   login: (body: LoginRequest) => Promise<void>
   loginWithCode: (body: LoginWithCodeRequest) => Promise<void>
   register: (body: RegisterRequest) => Promise<void>
@@ -44,6 +45,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [meLoaded, setMeLoaded] = useState(false)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
   const tError = useTranslations("errors")
@@ -114,6 +116,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => setAuthFailureCallback(null)
   }, [clearAuth, router, tError])
 
+  // Fetch fresh user data from /me and mark meLoaded — called after login and on mount
+  const refreshMe = useCallback(() => {
+    authApi.me().then((fresh) => {
+      setUser(fresh)
+      localStorage.setItem(USER_KEY, JSON.stringify(fresh))
+      syncLocaleCookie(fresh.preferred_language)
+    }).catch(() => {/* LS snapshot remains valid */}).finally(() => {
+      setMeLoaded(true)
+    })
+  }, [syncLocaleCookie])
+
   // Initial token check on mount
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_TOKEN_KEY)
@@ -128,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? Math.max(Math.floor((expiry - Date.now()) / 1000), 0)
           : 7200 // fallback to 2h if JWT has no exp
         scheduleRefresh(expiresIn)
+        refreshMe()
       } catch {
         clearAuth()
       }
@@ -144,8 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       saveTokens(data.access_token, data.refresh_token, data.user)
       syncLocaleCookie(data.user.preferred_language)
       scheduleRefresh(data.expires_in)
+      refreshMe()
     },
-    [saveTokens, syncLocaleCookie, scheduleRefresh],
+    [saveTokens, syncLocaleCookie, scheduleRefresh, refreshMe],
   )
 
   const loginWithCode = useCallback(
@@ -154,8 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       saveTokens(data.access_token, data.refresh_token, data.user)
       syncLocaleCookie(data.user.preferred_language)
       scheduleRefresh(data.expires_in)
+      refreshMe()
     },
-    [saveTokens, syncLocaleCookie, scheduleRefresh],
+    [saveTokens, syncLocaleCookie, scheduleRefresh, refreshMe],
   )
 
   const register = useCallback(
@@ -164,8 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       saveTokens(data.access_token, data.refresh_token, data.user)
       syncLocaleCookie(data.user.preferred_language)
       scheduleRefresh(data.expires_in)
+      refreshMe()
     },
-    [saveTokens, syncLocaleCookie, scheduleRefresh],
+    [saveTokens, syncLocaleCookie, scheduleRefresh, refreshMe],
   )
 
   const updateUser = useCallback(
@@ -186,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearAuth, router])
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, loginWithCode, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, isLoading, meLoaded, login, loginWithCode, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

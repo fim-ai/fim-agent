@@ -39,6 +39,8 @@ from fim_one.web.auth import (
     verify_password,
 )
 from fim_one.web.models import LoginHistory, User
+from fim_one.web.models.agent import Agent
+from fim_one.web.models.connector import Connector
 from fim_one.web.models.conversation import Conversation
 from fim_one.web.models.oauth_binding import UserOAuthBinding
 from fim_one.web.schemas.auth import (
@@ -66,7 +68,13 @@ from fim_one.web.schemas.common import ApiResponse
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-def _build_user_info(user: User) -> UserInfo:
+def _build_user_info(
+    user: User,
+    *,
+    has_connector: bool = False,
+    has_agent: bool = False,
+    has_conversation: bool = False,
+) -> UserInfo:
     """Build a UserInfo schema from a User ORM instance, including oauth_bindings."""
     bindings = [
         OAuthBindingInfo(
@@ -90,6 +98,9 @@ def _build_user_info(user: User) -> UserInfo:
         oauth_bindings=bindings,
         onboarding_completed=user.onboarding_completed,
         avatar=user.avatar,
+        has_connector=has_connector,
+        has_agent=has_agent,
+        has_conversation=has_conversation,
     )
 
 
@@ -544,7 +555,19 @@ async def me(
         select(User).options(selectinload(User.oauth_bindings)).where(User.id == current_user.id)
     )
     user = result.scalar_one()
-    return ApiResponse(data=_build_user_info(user).model_dump())
+
+    # Check getting-started steps via lightweight EXISTS queries
+    uid = current_user.id
+    has_connector_row = await db.execute(select(Connector.id).where(Connector.user_id == uid).limit(1))
+    has_agent_row = await db.execute(select(Agent.id).where(Agent.user_id == uid).limit(1))
+    has_conversation_row = await db.execute(select(Conversation.id).where(Conversation.user_id == uid).limit(1))
+
+    return ApiResponse(data=_build_user_info(
+        user,
+        has_connector=has_connector_row.first() is not None,
+        has_agent=has_agent_row.first() is not None,
+        has_conversation=has_conversation_row.first() is not None,
+    ).model_dump())
 
 
 @router.patch("/profile", response_model=ApiResponse)

@@ -40,5 +40,12 @@
   "daysAgo": "{days} 天前",
   "monthsAgo": "{months} 个月前",
   "pastWeek": "最近一周",
-  "pastMonth": "最近一个月"
+  "pastMonth": "最近一个月",
+  "gsTitle": "新手任务",
+  "gsAllDone": "全部完成！",
+  "gsProgress": "已完成",
+  "gsConnector": "创建一个连接器",
+  "gsAgent": "创建一个智能体",
+  "gsChat": "开始第一次对话",
+  "gsStart": "去完成 →"
 }

@@ -31,6 +31,9 @@ class UserInfo(BaseModel):
     oauth_bindings: list[OAuthBindingInfo] = []
     onboarding_completed: bool = False
     avatar: str | None = None
+    has_connector: bool = False
+    has_agent: bool = False
+    has_conversation: bool = False
 
 
 class RegisterRequest(BaseModel):
