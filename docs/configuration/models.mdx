@@ -335,6 +335,27 @@ LLM_MODEL=gpt-5.4
 
 No extra configuration needed — authentication headers, parameter formats, and response parsing all switch automatically.
 
+### Step-by-Step: How Path Detection Works
+
+Here's a concrete example showing what happens internally when you configure a relay:
+
+```bash
+# .env — Claude via a relay platform
+LLM_API_KEY=your-relay-key
+LLM_BASE_URL=https://my-relay.example.com/claude
+LLM_MODEL=claude-sonnet-4-6
+LLM_REASONING_EFFORT=medium
+```
+
+1. FIM One sees `/claude` in the URL path → detects **Anthropic native** protocol
+2. Model is prefixed as `anthropic/claude-sonnet-4-6` for LiteLLM routing
+3. Requests use Anthropic's `/v1/messages` format with `x-api-key` auth header
+4. `reasoning_effort=medium` is translated to Anthropic's native `thinking` parameter (not OpenAI's `reasoning_effort`)
+
+<Warning>
+If the same relay URL were `https://my-relay.example.com/v1` instead, the `/claude` hint would be missing — FIM One would fall back to OpenAI-compatible protocol, sending `/v1/chat/completions` requests to a Claude-native endpoint, which would fail. **The URL path matters.**
+</Warning>
+
 ### Why This Matters
 
 - **Anthropic native endpoint** gives you proper `reasoning_content` support (extended thinking visible in the UI), correct tool-calling format, and `x-api-key` authentication — features lost when using OpenAI-compatible translation.

@@ -75,7 +75,20 @@ Create/edit forms MUST guard against accidental close (modal backdrop, X button,
 
 ## i18n (MANDATORY)
 
-All UI text must use `next-intl` — **never hardcode English strings**. Add keys to both `messages/en/{ns}.json` and `messages/zh/{ns}.json`, use `useTranslations("{ns}")` in components. Shared strings (Save/Cancel/Delete) → `useTranslations("common")`. New namespace = just drop JSON files, auto-discovered via `fs.readdirSync`.
+All UI text must use `next-intl` — **never hardcode English strings**. Use `useTranslations("{ns}")` in components. Shared strings (Save/Cancel/Delete) → `useTranslations("common")`. New namespace = just drop JSON files, auto-discovered via `fs.readdirSync`.
+
+**Translation workflow — English only, auto-sync the rest:**
+- **Only edit `messages/en/{ns}.json`** — never manually edit `messages/zh/`, `messages/ja/`, `messages/ko/`, `messages/de/`, `messages/fr/`
+- Other locales are **auto-translated on commit** via the pre-commit hook (`scripts/hooks/pre-commit`)
+- The hook calls `scripts/translate.py` which translates new/changed keys incrementally using the project's Fast LLM
+- To add a new namespace: create `messages/en/{ns}.json` only; other locale files are generated automatically
+- Same rule applies to `docs/*.mdx` and `README.md` — edit EN only, translations auto-sync on commit
+- To force full retranslation: `uv run scripts/translate.py --all`
+- Hook setup (run once after clone): `bash scripts/setup-hooks.sh`
+
+**Adding a new locale — full-stack checklist:**
+- Frontend: add to `SUPPORTED_LOCALES` in `frontend/src/i18n/request.ts`
+- Backend: update ALL locale regex patterns in `src/fim_one/web/schemas/auth.py` — includes `preferred_language` (`UpdateProfileRequest`) and `locale` (`SendVerificationCodeRequest`, `SendLoginCodeRequest`, `SendResetCodeRequest`, `SendForgotCodeRequest`). Missing this causes silent 400 rejections and locale won't persist after refresh.
 
 ## Alembic Migration Rules (MANDATORY — SQLite/PG dual-track)
 

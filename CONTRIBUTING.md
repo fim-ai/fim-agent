@@ -158,7 +158,7 @@ Bonus points:
 | **Security patches** | Fix vulnerabilities, harden inputs                  |
 | **Test coverage**    | Add tests for untested code paths                   |
 | **Documentation**    | Improve guides, fix typos, add examples             |
-| **Translations**     | Improve i18n strings (EN/ZH)                        |
+| **Translations**     | Improve EN i18n strings — ZH/JA/KO/DE/FR auto-generated |
 | **Performance**      | Optimize streaming, reduce latency                  |
 | **New features**     | Welcome — open an issue to discuss first            |
 
@@ -226,6 +226,16 @@ cp example.env .env
 # Edit .env with your API keys (at minimum: LLM_API_KEY, LLM_MODEL)
 ```
 
+### Git Hooks (required — run once after clone)
+
+```bash
+bash scripts/setup-hooks.sh
+```
+
+This installs a pre-commit hook that **auto-translates i18n strings** whenever you change English source files. You only need to edit `messages/en/`, `docs/*.mdx`, or `README.md` — other locales (ZH, JA, KO, DE, FR) are generated automatically on commit using the project's Fast LLM.
+
+> The hook requires `LLM_API_KEY` in your `.env`. If you don't have one, the hook will warn and skip translation — your commit still goes through.
+
 ## Project Structure
 
 ```
@@ -264,7 +274,7 @@ docs/                # Mintlify documentation
 ### TypeScript (Frontend)
 
 - **i18n is mandatory**: all UI text must use `next-intl`, never hardcode strings
-  - Add keys to both `messages/en/{ns}.json` and `messages/zh/{ns}.json`
+  - **Only edit `messages/en/{ns}.json`** — other locales are auto-generated on commit (see [Internationalization](README.md#internationalization-i18n) in README)
 - **No native dialogs**: use shadcn `AlertDialog` / `Dialog` / Toast (sonner)
 - **Navigation**: use `<Link>`, not `<button onClick={router.push()}>`
 - **Admin tables**: row actions must use a "..." `DropdownMenu` (see `admin-users.tsx`)
@@ -307,7 +317,7 @@ Before submitting, ensure:
 - [ ] `uv run ruff check src/ tests/` passes
 - [ ] `uv run pytest` passes
 - [ ] `cd frontend && pnpm build` passes (if frontend changes)
-- [ ] i18n strings added to both `en/` and `zh/` (if UI text changed)
+- [ ] i18n strings added to `messages/en/` only — other locales auto-translate on commit (if UI text changed)
 - [ ] New features have corresponding tests
 - [ ] PR description explains **what** and **why**
 

@@ -384,7 +384,55 @@ ruff check src/ tests/
 
 # Type check
 mypy src/
+
+# Install git hooks (run once after clone — enables auto i18n translation on commit)
+bash scripts/setup-hooks.sh
 ```
+
+## Internationalization (i18n)
+
+FIM One supports **6 languages**: English, Chinese, Japanese, Korean, German, and French. Translations are fully automated — you only need to edit English source files.
+
+**Supported languages**: `en` `zh` `ja` `ko` `de` `fr`
+
+| What | Source (edit this) | Auto-generated (don't edit) |
+|------|--------------------|-----------------------------|
+| UI strings | `frontend/messages/en/*.json` | `frontend/messages/{locale}/*.json` |
+| Documentation | `docs/*.mdx` | `docs/{locale}/*.mdx` |
+| README | `README.md` | `README.{locale}.md` |
+
+**How it works**: A pre-commit hook detects changes to English files and translates them via the project's Fast LLM. Translations are incremental — only new, modified, or deleted content is processed.
+
+```bash
+# Setup (run once after clone)
+bash scripts/setup-hooks.sh
+
+# Full translation (first-time or after adding a new locale)
+uv run scripts/translate.py --all
+
+# Translate specific files
+uv run scripts/translate.py --files frontend/messages/en/common.json
+
+# Override target locales
+uv run scripts/translate.py --all --locale ja ko
+
+# Increase parallel API calls (default: 3, raise if your API allows)
+uv run scripts/translate.py --all --concurrency 10
+
+# Daily workflow: just commit — the hook handles everything automatically
+git add frontend/messages/en/common.json
+git commit -m "feat(i18n): add new strings"  # hook auto-translates
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--all` | — | Retranslate everything (ignore cache) |
+| `--files` | — | Translate specific files only |
+| `--locale` | auto-discover | Override target locales |
+| `--concurrency` | 3 | Max parallel LLM API calls |
+| `--force` | — | Force retranslation of all JSON keys |
+
+**Adding a new language**: `mkdir frontend/messages/{locale}` → run `--all` → add locale to `frontend/src/i18n/request.ts` `SUPPORTED_LOCALES`.
 
 ## Roadmap
 
