@@ -6474,3 +6474,410 @@ class TestNewTemplates:
         assert NodeType.VARIABLE_ASSIGN in type_set
         order = topological_sort(bp)
         assert order[0] == "start_1"
+
+
+# =========================================================================
+# MCP node tests
+# =========================================================================
+
+
+class TestMCPNode:
+    """Test the MCPExecutor (stub implementation)."""
+
+    @pytest.mark.asyncio
+    async def test_basic_stub_execution(self):
+        """MCP node should return stub result with server_id and tool_name."""
+        from fim_one.core.workflow.nodes import MCPExecutor
+
+        node = WorkflowNodeDef(
+            id="mcp_1",
+            type=NodeType.MCP,
+            data={
+                "type": "MCP",
+                "server_id": "my-server",
+                "tool_name": "search",
+                "parameters": {"query": "hello"},
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = MCPExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["server_id"] == "my-server"
+        assert result.output["tool_name"] == "search"
+        assert result.output["status"] == "stub"
+
+    @pytest.mark.asyncio
+    async def test_missing_server_id_fails(self):
+        """MCP node should fail when server_id is missing."""
+        from fim_one.core.workflow.nodes import MCPExecutor
+
+        node = WorkflowNodeDef(
+            id="mcp_1",
+            type=NodeType.MCP,
+            data={
+                "type": "MCP",
+                "tool_name": "search",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = MCPExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.FAILED
+        assert "server_id" in result.error
+
+    @pytest.mark.asyncio
+    async def test_missing_tool_name_fails(self):
+        """MCP node should fail when tool_name is missing."""
+        from fim_one.core.workflow.nodes import MCPExecutor
+
+        node = WorkflowNodeDef(
+            id="mcp_1",
+            type=NodeType.MCP,
+            data={
+                "type": "MCP",
+                "server_id": "my-server",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = MCPExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.FAILED
+        assert "tool_name" in result.error
+
+    @pytest.mark.asyncio
+    async def test_parameter_interpolation(self):
+        """MCP node should interpolate {{variables}} in parameter values."""
+        from fim_one.core.workflow.nodes import MCPExecutor
+
+        node = WorkflowNodeDef(
+            id="mcp_1",
+            type=NodeType.MCP,
+            data={
+                "type": "MCP",
+                "server_id": "my-server",
+                "tool_name": "search",
+                "parameters": {"query": "{{input.search_term}}", "limit": 10},
+            },
+        )
+        store = VariableStore()
+        await store.set("input.search_term", "workflow engines")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = MCPExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["parameters"]["query"] == "workflow engines"
+        assert result.output["parameters"]["limit"] == 10
+
+    @pytest.mark.asyncio
+    async def test_output_variable_assignment(self):
+        """MCP node should set default output variable in the store."""
+        from fim_one.core.workflow.nodes import MCPExecutor
+
+        node = WorkflowNodeDef(
+            id="mcp_1",
+            type=NodeType.MCP,
+            data={
+                "type": "MCP",
+                "server_id": "my-server",
+                "tool_name": "search",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = MCPExecutor()
+        await executor.execute(node, store, ctx)
+
+        stored = await store.get("mcp_result")
+        assert stored is not None
+        assert stored["server_id"] == "my-server"
+
+        node_output = await store.get("mcp_1.output")
+        assert node_output is not None
+        assert node_output["tool_name"] == "search"
+
+    @pytest.mark.asyncio
+    async def test_custom_output_variable(self):
+        """MCP node should respect custom output_variable name."""
+        from fim_one.core.workflow.nodes import MCPExecutor
+
+        node = WorkflowNodeDef(
+            id="mcp_1",
+            type=NodeType.MCP,
+            data={
+                "type": "MCP",
+                "server_id": "my-server",
+                "tool_name": "search",
+                "output_variable": "search_output",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = MCPExecutor()
+        await executor.execute(node, store, ctx)
+
+        stored = await store.get("search_output")
+        assert stored is not None
+        assert stored["status"] == "stub"
+
+        namespaced = await store.get("mcp_1.search_output")
+        assert namespaced is not None
+
+
+# =========================================================================
+# BuiltinTool node tests
+# =========================================================================
+
+
+class TestBuiltinToolNode:
+    """Test the BuiltinToolExecutor (stub implementation)."""
+
+    @pytest.mark.asyncio
+    async def test_basic_stub_execution(self):
+        """BuiltinTool node should return stub result with tool_id."""
+        from fim_one.core.workflow.nodes import BuiltinToolExecutor
+
+        node = WorkflowNodeDef(
+            id="tool_1",
+            type=NodeType.BUILTIN_TOOL,
+            data={
+                "type": "BUILTIN_TOOL",
+                "tool_id": "web_search",
+                "parameters": {"query": "test"},
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = BuiltinToolExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["tool_id"] == "web_search"
+        assert result.output["status"] == "stub"
+
+    @pytest.mark.asyncio
+    async def test_missing_tool_id_fails(self):
+        """BuiltinTool node should fail when tool_id is missing."""
+        from fim_one.core.workflow.nodes import BuiltinToolExecutor
+
+        node = WorkflowNodeDef(
+            id="tool_1",
+            type=NodeType.BUILTIN_TOOL,
+            data={
+                "type": "BUILTIN_TOOL",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = BuiltinToolExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.FAILED
+        assert "tool_id" in result.error
+
+    @pytest.mark.asyncio
+    async def test_parameter_interpolation(self):
+        """BuiltinTool node should interpolate {{variables}} in parameter values."""
+        from fim_one.core.workflow.nodes import BuiltinToolExecutor
+
+        node = WorkflowNodeDef(
+            id="tool_1",
+            type=NodeType.BUILTIN_TOOL,
+            data={
+                "type": "BUILTIN_TOOL",
+                "tool_id": "web_search",
+                "parameters": {"query": "{{input.q}}", "count": 5},
+            },
+        )
+        store = VariableStore()
+        await store.set("input.q", "FIM One docs")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = BuiltinToolExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["parameters"]["query"] == "FIM One docs"
+        assert result.output["parameters"]["count"] == 5
+
+    @pytest.mark.asyncio
+    async def test_output_variable_assignment(self):
+        """BuiltinTool node should set default output variable in the store."""
+        from fim_one.core.workflow.nodes import BuiltinToolExecutor
+
+        node = WorkflowNodeDef(
+            id="tool_1",
+            type=NodeType.BUILTIN_TOOL,
+            data={
+                "type": "BUILTIN_TOOL",
+                "tool_id": "web_search",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = BuiltinToolExecutor()
+        await executor.execute(node, store, ctx)
+
+        stored = await store.get("tool_result")
+        assert stored is not None
+        assert stored["tool_id"] == "web_search"
+
+        node_output = await store.get("tool_1.output")
+        assert node_output is not None
+        assert node_output["tool_id"] == "web_search"
+
+    @pytest.mark.asyncio
+    async def test_custom_output_variable(self):
+        """BuiltinTool node should respect custom output_variable name."""
+        from fim_one.core.workflow.nodes import BuiltinToolExecutor
+
+        node = WorkflowNodeDef(
+            id="tool_1",
+            type=NodeType.BUILTIN_TOOL,
+            data={
+                "type": "BUILTIN_TOOL",
+                "tool_id": "web_search",
+                "output_variable": "search_data",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = BuiltinToolExecutor()
+        await executor.execute(node, store, ctx)
+
+        stored = await store.get("search_data")
+        assert stored is not None
+        assert stored["status"] == "stub"
+
+        namespaced = await store.get("tool_1.search_data")
+        assert namespaced is not None
+
+
+# =========================================================================
+# MCP & BuiltinTool validation tests
+# =========================================================================
+
+
+class TestMCPBuiltinValidation:
+    """Validation warnings for MCP and BuiltinTool nodes."""
+
+    def test_mcp_missing_server_warning(self):
+        """validate_blueprint should warn when MCP node has no server_id."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                {
+                    "id": "mcp_1",
+                    "type": "mcp",
+                    "data": {
+                        "type": "MCP",
+                        "tool_name": "search",
+                    },
+                },
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "mcp_1"),
+                _edge("mcp_1", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_server_id" in codes
+
+    def test_mcp_missing_tool_warning(self):
+        """validate_blueprint should warn when MCP node has no tool_name."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                {
+                    "id": "mcp_1",
+                    "type": "mcp",
+                    "data": {
+                        "type": "MCP",
+                        "server_id": "my-server",
+                    },
+                },
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "mcp_1"),
+                _edge("mcp_1", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_tool_name" in codes
+
+    def test_builtin_tool_missing_tool_id_warning(self):
+        """validate_blueprint should warn when BUILTIN_TOOL node has no tool_id."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                {
+                    "id": "bt_1",
+                    "type": "builtinTool",
+                    "data": {
+                        "type": "BUILTIN_TOOL",
+                    },
+                },
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "bt_1"),
+                _edge("bt_1", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_tool_id" in codes
+
+    def test_no_warning_when_configured(self):
+        """No warnings when MCP and BUILTIN_TOOL nodes are fully configured."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                {
+                    "id": "mcp_1",
+                    "type": "mcp",
+                    "data": {
+                        "type": "MCP",
+                        "server_id": "my-server",
+                        "tool_name": "search",
+                    },
+                },
+                {
+                    "id": "bt_1",
+                    "type": "builtinTool",
+                    "data": {
+                        "type": "BUILTIN_TOOL",
+                        "tool_id": "web_search",
+                    },
+                },
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "mcp_1"),
+                _edge("mcp_1", "bt_1"),
+                _edge("bt_1", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_server_id" not in codes
+        assert "missing_tool_name" not in codes
+        assert "missing_tool_id" not in codes

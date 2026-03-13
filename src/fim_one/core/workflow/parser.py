@@ -413,5 +413,25 @@ def validate_blueprint(blueprint: WorkflowBlueprint) -> list[BlueprintWarning]:
                     code="empty_parameters",
                     message="Parameter extractor has no parameters to extract",
                 ))
+        elif node.type == NodeType.MCP:
+            if not node.data.get("server_id"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_server_id",
+                    message="MCP node has no server selected",
+                ))
+            if not node.data.get("tool_name"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_tool_name",
+                    message="MCP node has no tool selected",
+                ))
+        elif node.type == NodeType.BUILTIN_TOOL:
+            if not node.data.get("tool_id"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_tool_id",
+                    message="Builtin tool node has no tool selected",
+                ))
 
     return warnings

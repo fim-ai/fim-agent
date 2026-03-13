@@ -2608,6 +2608,155 @@ class HumanInterventionExecutor:
             )
 
 
+class MCPExecutor:
+    """Execute an MCP server tool. Currently a stub — returns simulated result."""
+
+    @staticmethod
+    def output_schema() -> list[dict[str, str]]:
+        return [
+            {"name": "output", "type": "any", "description": "MCP tool execution result"},
+        ]
+
+    async def execute(
+        self,
+        node: WorkflowNodeDef,
+        store: VariableStore,
+        context: ExecutionContext,
+    ) -> NodeResult:
+        t0 = time.time()
+        try:
+            server_id = node.data.get("server_id", "")
+            tool_name = node.data.get("tool_name", "")
+            params_raw = node.data.get("parameters", {})
+            output_var = node.data.get("output_variable", "mcp_result")
+
+            if not server_id:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="MCP node missing server_id",
+                    duration_ms=_ms_since(t0),
+                )
+            if not tool_name:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="MCP node missing tool_name",
+                    duration_ms=_ms_since(t0),
+                )
+
+            # Interpolate parameter values
+            params = {}
+            for key, val in params_raw.items():
+                if isinstance(val, str):
+                    params[key] = await store.interpolate(val)
+                else:
+                    params[key] = val
+
+            # Stub: in production this would call the MCP client
+            logger.info(
+                "MCP node %s: server=%s, tool=%s, params=%s",
+                node.id, server_id, tool_name, params,
+            )
+
+            result = {
+                "server_id": server_id,
+                "tool_name": tool_name,
+                "parameters": params,
+                "result": f"MCP tool '{tool_name}' execution pending implementation",
+                "status": "stub",
+            }
+
+            await store.set(output_var, result)
+            await store.set(f"{node.id}.output", result)
+            await store.set(f"{node.id}.{output_var}", result)
+
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output=result,
+                duration_ms=_ms_since(t0),
+            )
+        except Exception as exc:
+            logger.exception("MCP node %s failed", node.id)
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.FAILED,
+                error=f"MCP error: {exc}",
+                duration_ms=_ms_since(t0),
+            )
+
+
+class BuiltinToolExecutor:
+    """Execute a builtin tool from the system ToolRegistry. Currently a stub."""
+
+    @staticmethod
+    def output_schema() -> list[dict[str, str]]:
+        return [
+            {"name": "output", "type": "any", "description": "Tool execution result"},
+        ]
+
+    async def execute(
+        self,
+        node: WorkflowNodeDef,
+        store: VariableStore,
+        context: ExecutionContext,
+    ) -> NodeResult:
+        t0 = time.time()
+        try:
+            tool_id = node.data.get("tool_id", "")
+            params_raw = node.data.get("parameters", {})
+            output_var = node.data.get("output_variable", "tool_result")
+
+            if not tool_id:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="BuiltinTool node missing tool_id",
+                    duration_ms=_ms_since(t0),
+                )
+
+            # Interpolate parameter values
+            params = {}
+            for key, val in params_raw.items():
+                if isinstance(val, str):
+                    params[key] = await store.interpolate(val)
+                else:
+                    params[key] = val
+
+            # Stub: in production this would look up tool_id in ToolRegistry and execute
+            logger.info(
+                "BuiltinTool node %s: tool=%s, params=%s",
+                node.id, tool_id, params,
+            )
+
+            result = {
+                "tool_id": tool_id,
+                "parameters": params,
+                "result": f"Builtin tool '{tool_id}' execution pending implementation",
+                "status": "stub",
+            }
+
+            await store.set(output_var, result)
+            await store.set(f"{node.id}.output", result)
+            await store.set(f"{node.id}.{output_var}", result)
+
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output=result,
+                duration_ms=_ms_since(t0),
+            )
+        except Exception as exc:
+            logger.exception("BuiltinTool node %s failed", node.id)
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.FAILED,
+                error=f"BuiltinTool error: {exc}",
+                duration_ms=_ms_since(t0),
+            )
+
+
 # ---------------------------------------------------------------------------
 # Registry — map NodeType to executor class
 # ---------------------------------------------------------------------------
@@ -2634,6 +2783,8 @@ EXECUTOR_REGISTRY: dict[NodeType, type] = {
     NodeType.DOCUMENT_EXTRACTOR: DocumentExtractorExecutor,
     NodeType.QUESTION_UNDERSTANDING: QuestionUnderstandingExecutor,
     NodeType.HUMAN_INTERVENTION: HumanInterventionExecutor,
+    NodeType.MCP: MCPExecutor,
+    NodeType.BUILTIN_TOOL: BuiltinToolExecutor,
 }
 
 
