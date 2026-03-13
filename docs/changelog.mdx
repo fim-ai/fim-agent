@@ -11,6 +11,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Workflow-level timeout** — New `workflow_timeout_ms` parameter in the engine cancels all pending/running nodes when exceeded, with bounded async wait for responsive timeout detection.
+- **Re-run with last inputs** — "Run Again" button pre-fills the input form with values from the previous run.
+- **Run history status filter** — Dropdown to filter workflow runs by Completed/Failed/Cancelled/Running.
+- **Workflow version history** — Auto-versioning on blueprint save with list/get/restore API endpoints for reverting to previous versions.
+- **Validate endpoint** — `POST /validate` for structural blueprint validation without execution.
+- **Dry-run mode** — `POST /run` with `dry_run=true` returns the execution plan as JSON without executing.
+- **13 condition branch routing tests** — Comprehensive coverage for branching, merging, nesting, and classifier routing.
 - **Per-node execution statistics panel** — New stats panel (`node-stats-panel.tsx`) showing per-node success rates, average durations, and failure counts sorted worst-first. Integrated into the workflow toolbar. New `getNodeStats` API client method and `NodeStatEntry` type for frontend consumption.
 - **Phase 3 nodes: SubWorkflow and ENV** — Two new node types with backend executors, parser validation, and 14 new tests (total: 304 → 306):
   - **SubWorkflow**: Stub executor for nested workflow orchestration — select a target workflow and map input/output variables.

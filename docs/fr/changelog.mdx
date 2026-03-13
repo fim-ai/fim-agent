@@ -9,15 +9,22 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ## [Non publié]
 
-### Ajouté
+### Ajouts
 
-- **Panneau de statistiques d'exécution par nœud** — Nouveau panneau de statistiques (`node-stats-panel.tsx`) affichant les taux de réussite par nœud, les durées moyennes et les comptages d'échecs triés par ordre décroissant. Intégré dans la barre d'outils du flux de travail. Nouvelle méthode client API `getNodeStats` et type `NodeStatEntry` pour la consommation frontend.
-- **Nœuds de phase 3 : SubWorkflow et ENV** — Deux nouveaux types de nœuds avec exécuteurs backend, validation du parseur et 14 nouveaux tests (total : 304 → 306) :
-  - **SubWorkflow** : Exécuteur stub pour l'orchestration de flux de travail imbriqués — sélectionnez un flux de travail cible et mappez les variables d'entrée/sortie.
-  - **ENV** : Lit les variables d'environnement chiffrées au moment de l'exécution avec sélection de clé et valeurs par défaut de secours.
-- **Composants frontend SubWorkflow et ENV** — Intégration frontend complète : `sub-workflow-node.tsx` et `env-node.tsx` avec formulaires de configuration, entrées de palette, couleurs de minimap et entrées de type de nœud dans tous les mappages de types.
-- **Deux nouveaux modèles de flux de travail (14 au total)** — « Intégration API sécurisée » (ENV → HTTP avec en-têtes d'authentification) et « Orchestration de sous-flux de travail » (LLM → SubWorkflow → résumer).
-- **Dialogue des raccourcis clavier** — Appuyez sur `?` pour afficher tous les raccourcis clavier disponibles dans une superposition de dialogue.
+- **Délai d'expiration au niveau du workflow** — Nouveau paramètre `workflow_timeout_ms` dans le moteur qui annule tous les nœuds en attente/en cours en cas de dépassement, avec attente asynchrone bornée pour une détection de délai d'expiration réactive.
+- **Réexécution avec les dernières entrées** — Le bouton "Exécuter à nouveau" préremplissage le formulaire d'entrée avec les valeurs de l'exécution précédente.
+- **Filtre de statut de l'historique d'exécution** — Menu déroulant pour filtrer les exécutions de workflow par Terminé/Échoué/Annulé/En cours.
+- **Historique des versions du workflow** — Versioning automatique lors de l'enregistrement du blueprint avec des points de terminaison API list/get/restore pour revenir à des versions antérieures.
+- **Point de terminaison de validation** — `POST /validate` pour la validation structurelle du blueprint sans exécution.
+- **Mode d'exécution à blanc** — `POST /run` avec `dry_run=true` retourne le plan d'exécution en JSON sans exécuter.
+- **13 tests de routage de branche conditionnelle** — Couverture complète pour le branchement, la fusion, l'imbrication et le routage par classificateur.
+- **Panneau de statistiques d'exécution par nœud** — Nouveau panneau de statistiques (`node-stats-panel.tsx`) affichant les taux de réussite par nœud, les durées moyennes et les comptages d'échecs triés du pire au meilleur. Intégré dans la barre d'outils du workflow. Nouvelle méthode client API `getNodeStats` et type `NodeStatEntry` pour la consommation frontend.
+- **Nœuds Phase 3 : SubWorkflow et ENV** — Deux nouveaux types de nœuds avec exécuteurs backend, validation d'analyseur et 14 nouveaux tests (total : 304 → 306) :
+  - **SubWorkflow** : Exécuteur stub pour l'orchestration de workflow imbriqué — sélectionnez un workflow cible et mappez les variables d'entrée/sortie.
+  - **ENV** : Lit les variables d'environnement chiffrées à l'exécution avec sélection de clé et valeurs par défaut de secours.
+- **Composants frontend SubWorkflow et ENV** — Intégration frontend complète : `sub-workflow-node.tsx` et `env-node.tsx` avec formulaires de configuration, entrées de palette, couleurs de minimap et entrées d'enregistrement de type de nœud dans tous les mappages de type.
+- **Deux nouveaux modèles de workflow (14 au total)** — "Intégration API sécurisée" (ENV → HTTP avec en-têtes d'authentification) et "Orchestration de sous-workflow" (LLM → SubWorkflow → résumer).
+- **Dialogue des raccourcis clavier** — Appuyez sur `?` pour afficher tous les raccourcis clavier disponibles dans un dialogue superposé.
 
 ### Modifié
 

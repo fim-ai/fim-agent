@@ -11,11 +11,18 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Hinzugefügt
 
-- **Pro-Knoten-Ausführungsstatistik-Panel** — Neues Stats-Panel (`node-stats-panel.tsx`) mit Pro-Knoten-Erfolgsquoten, durchschnittlichen Dauern und Fehleranzahl sortiert nach schlechtesten zuerst. Integriert in die Workflow-Symbolleiste. Neue `getNodeStats` API-Client-Methode und `NodeStatEntry` Typ für Frontend-Verbrauch.
-- **Phase-3-Knoten: SubWorkflow und ENV** — Zwei neue Knotentypen mit Backend-Executoren, Parser-Validierung und 14 neuen Tests (Gesamt: 304 → 306):
-  - **SubWorkflow**: Stub-Executor für verschachtelte Workflow-Orchestrierung — wählen Sie einen Ziel-Workflow aus und ordnen Sie Eingabe-/Ausgabevariablen zu.
+- **Workflow-Level-Timeout** — Neuer `workflow_timeout_ms`-Parameter in der Engine bricht alle ausstehenden/laufenden Knoten ab, wenn überschritten, mit begrenztem asynchronem Warten für responsive Timeout-Erkennung.
+- **Erneut mit letzten Eingaben ausführen** — "Erneut ausführen"-Schaltfläche füllt das Eingabeformular mit Werten aus dem vorherigen Durchlauf vor.
+- **Ausführungsverlauf-Statusfilter** — Dropdown zum Filtern von Workflow-Durchläufen nach Abgeschlossen/Fehlgeschlagen/Abgebrochen/Wird ausgeführt.
+- **Workflow-Versionsverlauf** — Automatische Versionierung beim Speichern von Blueprints mit List/Get/Restore-API-Endpunkten zum Zurücksetzen auf vorherige Versionen.
+- **Validate-Endpunkt** — `POST /validate` für strukturelle Blueprint-Validierung ohne Ausführung.
+- **Dry-Run-Modus** — `POST /run` mit `dry_run=true` gibt den Ausführungsplan als JSON zurück, ohne auszuführen.
+- **13 Condition-Branch-Routing-Tests** — Umfassende Abdeckung für Verzweigung, Zusammenführung, Verschachtelung und Classifier-Routing.
+- **Pro-Knoten-Ausführungsstatistik-Panel** — Neues Stats-Panel (`node-stats-panel.tsx`) mit Pro-Knoten-Erfolgsquoten, durchschnittlichen Dauern und Fehlerzählungen, sortiert nach schlimmsten zuerst. In die Workflow-Symbolleiste integriert. Neue `getNodeStats`-API-Client-Methode und `NodeStatEntry`-Typ für Frontend-Verbrauch.
+- **Phase-3-Knoten: SubWorkflow und ENV** — Zwei neue Knotentypen mit Backend-Executoren, Parser-Validierung und 14 neue Tests (insgesamt: 304 → 306):
+  - **SubWorkflow**: Stub-Executor für verschachtelte Workflow-Orchestrierung — wählen Sie einen Ziel-Workflow und ordnen Sie Eingabe-/Ausgabevariablen zu.
   - **ENV**: Liest verschlüsselte Umgebungsvariablen zur Laufzeit mit Schlüsselauswahl und Fallback-Standardwerten.
-- **SubWorkflow- und ENV-Frontend-Komponenten** — Vollständige Frontend-Integration: `sub-workflow-node.tsx` und `env-node.tsx` mit Konfigurationsformularen, Palette-Einträgen, Minimap-Farben und Knotentyp-Datensatzeinträgen über alle Typzuordnungen.
+- **SubWorkflow- und ENV-Frontend-Komponenten** — Vollständige Frontend-Integration: `sub-workflow-node.tsx` und `env-node.tsx` mit Konfigurationsformularen, Palette-Einträgen, Minimap-Farben und Knotentyp-Datensatzeinträgen über alle Typ-Maps.
 - **Zwei neue Workflow-Vorlagen (14 insgesamt)** — "Sichere API-Integration" (ENV → HTTP mit Auth-Headern) und "Sub-Workflow-Orchestrierung" (LLM → SubWorkflow → zusammenfassen).
 - **Tastaturkürzel-Dialog** — Drücken Sie `?`, um alle verfügbaren Tastaturkürzel in einem Dialog-Overlay anzuzeigen.
 
