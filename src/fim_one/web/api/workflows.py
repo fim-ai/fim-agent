@@ -8,8 +8,9 @@ import logging
 import math
 import time
 import uuid
+from collections import defaultdict
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -25,6 +26,9 @@ from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRe
 from fim_one.web.schemas.workflow import (
     BlueprintWarningItem,
     DryRunNodePlan,
+    MostFailedNode,
+    RunsPerDay,
+    WorkflowAnalyticsResponse,
     WorkflowCreate,
     WorkflowDryRunResponse,
     WorkflowEnvVarsUpdate,
@@ -50,6 +54,17 @@ router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _percentile(sorted_values: list[int], pct: int) -> int:
+    """Return the *pct*-th percentile from a pre-sorted list of ints.
+
+    Uses the nearest-rank method.  ``sorted_values`` **must** already be
+    sorted in ascending order and contain at least one element.
+    """
+    n = len(sorted_values)
+    idx = max(0, min(math.ceil(pct / 100 * n) - 1, n - 1))
+    return sorted_values[idx]
 
 
 def _sse(event: str, data: Any) -> str:
@@ -1342,6 +1357,182 @@ async def get_workflow_node_stats(
         "runs_analyzed": len(rows),
         "nodes": result_list,
     })
+
+
+@router.get("/{workflow_id}/analytics", response_model=ApiResponse)
+async def get_workflow_analytics(
+    workflow_id: str,
+    days: int = Query(default=30, ge=1, le=365),
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Return comprehensive execution analytics for a workflow.
+
+    Includes status distribution, percentile durations, daily run counts,
+    most-failed nodes, and average node count per run.  The ``days`` query
+    param controls the lookback window (default 30, max 365).
+    """
+    await _get_accessible_workflow(workflow_id, current_user.id, db)
+
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    base_filter = [
+        WorkflowRun.workflow_id == workflow_id,
+        WorkflowRun.created_at >= cutoff,
+    ]
+
+    # ------------------------------------------------------------------
+    # 1. Total runs
+    # ------------------------------------------------------------------
+    total_result = await db.execute(
+        select(func.count()).where(*base_filter)
+    )
+    total_runs: int = total_result.scalar_one()
+
+    if total_runs == 0:
+        return ApiResponse(
+            data=WorkflowAnalyticsResponse(
+                total_runs=0,
+                status_distribution={},
+            ).model_dump()
+        )
+
+    # ------------------------------------------------------------------
+    # 2. Status distribution (single query with GROUP BY)
+    # ------------------------------------------------------------------
+    dist_result = await db.execute(
+        select(WorkflowRun.status, func.count())
+        .where(*base_filter)
+        .group_by(WorkflowRun.status)
+    )
+    status_distribution: dict[str, int] = {
+        row[0]: row[1] for row in dist_result.all()
+    }
+
+    completed = status_distribution.get("completed", 0)
+    failed = status_distribution.get("failed", 0)
+    finished = completed + failed
+    success_rate = round(completed / finished * 100, 1) if finished > 0 else None
+
+    # ------------------------------------------------------------------
+    # 3. Duration stats (avg + percentiles from completed runs)
+    # ------------------------------------------------------------------
+    dur_result = await db.execute(
+        select(WorkflowRun.duration_ms)
+        .where(
+            *base_filter,
+            WorkflowRun.status == "completed",
+            WorkflowRun.duration_ms.isnot(None),
+        )
+        .order_by(WorkflowRun.duration_ms)
+    )
+    durations: list[int] = [row[0] for row in dur_result.all()]
+
+    avg_duration_ms: int | None = None
+    p50_duration_ms: int | None = None
+    p95_duration_ms: int | None = None
+    p99_duration_ms: int | None = None
+
+    if durations:
+        avg_duration_ms = int(sum(durations) / len(durations))
+        p50_duration_ms = _percentile(durations, 50)
+        p95_duration_ms = _percentile(durations, 95)
+        p99_duration_ms = _percentile(durations, 99)
+
+    # ------------------------------------------------------------------
+    # 4. Runs per day
+    # ------------------------------------------------------------------
+    # Fetch created_at + status for each run and bucket in Python.
+    # This avoids dialect-specific date functions (SQLite vs PG).
+    rpd_result = await db.execute(
+        select(WorkflowRun.created_at, WorkflowRun.status)
+        .where(*base_filter)
+        .order_by(WorkflowRun.created_at)
+    )
+    day_buckets: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"count": 0, "completed": 0, "failed": 0}
+    )
+    for row in rpd_result.all():
+        created_at_val = row[0]
+        if created_at_val is None:
+            continue
+        day_key = created_at_val.strftime("%Y-%m-%d") if hasattr(created_at_val, "strftime") else str(created_at_val)[:10]
+        bucket = day_buckets[day_key]
+        bucket["count"] += 1
+        run_status = row[1]
+        if run_status == "completed":
+            bucket["completed"] += 1
+        elif run_status == "failed":
+            bucket["failed"] += 1
+
+    runs_per_day = [
+        RunsPerDay(date=day, count=b["count"], completed=b["completed"], failed=b["failed"])
+        for day, b in sorted(day_buckets.items())
+    ]
+
+    # ------------------------------------------------------------------
+    # 5. Most-failed nodes (from node_results JSON)
+    # ------------------------------------------------------------------
+    nr_result = await db.execute(
+        select(WorkflowRun.node_results)
+        .where(
+            *base_filter,
+            WorkflowRun.node_results.isnot(None),
+        )
+    )
+    node_failure_counts: dict[str, int] = defaultdict(int)
+    node_total_counts: dict[str, int] = defaultdict(int)
+    total_node_counts_per_run: list[int] = []
+
+    for (node_results_json,) in nr_result.all():
+        if not isinstance(node_results_json, dict):
+            continue
+        total_node_counts_per_run.append(len(node_results_json))
+        for node_id, nr in node_results_json.items():
+            if not isinstance(nr, dict):
+                continue
+            node_total_counts[node_id] += 1
+            if nr.get("status") == "failed":
+                node_failure_counts[node_id] += 1
+
+    # Sort by failure count descending, take top 10
+    most_failed_nodes = sorted(
+        [
+            MostFailedNode(
+                node_id=nid,
+                failure_count=count,
+                total_runs=node_total_counts[nid],
+            )
+            for nid, count in node_failure_counts.items()
+        ],
+        key=lambda x: x.failure_count,
+        reverse=True,
+    )[:10]
+
+    # ------------------------------------------------------------------
+    # 6. Average nodes per run
+    # ------------------------------------------------------------------
+    avg_nodes_per_run: float | None = None
+    if total_node_counts_per_run:
+        avg_nodes_per_run = round(
+            sum(total_node_counts_per_run) / len(total_node_counts_per_run), 1
+        )
+
+    # ------------------------------------------------------------------
+    # Assemble response
+    # ------------------------------------------------------------------
+    analytics = WorkflowAnalyticsResponse(
+        total_runs=total_runs,
+        status_distribution=status_distribution,
+        success_rate=success_rate,
+        avg_duration_ms=avg_duration_ms,
+        p50_duration_ms=p50_duration_ms,
+        p95_duration_ms=p95_duration_ms,
+        p99_duration_ms=p99_duration_ms,
+        runs_per_day=runs_per_day,
+        most_failed_nodes=most_failed_nodes,
+        avg_nodes_per_run=avg_nodes_per_run,
+    )
+    return ApiResponse(data=analytics.model_dump())
 
 
 @router.get("/{workflow_id}/runs/{run_id}", response_model=ApiResponse)

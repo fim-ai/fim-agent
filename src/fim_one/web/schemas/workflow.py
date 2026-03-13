@@ -241,3 +241,40 @@ class WorkflowTemplateResponse(BaseModel):
     icon: str
     category: str
     blueprint: dict
+
+
+# ---------------------------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------------------------
+
+
+class RunsPerDay(BaseModel):
+    """Aggregated run counts for a single calendar day."""
+
+    date: str
+    count: int
+    completed: int = 0
+    failed: int = 0
+
+
+class MostFailedNode(BaseModel):
+    """A node that has failed across workflow runs."""
+
+    node_id: str
+    failure_count: int
+    total_runs: int
+
+
+class WorkflowAnalyticsResponse(BaseModel):
+    """Comprehensive workflow execution analytics."""
+
+    total_runs: int
+    status_distribution: dict[str, int]
+    success_rate: float | None = None
+    avg_duration_ms: int | None = None
+    p50_duration_ms: int | None = None
+    p95_duration_ms: int | None = None
+    p99_duration_ms: int | None = None
+    runs_per_day: list[RunsPerDay] = Field(default_factory=list)
+    most_failed_nodes: list[MostFailedNode] = Field(default_factory=list)
+    avg_nodes_per_run: float | None = None
