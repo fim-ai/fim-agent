@@ -353,6 +353,7 @@ async def publish_mcp_server(
         await require_org_member(body.org_id, current_user, db)
         server.visibility = "org"
         server.org_id = body.org_id
+        server.allow_fallback = body.allow_fallback
         from fim_one.web.publish_review import apply_publish_status
         await apply_publish_status(server, body.org_id, db, resource_type="mcp_server")
 
@@ -462,50 +463,6 @@ async def unpublish_mcp_server(
     return ApiResponse(data=_to_response(server).model_dump())
 
 
-class MyCredentialsRequest(BaseModel):
-    env: dict[str, str] | None = None
-    headers: dict[str, str] | None = None
-
-
-@router.put("/{server_id}/my-credentials", response_model=ApiResponse)
-async def set_my_credentials(
-    server_id: str,
-    body: MyCredentialsRequest,
-    current_user: User = Depends(get_current_user),  # noqa: B008
-    db: AsyncSession = Depends(get_session),  # noqa: B008
-) -> ApiResponse:
-    """Set personal env/headers override for a shared MCP server."""
-    from fim_one.web.models.mcp_server_credential import MCPServerCredential
-
-    # Verify server is accessible
-    srv_result = await db.execute(select(MCPServer).where(MCPServer.id == server_id))
-    srv = srv_result.scalar_one_or_none()
-    if srv is None:
-        raise AppError("mcp_server_not_found", status_code=404)
-
-    # Upsert credential
-    existing = await db.execute(
-        select(MCPServerCredential).where(
-            MCPServerCredential.server_id == server_id,
-            MCPServerCredential.user_id == current_user.id,
-        )
-    )
-    cred = existing.scalar_one_or_none()
-    if cred is None:
-        cred = MCPServerCredential(
-            server_id=server_id,
-            user_id=current_user.id,
-        )
-        db.add(cred)
-
-    if body.env is not None:
-        cred.env_blob = json.dumps(body.env)
-    if body.headers is not None:
-        cred.headers_blob = json.dumps(body.headers)
-
-    await db.commit()
-    return ApiResponse(data={"saved": True})
-
 
 @router.delete("/{server_id}", response_model=ApiResponse)
 async def delete_mcp_server(
@@ -531,7 +488,6 @@ async def get_my_mcp_credentials(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
     """Return current user's personal credentials status for this MCP server."""
-    import json
     from fim_one.web.models.mcp_server_credential import MCPServerCredential
 
     await _get_accessible_server(server_id, current_user.id, db)
@@ -546,14 +502,13 @@ async def get_my_mcp_credentials(
         return ApiResponse(
             data=MCPMyCredentialStatus(has_credentials=False, env_keys=[]).model_dump()
         )
-    env_keys: list[str] = []
-    if row.env_blob:
-        try:
-            env_keys = list(json.loads(row.env_blob).keys())
-        except Exception:
-            pass
+    env: dict[str, str] = row.env_blob or {}
     return ApiResponse(
-        data=MCPMyCredentialStatus(has_credentials=True, env_keys=env_keys).model_dump()
+        data=MCPMyCredentialStatus(
+            has_credentials=True,
+            env_keys=list(env.keys()),
+            env=env,
+        ).model_dump()
     )
 
 
@@ -565,19 +520,12 @@ async def upsert_my_mcp_credentials(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
     """Create or replace the current user's personal env credentials for this MCP server."""
-    import json
     from fim_one.web.models.mcp_server_credential import MCPServerCredential
 
     await _get_accessible_server(server_id, current_user.id, db)
 
     env_data: dict = body.env or {}
     headers_data: dict = body.headers or {}
-
-    if not env_data and not headers_data:
-        raise AppError("no_credentials_provided", status_code=400)
-
-    env_blob = json.dumps(env_data) if env_data else None
-    headers_blob = json.dumps(headers_data) if headers_data else None
 
     existing = await db.execute(
         select(MCPServerCredential).where(
@@ -586,6 +534,17 @@ async def upsert_my_mcp_credentials(
         )
     )
     row = existing.scalar_one_or_none()
+
+    # Empty env + empty headers = user cleared everything → delete the credential row
+    if not env_data and not headers_data:
+        if row:
+            await db.delete(row)
+            await db.commit()
+        return ApiResponse(data={"saved": True, "cleared": True})
+
+    env_blob = env_data or None
+    headers_blob = headers_data or None
+
     if row:
         row.env_blob = env_blob
         row.headers_blob = headers_blob

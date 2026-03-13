@@ -234,6 +234,33 @@ def decrypt_credential(ciphertext: str) -> dict:
         return {}
 
 
+# ---------------------------------------------------------------------------
+# SQLAlchemy TypeDecorator — transparent column-level encryption
+# ---------------------------------------------------------------------------
+
+
+class EncryptedJSON(TypeDecorator):
+    """Column type that stores a Python dict as Fernet-encrypted text.
+
+    - On write: dict → json.dumps → Fernet encrypt → store ciphertext string
+    - On read: ciphertext → Fernet decrypt → json.loads → return dict
+    - Backward-compatible: reads legacy plaintext JSON via decrypt_credential fallback
+    """
+
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return encrypt_credential(value)
+
+    def process_result_value(self, result, dialect):
+        if result is None:
+            return None
+        return decrypt_credential(result)
+
+
 def encrypt_string(plaintext: str) -> str:
     """Encrypt a plain string using CREDENTIAL_ENCRYPTION_KEY."""
     from cryptography.fernet import Fernet
@@ -259,8 +286,8 @@ def decrypt_string(ciphertext: str) -> str:
 class EncryptedString(TypeDecorator):
     """Column type that stores a Python string as Fernet-encrypted text.
 
-    - On write: plaintext -> Fernet encrypt -> store ciphertext string
-    - On read: ciphertext -> Fernet decrypt -> return plaintext
+    - On write: plaintext → Fernet encrypt → store ciphertext string
+    - On read: ciphertext → Fernet decrypt → return plaintext
     - Backward-compatible: reads legacy plaintext via prefix check
     """
 

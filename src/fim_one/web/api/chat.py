@@ -960,9 +960,9 @@ async def _connect_pending_mcp_servers(tools: ToolRegistry) -> Any:
                         _cred = _cred_res.scalar_one_or_none()
 
                     if _cred and _cred.env_blob:
-                        _effective_env = _json_mod.loads(_cred.env_blob)
+                        _effective_env = _cred.env_blob
                         _effective_headers = (
-                            _json_mod.loads(_cred.headers_blob)
+                            _cred.headers_blob
                             if _cred.headers_blob
                             else _srv.headers
                         )

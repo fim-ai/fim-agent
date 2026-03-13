@@ -68,7 +68,8 @@ class MCPServerResponse(BaseModel):
 
 class MCPMyCredentialStatus(BaseModel):
     has_credentials: bool
-    env_keys: list[str] = []  # list of env var names (values masked)
+    env_keys: list[str] = []  # kept for backwards compat
+    env: dict[str, str] = {}  # full env dict for editing
 
 
 class MCPMyCredentialUpsert(BaseModel):

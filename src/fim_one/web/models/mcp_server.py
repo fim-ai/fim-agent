@@ -9,6 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from fim_one.core.security.encryption import EncryptedJSON
 from fim_one.db.base import Base, TimestampMixin, UUIDPKMixin
 
 if TYPE_CHECKING:
@@ -28,10 +29,10 @@ class MCPServer(UUIDPKMixin, TimestampMixin, Base):
     transport: Mapped[str] = mapped_column(String(20), default="stdio")
     command: Mapped[str | None] = mapped_column(String(500), nullable=True)
     args: Any = Column(JSON, nullable=True)
-    env: Any = Column(JSON, nullable=True)
+    env: Any = Column(EncryptedJSON, nullable=True)
     url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     working_dir: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    headers: Any = Column(JSON, nullable=True)  # dict[str, str] for SSE/Streamable HTTP
+    headers: Any = Column(EncryptedJSON, nullable=True)  # dict[str, str] for SSE/Streamable HTTP
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     tool_count: Mapped[int] = mapped_column(Integer, default=0)
     visibility: Mapped[str] = mapped_column(

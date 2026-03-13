@@ -26,3 +26,4 @@ class PublishRequest(BaseModel):
 
     scope: str  # "org" or "global"
     org_id: str | None = None
+    allow_fallback: bool = True

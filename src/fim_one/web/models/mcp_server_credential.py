@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import sqlalchemy as sa
-from sqlalchemy import String, Text, UniqueConstraint
+from sqlalchemy import Column, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+from fim_one.core.security.encryption import EncryptedJSON
 from fim_one.db.base import Base, TimestampMixin, UUIDPKMixin
 
 __all__ = ["MCPServerCredential"]
@@ -36,5 +37,5 @@ class MCPServerCredential(UUIDPKMixin, TimestampMixin, Base):
         nullable=True,
         index=True,
     )
-    env_blob: Mapped[str | None] = mapped_column(Text, nullable=True)
-    headers_blob: Mapped[str | None] = mapped_column(Text, nullable=True)
+    env_blob = Column(EncryptedJSON, nullable=True)
+    headers_blob = Column(EncryptedJSON, nullable=True)
