@@ -1,0 +1,462 @@
+"""Built-in workflow templates.
+
+These are hardcoded blueprint definitions that serve as starting points for
+users creating new workflows.  They are NOT stored in the database -- the API
+returns them from memory and allows creating a real ``Workflow`` row from any
+template via ``POST /api/workflows/from-template``.
+"""
+
+from __future__ import annotations
+
+import copy
+from typing import Any
+
+# ---------------------------------------------------------------------------
+# Helper — generate deterministic node IDs for templates
+# ---------------------------------------------------------------------------
+
+
+def _node(
+    node_id: str,
+    node_type: str,
+    data: dict[str, Any],
+    *,
+    x: float = 0.0,
+    y: float = 0.0,
+) -> dict[str, Any]:
+    return {
+        "id": node_id,
+        "type": "custom",
+        "position": {"x": x, "y": y},
+        "data": {"type": node_type, **data},
+    }
+
+
+def _edge(
+    edge_id: str,
+    source: str,
+    target: str,
+    *,
+    source_handle: str | None = None,
+    target_handle: str | None = None,
+) -> dict[str, Any]:
+    edge: dict[str, Any] = {
+        "id": edge_id,
+        "source": source,
+        "target": target,
+    }
+    if source_handle is not None:
+        edge["sourceHandle"] = source_handle
+    if target_handle is not None:
+        edge["targetHandle"] = target_handle
+    return edge
+
+
+# ---------------------------------------------------------------------------
+# Template 1 — Simple LLM Chain
+# ---------------------------------------------------------------------------
+
+_SIMPLE_LLM_CHAIN: dict[str, Any] = {
+    "id": "simple-llm-chain",
+    "name": "Simple LLM Chain",
+    "description": "Basic single-LLM workflow with input and output",
+    "icon": "MessageSquare",
+    "category": "basic",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "input_schema": {
+                        "variables": [
+                            {
+                                "name": "query",
+                                "type": "string",
+                                "required": True,
+                                "description": "User question or prompt",
+                            }
+                        ]
+                    },
+                },
+                x=100,
+                y=200,
+            ),
+            _node(
+                "llm_1",
+                "LLM",
+                {
+                    "label": "LLM",
+                    "prompt_template": (
+                        "You are a helpful assistant. Answer the following "
+                        "question:\n\n{{input.query}}"
+                    ),
+                    "model": "",
+                },
+                x=400,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_schema": {
+                        "variables": [
+                            {
+                                "name": "result",
+                                "type": "string",
+                                "value": "{{llm_1.output}}",
+                            }
+                        ]
+                    },
+                },
+                x=700,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-llm", "start_1", "llm_1"),
+            _edge("e-llm-end", "llm_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Template 2 — Conditional Router
+# ---------------------------------------------------------------------------
+
+_CONDITIONAL_ROUTER: dict[str, Any] = {
+    "id": "conditional-router",
+    "name": "Conditional Router",
+    "description": (
+        "Route queries to different LLMs based on a category condition"
+    ),
+    "icon": "GitBranch",
+    "category": "intermediate",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "input_schema": {
+                        "variables": [
+                            {
+                                "name": "query",
+                                "type": "string",
+                                "required": True,
+                                "description": "User question",
+                            },
+                            {
+                                "name": "category",
+                                "type": "string",
+                                "required": True,
+                                "description": 'Category of the query (e.g. "technical", "general")',
+                            },
+                        ]
+                    },
+                },
+                x=100,
+                y=250,
+            ),
+            _node(
+                "condition_1",
+                "CONDITION_BRANCH",
+                {
+                    "label": "Is Technical?",
+                    "conditions": [
+                        {
+                            "id": "cond-yes",
+                            "handle": "yes",
+                            "operator": "==",
+                            "variable": "{{input.category}}",
+                            "value": "technical",
+                        }
+                    ],
+                    "default_handle": "no",
+                },
+                x=400,
+                y=250,
+            ),
+            _node(
+                "llm_technical",
+                "LLM",
+                {
+                    "label": "Technical Assistant",
+                    "prompt_template": (
+                        "You are an expert technical assistant specializing in "
+                        "software engineering and IT. Provide a detailed, "
+                        "accurate technical answer.\n\nQuestion: {{input.query}}"
+                    ),
+                    "model": "",
+                },
+                x=700,
+                y=100,
+            ),
+            _node(
+                "llm_general",
+                "LLM",
+                {
+                    "label": "General Assistant",
+                    "prompt_template": (
+                        "You are a friendly general-purpose assistant. "
+                        "Answer clearly and concisely.\n\nQuestion: {{input.query}}"
+                    ),
+                    "model": "",
+                },
+                x=700,
+                y=400,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_schema": {
+                        "variables": [
+                            {
+                                "name": "result",
+                                "type": "string",
+                                "value": "{{llm_technical.output}}{{llm_general.output}}",
+                            }
+                        ]
+                    },
+                },
+                x=1000,
+                y=250,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-cond", "start_1", "condition_1"),
+            _edge(
+                "e-cond-tech",
+                "condition_1",
+                "llm_technical",
+                source_handle="yes",
+            ),
+            _edge(
+                "e-cond-general",
+                "condition_1",
+                "llm_general",
+                source_handle="no",
+            ),
+            _edge("e-tech-end", "llm_technical", "end_1"),
+            _edge("e-general-end", "llm_general", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Template 3 — Knowledge-Augmented QA
+# ---------------------------------------------------------------------------
+
+_KNOWLEDGE_QA: dict[str, Any] = {
+    "id": "knowledge-augmented-qa",
+    "name": "Knowledge-Augmented QA",
+    "description": (
+        "Retrieve context from a knowledge base and answer with an LLM"
+    ),
+    "icon": "BookOpen",
+    "category": "advanced",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "input_schema": {
+                        "variables": [
+                            {
+                                "name": "query",
+                                "type": "string",
+                                "required": True,
+                                "description": "User question to answer",
+                            }
+                        ]
+                    },
+                },
+                x=100,
+                y=200,
+            ),
+            _node(
+                "kb_1",
+                "KNOWLEDGE_RETRIEVAL",
+                {
+                    "label": "Knowledge Retrieval",
+                    "knowledge_base_id": "",
+                    "query": "{{input.query}}",
+                    "top_k": 5,
+                },
+                x=400,
+                y=200,
+            ),
+            _node(
+                "llm_1",
+                "LLM",
+                {
+                    "label": "Answer with Context",
+                    "prompt_template": (
+                        "You are a knowledgeable assistant. Use the following "
+                        "context to answer the user's question. If the context "
+                        "does not contain enough information, say so.\n\n"
+                        "Context:\n{{kb_1.output}}\n\n"
+                        "Question: {{input.query}}"
+                    ),
+                    "model": "",
+                },
+                x=700,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_schema": {
+                        "variables": [
+                            {
+                                "name": "result",
+                                "type": "string",
+                                "value": "{{llm_1.output}}",
+                            }
+                        ]
+                    },
+                },
+                x=1000,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-kb", "start_1", "kb_1"),
+            _edge("e-kb-llm", "kb_1", "llm_1"),
+            _edge("e-llm-end", "llm_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Template 4 — HTTP API Pipeline
+# ---------------------------------------------------------------------------
+
+_HTTP_PIPELINE: dict[str, Any] = {
+    "id": "http-api-pipeline",
+    "name": "HTTP API Pipeline",
+    "description": (
+        "Call an external HTTP API and transform the response with a template"
+    ),
+    "icon": "Globe",
+    "category": "integration",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "input_schema": {
+                        "variables": [
+                            {
+                                "name": "url",
+                                "type": "string",
+                                "required": True,
+                                "description": "Target URL to call",
+                            },
+                            {
+                                "name": "method",
+                                "type": "string",
+                                "required": False,
+                                "description": "HTTP method (GET, POST, etc.)",
+                                "default": "GET",
+                            },
+                        ]
+                    },
+                },
+                x=100,
+                y=200,
+            ),
+            _node(
+                "http_1",
+                "HTTP_REQUEST",
+                {
+                    "label": "HTTP Request",
+                    "url": "{{input.url}}",
+                    "method": "{{input.method}}",
+                    "headers": {},
+                    "body": "",
+                },
+                x=400,
+                y=200,
+            ),
+            _node(
+                "transform_1",
+                "TEMPLATE_TRANSFORM",
+                {
+                    "label": "Format Response",
+                    "template": (
+                        "HTTP Response (status {{http_1.status_code}}):\n\n"
+                        "{{http_1.output}}"
+                    ),
+                },
+                x=700,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_schema": {
+                        "variables": [
+                            {
+                                "name": "result",
+                                "type": "string",
+                                "value": "{{transform_1.output}}",
+                            }
+                        ]
+                    },
+                },
+                x=1000,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-http", "start_1", "http_1"),
+            _edge("e-http-transform", "http_1", "transform_1"),
+            _edge("e-transform-end", "transform_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
+    _SIMPLE_LLM_CHAIN,
+    _CONDITIONAL_ROUTER,
+    _KNOWLEDGE_QA,
+    _HTTP_PIPELINE,
+]
+
+_TEMPLATES_BY_ID: dict[str, dict[str, Any]] = {t["id"]: t for t in WORKFLOW_TEMPLATES}
+
+
+def get_template(template_id: str) -> dict[str, Any] | None:
+    """Return a deep copy of the template with the given ID, or None."""
+    tpl = _TEMPLATES_BY_ID.get(template_id)
+    if tpl is None:
+        return None
+    return copy.deepcopy(tpl)
+
+
+def list_templates() -> list[dict[str, Any]]:
+    """Return deep copies of all built-in templates."""
+    return copy.deepcopy(WORKFLOW_TEMPLATES)

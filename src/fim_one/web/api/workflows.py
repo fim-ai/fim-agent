@@ -27,10 +27,12 @@ from fim_one.web.schemas.workflow import (
     WorkflowEnvVarsUpdate,
     WorkflowExportData,
     WorkflowExportFile,
+    WorkflowFromTemplateRequest,
     WorkflowImportFileRequest,
     WorkflowResponse,
     WorkflowRunRequest,
     WorkflowRunResponse,
+    WorkflowTemplateResponse,
     WorkflowUpdate,
 )
 from fim_one.web.visibility import build_visibility_filter
@@ -259,6 +261,63 @@ async def list_workflows(
         size=size,
         pages=math.ceil(total / size) if total else 0,
     )
+
+
+# ---------------------------------------------------------------------------
+# Templates (must be registered BEFORE /{workflow_id} parameterised routes)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/templates", response_model=ApiResponse)
+async def list_workflow_templates(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> ApiResponse:
+    """Return all built-in workflow templates (not stored in DB)."""
+    from fim_one.core.workflow.templates import list_templates
+
+    templates = list_templates()
+    return ApiResponse(
+        data=[WorkflowTemplateResponse(**t).model_dump() for t in templates]
+    )
+
+
+@router.post("/from-template", response_model=ApiResponse)
+async def create_workflow_from_template(
+    body: WorkflowFromTemplateRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Create a new workflow from a built-in template."""
+    from fim_one.core.workflow.templates import get_template
+
+    template = get_template(body.template_id)
+    if template is None:
+        raise AppError("template_not_found", status_code=404)
+
+    blueprint = template["blueprint"]
+    input_schema, output_schema = _extract_schemas_from_blueprint(blueprint)
+
+    wf = Workflow(
+        user_id=current_user.id,
+        name=body.name or template["name"],
+        icon=template.get("icon"),
+        description=template.get("description"),
+        blueprint=blueprint,
+        input_schema=input_schema,
+        output_schema=output_schema,
+        status="draft",
+        is_active=True,
+    )
+    db.add(wf)
+    await db.commit()
+    result = await db.execute(select(Workflow).where(Workflow.id == wf.id))
+    wf = result.scalar_one()
+    return ApiResponse(data=_workflow_to_response(wf).model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Single-workflow CRUD
+# ---------------------------------------------------------------------------
 
 
 @router.get("/{workflow_id}", response_model=ApiResponse)

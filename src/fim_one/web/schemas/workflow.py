@@ -152,3 +152,26 @@ class WorkflowEnvVarsUpdate(BaseModel):
     """Encrypted env vars key-value pairs."""
 
     env_vars: dict[str, str] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Duplicate / Templates
+# ---------------------------------------------------------------------------
+
+
+class WorkflowFromTemplateRequest(BaseModel):
+    """Request body for creating a workflow from a built-in template."""
+
+    template_id: str = Field(min_length=1)
+    name: str | None = None
+
+
+class WorkflowTemplateResponse(BaseModel):
+    """A built-in workflow template descriptor."""
+
+    id: str
+    name: str
+    description: str
+    icon: str
+    category: str
+    blueprint: dict
