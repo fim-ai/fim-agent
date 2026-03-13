@@ -1,48 +1,48 @@
 ---
 title: "LLM プロバイダー互換性"
-description: "FIM One が LLM 呼び出しをルーティングする方法、tool_choice アーキテクチャ、およびプロバイダー固有の落とし穴 — 特に Anthropic thinking + AWS Bedrock。"
+description: "FIM One が LLM 呼び出しをルーティングする方法、tool_choice アーキテクチャ、およびプロバイダー固有の落とし穴 — 特に Anthropic thinking と AWS Bedrock。"
 ---## プロバイダー検出
 
-FIM One は LiteLLM をユニバーサルアダプターとして使用します。`core/model/openai_compatible.py` の `_resolve_litellm_model()` 関数は、ユーザーの `LLM_BASE_URL` + `LLM_MODEL` を、プロバイダープレフィックス付きの LiteLLM モデル識別子にマップします。プレフィックスは、LiteLLM がリクエストをルーティングする方法を決定します — ネイティブ API プロトコル (Anthropic Messages API、Gemini など) またはジェネリック OpenAI 互換の `/v1/chat/completions`。
+FIM Oneはユニバーサルアダプターとして LiteLLM を使用します。`core/model/openai_compatible.py` の `_resolve_litellm_model()` 関数は、ユーザーの `LLM_BASE_URL` + `LLM_MODEL` を、プロバイダープレフィックス付きの LiteLLM モデル識別子にマッピングします。プレフィックスは、LiteLLM がリクエストをどのようにルーティングするかを決定します — ネイティブ API プロトコル（Anthropic Messages API、Gemini など）またはジェネリック OpenAI 互換の `/v1/chat/completions`。
 
-解決順序:
+解決順序：
 
-1. **明示的なプロバイダー** (DB の `ModelConfig.provider` フィールドから) — 最優先。プロバイダーが URL 内の既知ドメインと一致する場合、`api_base` は返されません (LiteLLM はネイティブにルーティング)。それ以外の場合、`api_base` はリレー URL に設定されます。
+1. **明示的なプロバイダー**（DB の `ModelConfig.provider` フィールドから）— 最優先。プロバイダーが URL 内の既知ドメインと一致する場合、`api_base` は返されません（LiteLLM はネイティブにルーティング）。それ以外の場合、`api_base` はリレー URL に設定されます。
 2. **`KNOWN_DOMAINS` に対するドメイン一致** — 公式 API エンドポイントはホスト名で認識されます。
-3. **`PATH_PROVIDER_HINTS` に対する URL パスヒント** — UniAPI のようなリレープラットフォームで一般的です。パスに `/claude` または `/anthropic` があると、アップストリームプロトコルを示します。
-4. **フォールバック** — `openai/` プレフィックス (ジェネリック OpenAI 互換)。
+3. **`PATH_PROVIDER_HINTS` に対する URL パスヒント** — UniAPI などのリレープラットフォームで一般的です。パスに `/claude` または `/anthropic` が含まれている場合、アップストリームプロトコルを示します。
+4. **フォールバック** — `openai/` プレフィックス（ジェネリック OpenAI 互換）。
 
 | ドメイン / パス | プロバイダープレフィックス | プロトコル |
 |---|---|---|
 | `api.openai.com` | `openai/` | OpenAI Chat Completions |
 | `anthropic.com` | `anthropic/` | Anthropic Messages API |
 | `generativelanguage.googleapis.com` | `gemini/` | Google Gemini |
-| `api.deepseek.com` | `deepseek/` | DeepSeek (OpenAI 互換) |
+| `api.deepseek.com` | `deepseek/` | DeepSeek（OpenAI 互換） |
 | `api.mistral.ai` | `mistral/` | Mistral |
-| パスに `/claude` または `/anthropic` を含む | `anthropic/` | Anthropic Messages API (リレー経由) |
-| パスに `/gemini` を含む | `gemini/` | Google Gemini (リレー経由) |
+| パスに `/claude` または `/anthropic` を含む | `anthropic/` | Anthropic Messages API（リレー経由） |
+| パスに `/gemini` を含む | `gemini/` | Google Gemini（リレー経由） |
 | その他すべて | `openai/` | ジェネリック OpenAI 互換 |
 
-プロバイダープレフィックスがネイティブプロトコル (anthropic、gemini など) で、URL が公式エンドポイントでない場合、LiteLLM はネイティブプロトコルを使用しますが、リレーの `api_base` にリクエストを送信します。これは、プロバイダー固有の動作 — 以下で説明する Bedrock プリフィルの問題を含む — がリクエストが公式 API に送信されるか、リレー経由で送信されるかに関わらず適用されることを意味します。
+プロバイダープレフィックスがネイティブプロトコル（anthropic、gemini など）で、URL が公式エンドポイントではない場合、LiteLLM はネイティブプロトコルを使用しますが、リレーの `api_base` にリクエストを送信します。これは、プロバイダー固有の動作（以下で説明する Bedrock プリフィル問題を含む）が、リクエストが公式 API に送信されるか、リレー経由で送信されるかに関わらず適用されることを意味します。
 
 <Warning>
-リレー URL のパスに `/claude` が含まれている場合、FIM One は自動的に Anthropic のネイティブプロトコル経由でルーティングします。これは通常正しい選択です (ストリーミングの改善、思考サポート)、ただしプロバイダー固有の動作が適用されることを意味します — 以下で説明する Bedrock プリフィルの問題を含みます。
+リレー URL のパスに `/claude` が含まれている場合、FIM One は自動的に Anthropic のネイティブプロトコル経由でルーティングします。これは通常正しい選択です（より良いストリーミング、思考サポート）が、プロバイダー固有の動作が適用されることを意味します — 以下で説明する Bedrock プリフィル問題を含みます。
 </Warning>## tool_choice — 4つのモード
 
 `tool_choice` パラメータは OpenAI 形式で標準化されています。LiteLLM はリクエストを送信する前に、各プロバイダーのネイティブプロトコルに変換します。
 
 | モード | 意味 | プロバイダーサポート |
 |---|---|---|
-| `"auto"` | モデルがツール呼び出しまたはテキスト応答のいずれかを決定 | すべてのプロバイダー |
+| `"auto"` | モデルがツール呼び出しまたはテキスト応答を決定 | すべてのプロバイダー |
 | `"required"` | ツール呼び出しが必須だが、モデルが選択 | ほとんどのプロバイダー |
-| `{"type":"function","function":{"name":"X"}}` | 関数 X を具体的に呼び出す必須 | ほとんどのプロバイダー — **Anthropic thinking と互換性なし** |
+| `{"type":"function","function":{"name":"X"}}` | 関数 X を明示的に呼び出す必須 | ほとんどのプロバイダー — **Anthropic thinking と非互換** |
 | `"none"` | ツール使用不可、テキストのみ | すべてのプロバイダー |
 
-`"auto"` と強制モード（`{"type":"function",...}`）の区別は、FIM One のすべての互換性問題の核心です。これら 2 つのモードは、異なる要件を持つ完全に異なるサブシステムで使用されます。## tool_choice が使用される場所
+`"auto"` と強制モード（`{"type":"function",...}`）の区別は、FIM One のあらゆる互換性問題の核心です。これら 2 つのモードは、異なる要件を持つ完全に異なるサブシステムで使用されています。## tool_choiceが使用される場所
 
-2つのサブシステムが `tool_choice` を使用しており、それらは根本的に異なる方法で使用しています。### ReAct エンジン — tool_choice="auto"
+2つのサブシステムが`tool_choice`を使用しており、それらは根本的に異なる方法でそれを使用しています。### ReAct エンジン — tool_choice="auto"
 
-ReAct ループでは、モデルが各イテレーションで以下を決定する必要があります: ツールを呼び出すか、最終的な回答を提供するか。ここで意味があるのは `"auto"` だけです — モデルは `tool_calls` を生成するかテキスト コンテンツを生成するかを自由に選択します。これはすべてのプロバイダー、すべてのモデル、拡張思考を含むすべてのモードと互換性があります。
+ReAct ループでは、モデルが各イテレーションで以下を決定する必要があります: ツールを呼び出すか、最終的な回答を提供するか。ここで意味があるのは `"auto"` だけです — モデルは `tool_calls` を生成するかテキスト コンテンツを生成するかを自由に選択できます。これはすべてのプロバイダー、すべてのモデル、拡張思考を含むすべてのモードと互換性があります。
 
 ```mermaid
 flowchart TD
@@ -51,11 +51,11 @@ flowchart TD
     B -->|"text content only"| D["Final answer"]
 ```
 
-ReAct エンジンは、`abilities["tool_call"] = True` の場合にネイティブ関数呼び出し (`_run_native`) を使用し、それ以外の場合は JSON-in-content モード (`_run_json`) にフォールバックします。両方のモードで `"auto"` を使用します — 違いは、ツールが `tools` パラメーターで渡されるか、システム プロンプトで説明されるかです。詳細については、[ReAct エンジン — デュアルモード実行](/architecture/react-engine#dual-mode-execution)を参照してください。### structured_llm_call — tool_choice=forced
+ReAct エンジンは、`abilities["tool_call"] = True` の場合はネイティブ関数呼び出し (`_run_native`) を使用し、そうでない場合は JSON-in-content モード (`_run_json`) にフォールバックします。両方のモードで `"auto"` を使用します — 違いは、ツールが `tools` パラメーターを介して渡されるか、システム プロンプトで説明されるかです。詳細は [ReAct エンジン — デュアルモード実行](/architecture/react-engine#dual-mode-execution) を参照してください。### structured_llm_call — tool_choice=forced
 
-ワンショット構造化抽出（スキーマアノテーション、DAG計画、計画分析）。モデルに特定の仮想関数を呼び出すことを強制し、構造化JSON出力を保証します。これはプロバイダー固有のエラーをトリガーするコールサイトです。
+ワンショット構造化抽出（スキーマアノテーション、DAG計画、計画分析）。モデルに特定の仮想関数の呼び出しを強制し、構造化JSON出力を保証します。これはプロバイダー固有のエラーをトリガーするコールサイトです。
 
-`structured_llm_call` は3レベルの劣化チェーンを実装します：
+`structured_llm_call` は3レベルの段階的フォールバックチェーンを実装します：
 
 ```mermaid
 flowchart TD
@@ -72,32 +72,32 @@ flowchart TD
     PT -->|"Fail → retry once"| ERR["StructuredOutputError<br/>or default_value"]
 ```
 
-重要な設計上の違い：`structured_llm_call` のフォールバックは **実行時** です — 各レベルを動的に試し、例外をキャッチしてフォールスルーします。ReActエンジンのモード選択は **ビルド時** です — 開始時に `_native_mode_active` を一度チェックし、ループ全体で1つのモードにコミットします。つまり、`structured_llm_call` はプロバイダー固有の400エラーから透過的に回復できますが、ReActは正しくモードが選択されていることに依存しています。## Bedrockプリフィルトラップ
+重要な設計上の違い：`structured_llm_call` のフォールバックは**実行時**です。各レベルを動的に試し、例外をキャッチしてフォールスルーします。一方、ReActエンジンのモード選択は**ビルド時**です。開始時に `_native_mode_active` を一度チェックし、ループ全体で1つのモードにコミットします。つまり、`structured_llm_call` はプロバイダー固有の400エラーから透過的に復旧できますが、ReActはモードが事前に正しく選択されていることに依存しています。## Bedrockプリフィル トラップ
 
-`response_format={"type":"json_object"}` が `anthropic/` プレフィックスで解決されたモデルに渡される場合、LiteLLMは内部的にアシスタントプリフィルメッセージを注入してJSONモードをシミュレートします。Anthropic Messages APIにはネイティブな `response_format` パラメータがないため、LiteLLMは開き括弧をアシスタントコンテンツとして先頭に追加することで近似します：
+`response_format={"type":"json_object"}` が `anthropic/` プレフィックスで解決されたモデルに渡される場合、LiteLLM は内部的にアシスタント プリフィル メッセージを挿入して JSON モードをシミュレートします。Anthropic Messages API にはネイティブな `response_format` パラメータがないため、LiteLLM は開き括弧をアシスタント コンテンツとして先頭に追加することで近似します:
 
 ```json
 {"role": "assistant", "content": "{"}
 ```
 
-これはAnthropicの直接APIでは機能します。ただし、より新しいAWS Bedrockモデルバージョンは、最後のメッセージが `role: "assistant"` を持つ会話を拒否します — これを「アシスタントメッセージプリフィル」と呼び、以下をスローします：
+これは Anthropic の直接 API では機能します。ただし、新しい AWS Bedrock モデル バージョンは、最後のメッセージが `role: "assistant"` である会話を拒否します。これを「アシスタント メッセージ プリフィル」と呼び、以下をスローします:
 
 ```
 ValidationException: This model does not support assistant message prefill.
 The conversation must end with a user message.
 ```
 
-このエラーは、**以下の3つの条件すべてが同時に満たされた場合にのみ**発生します：
+このエラーは、**以下の 3 つの条件がすべて同時に満たされている場合にのみ**発生します:
 
-1. モデルが `anthropic/` プレフィックスで解決されている（ドメインマッチまたはURLパスヒント経由）。
-2. `response_format={"type":"json_object"}` が渡されている（`structured_llm_call` のjson_modeコードパス）。
-3. 実際のバックエンドがAWS Bedrock（プリフィルを拒否）。
+1. モデルが `anthropic/` プレフィックスで解決されている (ドメイン マッチまたは URL パス ヒント経由)。
+2. `response_format={"type":"json_object"}` が渡されている (`structured_llm_call` の json_mode コード パス)。
+3. 実際のバックエンドが AWS Bedrock である (プリフィルを拒否)。
 
 <Warning>
-これはネイティブツール呼び出し（`tool_choice="auto"` と `tools=` パラメータ）には影響しません。プリフィル注入は `response_format` の場合のみ発生します。ReActエージェント実行は完全に影響を受けません。
+これはネイティブ ツール呼び出し (`tool_choice="auto"` と `tools=` パラメータ) には影響しません。プリフィル挿入は `response_format` に対してのみ発生します。ReAct エージェント実行は完全に影響を受けません。
 </Warning>
 
-実際の失敗パスは以下のようになります：
+実際の障害パスは以下のようになります:
 
 ```mermaid
 flowchart TD
@@ -107,14 +107,14 @@ flowchart TD
     PT -->|"System prompt guides JSON output"| OK["Success via prompt engineering"]
 ```
 
-Level 1（思考の競合）とLevel 2（Bedrockプリフィル）の両方が失敗した場合、システムはLevel 3で依然として復旧します — ただし、構造化抽出ごとに2つの無駄なLLM呼び出しのコストがかかります。以下の修正は無駄なjson_mode呼び出しを排除します。### 修正: json_mode_enabled
+Level 1 (思考の競合) と Level 2 (Bedrock プリフィル) の両方が失敗した場合、システムは依然として Level 3 で復旧します。ただし、構造化抽出ごとに 2 つの無駄な LLM 呼び出しのコストがかかります。以下の修正は無駄な json_mode 呼び出しを排除します。### 修正方法: json_mode_enabled
 
 モデルごとの `json_mode_enabled` フラグは、Level 2 (json_mode) が試行されるかどうかを制御します:
 
-- **DB設定モデル**: Admin → Models → Advanced settings で切り替えます。フラグは `ModelConfig.json_mode_enabled` に保存されます (デフォルト `TRUE`)。
-- **ENV設定モデル**: 環境変数で `LLM_JSON_MODE_ENABLED=false` を設定します。
-- **効果**: 無効にすると、`abilities["json_mode"]` は `False` を返す → `response_format` は渡されない → プリフィルなし → Bedrock が動作します。デグラデーションチェーンは `native_fc → plain_text` となり、失敗する json_mode 呼び出しをスキップします。
-- **品質低下なし**: システムプロンプトが JSON を返すよう指示するため、モデルは有効な JSON を返します。plain_text レベルは `extract_json()` を使用して自由形式のコンテンツから JSON を解析し、最新のモデルで確実に動作します。## Anthropic thinking + forced tool_choice
+- **DB設定モデル**: Admin → Models → Advanced settings でトグル。フラグは `ModelConfig.json_mode_enabled` に保存されます (デフォルト `TRUE`)。
+- **ENV設定モデル**: 環境変数で `LLM_JSON_MODE_ENABLED=false` を設定。
+- **効果**: 無効化すると、`abilities["json_mode"]` は `False` を返す → `response_format` は渡されない → プリフィルなし → Bedrock が動作。デグラデーションチェーンは `native_fc → plain_text` となり、失敗する json_mode 呼び出しをスキップします。
+- **品質低下なし**: システムプロンプトが有効な JSON を返すよう指示するため、モデルは依然として有効な JSON を返します。plain_text レベルは `extract_json()` を使用して自由形式のコンテンツから JSON を解析し、最新のモデルで確実に動作します。## Anthropic thinking + forced tool_choice
 
 Anthropic の API は、拡張思考が有効な場合、`tool_choice={"type":"function","function":{"name":"X"}}` を拒否します。エラーメッセージ：
 
@@ -122,62 +122,60 @@ Anthropic の API は、拡張思考が有効な場合、`tool_choice={"type":"f
 Thinking may not be enabled when tool_choice forces tool use
 ```
 
-これはプロトコルレベルでの意味的な矛盾です。特定のツール呼び出しを強制することは、モデルがどのツールを呼び出すか（またはそもそも呼び出すかどうか）について推論する自由と矛盾しています。Anthropic はこの制約を強制します。他のプロバイダーは強制しません。
+これはプロトコルレベルでの意味的な競合です。特定のツール呼び出しを強制することは、モデルがどのツールを呼び出すか（またはそもそも呼び出すべきか）について推論する自由と矛盾しています。Anthropic はこの制約を強制します。他のプロバイダーは強制しません。
 
-この矛盾は **`structured_llm_call` の Level 1（native_fc）のみに影響** します。これは構造化出力を保証するために強制された `tool_choice` を使用します。`_call_llm` の既存の `try/except` は 400 レスポンスをキャッチし、json_mode またはプレーンテキストにフォールスルーします。`abilities` 辞書での特別な処理は不要です。
+この競合は **`structured_llm_call` の Level 1 (native_fc) にのみ影響** します。これは強制的な `tool_choice` を使用して構造化出力を保証します。`_call_llm` の既存の `try/except` は 400 レスポンスをキャッチし、json_mode またはプレーンテキストにフォールスルーします。`abilities` 辞書での特別な処理は不要です。
 
-重要なことに、`tool_choice="auto"` は Anthropic thinking が有効な場合でも完璧に機能します。ReAct エンジンは `"auto"` のみを使用するため、影響を受けることはありません。
+重要なことに、`tool_choice="auto"` は Anthropic の思考が有効な場合でも完璧に機能します。ReAct エンジンは `"auto"` のみを使用するため、影響を受けることはありません。
 
 <Warning>
-thinking + forced tool_choice の矛盾を回避するために `abilities["tool_call"] = False` を設定しないでください。これにより ReAct の `_run_native` モード（`tool_choice="auto"` を使用し、thinking で正常に機能）が無効になり、`_run_json` モードに強制されます。`_run_json` では、モデルはコンテンツに有効な JSON を生成する必要があります。これはより信頼性が低く、Bedrock では json_mode が有効な場合、プリフィルの問題をトリガーする可能性があります。正しい修正は、`structured_llm_call` フォールバックチェーンに処理させることです。
-</Warning>## クイックリファレンス: どこで何が機能するか
+思考と強制 tool_choice の競合を回避するために `abilities["tool_call"] = False` を設定しないでください。これにより ReAct の `_run_native` モード（`tool_choice="auto"` を使用し、思考で正常に機能）が無効になり、`_run_json` モードに強制されます。`_run_json` では、モデルはコンテンツで有効な JSON を生成する必要があります。これはあまり信頼性が高くなく、Bedrock では json_mode が有効な場合、プリフィルの問題をトリガーする可能性があります。正しい修正は、`structured_llm_call` のフォールバックチェーンに処理させることです。
+</Warning>## Quick reference: what works where
 
-| シナリオ | ReAct mode | structured_llm_call path | 注記 |
+| Scenario | ReAct mode | structured_llm_call path | Notes |
 |---|---|---|---|
-| OpenAI (任意のモデル) | `_run_native` | native_fc | 完全サポート、注意事項なし |
-| Anthropic (thinking なし) | `_run_native` | native_fc | 完全サポート |
-| Anthropic + thinking | `_run_native` | native_fc → 400 → json_mode | 自動フォールバック、1 回の無駄な呼び出し |
-| Bedrock relay (thinking なし) | `_run_native` | native_fc | 完全サポート |
-| Bedrock relay + thinking | `_run_native` | native_fc → 400 → json_mode → 400 → plain_text | 2 回の無駄な呼び出し; `json_mode_enabled=false` を設定 |
-| Bedrock relay + `json_mode_enabled=false` | `_run_native` | native_fc → 400 → plain_text | Bedrock with thinking の推奨設定 |
-| Bedrock relay (thinking なし) + `json_mode_enabled=false` | `_run_native` | native_fc | 影響なし — native_fc が初回で成功 |
-| Gemini | `_run_native` | native_fc | 完全サポート |
-| DeepSeek | `_run_native` | native_fc | 完全サポート |
-| Generic OpenAI-compatible | `_run_native` | native_fc | 完全サポート |
-| `tool_call=false` の任意のモデル | `_run_json` | json_mode or plain_text | ツール呼び出しをサポートしないモデルのフォールバック |
+| OpenAI (any model) | `_run_native` | native_fc | Full support, no caveats |
+| Anthropic (no thinking) | `_run_native` | native_fc | Full support |
+| Anthropic + thinking | `_run_native` | native_fc → 400 → json_mode | Auto-fallback, one wasted call |
+| Bedrock relay (no thinking) | `_run_native` | native_fc | Full support |
+| Bedrock relay + thinking | `_run_native` | native_fc → 400 → json_mode → 400 → plain_text | Two wasted calls; set `json_mode_enabled=false` |
+| Bedrock relay + `json_mode_enabled=false` | `_run_native` | native_fc → 400 → plain_text | Recommended config for Bedrock with thinking |
+| Bedrock relay (no thinking) + `json_mode_enabled=false` | `_run_native` | native_fc | No impact — native_fc succeeds on first try |
+| Gemini | `_run_native` | native_fc | Full support |
+| DeepSeek | `_run_native` | native_fc | Full support |
+| Generic OpenAI-compatible | `_run_native` | native_fc | Full support |
+| Any model with `tool_call=false` | `_run_json` | json_mode or plain_text | Fallback for models without tool-call support |
 
-**AWS Bedrock relays の推奨設定:**
+**AWS Bedrockリレーの推奨設定:**
 
-```bash
-
-```# .env またはコマンドラインで
+```bash# .env またはシステム環境変数内
 LLM_JSON_MODE_ENABLED=false
 ```
 
-または、管理 UI でモデルごとに設定: Admin → Models → Bedrock モデルを選択 → Advanced → "JSON Mode" を無効化
+または管理 UI でモデルごとに設定: Admin → Models → Bedrock モデルを選択 → Advanced → "JSON Mode" を無効化
 
-これにより、すべての無駄な呼び出しが排除されます。フォールバック パスは `native_fc → plain_text`（思考なし）または `native_fc → 400 → plain_text`（思考あり）になります。どちらのパスも高速で信頼性があります。## 推論努力と思考設定
+これにより、すべての無駄な呼び出しが排除されます。デグラデーションパスは `native_fc → plain_text`（思考なし）または `native_fc → 400 → plain_text`（思考あり）になります。どちらのパスも高速で信頼性があります。## 推論努力と思考設定
 
 FIM One は、拡張思考/推論を制御するための 2 つの環境変数を公開しています:
 
 | 変数 | 値 | 効果 |
 |---|---|---|
 | `LLM_REASONING_EFFORT` | `low`, `medium`, `high` | LiteLLM に `reasoning_effort` として渡されます。Anthropic: `thinking` パラメータにマップされます。OpenAI o シリーズ: そのまま渡されます。その他: サイレントにドロップされます (`drop_params=True`)。 |
-| `LLM_REASONING_BUDGET_TOKENS` | 整数 (例: `10000`) | Anthropic のみ: LiteLLM の自動マッピングをバイパスして、明示的な `thinking.budget_tokens` キャップを設定します。Claude モデルのコスト制御に便利です。 |
+| `LLM_REASONING_BUDGET_TOKENS` | 整数 (例: `10000`) | Anthropic のみ: 明示的な `thinking.budget_tokens` キャップを設定し、LiteLLM の自動マッピングをバイパスします。Claude モデルのコスト制御に便利です。 |
 
-`reasoning_effort` が設定され、モデルが `anthropic/` として解決される場合、次の 2 つの追加動作が適用されます:
+`reasoning_effort` が設定され、モデルが `anthropic/` として解決される場合、2 つの追加の動作が適用されます:
 
 1. **温度は 1.0 に強制されます。** Bedrock は思考が有効な場合、`temperature != 1.0` を拒否します。FIM One はこれを自動的に処理します — ユーザーアクションは不要です。
-2. **GPT-5.x とツール**: `tools` が存在する場合、`reasoning_effort` はサイレントにドロップされます。これは GPT-5 の `/v1/chat/completions` エンドポイントが この組み合わせを拒否するためです。これは ReAct ツールループのみに影響します。`tools` パラメータを持たない `structured_llm_call` 呼び出しは影響を受けません。## トラブルシューティング
+2. **GPT-5.x とツール**: `tools` が存在する場合、`reasoning_effort` はサイレントにドロップされます。これは GPT-5 `/v1/chat/completions` エンドポイントが この組み合わせを拒否するためです。これは ReAct ツールループのみに影響します。`tools` パラメータを持たない `structured_llm_call` 呼び出しは影響を受けません。## トラブルシューティング
 
 **「このモデルはアシスタントメッセージプリフィルをサポートしていません」**
 Bedrock + json_mode。`LLM_JSON_MODE_ENABLED=false`を設定するか、管理者モデル設定でJSON Modeを無効にしてください。
 
 **「tool_choiceがツール使用を強制する場合、Thinkingは有効にできない可能性があります」**
-Anthropic thinking + `structured_llm_call`での強制関数呼び出し。これは**エラーではなく、予期された動作です**。フォールバックチェーンが400をキャッチし、native_fcをスキップして、json_modeまたはplain_textで成功します。ログはDEBUGレベルです — `LOG_LEVEL=DEBUG`の場合のみ表示されます。コスト: ~300msのネットワークラウンドトリップ、ゼロトークン（400でモデルは実行されません）。対応は不要です。
+Anthropic thinking + `structured_llm_call`での強制関数呼び出し。これは**エラーではなく、予期された動作です**。フォールバックチェーンが400をキャッチし、native_fcをスキップして、json_modeまたはplain_textで成功します。ログはDEBUGレベルです — `LOG_LEVEL=DEBUG`の場合のみ表示されます。コスト: ~300msネットワークラウンドトリップ、ゼロトークン（400でモデルは実行されません）。アクションは不要です。
 
 **ReActが予期せずJSON modeにフォールバックする**
 モデルの`abilities["tool_call"]`が`True`であることを確認してください。これは`OpenAICompatibleLLM`では常に`True`ですが、カスタム`BaseLLM`サブクラスはこれをオーバーライドする可能性があります。管理者APIのモデル詳細エンドポイントで確認してください。
 
 **structured_llm_callがすべてのレベルを使い尽くしてStructuredOutputErrorを発生させる**
-モデルがどのレベルでも解析可能なJSONを生成できませんでした。これは最新のモデルではまれです。確認してください: (1)スキーマが有効なJSON Schemaである、(2)モデルが完全な応答を生成するのに十分な`max_tokens`を持っている、(3)システムプロンプトがスキーマ指示と矛盾していない。DAGプランナーとアナライザーの両方が`default_value`フォールバックを提供するため、このエラーはデフォルトを明示的に省略した呼び出しサイトからのみ伝播します。
+モデルがいずれのレベルでも解析可能なJSONを生成できませんでした。これは最新のモデルではまれです。確認してください: (1)スキーマが有効なJSON Schemaである、(2)モデルが完全な応答を生成するのに十分な`max_tokens`を持っている、(3)システムプロンプトがスキーマ指示と矛盾していない。DAGプランナーとアナライザーの両方が`default_value`フォールバックを提供するため、このエラーはデフォルトを明示的に省略した呼び出しサイトからのみ伝播します。
