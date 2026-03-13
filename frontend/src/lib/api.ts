@@ -1,6 +1,6 @@
 import { getApiBaseUrl, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "./constants"
 import type { UserInfo, TokenResponse, LoginRequest, LoginWithCodeRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest, SetupRequest } from "@/types/auth"
-import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate, NodeStatsResponse } from "@/types/workflow"
+import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate, NodeStatsResponse, WorkflowValidateResponse, WorkflowVersionResponse } from "@/types/workflow"
 import type {
   ConversationResponse,
   ConversationDetail,
@@ -1005,6 +1005,11 @@ export const workflowApi = {
       body: JSON.stringify({ blueprint }),
     }).then((r) => r.data),
 
+  validateById: (id: string) =>
+    apiFetch<ApiResponse<WorkflowValidateResponse>>(`/api/workflows/${id}/validate`, {
+      method: "POST",
+    }).then((r) => r.data),
+
   getStats: (id: string) =>
     apiFetch<ApiResponse<WorkflowStats>>(`/api/workflows/${id}/stats`).then((r) => r.data),
 
@@ -1029,6 +1034,23 @@ export const workflowApi = {
   getNodeStats: (id: string, limit = 20) =>
     apiFetch<ApiResponse<NodeStatsResponse>>(
       `/api/workflows/${id}/node-stats?limit=${limit}`,
+    ).then((r) => r.data),
+
+  // --- Versions ---
+  getVersions: (workflowId: string, page = 1, size = 20) =>
+    apiFetch<PaginatedResponse<WorkflowVersionResponse>>(
+      `/api/workflows/${workflowId}/versions?page=${page}&size=${size}`,
+    ),
+
+  getVersion: (workflowId: string, versionId: string) =>
+    apiFetch<ApiResponse<WorkflowVersionResponse>>(
+      `/api/workflows/${workflowId}/versions/${versionId}`,
+    ).then((r) => r.data),
+
+  restoreVersion: (workflowId: string, versionId: string) =>
+    apiFetch<ApiResponse<WorkflowResponse>>(
+      `/api/workflows/${workflowId}/versions/${versionId}/restore`,
+      { method: "POST" },
     ).then((r) => r.data),
 }
 

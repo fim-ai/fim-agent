@@ -260,6 +260,23 @@ export interface ENVNodeData {
 }
 
 
+// --- Validation types ---
+
+export interface BlueprintWarningItem {
+  node_id: string | null
+  code: string
+  message: string
+}
+
+export interface WorkflowValidateResponse {
+  valid: boolean
+  errors: string[]
+  warnings: BlueprintWarningItem[]
+  node_count: number
+  edge_count: number
+  topology_order: string[]
+}
+
 // --- Create / Update payloads ---
 
 export interface WorkflowCreate {
@@ -355,4 +372,18 @@ export interface WorkflowTemplate {
 export interface WorkflowFromTemplateRequest {
   template_id: string
   name?: string
+}
+
+// --- Version types ---
+
+export interface WorkflowVersionResponse {
+  id: string
+  workflow_id: string
+  version_number: number
+  blueprint: WorkflowBlueprint
+  input_schema: Record<string, unknown> | null
+  output_schema: Record<string, unknown> | null
+  change_summary: string | null
+  created_by: string | null
+  created_at: string
 }

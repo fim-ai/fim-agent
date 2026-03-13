@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  GitBranch,
   Globe,
   GlobeLock,
   History,
@@ -82,9 +83,11 @@ interface WorkflowToolbarProps {
   onDuplicate: () => void
   onDelete: () => void
   onHistory: () => void
+  onVersionHistory?: () => void
   onStats: () => void
   onAutoLayout: () => void
   onNodeStats?: () => void
+  onValidate?: () => void
   onPublish?: () => void
   onUnpublish?: () => void
   onResubmit?: () => void
@@ -118,8 +121,10 @@ export function WorkflowToolbar({
   onDelete,
   onAutoLayout,
   onHistory,
+  onVersionHistory,
   onStats,
   onNodeStats,
+  onValidate,
   onPublish,
   onUnpublish,
   onResubmit,
@@ -376,6 +381,27 @@ export function WorkflowToolbar({
           )
         ) : null}
 
+        {onValidate && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onValidate}
+                disabled={isValidating}
+                aria-label={t("validateButton")}
+              >
+                {isValidating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t("validateButton")}</TooltipContent>
+          </Tooltip>
+        )}
+
         <Button
           variant="outline"
           size="sm"
@@ -414,6 +440,22 @@ export function WorkflowToolbar({
           <History className="h-3.5 w-3.5" />
           {t("historyButton")}
         </Button>
+
+        {onVersionHistory && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onVersionHistory}
+                aria-label={t("versionHistoryButton")}
+              >
+                <GitBranch className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t("versionHistoryButton")}</TooltipContent>
+          </Tooltip>
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>

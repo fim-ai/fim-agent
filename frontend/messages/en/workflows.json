@@ -285,6 +285,17 @@
   "validationInvalid": "Blueprint has errors",
   "validationChecking": "Validating...",
 
+  "validateButton": "Validate",
+  "validateTitle": "Validation Results",
+  "validateDescription": "Server-side blueprint validation",
+  "validateNoResults": "Click Validate to check the blueprint",
+  "validateNodeCount": "{count} nodes",
+  "validateEdgeCount": "{count} edges",
+  "validateErrors": "{count} error(s)",
+  "validateAllClear": "No errors or warnings",
+  "validateTopologyOrder": "Topology Order",
+  "validateFailed": "Failed to validate workflow",
+
   "templatesTitle": "Templates",
   "templatesDescription": "Start with a pre-built workflow template",
   "templateUse": "Use Template",
@@ -489,5 +500,20 @@
   "configEnvKeysPlaceholder": "Enter one key per line...",
   "configEnvNote": "Variables are read from the workflow's encrypted environment storage.",
   "inputMappingCount": "{count} mappings",
-  "envKeyCount": "{count} keys"
+  "envKeyCount": "{count} keys",
+
+  "versionHistoryTitle": "Version History",
+  "versionHistoryDescription": "Browse and restore previous versions of this workflow",
+  "versionHistoryButton": "Versions",
+  "versionHistoryEmpty": "No versions yet",
+  "versionHistoryLoadFailed": "Failed to load version history",
+  "versionHistoryRestoreFailed": "Failed to restore version",
+  "versionHistoryRestored": "Version restored successfully",
+  "versionHistoryRestore": "Restore",
+  "versionHistoryRestoreTitle": "Restore version?",
+  "versionHistoryRestoreDescription": "This will overwrite the current workflow with version {version}. Any unsaved changes will be lost.",
+  "versionHistoryCurrent": "Current",
+  "versionHistoryNoDescription": "No description",
+  "versionHistoryVersion": "v{version}",
+  "versionHistoryLoadMore": "Load more"
 }

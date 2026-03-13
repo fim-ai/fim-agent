@@ -29,13 +29,16 @@ import { WorkflowToolbar, type ValidationResult } from "@/components/workflows/w
 import { WorkflowEditor } from "@/components/workflows/workflow-editor"
 import type { WorkflowEditorHandle } from "@/components/workflows/workflow-editor"
 import { RunHistorySheet } from "@/components/workflows/run-history-sheet"
+import { VersionHistorySheet } from "@/components/workflows/version-history-sheet"
 import { WorkflowStatsPanel } from "@/components/workflows/workflow-stats-panel"
 import { NodeStatsPanel } from "@/components/workflows/node-stats-panel"
+import { ValidationPanel } from "@/components/workflows/validation-panel"
 import { EnvVarsDialog } from "@/components/workflows/env-vars-dialog"
 import type {
   WorkflowResponse,
   WorkflowBlueprint,
   WorkflowNodeType,
+  WorkflowValidateResponse,
   StartNodeData,
   NodeRunResult,
 } from "@/types/workflow"
@@ -79,6 +82,9 @@ export default function WorkflowEditorPage() {
   // History sheet state
   const [historyOpen, setHistoryOpen] = useState(false)
 
+  // Version history sheet state
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false)
+
   // Stats panel state
   const [statsOpen, setStatsOpen] = useState(false)
   const [nodeStatsOpen, setNodeStatsOpen] = useState(false)
@@ -90,10 +96,15 @@ export default function WorkflowEditorPage() {
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
 
-  // Validation state
+  // Validation state (client-side, debounced)
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [isValidating, setIsValidating] = useState(false)
   const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Server-side validation panel state
+  const [serverValidationOpen, setServerValidationOpen] = useState(false)
+  const [serverValidationResult, setServerValidationResult] = useState<WorkflowValidateResponse | null>(null)
+  const [isServerValidating, setIsServerValidating] = useState(false)
 
   const handleUndoRedoChange = useCallback((newCanUndo: boolean, newCanRedo: boolean) => {
     setCanUndo(newCanUndo)
@@ -580,6 +591,40 @@ export default function WorkflowEditorPage() {
     editorRef.current?.autoLayout()
   }, [])
 
+  const handleVersionRestored = useCallback(() => {
+    // Reload the workflow data from the server after a version restore
+    workflowApi
+      .get(workflowId)
+      .then((data) => {
+        setWorkflow(data)
+        blueprintRef.current = data.blueprint ?? {
+          nodes: [],
+          edges: [],
+          viewport: { x: 0, y: 0, zoom: 1 },
+        }
+        setIsDirty(false)
+        setLastSavedAt(new Date())
+        triggerValidation()
+      })
+      .catch(() => {
+        toast.error(t("workflowUpdateFailed"))
+      })
+  }, [workflowId, t, triggerValidation])
+
+  const handleValidate = useCallback(async () => {
+    if (!workflow) return
+    setServerValidationOpen(true)
+    setIsServerValidating(true)
+    try {
+      const result = await workflowApi.validateById(workflow.id)
+      setServerValidationResult(result)
+    } catch {
+      toast.error(t("validateFailed"))
+    } finally {
+      setIsServerValidating(false)
+    }
+  }, [workflow, t])
+
   // Find selected org for review notice
   const selectedOrg = publishOrgId
     ? userOrgs.find((o) => o.id === publishOrgId)
@@ -646,9 +691,11 @@ export default function WorkflowEditorPage() {
         onDuplicate={handleDuplicate}
         onDelete={() => setShowDeleteDialog(true)}
         onHistory={() => setHistoryOpen(true)}
+        onVersionHistory={() => setVersionHistoryOpen(true)}
         onStats={() => setStatsOpen(true)}
         onNodeStats={() => setNodeStatsOpen(true)}
         onAutoLayout={handleAutoLayout}
+        onValidate={handleValidate}
         onPublish={handlePublishClick}
         onUnpublish={handleUnpublishClick}
         onResubmit={handleResubmit}
@@ -810,6 +857,14 @@ export default function WorkflowEditorPage() {
         nodeTypeMap={nodeTypeMap}
       />
 
+      {/* Version History Sheet */}
+      <VersionHistorySheet
+        workflowId={workflowId}
+        open={versionHistoryOpen}
+        onOpenChange={setVersionHistoryOpen}
+        onVersionRestored={handleVersionRestored}
+      />
+
       {/* Stats Panel */}
       <WorkflowStatsPanel
         workflowId={workflowId}
@@ -823,6 +878,14 @@ export default function WorkflowEditorPage() {
         open={nodeStatsOpen}
         onOpenChange={setNodeStatsOpen}
         nodeTypeMap={nodeTypeMap}
+      />
+
+      {/* Validation Panel */}
+      <ValidationPanel
+        open={serverValidationOpen}
+        onOpenChange={setServerValidationOpen}
+        isLoading={isServerValidating}
+        result={serverValidationResult}
       />
     </div>
   )
