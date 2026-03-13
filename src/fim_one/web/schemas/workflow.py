@@ -68,6 +68,10 @@ class WorkflowRunRequest(BaseModel):
     """Input payload to execute a workflow."""
 
     inputs: dict[str, Any] = Field(default_factory=dict)
+    dry_run: bool = Field(
+        default=False,
+        description="When true, validate and return the execution plan without running.",
+    )
 
 
 class NodeRunResult(BaseModel):
@@ -97,6 +101,68 @@ class WorkflowRunResponse(BaseModel):
     error: str | None
     created_at: str
     updated_at: str | None
+
+
+# ---------------------------------------------------------------------------
+# Validate / Dry Run
+# ---------------------------------------------------------------------------
+
+
+class BlueprintWarningItem(BaseModel):
+    """A single non-fatal validation warning."""
+
+    node_id: str | None = None
+    code: str
+    message: str
+
+
+class WorkflowValidateResponse(BaseModel):
+    """Structural validation result for a workflow blueprint."""
+
+    valid: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[BlueprintWarningItem] = Field(default_factory=list)
+    node_count: int = 0
+    edge_count: int = 0
+    topology_order: list[str] = Field(default_factory=list)
+
+
+class DryRunNodePlan(BaseModel):
+    """Planned execution info for a single node in dry-run mode."""
+
+    node_id: str
+    node_type: str
+    position: int  # 0-based index in the execution order
+    has_warnings: bool = False
+
+
+class WorkflowDryRunResponse(BaseModel):
+    """Dry-run result: execution plan without actual execution."""
+
+    valid: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[BlueprintWarningItem] = Field(default_factory=list)
+    node_count: int = 0
+    edge_count: int = 0
+    topology_order: list[str] = Field(default_factory=list)
+    execution_plan: list[DryRunNodePlan] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Version
+# ---------------------------------------------------------------------------
+
+
+class WorkflowVersionResponse(BaseModel):
+    id: str
+    workflow_id: str
+    version_number: int
+    blueprint: dict
+    input_schema: dict | None
+    output_schema: dict | None
+    change_summary: str | None
+    created_by: str | None
+    created_at: str
 
 
 # ---------------------------------------------------------------------------

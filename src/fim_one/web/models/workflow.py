@@ -58,6 +58,9 @@ class Workflow(UUIDPKMixin, TimestampMixin, Base):
     runs: Mapped[list[WorkflowRun]] = relationship(
         back_populates="workflow", lazy="raise", passive_deletes=True
     )
+    versions: Mapped[list[WorkflowVersion]] = relationship(
+        back_populates="workflow", lazy="raise", passive_deletes=True
+    )
 
 
 class WorkflowRun(UUIDPKMixin, TimestampMixin, Base):
@@ -93,3 +96,31 @@ class WorkflowRun(UUIDPKMixin, TimestampMixin, Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     workflow: Mapped[Workflow] = relationship(back_populates="runs", lazy="raise")
+
+
+class WorkflowVersion(UUIDPKMixin, Base):
+    """An immutable snapshot of a workflow blueprint at a point in time."""
+
+    __tablename__ = "workflow_versions"
+
+    workflow_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workflows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    blueprint: Any = Column(JSON, nullable=False)  # frozen snapshot
+    input_schema: Any = Column(JSON, nullable=True)
+    output_schema: Any = Column(JSON, nullable=True)
+    change_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=sa.text("(CURRENT_TIMESTAMP)"),
+        nullable=False,
+    )
+
+    workflow: Mapped[Workflow] = relationship(back_populates="versions", lazy="raise")
