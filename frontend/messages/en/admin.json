@@ -317,6 +317,33 @@
     "pageOf": "Page {page} of {pages}",
     "filterAction": "Action",
     "filterActionAll": "All Actions",
+    "systemLog": "System Log",
+    "reviewLog": "Review Log",
+    "colOrg": "Organization",
+    "colResource": "Resource",
+    "colResourceType": "Type",
+    "colAction": "Action",
+    "colActor": "Operator",
+    "filterByType": "Filter by Type",
+    "filterByAction": "Filter by Action",
+    "allTypes": "All Types",
+    "allActions": "All Actions",
+    "noReviewEntries": "No review log entries yet.",
+    "noReviewResults": "No review log entries match the current filters.",
+    "totalReviewEntries": "{count, plural, one {# entry} other {# entries}} total",
+    "resourceTypes": {
+      "agent": "Agent",
+      "connector": "Connector",
+      "kb": "Knowledge Base",
+      "mcp_server": "MCP Server"
+    },
+    "reviewActionLabels": {
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "unpublished": "Unpublished",
+      "resubmitted": "Resubmitted"
+    },
     "actionLabels": {
       "user__create": "Create User",
       "user__delete": "Delete User",

@@ -320,6 +320,33 @@
     "pageOf": "第 {page} 页，共 {pages} 页",
     "filterAction": "操作类型",
     "filterActionAll": "全部操作",
+    "systemLog": "系统日志",
+    "reviewLog": "审核日志",
+    "colOrg": "组织",
+    "colResource": "资源名",
+    "colResourceType": "类型",
+    "colAction": "操作",
+    "colActor": "操作人",
+    "filterByType": "按类型筛选",
+    "filterByAction": "按操作筛选",
+    "allTypes": "全部类型",
+    "allActions": "全部操作",
+    "noReviewEntries": "暂无审核日志。",
+    "noReviewResults": "没有符合当前筛选条件的审核日志。",
+    "totalReviewEntries": "共 {count} 条记录",
+    "resourceTypes": {
+      "agent": "智能体",
+      "connector": "连接器",
+      "kb": "知识库",
+      "mcp_server": "MCP 服务"
+    },
+    "reviewActionLabels": {
+      "submitted": "已提交",
+      "approved": "已通过",
+      "rejected": "已拒绝",
+      "unpublished": "已撤销",
+      "resubmitted": "已重提"
+    },
     "actionLabels": {
       "user__create": "创建用户",
       "user__delete": "删除用户",

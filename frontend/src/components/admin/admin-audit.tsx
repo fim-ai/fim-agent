@@ -32,10 +32,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, adminApi } from "@/lib/api"
 import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/error-utils"
 import { toast } from "sonner"
+import type { ReviewLogItem } from "@/types/admin"
 
 interface AuditEntry {
   id: string
@@ -153,6 +154,201 @@ function useActionLabel() {
   }
 }
 
+const REVIEW_ACTIONS = ["submitted", "approved", "rejected", "unpublished", "resubmitted"] as const
+const REVIEW_RESOURCE_TYPES = ["agent", "connector", "kb", "mcp_server"] as const
+
+type ReviewAction = (typeof REVIEW_ACTIONS)[number]
+
+const REVIEW_ACTION_BADGE: Record<ReviewAction, string> = {
+  approved: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30",
+  rejected: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30",
+  submitted: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  resubmitted: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  unpublished: "bg-muted text-muted-foreground border-border",
+}
+
+function reviewActionBadgeClass(action: string): string {
+  return REVIEW_ACTION_BADGE[action as ReviewAction] ?? "bg-muted text-muted-foreground border-border"
+}
+
+const REVIEW_PAGE_SIZE = 50
+
+interface ReviewLogPage {
+  items: ReviewLogItem[]
+  total: number
+  limit: number
+  offset: number
+}
+
+function ReviewLogPanel() {
+  const t = useTranslations("admin.audit")
+  const tc = useTranslations("common")
+  const tError = useTranslations("errors")
+  const locale = useLocale()
+
+  const [data, setData] = useState<ReviewLogPage | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [offset, setOffset] = useState(0)
+  const [resourceTypeFilter, setResourceTypeFilter] = useState("__all__")
+  const [actionFilter, setActionFilter] = useState("__all__")
+
+  const page = Math.floor(offset / REVIEW_PAGE_SIZE) + 1
+  const pages = data ? Math.max(1, Math.ceil(data.total / REVIEW_PAGE_SIZE)) : 1
+  const hasFilters = (resourceTypeFilter && resourceTypeFilter !== "__all__") || (actionFilter && actionFilter !== "__all__")
+
+  const load = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const params: Record<string, string | number> = { limit: REVIEW_PAGE_SIZE, offset }
+      if (resourceTypeFilter && resourceTypeFilter !== "__all__") params.resource_type = resourceTypeFilter
+      if (actionFilter && actionFilter !== "__all__") params.action = actionFilter
+      const res = await adminApi.listReviewLog(params as Parameters<typeof adminApi.listReviewLog>[0])
+      setData(res)
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [offset, resourceTypeFilter, actionFilter, tError])
+
+  useEffect(() => { load() }, [load])
+
+  const handleResourceTypeChange = (val: string) => {
+    setResourceTypeFilter(val)
+    setOffset(0)
+  }
+
+  const handleActionChange = (val: string) => {
+    setActionFilter(val)
+    setOffset(0)
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">{t("filterByType")}</label>
+          <Select value={resourceTypeFilter} onValueChange={handleResourceTypeChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">{t("allTypes")}</SelectItem>
+              {REVIEW_RESOURCE_TYPES.map((rt) => (
+                <SelectItem key={rt} value={rt}>
+                  {t(`resourceTypes.${rt}` as Parameters<typeof t>[0])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">{t("filterByAction")}</label>
+          <Select value={actionFilter} onValueChange={handleActionChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">{t("allActions")}</SelectItem>
+              {REVIEW_ACTIONS.map((a) => (
+                <SelectItem key={a} value={a}>
+                  {t(`reviewActionLabels.${a}` as Parameters<typeof t>[0])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button variant="outline" size="sm" onClick={load} disabled={isLoading} className="h-9 self-end">
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
+          {tc("refresh")}
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : !data || data.items.length === 0 ? (
+        <div className="rounded-md border border-border bg-muted/30 p-6 text-sm text-muted-foreground text-center">
+          {hasFilters ? t("noReviewResults") : t("noReviewEntries")}
+        </div>
+      ) : (
+        <>
+          <div className="rounded-md border border-border overflow-x-auto">
+            <table className="w-full min-w-max text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground whitespace-nowrap">{t("timeColumn")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colOrg")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colResourceType")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colResource")}</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colAction")}</th>
+                  <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{t("colActor")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.items.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                      {formatTime(entry.created_at, locale)}
+                    </td>
+                    <td className="px-4 py-2.5 font-medium text-foreground">
+                      {entry.org_name ?? <span className="text-muted-foreground/50 font-mono text-xs">{entry.org_id.slice(0, 8)}</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {t(`resourceTypes.${entry.resource_type}` as Parameters<typeof t>[0])}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                      {entry.resource_name
+                        ? <span className="font-medium text-foreground">{entry.resource_name}</span>
+                        : <span className="font-mono">{entry.resource_id.slice(0, 8)}</span>}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${reviewActionBadgeClass(entry.action)}`}>
+                        {t(`reviewActionLabels.${entry.action}` as Parameters<typeof t>[0])}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground text-right">
+                      {entry.actor_name ?? <span className="text-muted-foreground/50">&mdash;</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{t("totalReviewEntries", { count: data.total })}</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={offset === 0}
+                onClick={() => setOffset((o) => Math.max(0, o - REVIEW_PAGE_SIZE))}
+              >
+                {t("previous")}
+              </Button>
+              <span>{t("pageOf", { page, pages })}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={offset + REVIEW_PAGE_SIZE >= (data.total ?? 0)}
+                onClick={() => setOffset((o) => o + REVIEW_PAGE_SIZE)}
+              >
+                {tc("next")}
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function AdminAudit() {
   const t = useTranslations("admin.audit")
   const tc = useTranslations("common")
@@ -164,6 +360,7 @@ export function AdminAudit() {
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [selected, setSelected] = useState<AuditEntry | null>(null)
+  const [activeTab, setActiveTab] = useState<"system" | "review">("system")
 
   // Filters
   const [actionFilter, setActionFilter] = useState("__all__")
@@ -247,12 +444,44 @@ export function AdminAudit() {
             {t("subtitle")}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={isLoading}>
-          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
-          {tc("refresh")}
-        </Button>
+        {activeTab === "system" && (
+          <Button variant="outline" size="sm" onClick={load} disabled={isLoading}>
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
+            {tc("refresh")}
+          </Button>
+        )}
       </div>
 
+      {/* Segmented toggle: System Log | Review Log */}
+      <div className="inline-flex items-center rounded-md border border-border bg-muted/40 p-0.5 gap-0.5">
+        <button
+          onClick={() => setActiveTab("system")}
+          className={cn(
+            "px-3 py-1.5 text-sm rounded-sm transition-colors font-medium",
+            activeTab === "system"
+              ? "bg-background shadow-xs text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {t("systemLog")}
+        </button>
+        <button
+          onClick={() => setActiveTab("review")}
+          className={cn(
+            "px-3 py-1.5 text-sm rounded-sm transition-colors font-medium",
+            activeTab === "review"
+              ? "bg-background shadow-xs text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {t("reviewLog")}
+        </button>
+      </div>
+
+      {activeTab === "review" ? (
+        <ReviewLogPanel />
+      ) : (
+        <>
       {/* Filter bar */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
@@ -460,6 +689,8 @@ export function AdminAudit() {
           )}
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   )
 }

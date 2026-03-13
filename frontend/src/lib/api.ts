@@ -45,7 +45,7 @@ import type {
   CredentialUpsertRequest,
   MyCredentialStatus,
 } from "@/types/connector"
-import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminGlobalAgentInfo, AdminAllMcpServer, AdminOrganization, OrgMember as AdminOrgMember } from "@/types/admin"
+import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminGlobalAgentInfo, AdminAllMcpServer, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem } from "@/types/admin"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate } from "@/types/mcp-server"
 import type { ModelConfigResponse, ModelConfigCreate, ModelConfigUpdate } from "@/types/model_config"
 import type {
@@ -1271,6 +1271,18 @@ export const adminApi = {
     apiFetch<AdminOrgMember>(`/api/orgs/${orgId}/members/${userId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   removeOrgMember: (orgId: string, userId: string) =>
     apiFetch(`/api/orgs/${orgId}/members/${userId}`, { method: 'DELETE' }),
+
+  // --- Review Log ---
+  listReviewLog: (params?: { org_id?: string; resource_type?: string; action?: string; limit?: number; offset?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.org_id) sp.set('org_id', params.org_id)
+    if (params?.resource_type) sp.set('resource_type', params.resource_type)
+    if (params?.action) sp.set('action', params.action)
+    if (params?.limit !== undefined) sp.set('limit', String(params.limit))
+    if (params?.offset !== undefined) sp.set('offset', String(params.offset))
+    const qs = sp.toString()
+    return apiFetch<{ items: ReviewLogItem[]; total: number; limit: number; offset: number }>(`/api/admin/review-log${qs ? `?${qs}` : ''}`)
+  },
 }
 
 // --- MCP Server API ---

@@ -27,7 +27,8 @@ from sqlalchemy.orm import selectinload
 
 from fim_one.db import get_session
 from fim_one.web.auth import get_current_admin, hash_password
-from fim_one.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, ModelConfig, SystemSetting, User
+from fim_one.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, ModelConfig, Organization, SystemSetting, User
+from fim_one.web.models.review_log import ReviewLog
 from fim_one.web.schemas.common import PaginatedResponse
 from fim_one.web.schemas.mcp_server import MCPServerCreate, MCPServerUpdate
 from fim_one.web.schemas.model_config import ModelConfigResponse
@@ -2496,3 +2497,88 @@ async def admin_set_model_role(
         detail=f"role={body.role}",
     )
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Review Log
+# ---------------------------------------------------------------------------
+
+
+class ReviewLogItem(BaseModel):
+    id: str
+    created_at: str
+    org_id: str
+    org_name: str | None = None
+    resource_type: str
+    resource_id: str
+    resource_name: str | None = None
+    action: str
+    actor_id: str | None = None
+    actor_name: str | None = None
+
+
+class ReviewLogPage(BaseModel):
+    items: list[ReviewLogItem]
+    total: int
+    limit: int
+    offset: int
+
+
+@router.get("/review-log", response_model=ReviewLogPage)
+async def list_review_log(
+    org_id: str | None = Query(None),
+    resource_type: str | None = Query(None),
+    action: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    _admin: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ReviewLogPage:
+    """List review log entries with optional filters. Admin only."""
+    base = select(ReviewLog)
+    count_base = select(func.count()).select_from(ReviewLog)
+
+    if org_id:
+        base = base.where(ReviewLog.org_id == org_id)
+        count_base = count_base.where(ReviewLog.org_id == org_id)
+    if resource_type:
+        base = base.where(ReviewLog.resource_type == resource_type)
+        count_base = count_base.where(ReviewLog.resource_type == resource_type)
+    if action:
+        base = base.where(ReviewLog.action == action)
+        count_base = count_base.where(ReviewLog.action == action)
+
+    total_result = await db.execute(count_base)
+    total = total_result.scalar_one()
+
+    result = await db.execute(
+        base.order_by(ReviewLog.created_at.desc()).offset(offset).limit(limit)
+    )
+    logs = result.scalars().all()
+
+    # Collect org IDs to fetch org names in one query
+    org_ids = list({log.org_id for log in logs})
+    org_map: dict[str, str] = {}
+    if org_ids:
+        org_result = await db.execute(
+            select(Organization.id, Organization.name).where(Organization.id.in_(org_ids))
+        )
+        org_map = {row.id: row.name for row in org_result.all()}
+
+    items = [
+        ReviewLogItem(
+            id=log.id,
+            created_at=log.created_at.isoformat() if log.created_at else "",
+            org_id=log.org_id,
+            org_name=org_map.get(log.org_id),
+            resource_type=log.resource_type,
+            resource_id=log.resource_id,
+            resource_name=log.resource_name,
+            action=log.action,
+            actor_id=log.actor_id,
+            actor_name=log.actor_username,
+        )
+        for log in logs
+    ]
+
+    return ReviewLogPage(items=items, total=total, limit=limit, offset=offset)

@@ -193,3 +193,16 @@ export interface OrgMember {
   invited_by: string | null
   created_at: string
 }
+
+export interface ReviewLogItem {
+  id: string
+  created_at: string
+  org_id: string
+  org_name: string | null
+  resource_type: string
+  resource_id: string
+  resource_name: string | null
+  action: string
+  actor_id: string | null
+  actor_name: string | null
+}
