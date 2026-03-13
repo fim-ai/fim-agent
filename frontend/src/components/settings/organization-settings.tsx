@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import {
   Building2,
   Globe,
@@ -17,6 +17,9 @@ import {
   Check,
   X,
   ShieldCheck,
+  History,
+  Loader2,
+  RefreshCw,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -66,6 +69,7 @@ import {
 } from "@/components/ui/select"
 import { useAuth } from "@/contexts/auth-context"
 import { orgApi, type UserOrg, type OrgMember, type ReviewItem } from "@/lib/api"
+import type { ReviewLogItem } from "@/types/admin"
 import { PLATFORM_ORG_ID } from "@/lib/constants"
 import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 
@@ -510,7 +514,7 @@ function MembersSheet({ open, onOpenChange, org, currentUserId }: MembersSheetPr
                           <p className="text-sm font-medium truncate">
                             {displayName(member)}
                             {isSelf && (
-                              <span className="ml-1 text-xs text-muted-foreground">(you)</span>
+                              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 font-normal align-middle">{tc("you")}</Badge>
                             )}
                           </p>
                           {member.email && (
@@ -826,6 +830,284 @@ function ReviewsSheet({ open, onOpenChange, org }: ReviewsSheetProps) {
 }
 
 // ---------------------------------------------------------------------------
+// ReviewHistorySheet -- audit trail of review decisions
+// ---------------------------------------------------------------------------
+
+const REVIEW_HISTORY_PAGE_SIZE = 50
+
+const HISTORY_REVIEW_ACTIONS = ["submitted", "approved", "rejected", "unpublished", "resubmitted"] as const
+const HISTORY_REVIEW_RESOURCE_TYPES = ["agent", "connector", "kb", "mcp_server"] as const
+
+type HistoryReviewAction = (typeof HISTORY_REVIEW_ACTIONS)[number]
+
+// Maps review action values to organizations.json i18n keys
+const HISTORY_ACTION_I18N_KEY: Record<HistoryReviewAction, string> = {
+  submitted: "pendingReview",
+  approved: "approved",
+  rejected: "rejected",
+  unpublished: "reviewHistoryActionUnpublished",
+  resubmitted: "reviewHistoryActionResubmitted",
+}
+
+const HISTORY_ACTION_BADGE: Record<HistoryReviewAction, string> = {
+  approved: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30",
+  rejected: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30",
+  submitted: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  resubmitted: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  unpublished: "bg-muted text-muted-foreground border-border",
+}
+
+function historyActionBadgeClass(action: string): string {
+  return HISTORY_ACTION_BADGE[action as HistoryReviewAction] ?? "bg-muted text-muted-foreground border-border"
+}
+
+function formatHistoryTime(iso: string, locale: string): string {
+  try {
+    return new Date(iso).toLocaleString(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  } catch {
+    return iso
+  }
+}
+
+interface ReviewHistorySheetProps {
+  open: boolean
+  onClose: () => void
+  orgs: UserOrg[]
+  initialOrgId: string
+}
+
+function ReviewHistorySheet({ open, onClose, orgs, initialOrgId }: ReviewHistorySheetProps) {
+  const t = useTranslations("organizations")
+  const tc = useTranslations("common")
+  const locale = useLocale()
+
+  const [selectedOrgId, setSelectedOrgId] = useState(initialOrgId)
+  const [items, setItems] = useState<ReviewLogItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [resourceTypeFilter, setResourceTypeFilter] = useState("__all__")
+  const [actionFilter, setActionFilter] = useState("__all__")
+  const [offset, setOffset] = useState(0)
+  const [total, setTotal] = useState(0)
+
+  const page = Math.floor(offset / REVIEW_HISTORY_PAGE_SIZE) + 1
+  const pages = Math.max(1, Math.ceil(total / REVIEW_HISTORY_PAGE_SIZE))
+
+  // Sync selectedOrgId when initialOrgId changes (sheet re-opened for different org)
+  useEffect(() => {
+    if (open) {
+      setSelectedOrgId(initialOrgId)
+      setResourceTypeFilter("__all__")
+      setActionFilter("__all__")
+      setOffset(0)
+    }
+  }, [open, initialOrgId])
+
+  const load = useCallback(async () => {
+    if (!selectedOrgId) return
+    setIsLoading(true)
+    try {
+      const params: { resource_type?: string; action?: string; limit: number; offset: number } = {
+        limit: REVIEW_HISTORY_PAGE_SIZE,
+        offset,
+      }
+      if (resourceTypeFilter !== "__all__") params.resource_type = resourceTypeFilter
+      if (actionFilter !== "__all__") params.action = actionFilter
+      const data = await orgApi.listReviewLog(selectedOrgId, params)
+      // Backend wraps in { data: [...] } but listReviewLog already unwraps it
+      // However the endpoint might return a paginated shape — treat as array for now
+      if (Array.isArray(data)) {
+        setItems(data)
+        setTotal(data.length < REVIEW_HISTORY_PAGE_SIZE && offset === 0 ? data.length : offset + data.length)
+      } else {
+        setItems([])
+        setTotal(0)
+      }
+    } catch {
+      toast.error(t("reviewHistoryLoadFailed"))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedOrgId, resourceTypeFilter, actionFilter, offset, t])
+
+  useEffect(() => {
+    if (open && selectedOrgId) {
+      load()
+    }
+  }, [open, load, selectedOrgId])
+
+  const handleOrgChange = (val: string) => {
+    setSelectedOrgId(val)
+    setOffset(0)
+  }
+
+  const handleResourceTypeChange = (val: string) => {
+    setResourceTypeFilter(val)
+    setOffset(0)
+  }
+
+  const handleActionChange = (val: string) => {
+    setActionFilter(val)
+    setOffset(0)
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle>{t("reviewHistoryTitle")}</SheetTitle>
+          <SheetDescription>{t("reviewHistoryDescription")}</SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-4">
+          {/* Org selector */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">{t("reviewHistorySelectOrg")}</label>
+            <Select value={selectedOrgId} onValueChange={handleOrgChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {orgs.map((org) => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filter bar */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("reviewHistoryColType")}</label>
+              <Select value={resourceTypeFilter} onValueChange={handleResourceTypeChange}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">{t("filterAll")}</SelectItem>
+                  {HISTORY_REVIEW_RESOURCE_TYPES.map((rt) => (
+                    <SelectItem key={rt} value={rt}>
+                      {resourceTypeLabel(rt, (key) => t(key as Parameters<typeof t>[0]))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("reviewHistoryColAction")}</label>
+              <Select value={actionFilter} onValueChange={handleActionChange}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">{t("filterAll")}</SelectItem>
+                  {HISTORY_REVIEW_ACTIONS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {t(HISTORY_ACTION_I18N_KEY[a] as Parameters<typeof t>[0])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button variant="outline" size="sm" onClick={load} disabled={isLoading} className="h-9 self-end">
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
+              {tc("refresh")}
+            </Button>
+          </div>
+
+          {/* Table */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="rounded-md border border-border bg-muted/30 p-6 text-sm text-muted-foreground text-center">
+              {t("reviewHistoryEmpty")}
+            </div>
+          ) : (
+            <>
+              <div className="rounded-md border border-border overflow-x-auto">
+                <table className="w-full min-w-max text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground whitespace-nowrap">{t("reviewHistoryColTime")}</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("reviewHistoryColType")}</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("reviewHistoryColResource")}</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("reviewHistoryColAction")}</th>
+                      <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{t("reviewHistoryColActor")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {items.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                          {formatHistoryTime(entry.created_at, locale)}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                          {resourceTypeLabel(entry.resource_type, (key) => t(key as Parameters<typeof t>[0]))}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs">
+                          {entry.resource_name
+                            ? <span className="font-medium text-foreground">{entry.resource_name}</span>
+                            : <span className="font-mono text-muted-foreground">{entry.resource_id.slice(0, 8)}</span>}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${historyActionBadgeClass(entry.action)}`}>
+                            {HISTORY_ACTION_I18N_KEY[entry.action as HistoryReviewAction]
+                              ? t(HISTORY_ACTION_I18N_KEY[entry.action as HistoryReviewAction] as Parameters<typeof t>[0])
+                              : entry.action}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground text-right">
+                          {entry.actor_name ?? <span className="text-muted-foreground/50">&mdash;</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{total}</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={offset === 0}
+                    onClick={() => setOffset((o) => Math.max(0, o - REVIEW_HISTORY_PAGE_SIZE))}
+                  >
+                    {t("previous")}
+                  </Button>
+                  <span>{t("pageOf", { page, pages })}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={items.length < REVIEW_HISTORY_PAGE_SIZE}
+                    onClick={() => setOffset((o) => o + REVIEW_HISTORY_PAGE_SIZE)}
+                  >
+                    {tc("next")}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // OrgCard
 // ---------------------------------------------------------------------------
 
@@ -837,9 +1119,10 @@ interface OrgCardProps {
   onLeave: (org: UserOrg) => void
   onManageMembers: (org: UserOrg) => void
   onManageReviews: (org: UserOrg) => void
+  onViewReviewHistory: (org: UserOrg) => void
 }
 
-function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMembers, onManageReviews }: OrgCardProps) {
+function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMembers, onManageReviews, onViewReviewHistory }: OrgCardProps) {
   const t = useTranslations("organizations")
   const tc = useTranslations("common")
 
@@ -884,6 +1167,10 @@ function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMember
                   {t("reviewManagement")}
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => onViewReviewHistory(org)}>
+                <History className="mr-2 h-4 w-4" />
+                {t("reviewHistory")}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -949,6 +1236,12 @@ function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMember
             </DropdownMenuItem>
           )}
           {isAdminOrOwner && (
+            <DropdownMenuItem onClick={() => onViewReviewHistory(org)}>
+              <History className="mr-2 h-4 w-4" />
+              {t("reviewHistory")}
+            </DropdownMenuItem>
+          )}
+          {isAdminOrOwner && (
             <DropdownMenuItem onClick={() => onEdit(org)}>
               <Settings className="mr-2 h-4 w-4" />
               {tc("edit")}
@@ -1006,6 +1299,8 @@ export function OrganizationSettings() {
   const [membersOpen, setMembersOpen] = useState(false)
   const [reviewsTarget, setReviewsTarget] = useState<UserOrg | null>(null)
   const [reviewsOpen, setReviewsOpen] = useState(false)
+  const [reviewHistoryTarget, setReviewHistoryTarget] = useState<UserOrg | null>(null)
+  const [reviewHistoryOpen, setReviewHistoryOpen] = useState(false)
 
   const loadOrgs = useCallback(async () => {
     setLoading(true)
@@ -1067,6 +1362,13 @@ export function OrganizationSettings() {
     setReviewsOpen(true)
   }
 
+  const handleViewReviewHistory = (org: UserOrg) => {
+    setReviewHistoryTarget(org)
+    setReviewHistoryOpen(true)
+  }
+
+  const adminOrOwnerOrgs = orgs.filter((o) => o.role === "owner" || o.role === "admin")
+
   return (
     <div className="space-y-6">
       {/* Header row */}
@@ -1106,6 +1408,7 @@ export function OrganizationSettings() {
               onLeave={(o) => setLeaveTarget(o)}
               onManageMembers={handleManageMembers}
               onManageReviews={handleManageReviews}
+              onViewReviewHistory={handleViewReviewHistory}
             />
           ))}
         </div>
@@ -1179,6 +1482,16 @@ export function OrganizationSettings() {
           open={reviewsOpen}
           onOpenChange={(v) => { setReviewsOpen(v); if (!v) setReviewsTarget(null) }}
           org={reviewsTarget}
+        />
+      )}
+
+      {/* Review history sheet */}
+      {adminOrOwnerOrgs.length > 0 && (
+        <ReviewHistorySheet
+          open={reviewHistoryOpen}
+          onClose={() => { setReviewHistoryOpen(false); setReviewHistoryTarget(null) }}
+          orgs={adminOrOwnerOrgs}
+          initialOrgId={reviewHistoryTarget?.id ?? adminOrOwnerOrgs[0]?.id ?? ""}
         />
       )}
     </div>

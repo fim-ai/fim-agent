@@ -45,7 +45,7 @@ import type {
   CredentialUpsertRequest,
   MyCredentialStatus,
 } from "@/types/connector"
-import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminGlobalAgentInfo, AdminAllMcpServer, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem } from "@/types/admin"
+import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem } from "@/types/admin"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate, MCPMyCredentialStatus } from "@/types/mcp-server"
 import type { ModelConfigResponse, ModelConfigCreate, ModelConfigUpdate } from "@/types/model_config"
 import type {
@@ -1506,6 +1506,16 @@ export const orgApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  listReviewLog: (orgId: string, params?: { resource_type?: string; action?: string; limit?: number; offset?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.resource_type) sp.set('resource_type', params.resource_type)
+    if (params?.action) sp.set('action', params.action)
+    if (params?.limit !== undefined) sp.set('limit', String(params.limit))
+    if (params?.offset !== undefined) sp.set('offset', String(params.offset))
+    const qs = sp.toString()
+    return apiFetch<{ data: import('@/types/admin').ReviewLogItem[] }>(`/api/orgs/${orgId}/reviews/log${qs ? `?${qs}` : ''}`).then(r => r.data ?? [])
+  },
 }
 
 // --- Eval API ---

@@ -36,7 +36,7 @@ import { apiFetch, adminApi } from "@/lib/api"
 import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/error-utils"
 import { toast } from "sonner"
-import type { ReviewLogItem } from "@/types/admin"
+import type { ReviewLogItem, AdminOrganization } from "@/types/admin"
 
 interface AuditEntry {
   id: string
@@ -191,10 +191,20 @@ function ReviewLogPanel() {
   const [offset, setOffset] = useState(0)
   const [resourceTypeFilter, setResourceTypeFilter] = useState("__all__")
   const [actionFilter, setActionFilter] = useState("__all__")
+  const [orgFilter, setOrgFilter] = useState("__all__")
+  const [orgs, setOrgs] = useState<Array<{ id: string; name: string }>>([])
+
+  useEffect(() => {
+    adminApi.listOrganizations(1, 200).then((res) => {
+      setOrgs(res.items.map((o: AdminOrganization) => ({ id: o.id, name: o.name })))
+    }).catch(() => {
+      // silently fail — org filter will just be empty
+    })
+  }, [])
 
   const page = Math.floor(offset / REVIEW_PAGE_SIZE) + 1
   const pages = data ? Math.max(1, Math.ceil(data.total / REVIEW_PAGE_SIZE)) : 1
-  const hasFilters = (resourceTypeFilter && resourceTypeFilter !== "__all__") || (actionFilter && actionFilter !== "__all__")
+  const hasFilters = (resourceTypeFilter && resourceTypeFilter !== "__all__") || (actionFilter && actionFilter !== "__all__") || (orgFilter && orgFilter !== "__all__")
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -202,6 +212,7 @@ function ReviewLogPanel() {
       const params: Record<string, string | number> = { limit: REVIEW_PAGE_SIZE, offset }
       if (resourceTypeFilter && resourceTypeFilter !== "__all__") params.resource_type = resourceTypeFilter
       if (actionFilter && actionFilter !== "__all__") params.action = actionFilter
+      if (orgFilter && orgFilter !== "__all__") params.org_id = orgFilter
       const res = await adminApi.listReviewLog(params as Parameters<typeof adminApi.listReviewLog>[0])
       setData(res)
     } catch (err) {
@@ -209,7 +220,7 @@ function ReviewLogPanel() {
     } finally {
       setIsLoading(false)
     }
-  }, [offset, resourceTypeFilter, actionFilter, tError])
+  }, [offset, resourceTypeFilter, actionFilter, orgFilter, tError])
 
   useEffect(() => { load() }, [load])
 
@@ -223,10 +234,32 @@ function ReviewLogPanel() {
     setOffset(0)
   }
 
+  const handleOrgFilterChange = (val: string) => {
+    setOrgFilter(val)
+    setOffset(0)
+  }
+
   return (
     <div className="space-y-4">
       {/* Filter bar */}
       <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">{t("filterByOrg")}</label>
+          <Select value={orgFilter} onValueChange={handleOrgFilterChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">{t("allOrgs")}</SelectItem>
+              {orgs.map((org) => (
+                <SelectItem key={org.id} value={org.id}>
+                  {org.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">{t("filterByType")}</label>
           <Select value={resourceTypeFilter} onValueChange={handleResourceTypeChange}>
