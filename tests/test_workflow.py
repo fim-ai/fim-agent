@@ -556,6 +556,139 @@ class TestVariableAssignNode:
         assert va_completed
 
 
+class TestFieldNameCompatibility:
+    """Verify that node executors accept both frontend and legacy field names."""
+
+    @pytest.mark.asyncio
+    async def test_llm_accepts_prompt_template(self):
+        """LLM node should read prompt_template (frontend key)."""
+        from fim_one.core.workflow.nodes import LLMExecutor
+        from fim_one.core.workflow.types import ExecutionContext, WorkflowNodeDef, NodeType
+
+        node = WorkflowNodeDef(
+            id="llm_1", type=NodeType.LLM,
+            data={"type": "LLM", "prompt_template": "Hello {{input.name}}"},
+        )
+        store = VariableStore()
+        await store.set("input.name", "World")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        # Can't actually call LLM without a DB, but we can verify the executor
+        # reads the correct field by checking it doesn't get an empty prompt
+        executor = LLMExecutor()
+        # This will fail due to no DB, but we verify the prompt was read
+        result = await executor.execute(node, store, ctx)
+        # It should fail with an LLM error (no DB), not "empty prompt"
+        assert result.status == NodeStatus.FAILED
+        assert "LLM error" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_kb_accepts_singular_kb_id(self):
+        """KnowledgeRetrieval should accept kb_id (singular) from frontend."""
+        from fim_one.core.workflow.nodes import KnowledgeRetrievalExecutor
+        from fim_one.core.workflow.types import ExecutionContext, WorkflowNodeDef, NodeType
+
+        node = WorkflowNodeDef(
+            id="kb_1", type=NodeType.KNOWLEDGE_RETRIEVAL,
+            data={
+                "type": "KNOWLEDGE_RETRIEVAL",
+                "kb_id": "single-kb-id",
+                "query_template": "test query",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = KnowledgeRetrievalExecutor()
+        result = await executor.execute(node, store, ctx)
+        # KB executor handles per-KB errors gracefully (returns 0 results),
+        # so it should complete (not "no query" error).
+        # The important thing: it read query_template, not "query"
+        assert result.status == NodeStatus.COMPLETED
+        assert "Retrieved" in str(result.output)
+
+
+class TestConditionBranchExpressions:
+    """Test the condition branch executor's structured expression building."""
+
+    @pytest.mark.asyncio
+    async def test_condition_with_structured_fields(self):
+        """ConditionBranch should build expressions from variable/operator/value."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                {
+                    "id": "cond_1",
+                    "type": "conditionBranch",
+                    "data": {
+                        "type": "CONDITION_BRANCH",
+                        "mode": "expression",
+                        "conditions": [
+                            {
+                                "id": "c1",
+                                "label": "Is Admin",
+                                "variable": "role",
+                                "operator": "==",
+                                "value": "admin",
+                            },
+                        ],
+                    },
+                },
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                {"id": "e-cond-c1", "source": "cond_1", "target": "end_1", "sourceHandle": "condition-c1"},
+            ],
+        }
+        parsed = parse_blueprint(raw)
+        engine = WorkflowEngine(run_id="r", user_id="u", workflow_id="w")
+
+        events: list[tuple[str, dict]] = []
+        async for event_name, event_data in engine.execute_streaming(
+            parsed, inputs={"role": "admin"}
+        ):
+            events.append((event_name, event_data))
+
+        # Condition should complete
+        cond_completed = any(
+            e[0] == "node_completed" and e[1].get("node_id") == "cond_1"
+            for e in events
+        )
+        assert cond_completed
+
+    @pytest.mark.asyncio
+    async def test_condition_contains_operator(self):
+        """ConditionBranch should handle 'contains' operator."""
+        from fim_one.core.workflow.nodes import ConditionBranchExecutor
+        from fim_one.core.workflow.types import ExecutionContext, WorkflowNodeDef, NodeType
+
+        node = WorkflowNodeDef(
+            id="cond_1", type=NodeType.CONDITION_BRANCH,
+            data={
+                "type": "CONDITION_BRANCH",
+                "mode": "expression",
+                "conditions": [
+                    {
+                        "id": "c1",
+                        "label": "Has keyword",
+                        "variable": "text",
+                        "operator": "contains",
+                        "value": "hello",
+                    },
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "say hello world")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ConditionBranchExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.active_handles == ["condition-c1"]
+
+
 class TestCodeExecutionNode:
     @pytest.mark.asyncio
     async def test_simple_code_execution(self):

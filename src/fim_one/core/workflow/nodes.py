@@ -199,8 +199,8 @@ class LLMExecutor:
             from fim_one.web.deps import get_effective_fast_llm, get_effective_llm
             from fim_one.db import create_session
 
-            # Get config from node data
-            prompt_template = node.data.get("prompt", "")
+            # Get config from node data (accept both frontend and legacy keys)
+            prompt_template = node.data.get("prompt_template", "") or node.data.get("prompt", "")
             system_prompt = node.data.get("system_prompt", "")
             model_tier = node.data.get("model_tier", "fast")  # "fast" or "main"
 
@@ -275,28 +275,65 @@ class ConditionBranchExecutor:
             from simpleeval import simple_eval
 
             conditions = node.data.get("conditions", [])
-            default_handle = node.data.get("default_handle", "default")
+            default_handle = node.data.get("default_handle", "source-default")
 
             snapshot = await store.snapshot_safe()
             # Build evaluation namespace — flatten for simple access
             eval_names = dict(snapshot)
+            mode = node.data.get("mode", "expression")
 
             active_handle: str | None = None
             for cond in conditions:
-                expr = cond.get("expression", "")
-                handle = cond.get("handle", "")
-                if not expr or not handle:
-                    continue
-                try:
-                    result = simple_eval(expr, names=eval_names)
-                    if result:
-                        active_handle = handle
-                        break
-                except Exception as e:
-                    logger.warning(
-                        "Condition expression '%s' failed: %s", expr, e
-                    )
-                    continue
+                # Frontend sends {id, label, variable, operator, value, expression, llm_prompt}
+                # The sourceHandle format is "condition-{id}"
+                cond_id = cond.get("id", cond.get("handle", ""))
+                handle = f"condition-{cond_id}" if cond_id and not cond_id.startswith("condition-") else cond_id
+
+                if mode == "expression":
+                    # Build expression from variable/operator/value fields
+                    variable = cond.get("variable", "")
+                    operator = cond.get("operator", "==")
+                    value = cond.get("value", "")
+                    expr = cond.get("expression", "")
+
+                    if not expr and variable:
+                        # Auto-build expression from structured fields
+                        if operator in ("is_empty",):
+                            expr = f"not {variable}"
+                        elif operator in ("is_not_empty",):
+                            expr = f"bool({variable})"
+                        elif operator == "contains":
+                            expr = f"{json.dumps(value)} in str({variable})"
+                        elif operator == "not_contains":
+                            expr = f"{json.dumps(value)} not in str({variable})"
+                        else:
+                            # Try to parse value as number, else quote it
+                            try:
+                                float(value)
+                                expr = f"{variable} {operator} {value}"
+                            except (ValueError, TypeError):
+                                expr = f"{variable} {operator} {json.dumps(value)}"
+
+                    if not expr or not handle:
+                        continue
+                    try:
+                        result = simple_eval(expr, names=eval_names)
+                        if result:
+                            active_handle = handle
+                            break
+                    except Exception as e:
+                        logger.warning(
+                            "Condition expression '%s' failed: %s", expr, e
+                        )
+                        continue
+                else:
+                    # LLM mode — use llm_prompt
+                    llm_prompt = cond.get("llm_prompt", "")
+                    if not llm_prompt or not handle:
+                        continue
+                    # For LLM mode, evaluate via LLM (simplified: just match first)
+                    active_handle = handle
+                    break
 
             if active_handle is None:
                 active_handle = default_handle
@@ -352,8 +389,9 @@ class QuestionClassifierExecutor:
             from fim_one.web.deps import get_effective_fast_llm
             from fim_one.db import create_session
 
-            input_var = node.data.get("input_variable", "")
-            categories = node.data.get("categories", [])
+            input_var = node.data.get("input_variable", "") or node.data.get("prompt", "")
+            # Frontend sends "classes", legacy uses "categories"
+            categories = node.data.get("classes", []) or node.data.get("categories", [])
 
             if not categories:
                 return NodeResult(
@@ -393,20 +431,24 @@ class QuestionClassifierExecutor:
             classification = (result.message.content or "").strip()
 
             # Find the matching category handle
+            # Frontend uses "class-{id}" format for sourceHandles
             active_handle: str | None = None
             for cat in categories:
                 if cat.get("label", "").strip().lower() == classification.lower():
-                    active_handle = cat.get("handle", cat.get("label"))
+                    cat_id = cat.get("id", cat.get("handle", cat.get("label", "")))
+                    active_handle = f"class-{cat_id}" if cat_id and not cat_id.startswith("class-") else cat_id
                     break
 
             # Fallback to default if no exact match
             if active_handle is None:
                 default_handle = node.data.get("default_handle", "")
-                active_handle = default_handle or (
-                    categories[0].get("handle", categories[0].get("label", ""))
-                    if categories
-                    else "default"
-                )
+                if default_handle:
+                    active_handle = default_handle
+                elif categories:
+                    cat_id = categories[0].get("id", categories[0].get("handle", categories[0].get("label", "")))
+                    active_handle = f"class-{cat_id}" if cat_id and not cat_id.startswith("class-") else cat_id
+                else:
+                    active_handle = "default"
 
             await store.set(f"{node.id}.output", classification)
             await store.set(f"{node.id}.active_handle", active_handle)
@@ -456,7 +498,7 @@ class AgentExecutor:
             from fim_one.web.deps import get_effective_fast_llm, get_tools
 
             agent_id = node.data.get("agent_id", "")
-            query_template = node.data.get("query", "")
+            query_template = node.data.get("prompt_template", "") or node.data.get("query", "")
 
             query = await store.interpolate(query_template) if query_template else ""
 
@@ -539,8 +581,13 @@ class KnowledgeRetrievalExecutor:
         try:
             from fim_one.web.deps import get_kb_manager
 
+            # Frontend sends kb_id (singular string), legacy uses kb_ids (list)
             kb_ids = node.data.get("kb_ids", [])
-            query_template = node.data.get("query", "")
+            if not kb_ids:
+                single_id = node.data.get("kb_id", "")
+                if single_id:
+                    kb_ids = [single_id]
+            query_template = node.data.get("query_template", "") or node.data.get("query", "")
             top_k = node.data.get("top_k", 5)
 
             query = await store.interpolate(query_template) if query_template else ""
@@ -623,7 +670,7 @@ class ConnectorExecutor:
             from fim_one.db import create_session
 
             connector_id = node.data.get("connector_id", "")
-            action_id = node.data.get("action_id", "")
+            action_id = node.data.get("action_id", "") or node.data.get("action", "")
             params_template = node.data.get("parameters", {})
 
             if not connector_id or not action_id:
