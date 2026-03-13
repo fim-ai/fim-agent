@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
-import { Plus, GitBranch, Upload, Loader2, Clock } from "lucide-react"
+import { Plus, GitBranch, Upload, Loader2, Clock, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,8 @@ export default function WorkflowsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active">("all")
 
   // Auth guard
   useEffect(() => {
@@ -232,6 +235,23 @@ export default function WorkflowsPage() {
     ? userOrgs.find((o) => o.id === publishOrgId)
     : null
 
+  // Filter workflows by search query and status
+  const filteredWorkflows = useMemo(() => {
+    let result = workflows
+    if (statusFilter !== "all") {
+      result = result.filter((w) => w.status === statusFilter)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
+        (w) =>
+          w.name.toLowerCase().includes(q) ||
+          (w.description ?? "").toLowerCase().includes(q),
+      )
+    }
+    return result
+  }, [workflows, searchQuery, statusFilter])
+
   if (authLoading || !user) return null
 
   return (
@@ -268,6 +288,40 @@ export default function WorkflowsPage() {
         onChange={onFileImport}
       />
 
+      {/* Search + Filter bar */}
+      {!isLoading && workflows.length > 0 && (
+        <div className="flex items-center gap-2 px-6 py-2.5 border-b border-border/20 shrink-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="h-8 pl-8 text-xs"
+              placeholder={t("searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex rounded-md border border-border overflow-hidden">
+            {(["all", "draft", "active"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`px-2.5 h-8 text-xs font-medium transition-colors ${
+                  statusFilter === s
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                } ${s !== "all" ? "border-l border-border" : ""}`}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s === "all" ? tc("all") : t(`status${s.charAt(0).toUpperCase() + s.slice(1)}` as Parameters<typeof t>[0])}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {t("workflowCount", { count: filteredWorkflows.length, total: workflows.length })}
+          </span>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         {isLoading ? (
@@ -291,9 +345,15 @@ export default function WorkflowsPage() {
               {t("createWorkflow")}
             </Button>
           </div>
+        ) : filteredWorkflows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t("noSearchResults")}
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {workflows.map((workflow) => (
+            {filteredWorkflows.map((workflow) => (
               <WorkflowCard
                 key={workflow.id}
                 workflow={workflow}

@@ -40,6 +40,9 @@
   "nodeCount": "{count} nodes",
   "statusDraft": "Draft",
   "statusActive": "Active",
+  "searchPlaceholder": "Search workflows...",
+  "noSearchResults": "No workflows match your search.",
+  "workflowCount": "{count} of {total} workflows",
 
   "nodeType_start": "Start",
   "nodeType_end": "End",

@@ -251,5 +251,8 @@
   "editorUnsaved": "保存されていない変更",
   "editorSavedJustNow": "保存済み",
   "editorSavedSecondsAgo": "{seconds}秒前に保存",
-  "editorSavedMinutesAgo": "{minutes}分前に保存"
+  "editorSavedMinutesAgo": "{minutes}分前に保存",
+  "searchPlaceholder": "ワークフローを検索...",
+  "noSearchResults": "検索に一致するワークフローがありません。",
+  "workflowCount": "{count} / {total} ワークフロー"
 }

@@ -251,5 +251,8 @@
   "editorUnsaved": "Ungespeicherte Änderungen",
   "editorSavedJustNow": "Gespeichert",
   "editorSavedSecondsAgo": "Vor {seconds}s gespeichert",
-  "editorSavedMinutesAgo": "Vor {minutes}m gespeichert"
+  "editorSavedMinutesAgo": "Vor {minutes}m gespeichert",
+  "searchPlaceholder": "Workflows durchsuchen...",
+  "noSearchResults": "Keine Workflows entsprechen Ihrer Suche.",
+  "workflowCount": "{count} von {total} Workflows"
 }

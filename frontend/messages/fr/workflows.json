@@ -251,5 +251,8 @@
   "editorUnsaved": "Modifications non enregistrées",
   "editorSavedJustNow": "Enregistré",
   "editorSavedSecondsAgo": "Enregistré il y a {seconds}s",
-  "editorSavedMinutesAgo": "Enregistré il y a {minutes}m"
+  "editorSavedMinutesAgo": "Enregistré il y a {minutes}m",
+  "searchPlaceholder": "Rechercher des flux de travail...",
+  "noSearchResults": "Aucun flux de travail ne correspond à votre recherche.",
+  "workflowCount": "{count} sur {total} flux de travail"
 }
