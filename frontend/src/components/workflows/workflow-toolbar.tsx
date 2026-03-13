@@ -5,9 +5,11 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import {
   ArrowLeft,
+  Copy,
   Download,
   Globe,
   GlobeLock,
+  History,
   Loader2,
   MoreHorizontal,
   Play,
@@ -35,12 +37,15 @@ interface WorkflowToolbarProps {
   publishStatus?: string | null
   isSaving: boolean
   isRunning: boolean
+  isDuplicating?: boolean
   onNameChange: (name: string) => void
   onSave: () => void
   onRun: () => void
   onExport: () => void
   onImport: () => void
+  onDuplicate: () => void
   onDelete: () => void
+  onHistory: () => void
   onPublish?: () => void
   onUnpublish?: () => void
   onResubmit?: () => void
@@ -53,12 +58,15 @@ export function WorkflowToolbar({
   publishStatus,
   isSaving,
   isRunning,
+  isDuplicating = false,
   onNameChange,
   onSave,
   onRun,
   onExport,
   onImport,
+  onDuplicate,
   onDelete,
+  onHistory,
   onPublish,
   onUnpublish,
   onResubmit,
@@ -180,6 +188,16 @@ export function WorkflowToolbar({
           {isRunning ? t("editorRunning") : t("editorRun")}
         </Button>
 
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          onClick={onHistory}
+        >
+          <History className="h-3.5 w-3.5" />
+          {t("historyButton")}
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm">
@@ -194,6 +212,14 @@ export function WorkflowToolbar({
             <DropdownMenuItem onClick={onExport}>
               <Download className="h-4 w-4" />
               {tc("export")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDuplicate} disabled={isDuplicating}>
+              {isDuplicating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {t("editorDuplicate")}
             </DropdownMenuItem>
             {(onPublish || onUnpublish) && (
               <>

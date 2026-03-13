@@ -85,7 +85,11 @@
   "editorUntitled": "Untitled Workflow",
   "editorImport": "Import",
   "editorExport": "Export",
+  "editorDuplicate": "Duplicate",
   "editorDelete": "Delete",
+  "workflowDuplicated": "Workflow duplicated",
+  "workflowDuplicateFailed": "Failed to duplicate workflow",
+  "workflowExportFailed": "Failed to export workflow",
 
   "unsavedChangesTitle": "Unsaved changes",
   "unsavedChangesDescription": "You have unsaved changes. Leaving this page will discard them.",
@@ -103,6 +107,21 @@
   "runPanelCancel": "Cancel Run",
   "runPanelClose": "Close",
   "runPanelStartRun": "Start Run",
+  "runPanelRunAgain": "Run Again",
+  "runPanelProgress": "{completed}/{total} nodes completed",
+  "runPanelShowOutput": "Show output",
+  "runPanelHideOutput": "Hide output",
+
+  "historyTitle": "Run History",
+  "historyDescription": "Past runs for this workflow",
+  "historyEmpty": "No runs yet",
+  "historyLoadFailed": "Failed to load run history",
+  "historyRunDetailFailed": "Failed to load run details",
+  "historyInputSummary": "Inputs",
+  "historyNoInputs": "No inputs",
+  "historyViewDetails": "View details",
+  "historyBack": "Back to list",
+  "historyButton": "History",
 
   "configVariables": "Variables",
   "configAddVariable": "Add variable",
@@ -175,5 +194,9 @@
   "mappingCount": "{count} mappings",
   "conditionCount": "{count} conditions",
   "classCount": "{count} classes",
-  "assignmentCount": "{count} assignments"
+  "assignmentCount": "{count} assignments",
+
+  "variablePickerLabel": "Insert variable reference",
+  "variablePickerSearch": "Search variables...",
+  "variablePickerEmpty": "No variables available from other nodes"
 }

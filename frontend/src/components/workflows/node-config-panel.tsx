@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import { useTranslations } from "next-intl"
-import { Plus, Trash2, X, Braces } from "lucide-react"
+import { Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,16 +11,18 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { VariablePicker } from "./variable-picker"
 import type { Node } from "@xyflow/react"
 import type { WorkflowNodeType } from "@/types/workflow"
 
 interface NodeConfigPanelProps {
   node: Node | null
+  allNodes: Node[]
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void
   onClose: () => void
 }
 
-export function NodeConfigPanel({ node, onUpdate, onClose }: NodeConfigPanelProps) {
+export function NodeConfigPanel({ node, allNodes, onUpdate, onClose }: NodeConfigPanelProps) {
   const t = useTranslations("workflows")
 
   const updateField = useCallback(
@@ -29,6 +31,12 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: NodeConfigPanelProp
       onUpdate(node.id, { ...node.data, [field]: value })
     },
     [node, onUpdate],
+  )
+
+  // All nodes except the currently selected one — variable sources
+  const otherNodes = useMemo(
+    () => (node ? allNodes.filter((n) => n.id !== node.id) : []),
+    [allNodes, node],
   )
 
   if (!node) {
@@ -62,6 +70,7 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: NodeConfigPanelProp
             nodeType={nodeType}
             data={node.data as Record<string, unknown>}
             updateField={updateField}
+            otherNodes={otherNodes}
           />
         </div>
       </ScrollArea>
@@ -73,36 +82,37 @@ interface NodeConfigFieldsProps {
   nodeType: WorkflowNodeType
   data: Record<string, unknown>
   updateField: (field: string, value: unknown) => void
+  otherNodes: Node[]
 }
 
-function NodeConfigFields({ nodeType, data, updateField }: NodeConfigFieldsProps) {
+function NodeConfigFields({ nodeType, data, updateField, otherNodes }: NodeConfigFieldsProps) {
   const t = useTranslations("workflows")
 
   switch (nodeType) {
     case "start":
-      return <StartConfig data={data} updateField={updateField} t={t} />
+      return <StartConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "end":
-      return <EndConfig data={data} updateField={updateField} t={t} />
+      return <EndConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "llm":
-      return <LLMConfig data={data} updateField={updateField} t={t} />
+      return <LLMConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "conditionBranch":
-      return <ConditionConfig data={data} updateField={updateField} t={t} />
+      return <ConditionConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "questionClassifier":
-      return <QuestionClassifierConfig data={data} updateField={updateField} t={t} />
+      return <QuestionClassifierConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "agent":
-      return <AgentConfig data={data} updateField={updateField} t={t} />
+      return <AgentConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "knowledgeRetrieval":
-      return <KnowledgeRetrievalConfig data={data} updateField={updateField} t={t} />
+      return <KnowledgeRetrievalConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "connector":
-      return <ConnectorConfig data={data} updateField={updateField} t={t} />
+      return <ConnectorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "httpRequest":
-      return <HTTPRequestConfig data={data} updateField={updateField} t={t} />
+      return <HTTPRequestConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "variableAssign":
-      return <VariableAssignConfig data={data} updateField={updateField} t={t} />
+      return <VariableAssignConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "templateTransform":
-      return <TemplateTransformConfig data={data} updateField={updateField} t={t} />
+      return <TemplateTransformConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "codeExecution":
-      return <CodeExecutionConfig data={data} updateField={updateField} t={t} />
+      return <CodeExecutionConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     default:
       return <p className="text-xs text-muted-foreground">No configuration available</p>
   }
@@ -113,6 +123,7 @@ type ConfigProps = {
   updateField: (field: string, value: unknown) => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: any
+  otherNodes: Node[]
 }
 
 /** Reusable section header */
@@ -148,17 +159,26 @@ function OutputVariableField({ data, updateField, t }: ConfigProps) {
   )
 }
 
-/** Variable insert button (hint) */
-function InsertVariableHint({ t }: { t: ConfigProps["t"] }) {
+/** Variable insert bar with picker and hint text */
+function InsertVariableBar({
+  otherNodes,
+  onInsert,
+  t,
+}: {
+  otherNodes: Node[]
+  onInsert: (reference: string) => void
+  t: ConfigProps["t"]
+}) {
   return (
     <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
-      <Braces className="h-3 w-3" />
+      <VariablePicker sourceNodes={otherNodes} onInsert={onInsert} />
       <span>{t("configVariableRefHint")}</span>
     </div>
   )
 }
 
-function StartConfig({ data, updateField, t }: ConfigProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function StartConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   const variables = (data.variables ?? []) as Array<{ name: string; type: string; default_value?: string; required?: boolean }>
 
   const addVariable = () => {
@@ -227,7 +247,7 @@ function StartConfig({ data, updateField, t }: ConfigProps) {
   )
 }
 
-function EndConfig({ data, updateField, t }: ConfigProps) {
+function EndConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   const mapping = (data.output_mapping ?? {}) as Record<string, string>
   const entries = Object.entries(mapping)
 
@@ -281,12 +301,23 @@ function EndConfig({ data, updateField, t }: ConfigProps) {
           </Button>
         </div>
       ))}
-      <InsertVariableHint t={t} />
+      <InsertVariableBar
+        otherNodes={otherNodes}
+        t={t}
+        onInsert={(ref) => {
+          // For end node, we append to the last mapping value or hint usage
+          const lastKey = entries.length > 0 ? entries[entries.length - 1][0] : ""
+          const lastValue = entries.length > 0 ? entries[entries.length - 1][1] : ""
+          if (entries.length > 0) {
+            updateMapping(lastKey, lastKey, lastValue + ref)
+          }
+        }}
+      />
     </div>
   )
 }
 
-function LLMConfig({ data, updateField, t }: ConfigProps) {
+function LLMConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
       {/* Model section */}
@@ -325,7 +356,14 @@ function LLMConfig({ data, updateField, t }: ConfigProps) {
           value={(data.prompt_template ?? "") as string}
           onChange={(e) => updateField("prompt_template", e.target.value)}
         />
-        <InsertVariableHint t={t} />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          t={t}
+          onInsert={(ref) => {
+            const current = ((data.prompt_template ?? "") as string)
+            updateField("prompt_template", current + ref)
+          }}
+        />
       </div>
 
       {/* Parameters section */}
@@ -357,12 +395,13 @@ function LLMConfig({ data, updateField, t }: ConfigProps) {
       </div>
 
       {/* Output section */}
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }
 
-function ConditionConfig({ data, updateField, t }: ConfigProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ConditionConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   const mode = (data.mode ?? "expression") as string
   const conditions = (data.conditions ?? []) as Array<{
     id: string
@@ -488,7 +527,8 @@ function ConditionConfig({ data, updateField, t }: ConfigProps) {
   )
 }
 
-function QuestionClassifierConfig({ data, updateField, t }: ConfigProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function QuestionClassifierConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   const classes = (data.classes ?? []) as Array<{ id: string; label: string; description?: string }>
 
   const addClass = () => {
@@ -560,7 +600,7 @@ function QuestionClassifierConfig({ data, updateField, t }: ConfigProps) {
   )
 }
 
-function AgentConfig({ data, updateField, t }: ConfigProps) {
+function AgentConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -583,15 +623,22 @@ function AgentConfig({ data, updateField, t }: ConfigProps) {
           value={(data.prompt_template ?? "") as string}
           onChange={(e) => updateField("prompt_template", e.target.value)}
         />
-        <InsertVariableHint t={t} />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          t={t}
+          onInsert={(ref) => {
+            const current = ((data.prompt_template ?? "") as string)
+            updateField("prompt_template", current + ref)
+          }}
+        />
       </div>
 
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }
 
-function KnowledgeRetrievalConfig({ data, updateField, t }: ConfigProps) {
+function KnowledgeRetrievalConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -614,7 +661,14 @@ function KnowledgeRetrievalConfig({ data, updateField, t }: ConfigProps) {
           value={(data.query_template ?? "") as string}
           onChange={(e) => updateField("query_template", e.target.value)}
         />
-        <InsertVariableHint t={t} />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          t={t}
+          onInsert={(ref) => {
+            const current = ((data.query_template ?? "") as string)
+            updateField("query_template", current + ref)
+          }}
+        />
       </div>
 
       <SectionHeader label={t("configSectionParameters")} />
@@ -629,12 +683,12 @@ function KnowledgeRetrievalConfig({ data, updateField, t }: ConfigProps) {
         />
       </div>
 
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }
 
-function ConnectorConfig({ data, updateField, t }: ConfigProps) {
+function ConnectorConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   const parameters = (data.parameters ?? {}) as Record<string, string>
   const paramEntries = Object.entries(parameters)
 
@@ -719,14 +773,29 @@ function ConnectorConfig({ data, updateField, t }: ConfigProps) {
           </Button>
         </div>
       ))}
-      <InsertVariableHint t={t} />
+      <InsertVariableBar
+        otherNodes={otherNodes}
+        t={t}
+        onInsert={(ref) => {
+          // For connector params, append to last param value if exists
+          const paramEntries = Object.entries((data.parameters ?? {}) as Record<string, string>)
+          if (paramEntries.length > 0) {
+            const [lastKey] = paramEntries[paramEntries.length - 1]
+            const updated: Record<string, string> = {}
+            for (const [k, v] of paramEntries) {
+              updated[k] = k === lastKey ? v + ref : v
+            }
+            updateField("parameters", updated)
+          }
+        }}
+      />
 
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }
 
-function HTTPRequestConfig({ data, updateField, t }: ConfigProps) {
+function HTTPRequestConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -764,15 +833,22 @@ function HTTPRequestConfig({ data, updateField, t }: ConfigProps) {
           value={(data.body ?? "") as string}
           onChange={(e) => updateField("body", e.target.value)}
         />
-        <InsertVariableHint t={t} />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          t={t}
+          onInsert={(ref) => {
+            const current = ((data.body ?? "") as string)
+            updateField("body", current + ref)
+          }}
+        />
       </div>
 
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }
 
-function VariableAssignConfig({ data, updateField, t }: ConfigProps) {
+function VariableAssignConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   const assignments = (data.assignments ?? []) as Array<{ variable: string; expression: string }>
 
   const addAssignment = () => {
@@ -816,12 +892,22 @@ function VariableAssignConfig({ data, updateField, t }: ConfigProps) {
           </Button>
         </div>
       ))}
-      <InsertVariableHint t={t} />
+      <InsertVariableBar
+        otherNodes={otherNodes}
+        t={t}
+        onInsert={(ref) => {
+          // Append to last assignment's expression if exists
+          if (assignments.length > 0) {
+            const lastIdx = assignments.length - 1
+            updateAssignment(lastIdx, "expression", assignments[lastIdx].expression + ref)
+          }
+        }}
+      />
     </div>
   )
 }
 
-function TemplateTransformConfig({ data, updateField, t }: ConfigProps) {
+function TemplateTransformConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -832,15 +918,22 @@ function TemplateTransformConfig({ data, updateField, t }: ConfigProps) {
           value={(data.template ?? "") as string}
           onChange={(e) => updateField("template", e.target.value)}
         />
-        <InsertVariableHint t={t} />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          t={t}
+          onInsert={(ref) => {
+            const current = ((data.template ?? "") as string)
+            updateField("template", current + ref)
+          }}
+        />
       </div>
 
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }
 
-function CodeExecutionConfig({ data, updateField, t }: ConfigProps) {
+function CodeExecutionConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -867,7 +960,7 @@ function CodeExecutionConfig({ data, updateField, t }: ConfigProps) {
         />
       </div>
 
-      <OutputVariableField data={data} updateField={updateField} t={t} />
+      <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     </div>
   )
 }

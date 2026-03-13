@@ -9,6 +9,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ## [Non publié]
 
+### Modifié
+
+- **Refonte de l'éditeur de flux de travail (style Dify)** — Redesign visuel complet de l'éditeur de flux de travail inspiré par Dify :
+  - Disposition horizontale (de gauche à droite) remplaçant le haut vers le bas ; les 12 types de nœuds utilisent des poignées gauche/droite
+  - Conception de nœud avec barre de couleur à gauche, largeur compacte de 220px, icônes plus petites et badges d'état d'exécution
+  - Ajout de nœud sur arête : `AddNodeEdge` personnalisé avec bouton "+" au point médian et popup de sélecteur de type de nœud qui divise les arêtes existantes
+  - Panneau de configuration plus riche : sélecteur de modèle déroulant pour les nœuds LLM, listes déroulantes d'opérateurs (==, !=, >, <, contains, etc.) pour les conditions, en-têtes de section, `InsertVariableHint` et `OutputVariableField` pour tous les nœuds de sortie
+  - Palette de nœuds réductible (mode icônes uniquement) avec regroupement par catégorie ; nœuds Début/Fin estompés lorsqu'ils sont déjà placés
+  - Validation unique Début/Fin au dépôt ; `fitViewOptions` avec `maxZoom:1` pour éviter un zoom surdimensionné sur les petits graphiques
+
 ### Ajouté
 
 - **Système de compétences d'agent** — Chargement de compétences à la demande pour les instructions d'agent : modèle `Skill` (nom, description, contenu, script) avec CRUD complet, examen de publication et cycle de vie de visibilité ; outil intégré `read_skill(name)` pour la divulgation progressive (~80% de réduction de jetons) ; stubs de compétences injectés dans l'invite système (~15 jetons/compétence) ; champ `compact_instructions` par agent pour une stratégie de compaction ContextGuard personnalisée.

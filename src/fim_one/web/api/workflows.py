@@ -269,6 +269,31 @@ async def update_workflow(
     return ApiResponse(data=data)
 
 
+@router.post("/{workflow_id}/duplicate", response_model=ApiResponse)
+async def duplicate_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Create a copy of an existing workflow."""
+    wf = await _get_accessible_workflow(workflow_id, current_user.id, db)
+    copy = Workflow(
+        user_id=current_user.id,
+        name=f"{wf.name} (copy)",
+        icon=wf.icon,
+        description=wf.description,
+        blueprint=wf.blueprint,
+        input_schema=wf.input_schema,
+        output_schema=wf.output_schema,
+        status="draft",
+    )
+    db.add(copy)
+    await db.commit()
+    result = await db.execute(select(Workflow).where(Workflow.id == copy.id))
+    copy = result.scalar_one()
+    return ApiResponse(data=_workflow_to_response(copy).model_dump())
+
+
 @router.delete("/{workflow_id}", response_model=ApiResponse)
 async def delete_workflow(
     workflow_id: str,
@@ -414,6 +439,37 @@ async def unpublish_workflow(
     await db.commit()
     await db.refresh(wf)
     return ApiResponse(data=_workflow_to_response(wf).model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Validate blueprint
+# ---------------------------------------------------------------------------
+
+
+@router.post("/validate", response_model=ApiResponse)
+async def validate_blueprint(
+    body: dict,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> ApiResponse:
+    """Validate a workflow blueprint without saving it.
+
+    Returns validation errors or a success message with node/edge counts.
+    """
+    from fim_one.core.workflow.parser import BlueprintValidationError, parse_blueprint
+
+    blueprint = body.get("blueprint", body)
+    try:
+        parsed = parse_blueprint(blueprint)
+        return ApiResponse(data={
+            "valid": True,
+            "node_count": len(parsed.nodes),
+            "edge_count": len(parsed.edges),
+        })
+    except BlueprintValidationError as exc:
+        return ApiResponse(data={
+            "valid": False,
+            "error": str(exc),
+        })
 
 
 # ---------------------------------------------------------------------------

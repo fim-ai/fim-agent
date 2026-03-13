@@ -9,6 +9,16 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ## [Unreleased]
 
+### Geändert
+
+- **Workflow-Editor-Überholung (Dify-Stil)** — Vollständige visuelle Neugestaltung des Workflow-Editors inspiriert von Dify:
+  - Horizontales (von links nach rechts) Layout ersetzt von oben nach unten; alle 12 Knotentypen verwenden Left/Right-Handles
+  - Linkes Farbbalken-Knotendesign mit kompakter 220px-Breite, kleineren Symbolen und Run-Status-Abzeichen
+  - Add-node-on-edge: benutzerdefinierte `AddNodeEdge` mit "+"-Mittelpunkt-Schaltfläche und Knotentyp-Picker-Popup, das vorhandene Kanten teilt
+  - Reicheres Konfigurationspanel: Modellwähler-Dropdown für LLM-Knoten, Operator-Dropdowns (==, !=, >, <, contains, etc.) für Bedingungen, Abschnittsüberschriften, `InsertVariableHint` und `OutputVariableField` für alle Ausgabeknoten
+  - Einklappbare Knotenpalette (nur-Icons-Modus) mit Kategoriegruppe; Start-/End-Knoten abgeblendet, wenn bereits platziert
+  - Single Start/End-Validierung beim Ablegen; `fitViewOptions` mit `maxZoom:1` zur Vermeidung von übergroßem Zoom bei kleinen Graphen
+
 ### Hinzugefügt
 
 - **Agent-Fähigkeitensystem** — On-Demand-Laden von Fähigkeiten für Agent-Anweisungen: `Skill`-Modell (Name, Beschreibung, Inhalt, Skript) mit vollständigem CRUD, Veröffentlichungsprüfung und Sichtbarkeitszyklus; `read_skill(name)`-Builtin-Tool für progressive Offenlegung (~80% Token-Reduktion); Skill-Stubs injiziert in System-Prompt (~15 Token/Skill); `compact_instructions`-Feld pro Agent für benutzerdefinierte ContextGuard-Kompaktierungsstrategie.

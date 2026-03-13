@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import {
   CheckCircle2,
@@ -10,13 +10,15 @@ import {
   Play,
   CircleDashed,
   SkipForward,
+  ChevronDown,
+  RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { fmtDuration } from "@/lib/utils"
-import type { StartNodeData, NodeRunResult, NodeRunStatus } from "@/types/workflow"
+import type { StartNodeData, NodeRunResult, NodeRunStatus, WorkflowNodeType } from "@/types/workflow"
 
 interface RunPanelProps {
   isOpen: boolean
@@ -26,7 +28,11 @@ interface RunPanelProps {
   finalOutputs: Record<string, unknown> | null
   finalError: string | null
   runDuration: number | null
+  /** Map of nodeId -> node type for display labels */
+  nodeTypeMap: Record<string, WorkflowNodeType>
+  totalNodeCount: number
   onStartRun: (inputs: Record<string, unknown>) => void
+  onRunAgain: () => void
   onCancel: () => void
   onClose: () => void
 }
@@ -39,6 +45,54 @@ const statusIcons: Record<NodeRunStatus, React.ReactNode> = {
   skipped: <SkipForward className="h-3.5 w-3.5 text-zinc-400" />,
 }
 
+/** Collapsible JSON viewer for node outputs */
+function NodeOutputViewer({ output }: { output: unknown }) {
+  const t = useTranslations("workflows")
+  const [expanded, setExpanded] = useState(false)
+
+  const formatted = useMemo(() => {
+    if (typeof output === "string") return output
+    return JSON.stringify(output, null, 2)
+  }, [output])
+
+  const isLong = formatted.length > 100 || formatted.includes("\n")
+
+  if (!isLong) {
+    return (
+      <pre className="text-[10px] text-muted-foreground font-mono mt-0.5 whitespace-pre-wrap break-all">
+        {formatted}
+      </pre>
+    )
+  }
+
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 transition-transform duration-200",
+            expanded && "rotate-180",
+          )}
+        />
+        {expanded ? t("runPanelHideOutput") : t("runPanelShowOutput")}
+      </button>
+      {expanded ? (
+        <pre className="text-[10px] text-muted-foreground font-mono mt-1 whitespace-pre-wrap break-all p-1.5 rounded border border-border bg-muted/30 max-h-[160px] overflow-auto">
+          {formatted}
+        </pre>
+      ) : (
+        <pre className="text-[10px] text-muted-foreground font-mono mt-0.5 line-clamp-2 whitespace-pre-wrap break-all">
+          {formatted}
+        </pre>
+      )}
+    </div>
+  )
+}
+
 export function RunPanel({
   isOpen,
   isRunning,
@@ -47,7 +101,10 @@ export function RunPanel({
   finalOutputs,
   finalError,
   runDuration,
+  nodeTypeMap,
+  totalNodeCount,
   onStartRun,
+  onRunAgain,
   onCancel,
   onClose,
 }: RunPanelProps) {
@@ -80,18 +137,59 @@ export function RunPanel({
 
   const hasInputs = startVariables.length > 0
   const hasResults = nodeResults && Object.keys(nodeResults).length > 0
+  const isFinished = !isRunning && hasResults
   const showInputForm = !isRunning && !hasResults
+
+  // Progress calculation
+  const completedCount = nodeResults
+    ? Object.values(nodeResults).filter(
+        (r) => r.status === "completed" || r.status === "failed" || r.status === "skipped",
+      ).length
+    : 0
+
+  /** Resolve a nodeId to a human-readable label */
+  const getNodeLabel = (nodeId: string): string => {
+    const nodeType = nodeTypeMap[nodeId]
+    if (nodeType) {
+      const label = t(`nodeType_${nodeType}` as Parameters<typeof t>[0])
+      // If there are multiple nodes of the same type, append a short suffix from the ID
+      return label
+    }
+    return nodeId
+  }
 
   return (
     <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/40">
-        <h3 className="text-xs font-semibold text-foreground">
-          {t("runPanelTitle")}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-semibold text-foreground">
+            {t("runPanelTitle")}
+          </h3>
+          {/* Progress indicator */}
+          {(isRunning || hasResults) && totalNodeCount > 0 && (
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {t("runPanelProgress", {
+                completed: completedCount,
+                total: totalNodeCount,
+              })}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           {isRunning && (
             <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={onCancel}>
               {t("runPanelCancel")}
+            </Button>
+          )}
+          {isFinished && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-xs gap-1"
+              onClick={onRunAgain}
+            >
+              <RotateCcw className="h-3 w-3" />
+              {t("runPanelRunAgain")}
             </Button>
           )}
           {runDuration != null && (
@@ -150,21 +248,26 @@ export function RunPanel({
                 >
                   {statusIcons[result.status]}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{nodeId}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {getNodeLabel(nodeId)}
+                      </p>
+                      {nodeTypeMap[nodeId] && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          ({nodeId})
+                        </span>
+                      )}
+                    </div>
                     {result.duration_ms != null && (
                       <p className="text-[10px] text-muted-foreground tabular-nums">
                         {fmtDuration(result.duration_ms)}
                       </p>
                     )}
                     {result.error && (
-                      <p className="text-[10px] text-destructive line-clamp-2">{result.error}</p>
+                      <p className="text-[10px] text-destructive mt-0.5">{result.error}</p>
                     )}
                     {result.output != null && result.status === "completed" && (
-                      <pre className="text-[10px] text-muted-foreground line-clamp-2 font-mono mt-0.5">
-                        {typeof result.output === "string"
-                          ? result.output
-                          : JSON.stringify(result.output, null, 2)}
-                      </pre>
+                      <NodeOutputViewer output={result.output} />
                     )}
                   </div>
                 </div>

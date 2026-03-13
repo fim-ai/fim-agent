@@ -981,6 +981,14 @@ export const workflowApi = {
     apiFetch<ApiResponse<WorkflowResponse>>(`/api/workflows/${id}/resubmit`, {
       method: "POST",
     }).then((r) => r.data),
+
+  duplicate: (id: string) =>
+    apiFetch<ApiResponse<WorkflowResponse>>(`/api/workflows/${id}/duplicate`, {
+      method: "POST",
+    }).then((r) => r.data),
+
+  getVariables: (id: string) =>
+    apiFetch<ApiResponse<Record<string, { node_type: string; title: string; outputs: Array<{ name: string; type: string; description: string }> }>>>(`/api/workflows/${id}/variables`).then((r) => r.data),
 }
 
 // --- Skill API ---

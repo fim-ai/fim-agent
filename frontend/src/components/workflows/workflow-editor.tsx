@@ -92,7 +92,10 @@ interface WorkflowEditorProps {
   finalOutputs: Record<string, unknown> | null
   finalError: string | null
   runDuration: number | null
+  nodeTypeMap: Record<string, WorkflowNodeType>
+  totalNodeCount: number
   onStartRun: (inputs: Record<string, unknown>) => void
+  onRunAgain: () => void
   onCancelRun: () => void
   onCloseRunPanel: () => void
 }
@@ -107,7 +110,10 @@ export function WorkflowEditor({
   finalOutputs,
   finalError,
   runDuration,
+  nodeTypeMap,
+  totalNodeCount,
   onStartRun,
+  onRunAgain,
   onCancelRun,
   onCloseRunPanel,
 }: WorkflowEditorProps) {
@@ -340,7 +346,10 @@ export function WorkflowEditor({
           finalOutputs={finalOutputs}
           finalError={finalError}
           runDuration={runDuration}
+          nodeTypeMap={nodeTypeMap}
+          totalNodeCount={totalNodeCount}
           onStartRun={onStartRun}
+          onRunAgain={onRunAgain}
           onCancel={onCancelRun}
           onClose={onCloseRunPanel}
         />
@@ -350,6 +359,7 @@ export function WorkflowEditor({
       {selectedNodeId && (
         <NodeConfigPanel
           node={selectedNode}
+          allNodes={nodes}
           onUpdate={handleNodeDataUpdate}
           onClose={() => setSelectedNodeId(null)}
         />

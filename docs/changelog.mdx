@@ -9,6 +9,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
+### Changed
+
+- **Workflow Editor Overhaul (Dify-style)** — Complete visual redesign of the workflow editor inspired by Dify:
+  - Horizontal (left-to-right) layout replacing top-to-bottom; all 12 node types use Left/Right handles
+  - Left color bar node design with compact 220px width, smaller icons, and run status badges
+  - Add-node-on-edge: custom `AddNodeEdge` with "+" midpoint button and node type picker popup that splits existing edges
+  - Richer config panel: model selector dropdown for LLM nodes, operator dropdowns (==, !=, >, <, contains, etc.) for conditions, section headers, `InsertVariableHint` and `OutputVariableField` for all output nodes
+  - Collapsible node palette (icons-only mode) with category grouping; Start/End nodes dimmed when already placed
+  - Single Start/End validation on drop; `fitViewOptions` with `maxZoom:1` to prevent oversized zoom on small graphs
+
 ### Added
 
 - **Agent Skill System** — On-demand skill loading for agent instructions: `Skill` model (name, description, content, script) with full CRUD, publish review, and visibility lifecycle; `read_skill(name)` builtin tool for progressive disclosure (~80% token reduction); skill stubs injected into system prompt (~15 tokens/skill); `compact_instructions` per-agent field for custom ContextGuard compaction strategy.

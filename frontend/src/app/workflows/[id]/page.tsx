@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
@@ -27,9 +27,11 @@ import type { UserOrg } from "@/lib/api"
 import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
 import { WorkflowToolbar } from "@/components/workflows/workflow-toolbar"
 import { WorkflowEditor } from "@/components/workflows/workflow-editor"
+import { RunHistorySheet } from "@/components/workflows/run-history-sheet"
 import type {
   WorkflowResponse,
   WorkflowBlueprint,
+  WorkflowNodeType,
   StartNodeData,
   NodeRunResult,
 } from "@/types/workflow"
@@ -46,6 +48,7 @@ export default function WorkflowEditorPage() {
   const [workflow, setWorkflow] = useState<WorkflowResponse | null>(null)
   const [isLoadingWorkflow, setIsLoadingWorkflow] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
@@ -64,6 +67,9 @@ export default function WorkflowEditorPage() {
   const [finalError, setFinalError] = useState<string | null>(null)
   const [runDuration, setRunDuration] = useState<number | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  // History sheet state
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   // Blueprint state managed by editor
   const blueprintRef = useRef<WorkflowBlueprint>({
@@ -172,8 +178,29 @@ export default function WorkflowEditorPage() {
     }
   }, [workflow, t])
 
+  // Keyboard shortcuts (Cmd+S to save)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault()
+        if (isDirty && !isSaving) {
+          handleSave()
+        }
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [isDirty, isSaving, handleSave])
+
   const handleRun = useCallback(() => {
     setRunPanelOpen(true)
+    setNodeResults(null)
+    setFinalOutputs(null)
+    setFinalError(null)
+    setRunDuration(null)
+  }, [])
+
+  const handleRunAgain = useCallback(() => {
     setNodeResults(null)
     setFinalOutputs(null)
     setFinalError(null)
@@ -316,11 +343,15 @@ export default function WorkflowEditorPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `workflow-${workflow.id}.json`
+      const slug = (workflow.name || "workflow")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+      a.download = `${slug}.json`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      toast.error(t("workflowUpdateFailed"))
+      toast.error(t("workflowExportFailed"))
     }
   }, [workflow, t])
 
@@ -349,6 +380,20 @@ export default function WorkflowEditorPage() {
     }
     input.click()
   }, [t])
+
+  const handleDuplicate = useCallback(async () => {
+    if (!workflow) return
+    setIsDuplicating(true)
+    try {
+      const duplicated = await workflowApi.duplicate(workflow.id)
+      toast.success(t("workflowDuplicated"))
+      router.push(`/workflows/${duplicated.id}`)
+    } catch {
+      toast.error(t("workflowDuplicateFailed"))
+    } finally {
+      setIsDuplicating(false)
+    }
+  }, [workflow, router, t])
 
   const handleDelete = useCallback(async () => {
     if (!workflow) return
@@ -424,6 +469,22 @@ export default function WorkflowEditorPage() {
   const startData = startNode?.data as StartNodeData | undefined
   const startVariables = startData?.variables ?? []
 
+  // Build nodeId -> nodeType map for display labels
+  const nodeTypeMap = useMemo(() => {
+    const map: Record<string, WorkflowNodeType> = {}
+    for (const n of blueprintRef.current.nodes) {
+      map[n.id] = n.type
+    }
+    return map
+  }, [blueprintRef.current.nodes])
+
+  // Total node count (excluding start/end for progress display)
+  const totalNodeCount = useMemo(() => {
+    return blueprintRef.current.nodes.filter(
+      (n) => n.type !== "start" && n.type !== "end",
+    ).length
+  }, [blueprintRef.current.nodes])
+
   if (authLoading || !user) return null
 
   if (isLoadingWorkflow) {
@@ -445,12 +506,15 @@ export default function WorkflowEditorPage() {
         publishStatus={workflow.publish_status}
         isSaving={isSaving}
         isRunning={isRunning}
+        isDuplicating={isDuplicating}
         onNameChange={handleNameChange}
         onSave={handleSave}
         onRun={handleRun}
         onExport={handleExport}
         onImport={handleImport}
+        onDuplicate={handleDuplicate}
         onDelete={() => setShowDeleteDialog(true)}
+        onHistory={() => setHistoryOpen(true)}
         onPublish={handlePublishClick}
         onUnpublish={handleUnpublishClick}
         onResubmit={handleResubmit}
@@ -466,7 +530,10 @@ export default function WorkflowEditorPage() {
         finalOutputs={finalOutputs}
         finalError={finalError}
         runDuration={runDuration}
+        nodeTypeMap={nodeTypeMap}
+        totalNodeCount={totalNodeCount}
         onStartRun={handleStartRun}
+        onRunAgain={handleRunAgain}
         onCancelRun={handleCancelRun}
         onCloseRunPanel={() => setRunPanelOpen(false)}
       />
@@ -590,6 +657,14 @@ export default function WorkflowEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Run History Sheet */}
+      <RunHistorySheet
+        workflowId={workflowId}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        nodeTypeMap={nodeTypeMap}
+      />
     </div>
   )
 }
