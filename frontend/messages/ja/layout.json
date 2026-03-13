@@ -48,5 +48,6 @@
   "gsConnector": "コネクタを作成",
   "gsAgent": "エージェントを作成",
   "gsChat": "会話を開始",
-  "gsStart": "開始 →"
+  "gsStart": "開始 →",
+  "workflows": "ワークフロー"
 }

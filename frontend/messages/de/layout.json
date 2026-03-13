@@ -48,5 +48,6 @@
   "gsConnector": "Konnektor erstellen",
   "gsAgent": "Agent erstellen",
   "gsChat": "Unterhaltung starten",
-  "gsStart": "Start →"
+  "gsStart": "Start →",
+  "workflows": "Arbeitsabläufe"
 }

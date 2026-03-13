@@ -1,5 +1,6 @@
 import { getApiBaseUrl, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "./constants"
 import type { UserInfo, TokenResponse, LoginRequest, LoginWithCodeRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest, SetupRequest } from "@/types/auth"
+import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse } from "@/types/workflow"
 import type {
   ConversationResponse,
   ConversationDetail,
@@ -907,6 +908,59 @@ export const connectorApi = {
     apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}`, {
       method: "PUT",
       body: JSON.stringify({ is_active: isActive }),
+    }).then((r) => r.data),
+}
+
+// --- Workflow API ---
+export const workflowApi = {
+  list: (page = 1, size = 50) =>
+    apiFetch<PaginatedResponse<WorkflowResponse>>(
+      `/api/workflows?page=${page}&size=${size}`,
+    ),
+
+  get: (id: string) =>
+    apiFetch<ApiResponse<WorkflowResponse>>(`/api/workflows/${id}`).then((r) => r.data),
+
+  create: (body: WorkflowCreate) =>
+    apiFetch<ApiResponse<WorkflowResponse>>("/api/workflows", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  update: (id: string, body: WorkflowUpdate) =>
+    apiFetch<ApiResponse<WorkflowResponse>>(`/api/workflows/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  delete: (id: string) =>
+    apiFetch<ApiResponse<{ deleted: string }>>(`/api/workflows/${id}`, {
+      method: "DELETE",
+    }),
+
+  getRuns: (workflowId: string, page = 1, size = 20) =>
+    apiFetch<PaginatedResponse<WorkflowRunResponse>>(
+      `/api/workflows/${workflowId}/runs?page=${page}&size=${size}`,
+    ),
+
+  getRun: (workflowId: string, runId: string) =>
+    apiFetch<ApiResponse<WorkflowRunResponse>>(
+      `/api/workflows/${workflowId}/runs/${runId}`,
+    ).then((r) => r.data),
+
+  cancelRun: (workflowId: string, runId: string) =>
+    apiFetch<ApiResponse<WorkflowRunResponse>>(
+      `/api/workflows/${workflowId}/runs/${runId}/cancel`,
+      { method: "POST" },
+    ).then((r) => r.data),
+
+  export: (id: string) =>
+    apiFetch<WorkflowResponse>(`/api/workflows/${id}/export`),
+
+  import: (data: Record<string, unknown>) =>
+    apiFetch<ApiResponse<WorkflowResponse>>("/api/workflows/import", {
+      method: "POST",
+      body: JSON.stringify(data),
     }).then((r) => r.data),
 }
 

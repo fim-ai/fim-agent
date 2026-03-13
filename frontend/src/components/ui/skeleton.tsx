@@ -122,6 +122,25 @@ function SkeletonTableRow() {
   )
 }
 
+// ── WorkflowCard — bordered grid card with icon + name + badge line ─────
+function SkeletonWorkflowCard() {
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border p-4">
+      <div className="flex items-center gap-2">
+        <SkeletonPrimitive className="h-4 w-4 shrink-0 rounded" />
+        <SkeletonPrimitive className="h-4 w-3/4" />
+      </div>
+      <div className="flex gap-2">
+        <SkeletonPrimitive className="h-4 w-14 rounded-full" />
+        <SkeletonPrimitive className="h-4 w-16 rounded-full" />
+      </div>
+      <SkeletonPrimitive className="h-3 w-full" />
+      <SkeletonPrimitive className="h-3 w-2/3" />
+      <SkeletonPrimitive className="h-7 w-full mt-2 rounded-md" />
+    </div>
+  )
+}
+
 // ── Export ─────────────────────────────────────────────────────────────
 const Skeleton = Object.assign(SkeletonPrimitive, {
   StatCard: SkeletonStatCard,
@@ -132,6 +151,7 @@ const Skeleton = Object.assign(SkeletonPrimitive, {
   ConnectorCard: SkeletonConnectorCard,
   ArtifactCard: SkeletonArtifactCard,
   TableRow: SkeletonTableRow,
+  WorkflowCard: SkeletonWorkflowCard,
 })
 
 export { Skeleton }

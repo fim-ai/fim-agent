@@ -48,5 +48,6 @@
   "gsConnector": "Créer un connecteur",
   "gsAgent": "Créer un agent",
   "gsChat": "Démarrer une conversation",
-  "gsStart": "Commencer →"
+  "gsStart": "Commencer →",
+  "workflows": "Flux de travail"
 }

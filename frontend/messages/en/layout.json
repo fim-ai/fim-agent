@@ -9,6 +9,7 @@
   "agents": "Agents",
   "knowledge": "Knowledge",
   "connectors": "Connectors",
+  "workflows": "Workflows",
   "tools": "Tools",
   "artifacts": "Artifacts",
   "allChats": "All Chats",
