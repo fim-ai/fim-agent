@@ -2758,6 +2758,149 @@ class BuiltinToolExecutor:
 
 
 # ---------------------------------------------------------------------------
+# SubWorkflow — calls another workflow by ID (stub: validates config only)
+# ---------------------------------------------------------------------------
+
+
+class SubWorkflowExecutor:
+    """Execute another workflow as a sub-process.
+
+    Currently a stub that validates configuration and resolves input mappings.
+    Full recursive execution requires database access not yet available in
+    the executor context.
+    """
+
+    async def execute(
+        self,
+        node: WorkflowNodeDef,
+        store: VariableStore,
+        context: ExecutionContext,
+    ) -> NodeResult:
+        t0 = time.time()
+        try:
+            workflow_id = node.data.get("workflow_id", "")
+            if not workflow_id:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="SubWorkflow node requires a workflow_id",
+                    duration_ms=_ms_since(t0),
+                )
+
+            output_var = node.data.get("output_variable", "sub_result")
+
+            # Resolve input_mapping — interpolate each value from the store
+            input_mapping: dict = node.data.get("input_mapping", {})
+            resolved_inputs: dict[str, Any] = {}
+            for key, val in input_mapping.items():
+                if isinstance(val, str):
+                    resolved_inputs[key] = await store.interpolate(val)
+                else:
+                    resolved_inputs[key] = val
+
+            logger.info(
+                "SubWorkflow node %s: workflow_id=%s, inputs=%s",
+                node.id, workflow_id, resolved_inputs,
+            )
+
+            result = {
+                "sub_workflow_id": workflow_id,
+                "inputs": resolved_inputs,
+                "note": "Sub-workflow execution pending full implementation",
+            }
+
+            await store.set(output_var, result)
+            await store.set(f"{node.id}.output", result)
+            await store.set(f"{node.id}.{output_var}", result)
+
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output=result,
+                duration_ms=_ms_since(t0),
+            )
+        except Exception as exc:
+            logger.exception("SubWorkflow node %s failed", node.id)
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.FAILED,
+                error=f"SubWorkflow error: {exc}",
+                duration_ms=_ms_since(t0),
+            )
+
+    @staticmethod
+    def output_schema() -> list[dict[str, str]]:
+        return [{"name": "output_variable", "type": "object", "description": "Output from the sub-workflow execution"}]
+
+
+# ---------------------------------------------------------------------------
+# ENV — reads environment variables from encrypted storage
+# ---------------------------------------------------------------------------
+
+
+class ENVExecutor:
+    """Read environment variables from ``context.env_vars``.
+
+    The env_vars dict is populated at engine startup from the workflow's
+    encrypted environment variable storage.
+    """
+
+    async def execute(
+        self,
+        node: WorkflowNodeDef,
+        store: VariableStore,
+        context: ExecutionContext,
+    ) -> NodeResult:
+        t0 = time.time()
+        try:
+            env_keys = node.data.get("env_keys", [])
+            if not env_keys or not isinstance(env_keys, list):
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="ENV node requires a non-empty 'env_keys' list",
+                    duration_ms=_ms_since(t0),
+                )
+
+            output_var = node.data.get("output_variable", "env_result")
+
+            collected: dict[str, Any] = {}
+            for key in env_keys:
+                if not isinstance(key, str):
+                    continue
+                value = context.env_vars.get(key)
+                if value is None:
+                    logger.warning(
+                        "ENV node %s: key '%s' not found in env_vars",
+                        node.id, key,
+                    )
+                collected[key] = value
+
+            await store.set(output_var, collected)
+            await store.set(f"{node.id}.output", collected)
+            await store.set(f"{node.id}.{output_var}", collected)
+
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output=collected,
+                duration_ms=_ms_since(t0),
+            )
+        except Exception as exc:
+            logger.exception("ENV node %s failed", node.id)
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.FAILED,
+                error=f"ENV error: {exc}",
+                duration_ms=_ms_since(t0),
+            )
+
+    @staticmethod
+    def output_schema() -> list[dict[str, str]]:
+        return [{"name": "output_variable", "type": "object", "description": "Environment variables read from encrypted storage"}]
+
+
+# ---------------------------------------------------------------------------
 # Registry — map NodeType to executor class
 # ---------------------------------------------------------------------------
 
@@ -2785,6 +2928,8 @@ EXECUTOR_REGISTRY: dict[NodeType, type] = {
     NodeType.HUMAN_INTERVENTION: HumanInterventionExecutor,
     NodeType.MCP: MCPExecutor,
     NodeType.BUILTIN_TOOL: BuiltinToolExecutor,
+    NodeType.SUB_WORKFLOW: SubWorkflowExecutor,
+    NodeType.ENV: ENVExecutor,
 }
 
 

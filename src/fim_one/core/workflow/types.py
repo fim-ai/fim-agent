@@ -33,6 +33,8 @@ class NodeType(str, Enum):
     HUMAN_INTERVENTION = "HUMAN_INTERVENTION"
     MCP = "MCP"
     BUILTIN_TOOL = "BUILTIN_TOOL"
+    SUB_WORKFLOW = "SUB_WORKFLOW"
+    ENV = "ENV"
 
 
 class NodeStatus(str, Enum):

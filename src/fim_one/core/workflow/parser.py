@@ -434,4 +434,21 @@ def validate_blueprint(blueprint: WorkflowBlueprint) -> list[BlueprintWarning]:
                     message="Builtin tool node has no tool selected",
                 ))
 
+        elif node.type == NodeType.SUB_WORKFLOW:
+            if not node.data.get("workflow_id"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_workflow_id",
+                    message="Sub-workflow node has no workflow ID configured",
+                ))
+
+        elif node.type == NodeType.ENV:
+            env_keys = node.data.get("env_keys")
+            if not env_keys or not isinstance(env_keys, list):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_env_keys",
+                    message="ENV node has no environment variable keys configured",
+                ))
+
     return warnings

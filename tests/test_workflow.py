@@ -6881,3 +6881,283 @@ class TestMCPBuiltinValidation:
         assert "missing_server_id" not in codes
         assert "missing_tool_name" not in codes
         assert "missing_tool_id" not in codes
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 3 Node Tests — SubWorkflow & ENV
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestSubWorkflowNode:
+    """Test the SubWorkflowExecutor (stub implementation)."""
+
+    @pytest.mark.asyncio
+    async def test_basic_execution(self):
+        from fim_one.core.workflow.nodes import SubWorkflowExecutor
+
+        node = WorkflowNodeDef(
+            id="sub_1",
+            type=NodeType.SUB_WORKFLOW,
+            data={
+                "type": "SUB_WORKFLOW",
+                "workflow_id": "wf-abc-123",
+                "input_mapping": {"query": "hello world"},
+                "output_variable": "sub_result",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = SubWorkflowExecutor()
+        result = await executor.execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["sub_workflow_id"] == "wf-abc-123"
+        assert result.output["inputs"]["query"] == "hello world"
+
+    @pytest.mark.asyncio
+    async def test_empty_workflow_id_fails(self):
+        from fim_one.core.workflow.nodes import SubWorkflowExecutor
+
+        node = WorkflowNodeDef(
+            id="sub_1",
+            type=NodeType.SUB_WORKFLOW,
+            data={"type": "SUB_WORKFLOW", "workflow_id": ""},
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        result = await SubWorkflowExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.FAILED
+        assert "workflow_id" in result.error
+
+    @pytest.mark.asyncio
+    async def test_input_mapping_interpolation(self):
+        from fim_one.core.workflow.nodes import SubWorkflowExecutor
+
+        node = WorkflowNodeDef(
+            id="sub_1",
+            type=NodeType.SUB_WORKFLOW,
+            data={
+                "type": "SUB_WORKFLOW",
+                "workflow_id": "wf-123",
+                "input_mapping": {"text": "Process: {{start.query}}"},
+            },
+        )
+        store = VariableStore()
+        await store.set("start.query", "test input")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        result = await SubWorkflowExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["inputs"]["text"] == "Process: test input"
+
+    @pytest.mark.asyncio
+    async def test_output_stored_in_variable(self):
+        from fim_one.core.workflow.nodes import SubWorkflowExecutor
+
+        node = WorkflowNodeDef(
+            id="sub_1",
+            type=NodeType.SUB_WORKFLOW,
+            data={
+                "type": "SUB_WORKFLOW",
+                "workflow_id": "wf-123",
+                "output_variable": "my_sub",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        await SubWorkflowExecutor().execute(node, store, ctx)
+        val = await store.get("my_sub")
+        assert val is not None
+        assert val["sub_workflow_id"] == "wf-123"
+
+    @pytest.mark.asyncio
+    async def test_empty_input_mapping(self):
+        from fim_one.core.workflow.nodes import SubWorkflowExecutor
+
+        node = WorkflowNodeDef(
+            id="sub_1",
+            type=NodeType.SUB_WORKFLOW,
+            data={
+                "type": "SUB_WORKFLOW",
+                "workflow_id": "wf-123",
+                "input_mapping": {},
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        result = await SubWorkflowExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["inputs"] == {}
+
+
+class TestENVNode:
+    """Test the ENVExecutor."""
+
+    @pytest.mark.asyncio
+    async def test_basic_read(self):
+        from fim_one.core.workflow.nodes import ENVExecutor
+
+        node = WorkflowNodeDef(
+            id="env_1",
+            type=NodeType.ENV,
+            data={
+                "type": "ENV",
+                "env_keys": ["API_KEY", "SECRET"],
+                "output_variable": "env_result",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(
+            run_id="r", user_id="u", workflow_id="w",
+            env_vars={"API_KEY": "sk-123", "SECRET": "s3cret"},
+        )
+
+        result = await ENVExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["API_KEY"] == "sk-123"
+        assert result.output["SECRET"] == "s3cret"
+
+    @pytest.mark.asyncio
+    async def test_missing_key_returns_none(self):
+        from fim_one.core.workflow.nodes import ENVExecutor
+
+        node = WorkflowNodeDef(
+            id="env_1",
+            type=NodeType.ENV,
+            data={
+                "type": "ENV",
+                "env_keys": ["PRESENT", "MISSING"],
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(
+            run_id="r", user_id="u", workflow_id="w",
+            env_vars={"PRESENT": "value"},
+        )
+
+        result = await ENVExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output["PRESENT"] == "value"
+        assert result.output["MISSING"] is None
+
+    @pytest.mark.asyncio
+    async def test_empty_env_keys_fails(self):
+        from fim_one.core.workflow.nodes import ENVExecutor
+
+        node = WorkflowNodeDef(
+            id="env_1",
+            type=NodeType.ENV,
+            data={"type": "ENV", "env_keys": []},
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        result = await ENVExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.FAILED
+        assert "env_keys" in result.error
+
+    @pytest.mark.asyncio
+    async def test_no_env_keys_field_fails(self):
+        from fim_one.core.workflow.nodes import ENVExecutor
+
+        node = WorkflowNodeDef(
+            id="env_1",
+            type=NodeType.ENV,
+            data={"type": "ENV"},
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        result = await ENVExecutor().execute(node, store, ctx)
+        assert result.status == NodeStatus.FAILED
+
+    @pytest.mark.asyncio
+    async def test_output_stored_in_variable(self):
+        from fim_one.core.workflow.nodes import ENVExecutor
+
+        node = WorkflowNodeDef(
+            id="env_1",
+            type=NodeType.ENV,
+            data={
+                "type": "ENV",
+                "env_keys": ["TOKEN"],
+                "output_variable": "my_env",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(
+            run_id="r", user_id="u", workflow_id="w",
+            env_vars={"TOKEN": "abc"},
+        )
+
+        await ENVExecutor().execute(node, store, ctx)
+        val = await store.get("my_env")
+        assert val is not None
+        assert val["TOKEN"] == "abc"
+
+
+class TestSubWorkflowENVValidation:
+    """Test parser validation for SubWorkflow and ENV nodes."""
+
+    def test_sub_workflow_missing_id_warning(self):
+        raw = {
+            "nodes": [
+                _start_node(),
+                {"id": "sub_1", "type": "custom", "position": {"x": 0, "y": 0},
+                 "data": {"type": "SUB_WORKFLOW", "workflow_id": ""}},
+                _end_node(),
+            ],
+            "edges": [_edge("start_1", "sub_1"), _edge("sub_1", "end_1")],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_workflow_id" in codes
+
+    def test_sub_workflow_valid_no_warning(self):
+        raw = {
+            "nodes": [
+                _start_node(),
+                {"id": "sub_1", "type": "custom", "position": {"x": 0, "y": 0},
+                 "data": {"type": "SUB_WORKFLOW", "workflow_id": "wf-123"}},
+                _end_node(),
+            ],
+            "edges": [_edge("start_1", "sub_1"), _edge("sub_1", "end_1")],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_workflow_id" not in codes
+
+    def test_env_missing_keys_warning(self):
+        raw = {
+            "nodes": [
+                _start_node(),
+                {"id": "env_1", "type": "custom", "position": {"x": 0, "y": 0},
+                 "data": {"type": "ENV", "env_keys": []}},
+                _end_node(),
+            ],
+            "edges": [_edge("start_1", "env_1"), _edge("env_1", "end_1")],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_env_keys" in codes
+
+    def test_env_valid_no_warning(self):
+        raw = {
+            "nodes": [
+                _start_node(),
+                {"id": "env_1", "type": "custom", "position": {"x": 0, "y": 0},
+                 "data": {"type": "ENV", "env_keys": ["API_KEY"]}},
+                _end_node(),
+            ],
+            "edges": [_edge("start_1", "env_1"), _edge("env_1", "end_1")],
+        }
+        bp = parse_blueprint(raw)
+        warnings = validate_blueprint(bp)
+        codes = [w.code for w in warnings]
+        assert "missing_env_keys" not in codes
