@@ -15,6 +15,7 @@ description: "FIM One 的所有重要变更。"
   ### 新增
 </div>
 
+* **发布审核 UI（前端）**：组织级发布审核系统前端 — 组织编辑对话框中的审核开关、带类型/状态筛选和通过/拒绝工作流的 ReviewsSheet、智能体卡片上的发布状态徽章（待审核/已通过/已拒绝，带拒绝原因 tooltip）、发布对话框中的审核提示（当目标组织需要审核时）、已拒绝资源的重新提交操作、组织管理员/所有者的"审核管理"下拉菜单。所有资源类型（智能体、连接器、知识库、MCP 服务器）新增 `publish_status`、`reviewed_by`、`reviewed_at`、`review_note` 类型字段。完整国际化支持（中英文）。
 * **自由模式切换 + 逐条模式追踪**：用户现可在会话中自由切换 Auto/React/DAG 模式，无需开新对话。每条助手消息在 `metadata.mode` 中记录实际执行模式。历史消息逐条检测并使用正确的渲染引擎（优先读 metadata，回退至 SSE 事件指纹识别）。移除侧栏模式图标。每轮显示模式标签。
 * **三级模型角色 (F5)**：General、Fast、Reasoning 三个模型层级的独立环境变量配置。Fast 模型不再继承主模型的推理相关设置。新增环境变量：`FAST_LLM_API_KEY`、`FAST_LLM_BASE_URL`、`FAST_LLM_TEMPERATURE`、`REASONING_LLM_MODEL`、`REASONING_LLM_API_KEY`、`REASONING_LLM_BASE_URL`、`REASONING_LLM_TEMPERATURE`、`REASONING_LLM_CONTEXT_SIZE`、`REASONING_LLM_MAX_OUTPUT_TOKENS`、`REASONING_LLM_EFFORT`、`REASONING_LLM_BUDGET`
 * **结构化步骤输出 (F2)**：`StepOutput` 数据类替代 DAG 步骤中的纯字符串结果，为后续支持步骤间的结构化数据和产物传递奠定基础
