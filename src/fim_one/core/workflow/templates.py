@@ -436,6 +436,158 @@ _HTTP_PIPELINE: dict[str, Any] = {
 }
 
 # ---------------------------------------------------------------------------
+# Template 5 — Data Processing Pipeline
+# ---------------------------------------------------------------------------
+
+_DATA_PIPELINE: dict[str, Any] = {
+    "id": "data-processing-pipeline",
+    "name": "Data Processing Pipeline",
+    "description": "Process input data with code, transform with a template, and output results.",
+    "category": "data",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "variables": [
+                        {"name": "raw_data", "type": "string", "required": True},
+                    ],
+                },
+                x=0,
+                y=200,
+            ),
+            _node(
+                "code_1",
+                "CODE_EXECUTION",
+                {
+                    "label": "Process Data",
+                    "language": "python",
+                    "code": (
+                        "import json\n\n"
+                        "# Parse the raw data\n"
+                        "data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data\n\n"
+                        "# Process: extract, transform, filter as needed\n"
+                        "result = {\n"
+                        '    "processed": data,\n'
+                        '    "count": len(data) if isinstance(data, (list, dict)) else 1\n'
+                        "}\n"
+                    ),
+                    "output_variable": "processed",
+                },
+                x=300,
+                y=200,
+            ),
+            _node(
+                "transform_1",
+                "TEMPLATE_TRANSFORM",
+                {
+                    "label": "Format Output",
+                    "template": (
+                        "Processing complete.\n\n"
+                        "Result: {{code_1.output}}\n"
+                    ),
+                },
+                x=600,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_mapping": {
+                        "result": "{{transform_1.output}}",
+                    },
+                },
+                x=900,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-code", "start_1", "code_1"),
+            _edge("e-code-transform", "code_1", "transform_1"),
+            _edge("e-transform-end", "transform_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+
+# ---------------------------------------------------------------------------
+# Template 6 — Agent with Knowledge Retrieval
+# ---------------------------------------------------------------------------
+
+_AGENT_WITH_KB: dict[str, Any] = {
+    "id": "agent-with-knowledge",
+    "name": "Agent with Knowledge Retrieval",
+    "description": "Retrieve relevant context from a knowledge base, then delegate to an AI agent for intelligent processing.",
+    "category": "ai",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "variables": [
+                        {"name": "question", "type": "string", "required": True},
+                    ],
+                },
+                x=0,
+                y=200,
+            ),
+            _node(
+                "kb_1",
+                "KNOWLEDGE_RETRIEVAL",
+                {
+                    "label": "Retrieve Context",
+                    "query_template": "{{start_1.question}}",
+                    "top_k": 5,
+                },
+                x=300,
+                y=200,
+            ),
+            _node(
+                "agent_1",
+                "AGENT",
+                {
+                    "label": "AI Agent",
+                    "prompt": (
+                        "Answer the following question using the provided context.\n\n"
+                        "Context:\n{{kb_1.output}}\n\n"
+                        "Question: {{start_1.question}}"
+                    ),
+                    "output_variable": "answer",
+                },
+                x=600,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_mapping": {
+                        "answer": "{{agent_1.output}}",
+                    },
+                },
+                x=900,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-kb", "start_1", "kb_1"),
+            _edge("e-kb-agent", "kb_1", "agent_1"),
+            _edge("e-agent-end", "agent_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -444,6 +596,8 @@ WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
     _CONDITIONAL_ROUTER,
     _KNOWLEDGE_QA,
     _HTTP_PIPELINE,
+    _DATA_PIPELINE,
+    _AGENT_WITH_KB,
 ]
 
 _TEMPLATES_BY_ID: dict[str, dict[str, Any]] = {t["id"]: t for t in WORKFLOW_TEMPLATES}
