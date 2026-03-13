@@ -682,6 +682,8 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           isValidConnection={isValidConnection}
+          snapToGrid
+          snapGrid={[16, 16]}
           onDrop={onDrop}
           onDragOver={onDragOver}
           onNodeClick={onNodeClick}
