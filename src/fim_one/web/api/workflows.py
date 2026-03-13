@@ -136,6 +136,10 @@ def _extract_schemas_from_blueprint(
 ) -> tuple[dict | None, dict | None]:
     """Extract input/output schemas from Start and End nodes in the blueprint.
 
+    The frontend stores Start node inputs as ``data.variables``:
+    ``[{name, type, default_value, required}]``.  We convert this to a
+    JSON Schema dict for the ``input_schema`` column.
+
     Returns (input_schema, output_schema).
     """
     input_schema: dict | None = None
@@ -147,9 +151,44 @@ def _extract_schemas_from_blueprint(
         node_data = node.get("data", {}) or {}
 
         if node_type.upper() == "START":
+            # First check for explicit input_schema (legacy)
             input_schema = node_data.get("input_schema") or node_data.get("schema")
+            # Convert variables array to JSON Schema if no explicit schema
+            if not input_schema:
+                variables = node_data.get("variables", [])
+                if variables:
+                    properties: dict[str, dict] = {}
+                    required: list[str] = []
+                    for var in variables:
+                        name = var.get("name", "")
+                        if not name:
+                            continue
+                        properties[name] = {
+                            "type": var.get("type", "string"),
+                        }
+                        if var.get("default_value"):
+                            properties[name]["default"] = var["default_value"]
+                        if var.get("required"):
+                            required.append(name)
+                    input_schema = {
+                        "type": "object",
+                        "properties": properties,
+                    }
+                    if required:
+                        input_schema["required"] = required
+
         elif node_type.upper() == "END":
             output_schema = node_data.get("output_schema") or node_data.get("schema")
+            # Convert output_mapping to a schema
+            if not output_schema:
+                output_mapping = node_data.get("output_mapping", {})
+                if output_mapping:
+                    output_schema = {
+                        "type": "object",
+                        "properties": {
+                            key: {"type": "string"} for key in output_mapping
+                        },
+                    }
 
     return input_schema, output_schema
 
@@ -685,17 +724,30 @@ async def get_workflow_variables(
                 declared_outputs = schema_fn()
 
         # For START nodes, also include the individual input variables from
-        # the input_schema so the picker shows them as separate entries.
+        # the variables array (frontend format) or input_schema (legacy).
         if node_def.type.value == "START":
-            input_schema = node_data.get("input_schema") or node_data.get("schema")
-            if isinstance(input_schema, dict):
-                props = input_schema.get("properties", {})
-                for prop_name, prop_def in props.items():
-                    declared_outputs.append({
-                        "name": prop_name,
-                        "type": prop_def.get("type", "string"),
-                        "description": prop_def.get("description", ""),
-                    })
+            # Try variables array first (frontend format)
+            variables = node_data.get("variables", [])
+            if variables:
+                for var in variables:
+                    name = var.get("name", "")
+                    if name:
+                        declared_outputs.append({
+                            "name": name,
+                            "type": var.get("type", "string"),
+                            "description": f"Input variable: {name}",
+                        })
+            else:
+                # Fallback: legacy input_schema
+                input_schema = node_data.get("input_schema") or node_data.get("schema")
+                if isinstance(input_schema, dict):
+                    props = input_schema.get("properties", {})
+                    for prop_name, prop_def in props.items():
+                        declared_outputs.append({
+                            "name": prop_name,
+                            "type": prop_def.get("type", "string"),
+                            "description": prop_def.get("description", ""),
+                        })
 
         variables_map[node_def.id] = {
             "node_type": node_def.type.value,
