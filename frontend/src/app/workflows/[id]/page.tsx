@@ -366,23 +366,27 @@ export default function WorkflowEditorPage() {
               eventType === "node_started" ||
               eventType === "node_completed" ||
               eventType === "node_failed" ||
-              eventType === "node_skipped"
+              eventType === "node_skipped" ||
+              eventType === "node_retrying"
             ) {
               const nodeId = data.node_id as string
               const status: NodeRunResult["status"] =
                 eventType === "node_started" ? "running"
                 : eventType === "node_completed" ? "completed"
                 : eventType === "node_failed" ? "failed"
+                : eventType === "node_retrying" ? "retrying"
                 : "skipped"
               setNodeResults((prev) => ({
                 ...(prev ?? {}),
                 [nodeId]: {
                   status,
                   output: data.output_preview ?? null,
-                  error: (data.error as string) ?? null,
+                  error: ((data.error ?? data.previous_error) as string) ?? null,
                   started_at: null,
                   completed_at: null,
                   duration_ms: (data.duration_ms as number) ?? null,
+                  retryAttempt: (data.attempt as number) ?? undefined,
+                  maxRetries: (data.max_retries as number) ?? undefined,
                 },
               }))
             } else if (eventType === "run_completed") {

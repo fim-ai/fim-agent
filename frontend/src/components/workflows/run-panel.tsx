@@ -43,6 +43,7 @@ const statusIcons: Record<NodeRunStatus, React.ReactNode> = {
   completed: <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />,
   failed: <XCircle className="h-3.5 w-3.5 text-red-500" />,
   skipped: <SkipForward className="h-3.5 w-3.5 text-zinc-400" />,
+  retrying: <RotateCcw className="h-3.5 w-3.5 text-amber-500 animate-spin" />,
 }
 
 /** Collapsible JSON viewer for node outputs */
@@ -261,6 +262,14 @@ export function RunPanel({
                     {result.duration_ms != null && (
                       <p className="text-[10px] text-muted-foreground tabular-nums">
                         {fmtDuration(result.duration_ms / 1000)}
+                      </p>
+                    )}
+                    {result.status === "retrying" && result.retryAttempt != null && (
+                      <p className="text-[10px] text-amber-500 mt-0.5">
+                        {t("runPanelRetrying", {
+                          attempt: result.retryAttempt,
+                          max: result.maxRetries ?? "?",
+                        })}
                       </p>
                     )}
                     {result.error && (
