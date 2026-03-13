@@ -118,5 +118,9 @@
   "membersSheetTitle": "{name} — Members",
   "roleOwner": "Owner",
   "roleAdmin": "Admin",
-  "roleMember": "Member"
+  "roleMember": "Member",
+  "publishStatusPending": "Pending Review",
+  "publishStatusApproved": "Published",
+  "publishStatusRejected": "Rejected",
+  "rejectedNote": "Rejection reason: {note}"
 }

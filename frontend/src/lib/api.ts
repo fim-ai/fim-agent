@@ -851,6 +851,24 @@ export const connectorApi = {
       `/api/connectors/${connectorId}/my-credentials`,
       { method: "DELETE" },
     ).then(() => undefined),
+
+  // Publish / Unpublish
+  publish: (id: string, body: { scope: "org" | "global"; org_id?: string }) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/publish`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  unpublish: (id: string) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/unpublish`, {
+      method: "POST",
+    }).then((r) => r.data),
+
+  resubmit: (id: string) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/publish`, {
+      method: "POST",
+      body: JSON.stringify({ scope: "org", resubmit: true }),
+    }).then((r) => r.data),
 }
 
 // --- Chat API ---

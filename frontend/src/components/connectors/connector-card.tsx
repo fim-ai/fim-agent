@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { MoreHorizontal, Pencil, Plug, Trash2, Globe, Database } from "lucide-react"
+import { MoreHorizontal, Pencil, Plug, Trash2, Globe, GlobeLock, RotateCw, Database } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,12 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import type { ConnectorResponse } from "@/types/connector"
 
 interface ConnectorCardProps {
   connector: ConnectorResponse
+  currentUserId?: string
   onDelete: (id: string) => void
+  onPublish?: (id: string) => void
+  onUnpublish?: (id: string) => void
+  onResubmit?: (id: string) => void
 }
 
 const AUTH_LABELS: Record<string, string> = {
@@ -29,14 +34,21 @@ const AUTH_LABELS: Record<string, string> = {
 
 export function ConnectorCard({
   connector,
+  currentUserId,
   onDelete,
+  onPublish,
+  onUnpublish,
+  onResubmit,
 }: ConnectorCardProps) {
   const t = useTranslations("connectors")
   const tc = useTranslations("common")
+  const to = useTranslations("organizations")
 
   const isDatabase = connector.type === "database"
   const authLabel = AUTH_LABELS[connector.auth_type]
   const authDisplay = authLabel === "noAuth" ? t("noAuth") : (authLabel || connector.auth_type)
+  const isOwner = currentUserId ? connector.user_id === currentUserId : true
+  const isOrgResource = connector.visibility === "org" || connector.visibility === "global"
 
   // For database connectors, show host:port/database
   const dbConfig = connector.db_config
@@ -73,6 +85,26 @@ export function ConnectorCard({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {/* Publish / Unpublish */}
+            {onPublish && onUnpublish && (
+              <DropdownMenuItem
+                onClick={() => isOrgResource ? onUnpublish(connector.id) : onPublish(connector.id)}
+              >
+                {isOrgResource
+                  ? <GlobeLock className="h-4 w-4" />
+                  : <Globe className="h-4 w-4" />
+                }
+                {isOrgResource ? tc("unpublish") : tc("publish")}
+              </DropdownMenuItem>
+            )}
+            {/* Resubmit -- only when rejected */}
+            {onResubmit && connector.publish_status === "rejected" && (
+              <DropdownMenuItem onClick={() => onResubmit(connector.id)}>
+                <RotateCw className="h-4 w-4" />
+                {t("resubmit")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={() => onDelete(connector.id)}>
               <Trash2 className="h-4 w-4" />
               {tc("delete")}
@@ -80,6 +112,47 @@ export function ConnectorCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Publish review status badges -- owner only */}
+      {isOwner && (connector.publish_status === "pending_review" || connector.publish_status === "approved" || connector.publish_status === "rejected") && (
+        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+          {connector.publish_status === "pending_review" && (
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 h-5 border-amber-400 text-amber-600 dark:text-amber-400"
+            >
+              {to("publishStatusPending")}
+            </Badge>
+          )}
+          {connector.publish_status === "approved" && (
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 h-5 border-emerald-400 text-emerald-600 dark:text-emerald-400"
+            >
+              {to("publishStatusApproved")}
+            </Badge>
+          )}
+          {connector.publish_status === "rejected" && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 h-5 border-destructive text-destructive cursor-default"
+                  >
+                    {to("publishStatusRejected")}
+                  </Badge>
+                </TooltipTrigger>
+                {connector.review_note && (
+                  <TooltipContent>
+                    <p>{to("rejectedNote", { note: connector.review_note })}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      )}
 
       {/* Type badge */}
       <div className="flex items-center gap-1.5 mb-2">

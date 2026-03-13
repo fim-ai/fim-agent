@@ -183,5 +183,12 @@
   "myCredentialsSaved": "凭据保存成功",
   "myCredentialsSaveFailed": "凭据保存失败",
   "myCredentialsDeleted": "凭据已删除",
-  "credentialsHelpOwner": "已安全存储。留空以保留现有凭据。"
+  "credentialsHelpOwner": "已安全存储。留空以保留现有凭据。",
+  "resubmit": "重新提交",
+  "connectorPublished": "连接器已发布",
+  "connectorPublishFailed": "发布连接器失败",
+  "connectorUnpublished": "连接器已取消发布",
+  "connectorUnpublishFailed": "取消发布连接器失败",
+  "connectorResubmitted": "连接器已重新提交审核",
+  "connectorResubmitFailed": "重新提交连接器失败"
 }

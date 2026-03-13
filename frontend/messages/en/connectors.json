@@ -183,5 +183,12 @@
   "myCredentialsSaved": "Credentials saved successfully",
   "myCredentialsSaveFailed": "Failed to save credentials",
   "myCredentialsDeleted": "Credentials deleted",
-  "credentialsHelpOwner": "Stored securely. Leave blank to keep existing credentials."
+  "credentialsHelpOwner": "Stored securely. Leave blank to keep existing credentials.",
+  "resubmit": "Resubmit",
+  "connectorPublished": "Connector published",
+  "connectorPublishFailed": "Failed to publish connector",
+  "connectorUnpublished": "Connector unpublished",
+  "connectorUnpublishFailed": "Failed to unpublish connector",
+  "connectorResubmitted": "Connector resubmitted for review",
+  "connectorResubmitFailed": "Failed to resubmit connector"
 }
