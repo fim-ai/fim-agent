@@ -431,5 +431,12 @@
   "configEnvKeysPlaceholder": "1行に1つのキーを入力...",
   "configEnvNote": "変数はワークフローの暗号化された環境ストレージから読み取られます。",
   "inputMappingCount": "{count}個のマッピング",
-  "envKeyCount": "{count}個のキー"
+  "envKeyCount": "{count}個のキー",
+  "runPanelPrefilledFromLastRun": "前回の実行の入力で事前入力されています",
+  "historyFilterAll": "すべてのステータス",
+  "historyFilterCompleted": "完了",
+  "historyFilterFailed": "失敗",
+  "historyFilterCancelled": "キャンセル済み",
+  "historyFilterRunning": "実行中",
+  "historyEmptyFiltered": "選択したフィルターに一致する実行がありません"
 }

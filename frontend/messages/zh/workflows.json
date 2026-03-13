@@ -431,5 +431,12 @@
   "configEnvKeysPlaceholder": "每行输入一个键...",
   "configEnvNote": "变量从工作流的加密环境存储中读取。",
   "inputMappingCount": "{count} 个映射",
-  "envKeyCount": "{count} 个键"
+  "envKeyCount": "{count} 个键",
+  "runPanelPrefilledFromLastRun": "使用上次运行的输入预填充",
+  "historyFilterAll": "所有状态",
+  "historyFilterCompleted": "已完成",
+  "historyFilterFailed": "失败",
+  "historyFilterCancelled": "已取消",
+  "historyFilterRunning": "运行中",
+  "historyEmptyFiltered": "没有运行匹配所选筛选条件"
 }

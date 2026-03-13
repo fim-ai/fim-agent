@@ -431,5 +431,12 @@
   "configEnvKeysPlaceholder": "한 줄에 하나의 키 입력...",
   "configEnvNote": "변수는 워크플로우의 암호화된 환경 저장소에서 읽습니다.",
   "inputMappingCount": "{count}개 매핑",
-  "envKeyCount": "{count}개 키"
+  "envKeyCount": "{count}개 키",
+  "runPanelPrefilledFromLastRun": "마지막 실행의 입력값으로 미리 채워짐",
+  "historyFilterAll": "모든 상태",
+  "historyFilterCompleted": "완료됨",
+  "historyFilterFailed": "실패함",
+  "historyFilterCancelled": "취소됨",
+  "historyFilterRunning": "실행 중",
+  "historyEmptyFiltered": "선택한 필터와 일치하는 실행이 없습니다"
 }

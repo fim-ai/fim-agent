@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useRef } from "react"
 import { useTranslations } from "next-intl"
 import {
   CheckCircle2,
@@ -111,6 +111,8 @@ export function RunPanel({
 }: RunPanelProps) {
   const t = useTranslations("workflows")
   const [inputValues, setInputValues] = useState<Record<string, string>>({})
+  // Store the effective input strings from the last run so "Run Again" can pre-fill them
+  const lastUsedInputsRef = useRef<Record<string, string>>({})
 
   const handleInputChange = useCallback(
     (name: string, value: string) => {
@@ -119,10 +121,18 @@ export function RunPanel({
     [],
   )
 
+  const handleRunAgainWithPrefill = useCallback(() => {
+    // Pre-fill inputValues with the last-used effective values
+    setInputValues({ ...lastUsedInputsRef.current })
+    onRunAgain()
+  }, [onRunAgain])
+
   const handleStartRun = useCallback(() => {
     const inputs: Record<string, unknown> = {}
+    const effectiveStrings: Record<string, string> = {}
     for (const v of startVariables) {
       const raw = inputValues[v.name] ?? v.default_value ?? ""
+      effectiveStrings[v.name] = raw
       if (v.type === "number") {
         inputs[v.name] = raw ? Number(raw) : 0
       } else if (v.type === "boolean") {
@@ -131,6 +141,7 @@ export function RunPanel({
         inputs[v.name] = raw
       }
     }
+    lastUsedInputsRef.current = effectiveStrings
     onStartRun(inputs)
   }, [startVariables, inputValues, onStartRun])
 
@@ -140,6 +151,9 @@ export function RunPanel({
   const hasResults = nodeResults && Object.keys(nodeResults).length > 0
   const isFinished = !isRunning && hasResults
   const showInputForm = !isRunning && !hasResults
+  // Show hint when inputs are pre-filled from a previous run
+  const isPrefilled = showInputForm && hasInputs && Object.keys(lastUsedInputsRef.current).length > 0
+    && startVariables.some((v) => inputValues[v.name] !== undefined && inputValues[v.name] !== "")
 
   // Progress calculation
   const completedCount = nodeResults
@@ -187,7 +201,7 @@ export function RunPanel({
               variant="outline"
               size="sm"
               className="h-6 text-xs gap-1"
-              onClick={onRunAgain}
+              onClick={handleRunAgainWithPrefill}
             >
               <RotateCcw className="h-3 w-3" />
               {t("runPanelRunAgain")}
@@ -211,7 +225,9 @@ export function RunPanel({
             <div className="space-y-3">
               {hasInputs ? (
                 <>
-                  <p className="text-xs text-muted-foreground">{t("runPanelProvideInputs")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isPrefilled ? t("runPanelPrefilledFromLastRun") : t("runPanelProvideInputs")}
+                  </p>
                   {startVariables.map((v) => (
                     <div key={v.name} className="space-y-1">
                       <label className="text-xs font-medium">

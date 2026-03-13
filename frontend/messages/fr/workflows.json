@@ -431,5 +431,12 @@
   "configEnvKeysPlaceholder": "Entrez une clé par ligne...",
   "configEnvNote": "Les variables sont lues depuis le stockage d'environnement chiffré du flux de travail.",
   "inputMappingCount": "{count} mappages",
-  "envKeyCount": "{count} clés"
+  "envKeyCount": "{count} clés",
+  "runPanelPrefilledFromLastRun": "Pré-rempli avec les entrées de la dernière exécution",
+  "historyFilterAll": "Tous les statuts",
+  "historyFilterCompleted": "Terminé",
+  "historyFilterFailed": "Échoué",
+  "historyFilterCancelled": "Annulé",
+  "historyFilterRunning": "En cours d'exécution",
+  "historyEmptyFiltered": "Aucune exécution ne correspond au filtre sélectionné"
 }

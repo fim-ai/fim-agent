@@ -431,5 +431,12 @@
   "configEnvKeysPlaceholder": "Einen Schlüssel pro Zeile eingeben...",
   "configEnvNote": "Variablen werden aus dem verschlüsselten Umgebungsspeicher des Workflows gelesen.",
   "inputMappingCount": "{count} Zuordnungen",
-  "envKeyCount": "{count} Schlüssel"
+  "envKeyCount": "{count} Schlüssel",
+  "runPanelPrefilledFromLastRun": "Vorausgefüllt mit Eingaben aus der letzten Ausführung",
+  "historyFilterAll": "Alle Status",
+  "historyFilterCompleted": "Abgeschlossen",
+  "historyFilterFailed": "Fehlgeschlagen",
+  "historyFilterCancelled": "Abgebrochen",
+  "historyFilterRunning": "Wird ausgeführt",
+  "historyEmptyFiltered": "Keine Ausführungen entsprechen dem ausgewählten Filter"
 }
