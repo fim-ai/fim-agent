@@ -365,5 +365,16 @@
   "contextMenuConfigure": "Konfigurieren",
   "contextMenuCopy": "Kopieren",
   "contextMenuDuplicate": "Duplizieren",
-  "contextMenuDelete": "Löschen"
+  "contextMenuDelete": "Löschen",
+  "contextMenuPaste": "Einfügen",
+  "contextMenuSelectAll": "Alles auswählen",
+  "contextMenuFitView": "Ansicht anpassen",
+  "contextMenuAutoLayout": "Automatisches Layout",
+  "nodeType_humanIntervention": "Menschliche Überprüfung",
+  "nodeDesc_humanIntervention": "Pause zur menschlichen Genehmigung",
+  "configPromptMessage": "Überprüfungsaufforderung",
+  "configPromptMessagePlaceholder": "Beschreiben Sie, was der Prüfer überprüfen sollte...",
+  "configAssignee": "Beauftragte Person",
+  "configAssigneePlaceholder": "Benutzername oder E-Mail (optional)",
+  "configTimeoutHours": "Timeout (Stunden)"
 }

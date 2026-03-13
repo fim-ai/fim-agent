@@ -25,6 +25,7 @@ import {
   MessageCircleQuestion,
   PanelLeftClose,
   PanelLeftOpen,
+  UserCheck,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -50,6 +51,7 @@ const categories: NodePaletteCategory[] = [
     items: [
       { type: "start", icon: <Play className="h-3.5 w-3.5" />, color: "text-green-500" },
       { type: "end", icon: <Square className="h-3.5 w-3.5" />, color: "text-red-500" },
+      { type: "humanIntervention", icon: <UserCheck className="h-3.5 w-3.5" />, color: "text-sky-500" },
     ],
   },
   {

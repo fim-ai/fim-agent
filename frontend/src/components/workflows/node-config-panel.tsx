@@ -294,6 +294,8 @@ function NodeConfigFields({ nodeType, data, updateField, otherNodes }: NodeConfi
       return <DocumentExtractorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "questionUnderstanding":
       return <QuestionUnderstandingConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
+    case "humanIntervention":
+      return <HumanInterventionConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     default:
       return <p className="text-xs text-muted-foreground">No configuration available</p>
   }
@@ -2081,6 +2083,59 @@ function QuestionUnderstandingConfig({ data, updateField, t, otherNodes }: Confi
         <Input
           className="h-7 text-xs font-mono"
           value={(data.output_variable ?? "question_result") as string}
+          onChange={(e) => updateField("output_variable", e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+// --- Human Intervention config ---
+
+function HumanInterventionConfig({ data, updateField, t }: ConfigProps) {
+  return (
+    <div className="space-y-3">
+      {/* Prompt message */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configPromptMessage")}</label>
+        <Textarea
+          className="text-xs resize-none"
+          rows={3}
+          placeholder={t("configPromptMessagePlaceholder")}
+          value={(data.prompt_message ?? "") as string}
+          onChange={(e) => updateField("prompt_message", e.target.value)}
+        />
+      </div>
+
+      {/* Assignee */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configAssignee")}</label>
+        <Input
+          className="h-7 text-xs"
+          placeholder={t("configAssigneePlaceholder")}
+          value={(data.assignee ?? "") as string}
+          onChange={(e) => updateField("assignee", e.target.value)}
+        />
+      </div>
+
+      {/* Timeout (hours) */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configTimeoutHours")}</label>
+        <Input
+          className="h-7 text-xs"
+          type="number"
+          min={1}
+          value={(data.timeout_hours ?? 24) as number}
+          onChange={(e) => updateField("timeout_hours", Number(e.target.value) || 24)}
+        />
+      </div>
+
+      {/* Output variable */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configOutputVariable")}</label>
+        <Input
+          className="h-7 text-xs font-mono"
+          value={(data.output_variable ?? "approval_result") as string}
           onChange={(e) => updateField("output_variable", e.target.value)}
         />
       </div>

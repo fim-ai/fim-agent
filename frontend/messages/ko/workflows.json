@@ -365,5 +365,16 @@
   "contextMenuConfigure": "구성",
   "contextMenuCopy": "복사",
   "contextMenuDuplicate": "복제",
-  "contextMenuDelete": "삭제"
+  "contextMenuDelete": "삭제",
+  "contextMenuPaste": "붙여넣기",
+  "contextMenuSelectAll": "모두 선택",
+  "contextMenuFitView": "보기 맞추기",
+  "contextMenuAutoLayout": "자동 레이아웃",
+  "nodeType_humanIntervention": "인간 검토",
+  "nodeDesc_humanIntervention": "인간 승인을 위해 일시 중지",
+  "configPromptMessage": "검토 프롬프트",
+  "configPromptMessagePlaceholder": "검토자가 확인해야 할 사항을 설명하세요...",
+  "configAssignee": "담당자",
+  "configAssigneePlaceholder": "사용자명 또는 이메일 (선택사항)",
+  "configTimeoutHours": "시간 초과 (시간)"
 }

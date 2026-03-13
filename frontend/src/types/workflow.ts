@@ -68,6 +68,7 @@ export type WorkflowNodeType =
   | "transform"
   | "documentExtractor"
   | "questionUnderstanding"
+  | "humanIntervention"
 
 // --- Per-node data interfaces ---
 
@@ -209,6 +210,13 @@ export interface QuestionUnderstandingNodeData {
   input_variable: string
   mode: "rewrite" | "expand" | "classify" | "decompose"
   system_prompt?: string
+  output_variable: string
+}
+
+export interface HumanInterventionNodeData {
+  prompt_message: string
+  assignee: string
+  timeout_hours: number
   output_variable: string
 }
 

@@ -25,6 +25,7 @@ const categoryColorMap: Record<string, string> = {
   transform: "bg-rose-500",
   documentExtractor: "bg-amber-600",
   questionUnderstanding: "bg-pink-500",
+  humanIntervention: "bg-sky-500",
 }
 
 const runStatusStyles: Record<NodeRunStatus, { ring: string; extra: string }> = {

@@ -365,5 +365,16 @@
   "contextMenuConfigure": "設定",
   "contextMenuCopy": "コピー",
   "contextMenuDuplicate": "複製",
-  "contextMenuDelete": "削除"
+  "contextMenuDelete": "削除",
+  "contextMenuPaste": "貼り付け",
+  "contextMenuSelectAll": "すべて選択",
+  "contextMenuFitView": "ビューに合わせる",
+  "contextMenuAutoLayout": "自動レイアウト",
+  "nodeType_humanIntervention": "人間によるレビュー",
+  "nodeDesc_humanIntervention": "人間の承認を待つ",
+  "configPromptMessage": "レビュープロンプト",
+  "configPromptMessagePlaceholder": "レビュアーが確認すべき内容を説明してください...",
+  "configAssignee": "担当者",
+  "configAssigneePlaceholder": "ユーザー名またはメールアドレス（オプション）",
+  "configTimeoutHours": "タイムアウト（時間）"
 }

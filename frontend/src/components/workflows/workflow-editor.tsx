@@ -23,7 +23,7 @@ import type {
 import "@xyflow/react/dist/style.css"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
-import { Copy, Trash2, Settings, Clipboard } from "lucide-react"
+import { Copy, Trash2, Settings, Clipboard, MousePointerSquareDashed, Maximize2, LayoutGrid } from "lucide-react"
 
 import { useWorkflowHistory } from "@/hooks/use-workflow-history"
 import { getAutoLayoutedNodes } from "./auto-layout"
@@ -58,6 +58,7 @@ import { ListOperationNode } from "./nodes/list-operation-node"
 import { TransformNode } from "./nodes/transform-node"
 import { DocumentExtractorNode } from "./nodes/document-extractor-node"
 import { QuestionUnderstandingNode } from "./nodes/question-understanding-node"
+import { HumanInterventionNode } from "./nodes/human-intervention-node"
 
 // MUST be defined outside the component to prevent ReactFlow infinite re-renders
 const nodeTypes = {
@@ -81,6 +82,7 @@ const nodeTypes = {
   transform: TransformNode,
   documentExtractor: DocumentExtractorNode,
   questionUnderstanding: QuestionUnderstandingNode,
+  humanIntervention: HumanInterventionNode,
 }
 
 // Custom edge types - defined outside component for stability
@@ -110,6 +112,7 @@ const minimapNodeColor: Record<string, string> = {
   transform: "#f43f5e",
   documentExtractor: "#d97706",
   questionUnderstanding: "#ec4899",
+  humanIntervention: "#0ea5e9",
 }
 
 const getMinimapNodeColor = (node: Node) => minimapNodeColor[node.type ?? ""] ?? "#6b7280"
@@ -135,6 +138,7 @@ const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
   transform: { input_variable: "", operations: [], output_variable: "transform_result" },
   documentExtractor: { input_variable: "", input_type: "text", extract_mode: "full_text", output_variable: "document_result" },
   questionUnderstanding: { input_variable: "", mode: "rewrite", output_variable: "question_result" },
+  humanIntervention: { prompt_message: "", assignee: "", timeout_hours: 24, output_variable: "approval_result" },
 }
 
 interface WorkflowEditorProps {
@@ -206,7 +210,11 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     } as Edge)),
   )
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<
+    | { type: "node"; x: number; y: number; nodeId: string }
+    | { type: "pane"; x: number; y: number }
+    | null
+  >(null)
 
   // --- Undo/Redo history ---
   const initialNodesRef = useRef(
@@ -673,10 +681,15 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault()
-      setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id })
+      setContextMenu({ type: "node", x: event.clientX, y: event.clientY, nodeId: node.id })
     },
     [],
   )
+
+  const onPaneContextMenu = useCallback((event: MouseEvent | React.MouseEvent) => {
+    event.preventDefault()
+    setContextMenu({ type: "pane", x: event.clientX, y: event.clientY })
+  }, [])
 
   // Close context menu on scroll or click outside
   useEffect(() => {
@@ -743,6 +756,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
           onDragOver={onDragOver}
           onNodeClick={onNodeClick}
           onNodeContextMenu={onNodeContextMenu}
+          onPaneContextMenu={onPaneContextMenu}
           onPaneClick={onPaneClick}
           onInit={(instance) => { rfInstanceRef.current = instance }}
           deleteKeyCode={null}
@@ -765,7 +779,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
         </ReactFlow>
 
         {/* Node context menu */}
-        {contextMenu && (() => {
+        {contextMenu?.type === "node" && (() => {
           const ctxNode = nodes.find((n) => n.id === contextMenu.nodeId)
           const isStartOrEnd = ctxNode?.type === "start" || ctxNode?.type === "end"
           return (
@@ -827,6 +841,58 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
             </div>
           )
         })()}
+
+        {/* Pane context menu (right-click on empty canvas) */}
+        {contextMenu?.type === "pane" && (
+          <div
+            className="fixed z-50 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-md animate-in fade-in-0 zoom-in-95"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              disabled={copiedNodesRef.current.nodes.length === 0}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground hover:bg-accent/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => {
+                handlePaste()
+                setContextMenu(null)
+              }}
+            >
+              <Clipboard className="h-3.5 w-3.5" />
+              {t("contextMenuPaste")}
+            </button>
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground hover:bg-accent/50 transition-colors"
+              onClick={() => {
+                handleSelectAll()
+                setContextMenu(null)
+              }}
+            >
+              <MousePointerSquareDashed className="h-3.5 w-3.5" />
+              {t("contextMenuSelectAll")}
+            </button>
+            <div className="my-1 h-px bg-border" />
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground hover:bg-accent/50 transition-colors"
+              onClick={() => {
+                rfInstanceRef.current?.fitView({ duration: 300, padding: 0.4 })
+                setContextMenu(null)
+              }}
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              {t("contextMenuFitView")}
+            </button>
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground hover:bg-accent/50 transition-colors"
+              onClick={() => {
+                handleAutoLayout()
+                setContextMenu(null)
+              }}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              {t("contextMenuAutoLayout")}
+            </button>
+          </div>
+        )}
 
         {/* Run Panel (overlay at bottom) */}
         <RunPanel

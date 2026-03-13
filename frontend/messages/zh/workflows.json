@@ -365,5 +365,16 @@
   "contextMenuConfigure": "配置",
   "contextMenuCopy": "复制",
   "contextMenuDuplicate": "复制",
-  "contextMenuDelete": "删除"
+  "contextMenuDelete": "删除",
+  "contextMenuPaste": "粘贴",
+  "contextMenuSelectAll": "全选",
+  "contextMenuFitView": "适应视图",
+  "contextMenuAutoLayout": "自动布局",
+  "nodeType_humanIntervention": "人工审核",
+  "nodeDesc_humanIntervention": "暂停等待人工批准",
+  "configPromptMessage": "审核提示",
+  "configPromptMessagePlaceholder": "描述审核人员应检查的内容...",
+  "configAssignee": "指派人",
+  "configAssigneePlaceholder": "用户名或邮箱（可选）",
+  "configTimeoutHours": "超时时间（小时）"
 }

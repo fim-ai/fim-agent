@@ -411,5 +411,17 @@
   "contextMenuConfigure": "Configure",
   "contextMenuCopy": "Copy",
   "contextMenuDuplicate": "Duplicate",
-  "contextMenuDelete": "Delete"
+  "contextMenuDelete": "Delete",
+  "contextMenuPaste": "Paste",
+  "contextMenuSelectAll": "Select All",
+  "contextMenuFitView": "Fit View",
+  "contextMenuAutoLayout": "Auto Layout",
+
+  "nodeType_humanIntervention": "Human Review",
+  "nodeDesc_humanIntervention": "Pause for human approval",
+  "configPromptMessage": "Review Prompt",
+  "configPromptMessagePlaceholder": "Describe what the reviewer should check...",
+  "configAssignee": "Assignee",
+  "configAssigneePlaceholder": "Username or email (optional)",
+  "configTimeoutHours": "Timeout (hours)"
 }
