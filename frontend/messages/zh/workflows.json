@@ -211,5 +211,9 @@
   "deleteNode": "删除节点",
   "deleteNodeConfirm": "确定要删除此节点吗？连接的边也将被移除。",
   "errorCannotDeleteStart": "无法删除开始节点",
-  "errorCannotDeleteEnd": "无法删除结束节点"
+  "errorCannotDeleteEnd": "无法删除结束节点",
+  "validationValid": "蓝图有效",
+  "validationWarnings": "{count} 个警告",
+  "validationInvalid": "蓝图有错误",
+  "validationChecking": "验证中..."
 }

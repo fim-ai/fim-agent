@@ -813,6 +813,84 @@ async def list_workflow_runs(
     )
 
 
+@router.get("/{workflow_id}/stats", response_model=ApiResponse)
+async def get_workflow_stats(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Return execution statistics for a workflow.
+
+    Includes total runs, success/failure rates, average duration, and the
+    last run timestamp.  Useful for dashboard cards and editor status bars.
+    """
+    await _get_accessible_workflow(workflow_id, current_user.id, db)
+
+    base = select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
+
+    # Total runs
+    total_result = await db.execute(
+        select(func.count()).select_from(base.subquery())
+    )
+    total_runs = total_result.scalar_one()
+
+    if total_runs == 0:
+        return ApiResponse(data={
+            "total_runs": 0,
+            "completed": 0,
+            "failed": 0,
+            "cancelled": 0,
+            "success_rate": None,
+            "avg_duration_ms": None,
+            "last_run_at": None,
+        })
+
+    # Status breakdown
+    status_counts: dict[str, int] = {}
+    for status_val in ("completed", "failed", "cancelled", "running", "pending"):
+        count_result = await db.execute(
+            select(func.count()).where(
+                WorkflowRun.workflow_id == workflow_id,
+                WorkflowRun.status == status_val,
+            )
+        )
+        status_counts[status_val] = count_result.scalar_one()
+
+    # Average duration of completed runs
+    avg_result = await db.execute(
+        select(func.avg(WorkflowRun.duration_ms)).where(
+            WorkflowRun.workflow_id == workflow_id,
+            WorkflowRun.status == "completed",
+            WorkflowRun.duration_ms.isnot(None),
+        )
+    )
+    avg_duration = avg_result.scalar_one()
+
+    # Last run timestamp
+    last_result = await db.execute(
+        select(WorkflowRun.created_at)
+        .where(WorkflowRun.workflow_id == workflow_id)
+        .order_by(WorkflowRun.created_at.desc())
+        .limit(1)
+    )
+    last_run_row = last_result.scalar_one_or_none()
+
+    completed = status_counts.get("completed", 0)
+    failed = status_counts.get("failed", 0)
+    finished = completed + failed
+    success_rate = round(completed / finished * 100, 1) if finished > 0 else None
+
+    return ApiResponse(data={
+        "total_runs": total_runs,
+        "completed": completed,
+        "failed": failed,
+        "cancelled": status_counts.get("cancelled", 0),
+        "success_rate": success_rate,
+        "avg_duration_ms": int(avg_duration) if avg_duration else None,
+        "last_run_at": last_run_row.isoformat() if last_run_row else None,
+    })
+
+
 @router.get("/{workflow_id}/runs/{run_id}", response_model=ApiResponse)
 async def get_workflow_run(
     workflow_id: str,

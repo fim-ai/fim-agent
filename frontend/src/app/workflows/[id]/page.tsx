@@ -25,7 +25,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { workflowApi, orgApi } from "@/lib/api"
 import type { UserOrg } from "@/lib/api"
 import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
-import { WorkflowToolbar } from "@/components/workflows/workflow-toolbar"
+import { WorkflowToolbar, type ValidationResult } from "@/components/workflows/workflow-toolbar"
 import { WorkflowEditor } from "@/components/workflows/workflow-editor"
 import type { WorkflowEditorHandle } from "@/components/workflows/workflow-editor"
 import { RunHistorySheet } from "@/components/workflows/run-history-sheet"
@@ -77,6 +77,11 @@ export default function WorkflowEditorPage() {
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
 
+  // Validation state
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
+  const [isValidating, setIsValidating] = useState(false)
+  const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const handleUndoRedoChange = useCallback((newCanUndo: boolean, newCanRedo: boolean) => {
     setCanUndo(newCanUndo)
     setCanRedo(newCanRedo)
@@ -104,6 +109,40 @@ export default function WorkflowEditorPage() {
     }
   }, [authLoading, user, router])
 
+  // Debounced blueprint validation
+  const triggerValidation = useCallback(() => {
+    if (validationTimerRef.current) {
+      clearTimeout(validationTimerRef.current)
+    }
+    validationTimerRef.current = setTimeout(async () => {
+      const bp = blueprintRef.current
+      // Skip validation for empty blueprints
+      if (bp.nodes.length === 0) {
+        setValidationResult(null)
+        return
+      }
+      setIsValidating(true)
+      try {
+        const result = await workflowApi.validate(bp as unknown as Record<string, unknown>)
+        setValidationResult(result)
+      } catch {
+        // Silently ignore validation failures — don't block the user
+        setValidationResult(null)
+      } finally {
+        setIsValidating(false)
+      }
+    }, 2000)
+  }, [])
+
+  // Clean up validation timer on unmount
+  useEffect(() => {
+    return () => {
+      if (validationTimerRef.current) {
+        clearTimeout(validationTimerRef.current)
+      }
+    }
+  }, [])
+
   // Load workflow
   useEffect(() => {
     if (!user || !workflowId) return
@@ -119,6 +158,8 @@ export default function WorkflowEditorPage() {
           edges: [],
           viewport: { x: 0, y: 0, zoom: 1 },
         }
+        // Trigger initial validation after load
+        triggerValidation()
       })
       .catch(() => {
         if (!cancelled) {
@@ -132,7 +173,7 @@ export default function WorkflowEditorPage() {
     return () => {
       cancelled = true
     }
-  }, [user, workflowId, router, t])
+  }, [user, workflowId, router, t, triggerValidation])
 
   // Dirty state beforeunload guard
   useEffect(() => {
@@ -147,7 +188,8 @@ export default function WorkflowEditorPage() {
   const handleBlueprintChange = useCallback((bp: WorkflowBlueprint) => {
     blueprintRef.current = bp
     setIsDirty(true)
-  }, [])
+    triggerValidation()
+  }, [triggerValidation])
 
   const handleNameChange = useCallback(
     async (name: string) => {
@@ -532,6 +574,8 @@ export default function WorkflowEditorPage() {
         isSaving={isSaving}
         isRunning={isRunning}
         isDuplicating={isDuplicating}
+        isValidating={isValidating}
+        validationResult={validationResult}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={handleUndo}

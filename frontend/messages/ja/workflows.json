@@ -211,5 +211,9 @@
   "deleteNode": "ノードを削除",
   "deleteNodeConfirm": "このノードを削除してもよろしいですか？接続されたエッジも削除されます。",
   "errorCannotDeleteStart": "スタートノードは削除できません",
-  "errorCannotDeleteEnd": "エンドノードは削除できません"
+  "errorCannotDeleteEnd": "エンドノードは削除できません",
+  "validationValid": "ブループリントは有効です",
+  "validationWarnings": "{count}件の警告",
+  "validationInvalid": "ブループリントにエラーがあります",
+  "validationChecking": "検証中..."
 }

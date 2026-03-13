@@ -211,5 +211,9 @@
   "deleteNode": "노드 삭제",
   "deleteNodeConfirm": "이 노드를 삭제하시겠습니까? 연결된 엣지도 제거됩니다.",
   "errorCannotDeleteStart": "시작 노드는 삭제할 수 없습니다",
-  "errorCannotDeleteEnd": "종료 노드는 삭제할 수 없습니다"
+  "errorCannotDeleteEnd": "종료 노드는 삭제할 수 없습니다",
+  "validationValid": "블루프린트가 유효합니다",
+  "validationWarnings": "{count}개의 경고",
+  "validationInvalid": "블루프린트에 오류가 있습니다",
+  "validationChecking": "검증 중..."
 }

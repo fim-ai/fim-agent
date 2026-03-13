@@ -211,5 +211,9 @@
   "deleteNode": "Supprimer le nœud",
   "deleteNodeConfirm": "Êtes-vous sûr de vouloir supprimer ce nœud ? Les connexions associées seront également supprimées.",
   "errorCannotDeleteStart": "Impossible de supprimer le nœud de démarrage",
-  "errorCannotDeleteEnd": "Impossible de supprimer le nœud de fin"
+  "errorCannotDeleteEnd": "Impossible de supprimer le nœud de fin",
+  "validationValid": "Le blueprint est valide",
+  "validationWarnings": "{count} avertissement(s)",
+  "validationInvalid": "Le blueprint contient des erreurs",
+  "validationChecking": "Validation en cours..."
 }

@@ -4,7 +4,9 @@ import { useState } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import {
+  AlertTriangle,
   ArrowLeft,
+  CheckCircle2,
   Copy,
   Download,
   Globe,
@@ -20,6 +22,7 @@ import {
   Trash2,
   Undo2,
   Upload,
+  XCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -37,6 +40,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+export interface ValidationResult {
+  valid: boolean
+  warnings: Array<{ node_id: string | null; code: string; message: string }>
+  error?: string
+}
 
 interface WorkflowToolbarProps {
   name: string
@@ -46,6 +60,8 @@ interface WorkflowToolbarProps {
   isSaving: boolean
   isRunning: boolean
   isDuplicating?: boolean
+  isValidating?: boolean
+  validationResult?: ValidationResult | null
   canUndo: boolean
   canRedo: boolean
   onUndo: () => void
@@ -72,6 +88,8 @@ export function WorkflowToolbar({
   isSaving,
   isRunning,
   isDuplicating = false,
+  isValidating = false,
+  validationResult,
   canUndo,
   canRedo,
   onUndo,
@@ -206,6 +224,102 @@ export function WorkflowToolbar({
           </TooltipTrigger>
           <TooltipContent side="bottom">{t("editorRedo")}</TooltipContent>
         </Tooltip>
+
+        {/* Validation indicator */}
+        {isValidating ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground border-border">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {t("validationChecking")}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t("validationChecking")}</TooltipContent>
+          </Tooltip>
+        ) : validationResult ? (
+          validationResult.valid && validationResult.warnings.length === 0 ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+                  <CheckCircle2 className="h-3 w-3" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t("validationValid")}</TooltipContent>
+            </Tooltip>
+          ) : validationResult.valid && validationResult.warnings.length > 0 ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+                  aria-label={t("validationWarnings", { count: validationResult.warnings.length })}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  {validationResult.warnings.length}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="px-3 py-2 border-b border-border/40">
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    {t("validationWarnings", { count: validationResult.warnings.length })}
+                  </p>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {validationResult.warnings.map((w, i) => (
+                    <div
+                      key={`${w.node_id ?? "global"}-${w.code}-${i}`}
+                      className="px-3 py-2 text-xs border-b border-border/20 last:border-0"
+                    >
+                      <p className="text-foreground">{w.message}</p>
+                      {w.node_id && (
+                        <p className="text-muted-foreground mt-0.5">
+                          {w.node_id}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-destructive border-destructive/30 bg-destructive/10 hover:bg-destructive/20 transition-colors"
+                  aria-label={t("validationInvalid")}
+                >
+                  <XCircle className="h-3 w-3" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="px-3 py-2 border-b border-border/40">
+                  <p className="text-xs font-medium text-destructive">
+                    {t("validationInvalid")}
+                  </p>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {validationResult.error && (
+                    <div className="px-3 py-2 text-xs text-destructive border-b border-border/20">
+                      {validationResult.error}
+                    </div>
+                  )}
+                  {validationResult.warnings.map((w, i) => (
+                    <div
+                      key={`${w.node_id ?? "global"}-${w.code}-${i}`}
+                      className="px-3 py-2 text-xs border-b border-border/20 last:border-0"
+                    >
+                      <p className="text-foreground">{w.message}</p>
+                      {w.node_id && (
+                        <p className="text-muted-foreground mt-0.5">
+                          {w.node_id}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )
+        ) : null}
 
         <Button
           variant="outline"

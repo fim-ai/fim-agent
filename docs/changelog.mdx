@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Changed
 
+- **Workflow test suite expanded to 68 tests** — Added 24 new tests covering eval namespace flattening (17 tests for dotted key resolution, short alias generation, ConditionBranch/VariableAssign with flat names) and blueprint validation warnings (7 tests for disconnected nodes, unreachable ends, empty conditions/prompts/code). Total workflow test count: 34 → 68.
 - **Workflow Editor Overhaul (Dify-style)** — Complete visual redesign of the workflow editor inspired by Dify:
   - Horizontal (left-to-right) layout replacing top-to-bottom; all 12 node types use Left/Right handles
   - Left color bar node design with compact 220px width, smaller icons, and run status badges
@@ -43,6 +44,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
   - **Backend CRUD + API**: `Workflow` and `WorkflowRun` ORM models with Alembic migration; Pydantic schemas; full REST API (`/api/workflows/*`) with create, read, update, delete, list, import/export; encrypted environment variables via `CREDENTIAL_ENCRYPTION_KEY`; variable introspection endpoint (`GET /api/workflows/{id}/variables`) for frontend config panels.
   - **Security**: Code execution node uses `subprocess` instead of bare `exec()` for OS-level isolation; environment variables filtered from eval/template execution contexts; `ExecutionContext` wiring across all node executors.
   - **Frontend**: Visual editor built with React Flow v12 — drag-and-drop node palette with category grouping (collapsible icons-only mode), 12 custom node components, run panel with SSE-driven live execution status, workflow list page with card grid. Full i18n support (6 languages).
+- **Workflow Blueprint Validation Warnings**: `validate_blueprint()` now returns non-fatal warnings in addition to errors — detects disconnected nodes, unreachable end nodes, empty conditions/prompts/code blocks. Enhanced `POST /api/workflows/validate` endpoint returns structured warnings alongside validation results. 7 new tests.
+- **Workflow Node/Edge Deletion**: Backspace/Delete keyboard shortcuts remove selected nodes and edges. Start/End nodes are protected from deletion. Config panel includes a "Delete Node" button with AlertDialog confirmation for explicit removal.
+- **Workflow Import/Export/Duplicate UI**: Export workflows as JSON file download, import with automatic format detection, duplicate workflow via card dropdown. `WorkflowExportFile` schema envelope for portable workflow sharing.
 - **Admin: Review Log audit tab** — Admin audit page now has a segmented "System Log / Review Log" toggle. The Review Log panel queries the new `GET /api/admin/review-log` endpoint (filters: org, resource type, action; limit/offset pagination) and displays a table with time, org name, resource type, resource name, action badge (color-coded: green=approved, red=rejected, amber=submitted/resubmitted, muted=unpublished), and operator. Full i18n (EN + ZH).
 - **Platform Organization**: Built-in org `platform` (ID: `00000000-0000-0000-0000-000000000001`) — all new users automatically join. This organization replaces the "global" visibility concept and provides a central hub for sharing resources across all users.
 - **Resource Subscriptions**: Users can now subscribe/unsubscribe to shared resources (agents, connectors, knowledge bases, MCP servers) from org Markets. New `resource_subscriptions` database table tracks subscription relationships.
@@ -67,6 +71,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Fixed
 
+- **Workflow eval namespace flattening**: Fixed ConditionBranch and VariableAssign failing to resolve short variable names (e.g. `score` when the store had `input.score`). Added `_flatten_eval_names()` helper that creates short aliases in the eval namespace, enabling dotted key resolution without full-path references.
+- **Workflow `run_started` SSE event**: The `run_started` event was documented in the SSE protocol but never actually emitted. Now yielded before the orchestrator loop begins, so frontend consumers receive the execution-start signal.
 - **Workflow SSE event name mismatch**: Fixed SSE event names — `node_status` renamed to `node_started`/`node_completed`/`node_failed`/`node_skipped` to match the frontend SSE handler expectations.
 - **Workflow `NodeRunResult.duration` field name**: Fixed `duration` to `duration_ms` to match the Pydantic schema and frontend parsing.
 - **Workflow export/import API response wrapping**: Fixed response envelope wrapping for workflow export and import endpoints.

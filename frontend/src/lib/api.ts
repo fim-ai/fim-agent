@@ -989,6 +989,18 @@ export const workflowApi = {
 
   getVariables: (id: string) =>
     apiFetch<ApiResponse<Record<string, { node_type: string; title: string; outputs: Array<{ name: string; type: string; description: string }> }>>>(`/api/workflows/${id}/variables`).then((r) => r.data),
+
+  validate: (blueprint: Record<string, unknown>) =>
+    apiFetch<ApiResponse<{
+      valid: boolean
+      node_count: number
+      edge_count: number
+      warnings: Array<{ node_id: string | null; code: string; message: string }>
+      error?: string
+    }>>("/api/workflows/validate", {
+      method: "POST",
+      body: JSON.stringify({ blueprint }),
+    }).then((r) => r.data),
 }
 
 // --- Skill API ---

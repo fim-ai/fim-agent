@@ -211,5 +211,9 @@
   "deleteNode": "Knoten löschen",
   "deleteNodeConfirm": "Sind Sie sicher, dass Sie diesen Knoten löschen möchten? Verbundene Kanten werden ebenfalls entfernt.",
   "errorCannotDeleteStart": "Der Start-Knoten kann nicht gelöscht werden",
-  "errorCannotDeleteEnd": "Der End-Knoten kann nicht gelöscht werden"
+  "errorCannotDeleteEnd": "Der End-Knoten kann nicht gelöscht werden",
+  "validationValid": "Blueprint ist gültig",
+  "validationWarnings": "{count} Warnung(en)",
+  "validationInvalid": "Blueprint enthält Fehler",
+  "validationChecking": "Wird validiert..."
 }

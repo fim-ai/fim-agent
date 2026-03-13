@@ -235,5 +235,10 @@
   "deleteNode": "Delete Node",
   "deleteNodeConfirm": "Are you sure you want to delete this node? Connected edges will also be removed.",
   "errorCannotDeleteStart": "Cannot delete the Start node",
-  "errorCannotDeleteEnd": "Cannot delete the End node"
+  "errorCannotDeleteEnd": "Cannot delete the End node",
+
+  "validationValid": "Blueprint is valid",
+  "validationWarnings": "{count} warning(s)",
+  "validationInvalid": "Blueprint has errors",
+  "validationChecking": "Validating..."
 }
