@@ -49,6 +49,8 @@ export type WorkflowNodeType =
   | "variableAssign"
   | "templateTransform"
   | "codeExecution"
+  | "subWorkflow"
+  | "env"
 
 // --- Per-node data interfaces ---
 
@@ -136,6 +138,17 @@ export interface TemplateTransformNodeData {
 export interface CodeExecutionNodeData {
   language: "python" | "javascript"
   code: string
+  output_variable: string
+}
+
+export interface SubWorkflowNodeData {
+  workflow_id: string
+  input_mapping: Record<string, string>
+  output_variable: string
+}
+
+export interface ENVNodeData {
+  env_keys: string[]
   output_variable: string
 }
 

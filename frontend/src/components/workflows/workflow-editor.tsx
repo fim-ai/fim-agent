@@ -41,6 +41,8 @@ import { HTTPRequestNode } from "./nodes/http-request-node"
 import { VariableAssignNode } from "./nodes/variable-assign-node"
 import { TemplateTransformNode } from "./nodes/template-transform-node"
 import { CodeExecutionNode } from "./nodes/code-execution-node"
+import { SubWorkflowNode } from "./nodes/sub-workflow-node"
+import { ENVNode } from "./nodes/env-node"
 
 // MUST be defined outside the component to prevent ReactFlow infinite re-renders
 const nodeTypes = {
@@ -56,6 +58,25 @@ const nodeTypes = {
   variableAssign: VariableAssignNode,
   templateTransform: TemplateTransformNode,
   codeExecution: CodeExecutionNode,
+  subWorkflow: SubWorkflowNode,
+  env: ENVNode,
+}
+
+const minimapNodeColor: Record<string, string> = {
+  start: "#22c55e",
+  end: "#ef4444",
+  llm: "#3b82f6",
+  conditionBranch: "#f97316",
+  questionClassifier: "#14b8a6",
+  agent: "#6366f1",
+  knowledgeRetrieval: "#14b8a6",
+  connector: "#a855f7",
+  httpRequest: "#64748b",
+  variableAssign: "#6b7280",
+  templateTransform: "#f59e0b",
+  codeExecution: "#10b981",
+  subWorkflow: "#6366f1",
+  env: "#d97706",
 }
 
 const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
@@ -71,6 +92,8 @@ const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
   variableAssign: { assignments: [] },
   templateTransform: { template: "", output_variable: "template_result" },
   codeExecution: { language: "python", code: "", output_variable: "code_result" },
+  subWorkflow: { workflow_id: "", input_mapping: {}, output_variable: "sub_result" },
+  env: { env_keys: [], output_variable: "env_result" },
 }
 
 interface WorkflowEditorProps {
@@ -295,6 +318,7 @@ export function WorkflowEditor({
             nodeStrokeWidth={3}
             pannable
             zoomable
+            nodeColor={(node) => minimapNodeColor[node.type ?? ""] ?? "#6b7280"}
             className="!bg-background/80 !border-border"
           />
         </ReactFlow>

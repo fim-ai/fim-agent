@@ -15,6 +15,8 @@ import {
   Variable,
   FileText,
   Code,
+  Workflow,
+  KeyRound,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -38,6 +40,7 @@ const categories: NodePaletteCategory[] = [
     items: [
       { type: "start", icon: <Play className="h-3.5 w-3.5" />, color: "text-green-500" },
       { type: "end", icon: <Square className="h-3.5 w-3.5" />, color: "text-red-500" },
+      { type: "subWorkflow", icon: <Workflow className="h-3.5 w-3.5" />, color: "text-indigo-500" },
     ],
   },
   {
@@ -68,6 +71,7 @@ const categories: NodePaletteCategory[] = [
       { type: "variableAssign", icon: <Variable className="h-3.5 w-3.5" />, color: "text-gray-500" },
       { type: "templateTransform", icon: <FileText className="h-3.5 w-3.5" />, color: "text-amber-500" },
       { type: "codeExecution", icon: <Code className="h-3.5 w-3.5" />, color: "text-emerald-500" },
+      { type: "env", icon: <KeyRound className="h-3.5 w-3.5" />, color: "text-amber-600" },
     ],
   },
 ]

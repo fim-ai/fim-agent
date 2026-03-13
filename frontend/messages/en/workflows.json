@@ -33,6 +33,8 @@
   "nodeType_variableAssign": "Variable Assign",
   "nodeType_templateTransform": "Template Transform",
   "nodeType_codeExecution": "Code Execution",
+  "nodeType_subWorkflow": "Sub-Workflow",
+  "nodeType_env": "Environment",
 
   "nodeDesc_start": "Entry point with input variables",
   "nodeDesc_end": "Output results and end workflow",
@@ -46,6 +48,8 @@
   "nodeDesc_variableAssign": "Assign values to variables",
   "nodeDesc_templateTransform": "Transform data with a template",
   "nodeDesc_codeExecution": "Run Python or JavaScript code",
+  "nodeDesc_subWorkflow": "Execute another workflow as a sub-process",
+  "nodeDesc_env": "Read environment variables from encrypted storage",
 
   "categoryFlow": "Flow",
   "categoryAI": "AI",
@@ -143,5 +147,15 @@
   "mappingCount": "{count} mappings",
   "conditionCount": "{count} conditions",
   "classCount": "{count} classes",
-  "assignmentCount": "{count} assignments"
+  "assignmentCount": "{count} assignments",
+
+  "configSubWorkflowId": "Sub-Workflow ID",
+  "configSubWorkflowIdPlaceholder": "Enter workflow ID...",
+  "configSubWorkflowInputMapping": "Input Mapping",
+  "configSubWorkflowNote": "Input mapping forwards variables from the current workflow to the sub-workflow.",
+  "configEnvKeys": "Environment Variable Keys",
+  "configEnvKeysPlaceholder": "Enter one key per line...",
+  "configEnvNote": "Variables are read from the workflow's encrypted environment storage.",
+  "inputMappingCount": "{count} mappings",
+  "envKeyCount": "{count} keys"
 }
