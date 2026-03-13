@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,7 @@ export interface ValidationResult {
 
 interface WorkflowToolbarProps {
   name: string
+  description?: string | null
   status: "draft" | "active"
   visibility?: string
   publishStatus?: string | null
@@ -70,6 +72,7 @@ interface WorkflowToolbarProps {
   onUndo: () => void
   onRedo: () => void
   onNameChange: (name: string) => void
+  onDescriptionChange?: (description: string) => void
   onSave: () => void
   onRun: () => void
   onExport: () => void
@@ -86,6 +89,7 @@ interface WorkflowToolbarProps {
 
 export function WorkflowToolbar({
   name,
+  description,
   status,
   visibility = "personal",
   publishStatus,
@@ -101,6 +105,7 @@ export function WorkflowToolbar({
   onUndo,
   onRedo,
   onNameChange,
+  onDescriptionChange,
   onSave,
   onRun,
   onExport,
@@ -119,6 +124,8 @@ export function WorkflowToolbar({
   const tc = useTranslations("common")
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(name)
+  const [descOpen, setDescOpen] = useState(false)
+  const [descValue, setDescValue] = useState(description ?? "")
   const isPublished = visibility !== "personal"
 
   const startEditing = () => {
@@ -152,25 +159,58 @@ export function WorkflowToolbar({
         </Link>
       </Button>
 
-      {/* Workflow name */}
+      {/* Workflow name & description */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        {isEditing ? (
-          <Input
-            className="h-7 text-sm font-medium max-w-[300px]"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={finishEditing}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
-        ) : (
-          <button
-            onClick={startEditing}
-            className="text-sm font-medium text-foreground hover:text-foreground/80 truncate max-w-[300px] text-left transition-colors"
-          >
-            {name || t("editorUntitled")}
-          </button>
-        )}
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <Input
+                className="h-7 text-sm font-medium max-w-[300px]"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={finishEditing}
+                onKeyDown={handleKeyDown}
+                autoFocus
+              />
+            ) : (
+              <button
+                onClick={startEditing}
+                className="text-sm font-medium text-foreground hover:text-foreground/80 truncate max-w-[300px] text-left transition-colors"
+              >
+                {name || t("editorUntitled")}
+              </button>
+            )}
+          </div>
+          {onDescriptionChange && (
+            <Popover open={descOpen} onOpenChange={(open) => {
+              if (!open && descValue !== (description ?? "")) {
+                onDescriptionChange(descValue)
+              }
+              setDescOpen(open)
+            }}>
+              <PopoverTrigger asChild>
+                <button
+                  className="text-[11px] text-muted-foreground hover:text-foreground/70 truncate max-w-[300px] text-left transition-colors leading-tight"
+                  onClick={() => {
+                    setDescValue(description ?? "")
+                    setDescOpen(true)
+                  }}
+                >
+                  {description || t("editorAddDescription")}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-80 p-2">
+                <Textarea
+                  className="text-sm min-h-[80px] resize-none"
+                  placeholder={t("editorAddDescription")}
+                  value={descValue}
+                  onChange={(e) => setDescValue(e.target.value)}
+                  autoFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
         <Badge
           variant="secondary"
           className={cn(

@@ -272,5 +272,7 @@
   "envVarsReenterWarning": "값은 암호화되어 있으며 검색할 수 없습니다. 저장하면 기존의 모든 값이 덮어씌워집니다 — 유지하려는 값을 다시 입력하세요.",
   "envVarsKeyDuplicate": "중복된 키 이름",
   "envVarsKeyEmpty": "키 이름이 필요합니다",
-  "envVarsMenuItem": "환경 변수"
+  "envVarsMenuItem": "환경 변수",
+  "editorAddDescription": "설명 추가...",
+  "editorDescription": "설명"
 }

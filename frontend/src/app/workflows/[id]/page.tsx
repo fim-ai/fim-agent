@@ -204,6 +204,15 @@ export default function WorkflowEditorPage() {
     [workflow],
   )
 
+  const handleDescriptionChange = useCallback(
+    (description: string) => {
+      if (!workflow) return
+      setWorkflow((prev) => prev ? { ...prev, description } : prev)
+      setIsDirty(true)
+    },
+    [workflow],
+  )
+
   const handleSave = useCallback(async () => {
     if (!workflow) return
     setIsSaving(true)
@@ -598,6 +607,7 @@ export default function WorkflowEditorPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <WorkflowToolbar
         name={workflow.name}
+        description={workflow.description}
         status={workflow.status}
         visibility={workflow.visibility}
         publishStatus={workflow.publish_status}
@@ -613,6 +623,7 @@ export default function WorkflowEditorPage() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         onNameChange={handleNameChange}
+        onDescriptionChange={handleDescriptionChange}
         onSave={handleSave}
         onRun={handleRun}
         onExport={handleExport}

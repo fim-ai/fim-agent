@@ -272,5 +272,7 @@
   "envVarsReenterWarning": "值已加密且无法检索。保存将覆盖所有现有值 — 请重新输入要保留的任何值。",
   "envVarsKeyDuplicate": "键名重复",
   "envVarsKeyEmpty": "键名为必填项",
-  "envVarsMenuItem": "环境变量"
+  "envVarsMenuItem": "环境变量",
+  "editorAddDescription": "添加描述...",
+  "editorDescription": "描述"
 }

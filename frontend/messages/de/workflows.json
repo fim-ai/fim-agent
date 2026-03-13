@@ -272,5 +272,7 @@
   "envVarsReenterWarning": "Werte sind verschlüsselt und können nicht abgerufen werden. Das Speichern überschreibt alle vorhandenen Werte — geben Sie alle erneut ein, die Sie behalten möchten.",
   "envVarsKeyDuplicate": "Doppelter Schlüsselname",
   "envVarsKeyEmpty": "Schlüsselname ist erforderlich",
-  "envVarsMenuItem": "Umgebungsvariablen"
+  "envVarsMenuItem": "Umgebungsvariablen",
+  "editorAddDescription": "Beschreibung hinzufügen...",
+  "editorDescription": "Beschreibung"
 }

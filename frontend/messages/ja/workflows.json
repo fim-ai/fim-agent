@@ -272,5 +272,7 @@
   "envVarsReenterWarning": "値は暗号化されており、取得できません。保存すると既存のすべての値が上書きされます。保持したい値は再度入力してください。",
   "envVarsKeyDuplicate": "キー名が重複しています",
   "envVarsKeyEmpty": "キー名は必須です",
-  "envVarsMenuItem": "環境変数"
+  "envVarsMenuItem": "環境変数",
+  "editorAddDescription": "説明を追加...",
+  "editorDescription": "説明"
 }

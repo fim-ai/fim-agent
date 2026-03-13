@@ -101,6 +101,8 @@
   "editorRunning": "Running...",
   "editorBackToList": "Back to Workflows",
   "editorUntitled": "Untitled Workflow",
+  "editorAddDescription": "Add description...",
+  "editorDescription": "Description",
   "editorImport": "Import",
   "editorExport": "Export",
   "editorDuplicate": "Duplicate",

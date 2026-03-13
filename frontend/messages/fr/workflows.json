@@ -272,5 +272,7 @@
   "envVarsReenterWarning": "Les valeurs sont chiffrées et ne peuvent pas être récupérées. L'enregistrement remplacera toutes les valeurs existantes — réentrez celles que vous souhaitez conserver.",
   "envVarsKeyDuplicate": "Nom de clé en doublon",
   "envVarsKeyEmpty": "Le nom de la clé est requis",
-  "envVarsMenuItem": "Variables d'environnement"
+  "envVarsMenuItem": "Variables d'environnement",
+  "editorAddDescription": "Ajouter une description...",
+  "editorDescription": "Description"
 }
