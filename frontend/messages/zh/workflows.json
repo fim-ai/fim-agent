@@ -387,5 +387,9 @@
   "configToolName": "工具名称",
   "configToolNamePlaceholder": "要执行的工具",
   "configToolId": "工具",
-  "configToolIdPlaceholder": "选择内置工具"
+  "configToolIdPlaceholder": "选择内置工具",
+  "configRetryCount": "重试次数",
+  "configRetryCountHint": "失败时的重试次数（0 = 不重试，最多 10 次）",
+  "configRetryDelay": "重试延迟（毫秒）",
+  "configRetryDelayHint": "重试之间的初始延迟（每次尝试翻倍，最多 60 秒）"
 }

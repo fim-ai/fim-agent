@@ -387,5 +387,9 @@
   "configToolName": "도구 이름",
   "configToolNamePlaceholder": "실행할 도구",
   "configToolId": "도구",
-  "configToolIdPlaceholder": "기본 도구 선택"
+  "configToolIdPlaceholder": "기본 도구 선택",
+  "configRetryCount": "재시도 횟수",
+  "configRetryCountHint": "실패 시 재시도 횟수 (0 = 재시도 없음, 최대 10)",
+  "configRetryDelay": "재시도 지연 시간 (ms)",
+  "configRetryDelayHint": "재시도 간 초기 지연 시간 (매 시도마다 2배 증가, 최대 60초)"
 }

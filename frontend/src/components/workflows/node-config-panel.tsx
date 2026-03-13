@@ -112,8 +112,12 @@ export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }:
             <AdvancedSection
               errorStrategy={(node.data.error_strategy as ErrorStrategy) ?? "stop_workflow"}
               timeoutMs={(node.data.timeout_ms as number) ?? 30000}
+              retryCount={(node.data.retry_count as number) ?? 0}
+              retryDelayMs={(node.data.retry_delay_ms as number) ?? 1000}
               onChangeErrorStrategy={(v) => updateField("error_strategy", v)}
               onChangeTimeout={(v) => updateField("timeout_ms", v)}
+              onChangeRetryCount={(v) => updateField("retry_count", v)}
+              onChangeRetryDelay={(v) => updateField("retry_delay_ms", v)}
             />
           )}
 
@@ -165,13 +169,21 @@ const ERROR_STRATEGIES: ErrorStrategy[] = ["stop_workflow", "continue", "fail_br
 function AdvancedSection({
   errorStrategy,
   timeoutMs,
+  retryCount,
+  retryDelayMs,
   onChangeErrorStrategy,
   onChangeTimeout,
+  onChangeRetryCount,
+  onChangeRetryDelay,
 }: {
   errorStrategy: ErrorStrategy
   timeoutMs: number
+  retryCount: number
+  retryDelayMs: number
   onChangeErrorStrategy: (v: ErrorStrategy) => void
   onChangeTimeout: (v: number) => void
+  onChangeRetryCount: (v: number) => void
+  onChangeRetryDelay: (v: number) => void
 }) {
   const t = useTranslations("workflows")
   const [expanded, setExpanded] = useState(false)
@@ -235,6 +247,45 @@ function AdvancedSection({
               {t("configTimeoutHint")}
             </p>
           </div>
+          {/* Retry */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">{t("configRetryCount")}</label>
+            <Input
+              type="number"
+              className="h-7 text-xs"
+              value={retryCount}
+              min={0}
+              max={10}
+              step={1}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10)
+                if (!isNaN(v) && v >= 0) onChangeRetryCount(v)
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              {t("configRetryCountHint")}
+            </p>
+          </div>
+          {retryCount > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">{t("configRetryDelay")}</label>
+              <Input
+                type="number"
+                className="h-7 text-xs"
+                value={retryDelayMs}
+                min={100}
+                max={60000}
+                step={500}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10)
+                  if (!isNaN(v) && v >= 100) onChangeRetryDelay(v)
+                }}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {t("configRetryDelayHint")}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </>

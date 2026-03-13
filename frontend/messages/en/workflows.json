@@ -311,6 +311,10 @@
   "configErrorStrategyHint_fail_branch": "Skip all downstream nodes in this branch",
   "configTimeout": "Timeout (ms)",
   "configTimeoutHint": "Maximum execution time for this node",
+  "configRetryCount": "Retry Count",
+  "configRetryCountHint": "Number of retries on failure (0 = no retry, max 10)",
+  "configRetryDelay": "Retry Delay (ms)",
+  "configRetryDelayHint": "Initial delay between retries (doubles each attempt, max 60s)",
 
   "configSectionAdvanced": "Advanced",
 

@@ -387,5 +387,9 @@
   "configToolName": "ツール名",
   "configToolNamePlaceholder": "実行するツール",
   "configToolId": "ツール",
-  "configToolIdPlaceholder": "組み込みツールを選択"
+  "configToolIdPlaceholder": "組み込みツールを選択",
+  "configRetryCount": "再試行回数",
+  "configRetryCountHint": "失敗時の再試行回数（0 = 再試行なし、最大 10）",
+  "configRetryDelay": "再試行遅延（ミリ秒）",
+  "configRetryDelayHint": "再試行間の初期遅延（各試行で2倍になり、最大60秒）"
 }

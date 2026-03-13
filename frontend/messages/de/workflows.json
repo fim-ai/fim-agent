@@ -387,5 +387,9 @@
   "configToolName": "Tool-Name",
   "configToolNamePlaceholder": "Auszuführendes Tool",
   "configToolId": "Tool",
-  "configToolIdPlaceholder": "Wählen Sie ein integriertes Tool"
+  "configToolIdPlaceholder": "Wählen Sie ein integriertes Tool",
+  "configRetryCount": "Wiederholungsanzahl",
+  "configRetryCountHint": "Anzahl der Wiederholungen bei Fehler (0 = keine Wiederholung, max. 10)",
+  "configRetryDelay": "Wiederholungsverzögerung (ms)",
+  "configRetryDelayHint": "Anfängliche Verzögerung zwischen Wiederholungen (verdoppelt sich bei jedem Versuch, max. 60s)"
 }

@@ -387,5 +387,9 @@
   "configToolName": "Nom de l'outil",
   "configToolNamePlaceholder": "Outil à exécuter",
   "configToolId": "Outil",
-  "configToolIdPlaceholder": "Sélectionner un outil intégré"
+  "configToolIdPlaceholder": "Sélectionner un outil intégré",
+  "configRetryCount": "Nombre de tentatives",
+  "configRetryCountHint": "Nombre de tentatives en cas d'échec (0 = pas de tentative, max 10)",
+  "configRetryDelay": "Délai de tentative (ms)",
+  "configRetryDelayHint": "Délai initial entre les tentatives (double à chaque tentative, max 60s)"
 }
