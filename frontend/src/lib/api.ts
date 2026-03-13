@@ -494,6 +494,11 @@ export const agentApi = {
       method: "POST",
       body: JSON.stringify(body),
     }).then((r) => r.data),
+
+  resubmit: (id: string) =>
+    apiFetch<ApiResponse<AgentResponse>>(`/api/agents/${id}/resubmit`, {
+      method: "POST",
+    }).then((r) => r.data),
 }
 
 // --- File API ---
@@ -658,6 +663,11 @@ export const kbApi = {
         body: JSON.stringify({ message, history: history ?? [] }),
       },
     ),
+
+  resubmit: (id: string) =>
+    apiFetch<ApiResponse<KBResponse>>(`/api/knowledge-bases/${id}/resubmit`, {
+      method: "POST",
+    }).then((r) => r.data),
 }
 
 // --- Connector API ---
@@ -851,6 +861,11 @@ export const connectorApi = {
       `/api/connectors/${connectorId}/my-credentials`,
       { method: "DELETE" },
     ).then(() => undefined),
+
+  resubmit: (id: string) =>
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/resubmit`, {
+      method: "POST",
+    }).then((r) => r.data),
 }
 
 // --- Chat API ---
@@ -1270,6 +1285,11 @@ export const mcpServerApi = {
       `/api/mcp-servers/${id}/test`,
       { method: "POST" },
     ).then((r) => r.data),
+
+  resubmit: (id: string) =>
+    apiFetch<ApiResponse<MCPServerResponse>>(`/api/mcp-servers/${id}/resubmit`, {
+      method: "POST",
+    }).then((r) => r.data),
 }
 
 // --- Model Config API ---
@@ -1322,6 +1342,18 @@ export interface UserOrg {
   member_count: number
   created_at: string
   role: "owner" | "admin" | "member"
+  require_publish_review: boolean
+}
+
+export interface ReviewItem {
+  resource_type: string
+  resource_id: string
+  resource_name: string
+  resource_icon: string | null
+  owner_username: string | null
+  submitted_at: string | null
+  publish_status: string
+  review_note: string | null
 }
 
 export interface OrgMember {
@@ -1344,7 +1376,7 @@ export const orgApi = {
       body: JSON.stringify(body),
     }).then(r => r.data),
 
-  update: (orgId: string, body: { name?: string; description?: string | null; icon?: string | null }) =>
+  update: (orgId: string, body: { name?: string; description?: string | null; icon?: string | null; require_publish_review?: boolean }) =>
     apiFetch<{ data: UserOrg }>(`/api/orgs/${orgId}`, {
       method: "PUT",
       body: JSON.stringify(body),
@@ -1375,6 +1407,26 @@ export const orgApi = {
 
   removeMember: (orgId: string, userId: string) =>
     apiFetch<void>(`/api/orgs/${orgId}/members/${userId}`, { method: "DELETE" }),
+
+  listReviews: (orgId: string, params?: { resource_type?: string; status?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.resource_type) qs.set("resource_type", params.resource_type)
+    if (params?.status) qs.set("status", params.status)
+    const query = qs.toString()
+    return apiFetch<{ data: ReviewItem[] }>(`/api/orgs/${orgId}/reviews${query ? `?${query}` : ""}`).then(r => r.data ?? [])
+  },
+
+  approveReview: (orgId: string, body: { resource_type: string; resource_id: string }) =>
+    apiFetch<void>(`/api/orgs/${orgId}/reviews/approve`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  rejectReview: (orgId: string, body: { resource_type: string; resource_id: string; note?: string }) =>
+    apiFetch<void>(`/api/orgs/${orgId}/reviews/reject`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 }
 
 // --- Eval API ---

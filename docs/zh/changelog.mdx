@@ -34,6 +34,7 @@ description: "FIM One 的所有重要变更。"
   - `POST /api/knowledge-bases/{id}/toggle` — 暂停/恢复知识库
 * **独立知识库对话**：`ChatStreamRequest` 和 `Conversation` 新增 `kb_ids` 字段 — 用户现可直接与知识库聊天，无需将其绑定到智能体。
 * **平台组织保护**：平台组织无法删除，用户也无法自行离开。确保所有用户保持与组织枢纽的连接。
+* **发布审核 UI（前端）**：组织级发布审核系统前端 — 组织编辑对话框中的审核开关、带类型/状态筛选和通过/拒绝工作流的 ReviewsSheet、智能体卡片上的发布状态徽章（待审核/已通过/已拒绝，带拒绝原因 tooltip）、发布对话框中的审核提示（当目标组织需要审核时）、已拒绝资源的重新提交操作、组织管理员/所有者的"审核管理"下拉菜单。所有资源类型（智能体、连接器、知识库、MCP 服务器）新增 `publish_status`、`reviewed_by`、`reviewed_at`、`review_note` 类型字段。完整国际化支持（中英文）。
 
 <div id="changed">
   ### 变更

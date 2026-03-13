@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
-import { Plus, Loader2, Bot, Trash2 } from "lucide-react"
+import { Plus, Loader2, Bot, Trash2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,6 +32,7 @@ import type { AgentResponse } from "@/types/agent"
 
 export default function AgentsPage() {
   const t = useTranslations("agents")
+  const to = useTranslations("organizations")
   const tc = useTranslations("common")
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -81,6 +82,16 @@ export default function AgentsPage() {
   }
   const handleUnpublish = (id: string) => setPendingUnpublishId(id)
 
+  const handleResubmit = async (id: string) => {
+    try {
+      const updated = await agentApi.resubmit(id)
+      setAgents((prev) => prev.map((a) => (a.id === id ? updated : a)))
+      toast.success(to("resubmitSuccess"))
+    } catch {
+      toast.error(to("resubmitFailed"))
+    }
+  }
+
   const confirmDelete = async () => {
     if (!pendingDeleteId) return
     const id = pendingDeleteId
@@ -122,6 +133,11 @@ export default function AgentsPage() {
       toast.error(t("agentUnpublishFailed"))
     }
   }
+
+  // Find selected org for review notice
+  const selectedOrg = publishScope === "org" && publishOrgId
+    ? userOrgs.find((o) => o.id === publishOrgId)
+    : null
 
   if (authLoading || !user) return null
 
@@ -180,6 +196,7 @@ export default function AgentsPage() {
                 onDelete={handleDelete}
                 onPublish={handlePublish}
                 onUnpublish={handleUnpublish}
+                onResubmit={handleResubmit}
               />
             ))}
           </div>
@@ -246,16 +263,26 @@ export default function AgentsPage() {
                 ) : userOrgs.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t("publishNoOrgs")}</p>
                 ) : (
-                  <Select value={publishOrgId} onValueChange={setPublishOrgId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={t("publishSelectOrg")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userOrgs.map((org) => (
-                        <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <>
+                    <Select value={publishOrgId} onValueChange={setPublishOrgId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("publishSelectOrg")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userOrgs.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Review notice */}
+                    {selectedOrg?.require_publish_review && (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-md">
+                        <Clock className="h-4 w-4 shrink-0" />
+                        <span>{to("publishRequiresReview")}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

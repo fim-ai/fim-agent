@@ -12,6 +12,10 @@ import {
   Users,
   UserMinus,
   Shield,
+  ClipboardCheck,
+  Check,
+  X,
+  ShieldCheck,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -19,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
   DialogContent,
@@ -59,7 +64,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useAuth } from "@/contexts/auth-context"
-import { orgApi, type UserOrg, type OrgMember } from "@/lib/api"
+import { orgApi, type UserOrg, type OrgMember, type ReviewItem } from "@/lib/api"
 import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 
 // ---------------------------------------------------------------------------
@@ -78,8 +83,18 @@ function roleBadgeClass(role: "owner" | "admin" | "member"): string {
   }
 }
 
+function resourceTypeLabel(type: string, t: (key: string) => string): string {
+  switch (type) {
+    case "agent": return t("resourceTypeAgent")
+    case "connector": return t("resourceTypeConnector")
+    case "knowledge_base": return t("resourceTypeKb")
+    case "mcp_server": return t("resourceTypeMcpServer")
+    default: return type
+  }
+}
+
 // ---------------------------------------------------------------------------
-// OrgFormDialog — create / edit
+// OrgFormDialog -- create / edit
 // ---------------------------------------------------------------------------
 
 interface OrgFormDialogProps {
@@ -96,6 +111,7 @@ function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogPr
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [icon, setIcon] = useState<string | null>(null)
+  const [requireReview, setRequireReview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [nameError, setNameError] = useState("")
   const [dirty, setDirty] = useState(false)
@@ -107,6 +123,7 @@ function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogPr
       setName(initial?.name ?? "")
       setDescription(initial?.description ?? "")
       setIcon(initial?.icon ?? null)
+      setRequireReview(initial?.require_publish_review ?? false)
       setNameError("")
       setDirty(false)
     }
@@ -139,6 +156,7 @@ function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogPr
           name: name.trim(),
           description: description.trim() || null,
           icon: icon || null,
+          require_publish_review: requireReview,
         })
         toast.success(t("orgUpdated"))
       } else {
@@ -218,6 +236,23 @@ function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogPr
                 />
               </div>
             </div>
+
+            {/* Publish review toggle -- only when editing */}
+            {isEdit && (
+              <>
+                <Separator />
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium">{t("requirePublishReview")}</label>
+                    <p className="text-xs text-muted-foreground">{t("requirePublishReviewDescription")}</p>
+                  </div>
+                  <Switch
+                    checked={requireReview}
+                    onCheckedChange={(v) => { setRequireReview(v); setDirty(true) }}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
@@ -231,7 +266,7 @@ function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogPr
         </DialogContent>
       </Dialog>
 
-      {/* Discard confirmation — sibling, never nested */}
+      {/* Discard confirmation -- sibling, never nested */}
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -525,6 +560,236 @@ function MembersSheet({ open, onOpenChange, org, currentUserId }: MembersSheetPr
 }
 
 // ---------------------------------------------------------------------------
+// ReviewsSheet -- admin/owner review management
+// ---------------------------------------------------------------------------
+
+interface ReviewsSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  org: UserOrg
+}
+
+function ReviewsSheet({ open, onOpenChange, org }: ReviewsSheetProps) {
+  const t = useTranslations("organizations")
+  const tc = useTranslations("common")
+
+  const [reviews, setReviews] = useState<ReviewItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>("__default__")
+  const [statusFilter, setStatusFilter] = useState<string>("pending_review")
+
+  // Reject dialog state
+  const [rejectTarget, setRejectTarget] = useState<ReviewItem | null>(null)
+  const [rejectNote, setRejectNote] = useState("")
+
+  const loadReviews = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params: { resource_type?: string; status?: string } = {}
+      if (resourceTypeFilter !== "__default__") params.resource_type = resourceTypeFilter
+      if (statusFilter !== "__default__") params.status = statusFilter
+      const data = await orgApi.listReviews(org.id, params)
+      setReviews(data)
+    } catch {
+      toast.error(t("reviewLoadFailed"))
+    } finally {
+      setLoading(false)
+    }
+  }, [org.id, resourceTypeFilter, statusFilter, t])
+
+  useEffect(() => {
+    if (open) {
+      loadReviews()
+    }
+  }, [open, loadReviews])
+
+  const handleApprove = async (item: ReviewItem) => {
+    try {
+      await orgApi.approveReview(org.id, {
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+      })
+      toast.success(t("reviewApproved"))
+      setReviews((prev) => prev.filter((r) => r.resource_id !== item.resource_id))
+    } catch {
+      toast.error(t("reviewApproveFailed"))
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectTarget) return
+    try {
+      await orgApi.rejectReview(org.id, {
+        resource_type: rejectTarget.resource_type,
+        resource_id: rejectTarget.resource_id,
+        note: rejectNote.trim() || undefined,
+      })
+      toast.success(t("reviewRejected"))
+      setReviews((prev) => prev.filter((r) => r.resource_id !== rejectTarget.resource_id))
+    } catch {
+      toast.error(t("reviewRejectFailed"))
+    } finally {
+      setRejectTarget(null)
+      setRejectNote("")
+    }
+  }
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col">
+          <SheetHeader className="shrink-0">
+            <SheetTitle>{t("reviewManagement")}</SheetTitle>
+            <SheetDescription>{t("reviewsSheetDescription")}</SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 mt-4">
+            {/* Filters */}
+            <div className="flex gap-2">
+              <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">{t("filterAll")}</SelectItem>
+                  <SelectItem value="agent">{t("filterAgents")}</SelectItem>
+                  <SelectItem value="connector">{t("filterConnectors")}</SelectItem>
+                  <SelectItem value="knowledge_base">{t("filterKBs")}</SelectItem>
+                  <SelectItem value="mcp_server">{t("filterMcpServers")}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">{t("filterAll")}</SelectItem>
+                  <SelectItem value="pending_review">{t("filterPending")}</SelectItem>
+                  <SelectItem value="rejected">{t("filterRejected")}</SelectItem>
+                  <SelectItem value="approved">{t("filterApproved")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+            {/* Review list */}
+            {loading ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">{tc("loading")}</p>
+            ) : reviews.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">{t("noReviewsPending")}</p>
+            ) : (
+              <div className="space-y-2">
+                {reviews.map((item) => (
+                  <div
+                    key={`${item.resource_type}-${item.resource_id}`}
+                    className="rounded-md border border-border p-3 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center text-sm shrink-0">
+                          {item.resource_icon ?? <Building2 className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{item.resource_name}</p>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                              {resourceTypeLabel(item.resource_type, t)}
+                            </Badge>
+                            {item.owner_username && (
+                              <span>{t("submittedBy", { owner: item.owner_username })}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status badge */}
+                      {item.publish_status === "pending_review" && (
+                        <Badge variant="outline" className="border-amber-400 text-amber-600 dark:text-amber-400 shrink-0">
+                          {t("pendingReview")}
+                        </Badge>
+                      )}
+                      {item.publish_status === "approved" && (
+                        <Badge variant="outline" className="border-emerald-400 text-emerald-600 dark:text-emerald-400 shrink-0">
+                          {t("approved")}
+                        </Badge>
+                      )}
+                      {item.publish_status === "rejected" && (
+                        <Badge variant="outline" className="border-destructive text-destructive shrink-0">
+                          {t("rejected")}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Review note for rejected items */}
+                    {item.publish_status === "rejected" && item.review_note && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+                        {t("rejectedNote", { note: item.review_note })}
+                      </p>
+                    )}
+
+                    {/* Action buttons -- only for pending items */}
+                    {item.publish_status === "pending_review" && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-400/40 hover:bg-emerald-500/10"
+                          onClick={() => handleApprove(item)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          {t("approveResource")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1 text-destructive border-destructive/40 hover:bg-destructive/10"
+                          onClick={() => { setRejectTarget(item); setRejectNote("") }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          {t("rejectResource")}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Reject confirmation dialog -- sibling */}
+      <Dialog open={!!rejectTarget} onOpenChange={(v) => { if (!v) { setRejectTarget(null); setRejectNote("") } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("rejectDialogTitle")}</DialogTitle>
+            <DialogDescription>{t("rejectDialogDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Textarea
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              placeholder={t("rejectReasonPlaceholder")}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectNote("") }}>
+              {tc("cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleReject}>
+              {t("rejectResource")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // OrgCard
 // ---------------------------------------------------------------------------
 
@@ -535,9 +800,10 @@ interface OrgCardProps {
   onDelete: (org: UserOrg) => void
   onLeave: (org: UserOrg) => void
   onManageMembers: (org: UserOrg) => void
+  onManageReviews: (org: UserOrg) => void
 }
 
-function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMembers }: OrgCardProps) {
+function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMembers, onManageReviews }: OrgCardProps) {
   const t = useTranslations("organizations")
   const tc = useTranslations("common")
 
@@ -560,6 +826,12 @@ function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMember
             <Badge variant="outline" className={roleBadgeClass(org.role)}>
               {t(`role${org.role.charAt(0).toUpperCase()}${org.role.slice(1)}` as "roleOwner" | "roleAdmin" | "roleMember")}
             </Badge>
+            {org.require_publish_review && (
+              <Badge variant="outline" className="border-amber-400/40 text-amber-600 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5">
+                <ShieldCheck className="h-3 w-3 mr-0.5" />
+                {t("reviewEnabled")}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">/{org.slug}</p>
           {org.description && (
@@ -589,7 +861,13 @@ function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMember
               {t("manageMembers")}
             </DropdownMenuItem>
           )}
-          {isOwner && (
+          {isAdminOrOwner && org.require_publish_review && (
+            <DropdownMenuItem onClick={() => onManageReviews(org)}>
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              {t("reviewManagement")}
+            </DropdownMenuItem>
+          )}
+          {isAdminOrOwner && (
             <DropdownMenuItem onClick={() => onEdit(org)}>
               <Settings className="mr-2 h-4 w-4" />
               {tc("edit")}
@@ -645,6 +923,8 @@ export function OrganizationSettings() {
   const [leaveTarget, setLeaveTarget] = useState<UserOrg | null>(null)
   const [membersTarget, setMembersTarget] = useState<UserOrg | null>(null)
   const [membersOpen, setMembersOpen] = useState(false)
+  const [reviewsTarget, setReviewsTarget] = useState<UserOrg | null>(null)
+  const [reviewsOpen, setReviewsOpen] = useState(false)
 
   const loadOrgs = useCallback(async () => {
     setLoading(true)
@@ -701,6 +981,11 @@ export function OrganizationSettings() {
     setMembersOpen(true)
   }
 
+  const handleManageReviews = (org: UserOrg) => {
+    setReviewsTarget(org)
+    setReviewsOpen(true)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header row */}
@@ -739,6 +1024,7 @@ export function OrganizationSettings() {
               onDelete={(o) => setDeleteTarget(o)}
               onLeave={(o) => setLeaveTarget(o)}
               onManageMembers={handleManageMembers}
+              onManageReviews={handleManageReviews}
             />
           ))}
         </div>
@@ -803,6 +1089,15 @@ export function OrganizationSettings() {
           onOpenChange={(v) => { setMembersOpen(v); if (!v) setMembersTarget(null) }}
           org={membersTarget}
           currentUserId={user?.id ?? ""}
+        />
+      )}
+
+      {/* Reviews sheet */}
+      {reviewsTarget && (
+        <ReviewsSheet
+          open={reviewsOpen}
+          onOpenChange={(v) => { setReviewsOpen(v); if (!v) setReviewsTarget(null) }}
+          org={reviewsTarget}
         />
       )}
     </div>

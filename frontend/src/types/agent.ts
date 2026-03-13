@@ -22,6 +22,10 @@ export interface AgentResponse {
   is_builder?: boolean
   discoverable?: boolean
   sub_agent_ids?: string[] | null
+  publish_status: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
   published_at: string | null
   created_at: string
   updated_at: string | null

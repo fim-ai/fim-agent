@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
   - `POST /api/knowledge-bases/{id}/toggle` — suspend/resume knowledge base
 - **Standalone KB Conversations**: New `kb_ids` field on `ChatStreamRequest` and `Conversation` — users can now chat directly with knowledge bases without binding them to an agent.
 - **Platform Org Protection**: The Platform org cannot be deleted, and users cannot self-leave it. Ensures all users maintain connectivity to the organization hub.
+- **Publish Review UI (Frontend)**: Org-level publish review system frontend — review toggle in org edit dialog, ReviewsSheet with type/status filters and approve/reject workflow, publish status badges (pending/approved/rejected) on agent cards with tooltip for rejection notes, review notice in publish dialog when target org requires review, resubmit action for rejected resources, "Review Management" dropdown for org admin/owners. All resource types (agents, connectors, KBs, MCP servers) gain `publish_status`, `reviewed_by`, `reviewed_at`, `review_note` type fields. Full i18n (EN + ZH).
 
 ### Changed
 

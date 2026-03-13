@@ -9,6 +9,10 @@ export interface KBResponse {
   document_count: number
   total_chunks: number
   status: string
+  publish_status: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
   created_at: string
   updated_at: string | null
 }
