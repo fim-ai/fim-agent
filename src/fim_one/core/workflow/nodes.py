@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import tempfile
 import time
 from typing import Any, Protocol, runtime_checkable
@@ -1746,6 +1747,499 @@ class ParameterExtractorExecutor:
 
 
 # ---------------------------------------------------------------------------
+# 17. ListOperation node
+# ---------------------------------------------------------------------------
+
+
+class ListOperationExecutor:
+    """Perform list transformations: filter, map, sort, slice, flatten, unique, reverse, length.
+
+    The executor resolves the ``input_variable`` from the store, applies the
+    requested operation, and stores the result in ``output_variable``.
+
+    For ``filter``, ``map``, and ``sort`` operations, a ``simpleeval``
+    expression is evaluated per item with ``item`` and ``index`` in scope.
+    """
+
+    @staticmethod
+    def output_schema() -> list[dict[str, str]]:
+        return [
+            {"name": "output", "type": "any", "description": "Result of the list operation"},
+        ]
+
+    async def execute(
+        self,
+        node: WorkflowNodeDef,
+        store: VariableStore,
+        context: ExecutionContext,
+    ) -> NodeResult:
+        t0 = time.time()
+        try:
+            from simpleeval import simple_eval
+
+            input_variable: str = node.data.get("input_variable", "")
+            operation: str = node.data.get("operation", "")
+            expression: str = node.data.get("expression", "")
+            slice_start: int | None = node.data.get("slice_start")
+            slice_end: int | None = node.data.get("slice_end")
+            output_variable: str = node.data.get("output_variable", "list_result")
+
+            if not input_variable:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="ListOperation node has no input_variable configured",
+                    duration_ms=_ms_since(t0),
+                )
+
+            if not operation:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="ListOperation node has no operation configured",
+                    duration_ms=_ms_since(t0),
+                )
+
+            # Resolve the input variable
+            if "{{" in input_variable:
+                raw_value = await store.interpolate(input_variable)
+            else:
+                raw_value = await store.get(input_variable)
+
+            # Parse as list
+            items: list[Any]
+            if isinstance(raw_value, list):
+                items = raw_value
+            elif isinstance(raw_value, str):
+                raw_value = raw_value.strip()
+                if not raw_value:
+                    items = []
+                else:
+                    try:
+                        parsed = json.loads(raw_value)
+                        if isinstance(parsed, list):
+                            items = parsed
+                        else:
+                            return NodeResult(
+                                node_id=node.id,
+                                status=NodeStatus.FAILED,
+                                error=f"ListOperation input resolved to non-list JSON: {type(parsed).__name__}",
+                                duration_ms=_ms_since(t0),
+                            )
+                    except (json.JSONDecodeError, ValueError):
+                        return NodeResult(
+                            node_id=node.id,
+                            status=NodeStatus.FAILED,
+                            error=f"ListOperation input is not valid JSON list: {str(raw_value)[:100]}",
+                            duration_ms=_ms_since(t0),
+                        )
+            elif raw_value is None:
+                items = []
+            else:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error=f"ListOperation input resolved to unsupported type: {type(raw_value).__name__}",
+                    duration_ms=_ms_since(t0),
+                )
+
+            # Apply the operation
+            result_value: Any
+            if operation == "filter":
+                if not expression:
+                    return NodeResult(
+                        node_id=node.id,
+                        status=NodeStatus.FAILED,
+                        error="ListOperation 'filter' requires an expression",
+                        duration_ms=_ms_since(t0),
+                    )
+                result_value = []
+                for idx, item in enumerate(items):
+                    val = simple_eval(expression, names={"item": item, "index": idx})
+                    if val:
+                        result_value.append(item)
+
+            elif operation == "map":
+                if not expression:
+                    return NodeResult(
+                        node_id=node.id,
+                        status=NodeStatus.FAILED,
+                        error="ListOperation 'map' requires an expression",
+                        duration_ms=_ms_since(t0),
+                    )
+                result_value = []
+                for idx, item in enumerate(items):
+                    val = simple_eval(expression, names={"item": item, "index": idx})
+                    result_value.append(val)
+
+            elif operation == "sort":
+                if expression:
+                    result_value = sorted(
+                        items,
+                        key=lambda item: simple_eval(expression, names={"item": item}),
+                    )
+                else:
+                    result_value = sorted(items)
+
+            elif operation == "slice":
+                result_value = items[slice_start:slice_end]
+
+            elif operation == "flatten":
+                result_value = []
+                for item in items:
+                    if isinstance(item, list):
+                        result_value.extend(item)
+                    else:
+                        result_value.append(item)
+
+            elif operation == "unique":
+                seen: set[Any] = set()
+                result_value = []
+                for item in items:
+                    # Use json.dumps for unhashable types (dicts, lists)
+                    try:
+                        key = item
+                        if key not in seen:
+                            seen.add(key)
+                            result_value.append(item)
+                    except TypeError:
+                        # Unhashable type — use JSON serialization as key
+                        key_str = json.dumps(item, sort_keys=True)
+                        if key_str not in seen:
+                            seen.add(key_str)
+                            result_value.append(item)
+
+            elif operation == "reverse":
+                result_value = list(reversed(items))
+
+            elif operation == "length":
+                result_value = len(items)
+
+            else:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error=f"ListOperation unknown operation: {operation}",
+                    duration_ms=_ms_since(t0),
+                )
+
+            await store.set(f"{node.id}.output", result_value)
+            await store.set(f"{node.id}.{output_variable}", result_value)
+
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output=result_value,
+                duration_ms=_ms_since(t0),
+            )
+        except Exception as exc:
+            logger.exception("ListOperation node %s failed", node.id)
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.FAILED,
+                error=f"ListOperation error: {exc}",
+                duration_ms=_ms_since(t0),
+            )
+
+
+# ---------------------------------------------------------------------------
+# 18. Transform node
+# ---------------------------------------------------------------------------
+
+
+def _resolve_json_path(data: Any, path: str) -> Any:
+    """Resolve a simple JSON path expression against data.
+
+    Supports: ``$.key``, ``$.key.nested``, ``$.array[0]``,
+    ``$.array[*].field``.
+    """
+    if not path.startswith("$"):
+        raise ValueError(f"JSON path must start with '$': {path}")
+
+    # Strip leading "$" and optional leading "."
+    remaining = path[1:]
+    if remaining.startswith("."):
+        remaining = remaining[1:]
+
+    if not remaining:
+        return data
+
+    current = data
+    # Tokenize: split on "." but respect brackets
+    tokens: list[str] = []
+    buf = ""
+    for ch in remaining:
+        if ch == "." and "[" not in buf:
+            if buf:
+                tokens.append(buf)
+                buf = ""
+        else:
+            buf += ch
+    if buf:
+        tokens.append(buf)
+
+    for token in tokens:
+        if current is None:
+            return None
+
+        # Check for bracket notation: key[0] or key[*]
+        bracket_match = re.match(r"^(\w*)(?:\[(\d+|\*)\])(?:\.(.+))?$", token)
+        if bracket_match:
+            key_part = bracket_match.group(1)
+            index_part = bracket_match.group(2)
+            rest_part = bracket_match.group(3)
+
+            # Navigate to key first if present
+            if key_part:
+                if isinstance(current, dict):
+                    current = current.get(key_part)
+                else:
+                    return None
+
+            if current is None:
+                return None
+
+            if not isinstance(current, list):
+                return None
+
+            if index_part == "*":
+                # Wildcard: extract field from every element
+                if rest_part:
+                    current = [_resolve_json_path(item, f"$.{rest_part}") for item in current]
+                else:
+                    # [*] without further path just returns the list as-is
+                    pass
+            else:
+                idx = int(index_part)
+                if idx < len(current):
+                    current = current[idx]
+                else:
+                    return None
+
+                # If there's a rest part after the bracket, continue resolving
+                if rest_part:
+                    current = _resolve_json_path(current, f"$.{rest_part}")
+        else:
+            # Simple key access
+            if isinstance(current, dict):
+                current = current.get(token)
+            else:
+                return None
+
+    return current
+
+
+class TransformExecutor:
+    """Apply a pipeline of data transformations to a single value.
+
+    The executor resolves ``input_variable`` from the store, then applies
+    each operation in the ``operations`` list sequentially (pipeline pattern).
+    The final result is stored in ``output_variable``.
+    """
+
+    @staticmethod
+    def output_schema() -> list[dict[str, str]]:
+        return [
+            {"name": "output", "type": "any", "description": "Result after applying all transform operations"},
+        ]
+
+    async def execute(
+        self,
+        node: WorkflowNodeDef,
+        store: VariableStore,
+        context: ExecutionContext,
+    ) -> NodeResult:
+        t0 = time.time()
+        try:
+            input_variable: str = node.data.get("input_variable", "")
+            operations: list[dict[str, Any]] = node.data.get("operations", [])
+            output_variable: str = node.data.get("output_variable", "transform_result")
+
+            if not input_variable:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="Transform node has no input_variable configured",
+                    duration_ms=_ms_since(t0),
+                )
+
+            if not operations:
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error="Transform node has no operations configured",
+                    duration_ms=_ms_since(t0),
+                )
+
+            # Resolve the input variable
+            if "{{" in input_variable:
+                value = await store.interpolate(input_variable)
+            else:
+                value = await store.get(input_variable)
+
+            # Apply each operation sequentially
+            for i, op in enumerate(operations):
+                op_type: str = op.get("type", "")
+                config: dict[str, Any] = op.get("config", {})
+
+                if op_type == "json_path":
+                    path: str = config.get("path", "$")
+                    # If value is a JSON string, parse it first
+                    if isinstance(value, str):
+                        try:
+                            value = json.loads(value)
+                        except (json.JSONDecodeError, ValueError):
+                            pass  # Keep as string if not valid JSON
+                    value = _resolve_json_path(value, path)
+
+                elif op_type == "type_cast":
+                    target_type: str = config.get("target_type", "string")
+                    if target_type == "string":
+                        value = str(value) if value is not None else ""
+                    elif target_type == "integer":
+                        value = int(float(value)) if value is not None else 0
+                    elif target_type == "float":
+                        value = float(value) if value is not None else 0.0
+                    elif target_type == "boolean":
+                        if isinstance(value, str):
+                            value = value.lower() not in ("false", "0", "", "null", "none")
+                        else:
+                            value = bool(value)
+                    elif target_type == "json":
+                        if isinstance(value, str):
+                            value = json.loads(value)
+                        # else already a Python object
+                    else:
+                        return NodeResult(
+                            node_id=node.id,
+                            status=NodeStatus.FAILED,
+                            error=f"Transform type_cast unknown target_type: {target_type}",
+                            duration_ms=_ms_since(t0),
+                        )
+
+                elif op_type == "format":
+                    template: str = config.get("template", "{value}")
+                    # Make the current value available as 'value' in the format call
+                    try:
+                        value = template.format(value=value)
+                    except (KeyError, IndexError, AttributeError) as fmt_err:
+                        return NodeResult(
+                            node_id=node.id,
+                            status=NodeStatus.FAILED,
+                            error=f"Transform format failed: {fmt_err}",
+                            duration_ms=_ms_since(t0),
+                        )
+
+                elif op_type == "regex_extract":
+                    pattern: str = config.get("pattern", "")
+                    group: int = config.get("group", 0)
+                    match = re.search(pattern, str(value))
+                    if match:
+                        value = match.group(group)
+                    else:
+                        value = None
+
+                elif op_type == "string_op":
+                    str_operation: str = config.get("operation", "")
+                    args: dict[str, Any] = config.get("args", {})
+                    str_val = str(value) if value is not None else ""
+
+                    if str_operation == "upper":
+                        value = str_val.upper()
+                    elif str_operation == "lower":
+                        value = str_val.lower()
+                    elif str_operation == "strip":
+                        value = str_val.strip()
+                    elif str_operation == "split":
+                        separator = args.get("separator", " ")
+                        value = str_val.split(separator)
+                    elif str_operation == "join":
+                        separator = args.get("separator", " ")
+                        if isinstance(value, list):
+                            value = separator.join(str(v) for v in value)
+                        else:
+                            value = str_val
+                    elif str_operation == "replace":
+                        old_str = args.get("old", "")
+                        new_str = args.get("new", "")
+                        value = str_val.replace(old_str, new_str)
+                    else:
+                        return NodeResult(
+                            node_id=node.id,
+                            status=NodeStatus.FAILED,
+                            error=f"Transform string_op unknown operation: {str_operation}",
+                            duration_ms=_ms_since(t0),
+                        )
+
+                elif op_type == "math_op":
+                    math_operation: str = config.get("operation", "")
+                    operand: float | int = config.get("operand", 0)
+                    num_val = float(value) if value is not None else 0.0
+
+                    if math_operation == "add":
+                        value = num_val + operand
+                    elif math_operation == "subtract":
+                        value = num_val - operand
+                    elif math_operation == "multiply":
+                        value = num_val * operand
+                    elif math_operation == "divide":
+                        if operand == 0:
+                            return NodeResult(
+                                node_id=node.id,
+                                status=NodeStatus.FAILED,
+                                error="Transform math_op divide by zero",
+                                duration_ms=_ms_since(t0),
+                            )
+                        value = num_val / operand
+                    elif math_operation == "modulo":
+                        if operand == 0:
+                            return NodeResult(
+                                node_id=node.id,
+                                status=NodeStatus.FAILED,
+                                error="Transform math_op modulo by zero",
+                                duration_ms=_ms_since(t0),
+                            )
+                        value = num_val % operand
+                    elif math_operation == "round":
+                        value = round(num_val, int(operand))
+                    elif math_operation == "abs":
+                        value = abs(num_val)
+                    else:
+                        return NodeResult(
+                            node_id=node.id,
+                            status=NodeStatus.FAILED,
+                            error=f"Transform math_op unknown operation: {math_operation}",
+                            duration_ms=_ms_since(t0),
+                        )
+
+                else:
+                    return NodeResult(
+                        node_id=node.id,
+                        status=NodeStatus.FAILED,
+                        error=f"Transform unknown operation type: {op_type}",
+                        duration_ms=_ms_since(t0),
+                    )
+
+            await store.set(f"{node.id}.output", value)
+            await store.set(f"{node.id}.{output_variable}", value)
+
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output=value,
+                duration_ms=_ms_since(t0),
+            )
+        except Exception as exc:
+            logger.exception("Transform node %s failed", node.id)
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.FAILED,
+                error=f"Transform error: {exc}",
+                duration_ms=_ms_since(t0),
+            )
+
+
+# ---------------------------------------------------------------------------
 # Registry — map NodeType to executor class
 # ---------------------------------------------------------------------------
 
@@ -1766,6 +2260,8 @@ EXECUTOR_REGISTRY: dict[NodeType, type] = {
     NodeType.VARIABLE_AGGREGATOR: VariableAggregatorExecutor,
     NodeType.PARAMETER_EXTRACTOR: ParameterExtractorExecutor,
     NodeType.LOOP: LoopExecutor,
+    NodeType.LIST_OPERATION: ListOperationExecutor,
+    NodeType.TRANSFORM: TransformExecutor,
 }
 
 

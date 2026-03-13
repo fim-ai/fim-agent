@@ -4019,3 +4019,1307 @@ class TestLoopNode:
         assert result.status == NodeStatus.COMPLETED
         assert result.output["iterations"] == 4
         assert result.output["completed"] is True
+
+
+# =========================================================================
+# ListOperation node tests
+# =========================================================================
+
+
+class TestListOperationNode:
+    """Test the ListOperationExecutor — list transformations."""
+
+    @pytest.mark.asyncio
+    async def test_filter_operation(self):
+        """Filter should keep items where expression is truthy."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "numbers",
+                "operation": "filter",
+                "expression": "item > 3",
+                "output_variable": "filtered",
+            },
+        )
+        store = VariableStore()
+        await store.set("numbers", [1, 2, 3, 4, 5, 6])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [4, 5, 6]
+        assert await store.get("list_1.output") == [4, 5, 6]
+        assert await store.get("list_1.filtered") == [4, 5, 6]
+
+    @pytest.mark.asyncio
+    async def test_filter_with_index(self):
+        """Filter should provide index in scope."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "filter",
+                "expression": "index % 2 == 0",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", ["a", "b", "c", "d", "e"])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == ["a", "c", "e"]
+
+    @pytest.mark.asyncio
+    async def test_map_operation(self):
+        """Map should transform each item using the expression."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "numbers",
+                "operation": "map",
+                "expression": "item * 2",
+            },
+        )
+        store = VariableStore()
+        await store.set("numbers", [1, 2, 3])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [2, 4, 6]
+
+    @pytest.mark.asyncio
+    async def test_map_with_index(self):
+        """Map should provide index in scope."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "map",
+                "expression": "index",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", ["a", "b", "c"])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [0, 1, 2]
+
+    @pytest.mark.asyncio
+    async def test_sort_natural(self):
+        """Sort without expression should use natural ordering."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "numbers",
+                "operation": "sort",
+            },
+        )
+        store = VariableStore()
+        await store.set("numbers", [3, 1, 4, 1, 5, 9])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [1, 1, 3, 4, 5, 9]
+
+    @pytest.mark.asyncio
+    async def test_sort_with_expression(self):
+        """Sort with expression should use it as the sort key."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "numbers",
+                "operation": "sort",
+                "expression": "-item",
+            },
+        )
+        store = VariableStore()
+        await store.set("numbers", [3, 1, 4, 1, 5])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [5, 4, 3, 1, 1]
+
+    @pytest.mark.asyncio
+    async def test_slice_operation(self):
+        """Slice should extract a sub-list using start/end."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "slice",
+                "slice_start": 1,
+                "slice_end": 4,
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [10, 20, 30, 40, 50])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [20, 30, 40]
+
+    @pytest.mark.asyncio
+    async def test_slice_with_none_bounds(self):
+        """Slice with None start/end should work like Python slices."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "slice",
+                "slice_start": 2,
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [1, 2, 3, 4, 5])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [3, 4, 5]
+
+    @pytest.mark.asyncio
+    async def test_flatten_operation(self):
+        """Flatten should flatten nested lists one level."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "nested",
+                "operation": "flatten",
+            },
+        )
+        store = VariableStore()
+        await store.set("nested", [[1, 2], [3, 4], [5]])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [1, 2, 3, 4, 5]
+
+    @pytest.mark.asyncio
+    async def test_flatten_mixed(self):
+        """Flatten should handle mixed nested and non-nested items."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "mixed",
+                "operation": "flatten",
+            },
+        )
+        store = VariableStore()
+        await store.set("mixed", [1, [2, 3], 4, [5, 6]])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [1, 2, 3, 4, 5, 6]
+
+    @pytest.mark.asyncio
+    async def test_unique_operation(self):
+        """Unique should remove duplicates preserving order."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "unique",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [1, 2, 3, 2, 1, 4, 3, 5])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [1, 2, 3, 4, 5]
+
+    @pytest.mark.asyncio
+    async def test_reverse_operation(self):
+        """Reverse should reverse the list."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "reverse",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [1, 2, 3, 4, 5])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [5, 4, 3, 2, 1]
+
+    @pytest.mark.asyncio
+    async def test_length_operation(self):
+        """Length should return the count as an integer."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "length",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", ["a", "b", "c", "d"])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 4
+        assert isinstance(result.output, int)
+
+    @pytest.mark.asyncio
+    async def test_json_string_input(self):
+        """ListOperation should parse a JSON string as input."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "json_data",
+                "operation": "reverse",
+            },
+        )
+        store = VariableStore()
+        await store.set("json_data", '[10, 20, 30]')
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == [30, 20, 10]
+
+    @pytest.mark.asyncio
+    async def test_invalid_input_type(self):
+        """ListOperation should fail for non-list, non-string input."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "bad_data",
+                "operation": "reverse",
+            },
+        )
+        store = VariableStore()
+        await store.set("bad_data", 42)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "unsupported type" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_missing_input_variable(self):
+        """ListOperation should fail if input_variable is empty."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "operation": "reverse",
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "input_variable" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_missing_operation(self):
+        """ListOperation should fail if no operation is specified."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [1, 2, 3])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "operation" in (result.error or "").lower()
+
+    @pytest.mark.asyncio
+    async def test_unknown_operation(self):
+        """ListOperation should fail for an unrecognized operation."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "shuffle",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [1, 2, 3])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "unknown operation" in (result.error or "").lower()
+
+    @pytest.mark.asyncio
+    async def test_default_output_variable(self):
+        """ListOperation should default output_variable to 'list_result'."""
+        from fim_one.core.workflow.nodes import ListOperationExecutor
+
+        node = WorkflowNodeDef(
+            id="list_1",
+            type=NodeType.LIST_OPERATION,
+            data={
+                "type": "LIST_OPERATION",
+                "input_variable": "items",
+                "operation": "length",
+            },
+        )
+        store = VariableStore()
+        await store.set("items", [1, 2, 3])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = ListOperationExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert await store.get("list_1.list_result") == 3
+
+
+# =========================================================================
+# Transform node tests
+# =========================================================================
+
+
+class TestTransformNode:
+    """Test the TransformExecutor — data transformation pipelines."""
+
+    @pytest.mark.asyncio
+    async def test_json_path_simple(self):
+        """json_path should extract a nested value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "data",
+                "operations": [
+                    {"type": "json_path", "config": {"path": "$.name"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("data", {"name": "Alice", "age": 30})
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "Alice"
+
+    @pytest.mark.asyncio
+    async def test_json_path_nested(self):
+        """json_path should handle deep nesting."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "data",
+                "operations": [
+                    {"type": "json_path", "config": {"path": "$.data.items[0].name"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("data", {
+            "data": {
+                "items": [
+                    {"name": "First", "value": 1},
+                    {"name": "Second", "value": 2},
+                ]
+            }
+        })
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "First"
+
+    @pytest.mark.asyncio
+    async def test_json_path_wildcard(self):
+        """json_path with [*] should extract field from all array elements."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "data",
+                "operations": [
+                    {"type": "json_path", "config": {"path": "$.users[*].name"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("data", {
+            "users": [
+                {"name": "Alice", "age": 30},
+                {"name": "Bob", "age": 25},
+                {"name": "Charlie", "age": 35},
+            ]
+        })
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == ["Alice", "Bob", "Charlie"]
+
+    @pytest.mark.asyncio
+    async def test_json_path_from_string(self):
+        """json_path should parse a JSON string input first."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "data",
+                "operations": [
+                    {"type": "json_path", "config": {"path": "$.key"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("data", '{"key": "value"}')
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "value"
+
+    @pytest.mark.asyncio
+    async def test_type_cast_to_string(self):
+        """type_cast to string should convert any value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "string"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 42)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "42"
+
+    @pytest.mark.asyncio
+    async def test_type_cast_to_integer(self):
+        """type_cast to integer should convert numeric strings."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "integer"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", "42.7")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 42
+
+    @pytest.mark.asyncio
+    async def test_type_cast_to_float(self):
+        """type_cast to float should convert string values."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "float"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", "3.14")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 3.14
+
+    @pytest.mark.asyncio
+    async def test_type_cast_to_boolean(self):
+        """type_cast to boolean should handle string conversions."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "boolean"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", "false")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output is False
+
+    @pytest.mark.asyncio
+    async def test_type_cast_to_json(self):
+        """type_cast to json should parse a JSON string."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "json"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", '{"key": "value"}')
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == {"key": "value"}
+
+    @pytest.mark.asyncio
+    async def test_format_template(self):
+        """format should apply Python str.format with value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "name",
+                "operations": [
+                    {"type": "format", "config": {"template": "Hello {value}!"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("name", "World")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "Hello World!"
+
+    @pytest.mark.asyncio
+    async def test_regex_extract(self):
+        """regex_extract should extract a match from string."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "regex_extract", "config": {"pattern": r"(\d+)", "group": 1}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "Order #12345 confirmed")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "12345"
+
+    @pytest.mark.asyncio
+    async def test_regex_extract_no_match(self):
+        """regex_extract with no match should return None."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "regex_extract", "config": {"pattern": r"xyz(\d+)", "group": 1}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "no numbers here")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output is None
+
+    @pytest.mark.asyncio
+    async def test_string_op_upper(self):
+        """string_op upper should uppercase the value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "string_op", "config": {"operation": "upper"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "hello world")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "HELLO WORLD"
+
+    @pytest.mark.asyncio
+    async def test_string_op_lower(self):
+        """string_op lower should lowercase the value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "string_op", "config": {"operation": "lower"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "HELLO WORLD")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "hello world"
+
+    @pytest.mark.asyncio
+    async def test_string_op_split(self):
+        """string_op split should split a string by separator."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "string_op", "config": {"operation": "split", "args": {"separator": ","}}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "a,b,c,d")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == ["a", "b", "c", "d"]
+
+    @pytest.mark.asyncio
+    async def test_string_op_join(self):
+        """string_op join should join a list with separator."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "items",
+                "operations": [
+                    {"type": "string_op", "config": {"operation": "join", "args": {"separator": " | "}}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("items", ["a", "b", "c"])
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "a | b | c"
+
+    @pytest.mark.asyncio
+    async def test_string_op_replace(self):
+        """string_op replace should replace substrings."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "string_op", "config": {"operation": "replace", "args": {"old": "world", "new": "earth"}}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "hello world")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "hello earth"
+
+    @pytest.mark.asyncio
+    async def test_math_op_add(self):
+        """math_op add should add operand to value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "add", "operand": 10}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 5)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 15.0
+
+    @pytest.mark.asyncio
+    async def test_math_op_subtract(self):
+        """math_op subtract should subtract operand from value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "subtract", "operand": 3}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 10)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 7.0
+
+    @pytest.mark.asyncio
+    async def test_math_op_multiply(self):
+        """math_op multiply should multiply value by operand."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "multiply", "operand": 4}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 3)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 12.0
+
+    @pytest.mark.asyncio
+    async def test_math_op_divide(self):
+        """math_op divide should divide value by operand."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "divide", "operand": 4}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 20)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 5.0
+
+    @pytest.mark.asyncio
+    async def test_math_op_divide_by_zero(self):
+        """math_op divide by zero should fail."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "divide", "operand": 0}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 10)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "divide by zero" in (result.error or "").lower()
+
+    @pytest.mark.asyncio
+    async def test_math_op_modulo(self):
+        """math_op modulo should return remainder."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "modulo", "operand": 3}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 10)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 1.0
+
+    @pytest.mark.asyncio
+    async def test_math_op_round(self):
+        """math_op round should round to specified decimal places."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "round", "operand": 2}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 3.14159)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 3.14
+
+    @pytest.mark.asyncio
+    async def test_math_op_abs(self):
+        """math_op abs should return absolute value."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "math_op", "config": {"operation": "abs"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", -42)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == 42.0
+
+    @pytest.mark.asyncio
+    async def test_pipeline_multiple_operations(self):
+        """Multiple operations should chain: output of one feeds into the next."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "data",
+                "operations": [
+                    {"type": "json_path", "config": {"path": "$.price"}},
+                    {"type": "math_op", "config": {"operation": "multiply", "operand": 1.1}},
+                    {"type": "math_op", "config": {"operation": "round", "operand": 2}},
+                    {"type": "type_cast", "config": {"target_type": "string"}},
+                    {"type": "format", "config": {"template": "Total: ${value}"}},
+                ],
+                "output_variable": "formatted_price",
+            },
+        )
+        store = VariableStore()
+        await store.set("data", {"price": 99.99, "name": "Widget"})
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "Total: $109.99"
+        assert await store.get("tx_1.output") == "Total: $109.99"
+        assert await store.get("tx_1.formatted_price") == "Total: $109.99"
+
+    @pytest.mark.asyncio
+    async def test_invalid_operation_type(self):
+        """Transform should fail for an unknown operation type."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "banana_op", "config": {}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 42)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "unknown operation type" in (result.error or "").lower()
+
+    @pytest.mark.asyncio
+    async def test_missing_input_variable(self):
+        """Transform should fail if input_variable is empty."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "string"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "input_variable" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_missing_operations(self):
+        """Transform should fail if no operations are configured."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 42)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.FAILED
+        assert "operations" in (result.error or "").lower()
+
+    @pytest.mark.asyncio
+    async def test_default_output_variable(self):
+        """Transform should default output_variable to 'transform_result'."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "val",
+                "operations": [
+                    {"type": "type_cast", "config": {"target_type": "string"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("val", 42)
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert await store.get("tx_1.transform_result") == "42"
+
+    @pytest.mark.asyncio
+    async def test_string_op_strip(self):
+        """string_op strip should remove leading/trailing whitespace."""
+        from fim_one.core.workflow.nodes import TransformExecutor
+
+        node = WorkflowNodeDef(
+            id="tx_1",
+            type=NodeType.TRANSFORM,
+            data={
+                "type": "TRANSFORM",
+                "input_variable": "text",
+                "operations": [
+                    {"type": "string_op", "config": {"operation": "strip"}},
+                ],
+            },
+        )
+        store = VariableStore()
+        await store.set("text", "  hello world  ")
+        ctx = ExecutionContext(run_id="r", user_id="u", workflow_id="w")
+
+        executor = TransformExecutor()
+        result = await executor.execute(node, store, ctx)
+
+        assert result.status == NodeStatus.COMPLETED
+        assert result.output == "hello world"
