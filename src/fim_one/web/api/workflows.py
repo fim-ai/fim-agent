@@ -950,6 +950,105 @@ async def get_workflow_stats(
     })
 
 
+@router.get("/{workflow_id}/node-stats", response_model=ApiResponse)
+async def get_workflow_node_stats(
+    workflow_id: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Return per-node execution statistics aggregated from recent runs.
+
+    Analyzes the ``node_results`` JSON from the most recent runs to compute
+    per-node success rate, average duration, and failure count.  Useful for
+    identifying bottleneck or flaky nodes.
+    """
+    await _get_accessible_workflow(workflow_id, current_user.id, db)
+
+    # Fetch recent runs that have node_results
+    result = await db.execute(
+        select(WorkflowRun.node_results)
+        .where(
+            WorkflowRun.workflow_id == workflow_id,
+            WorkflowRun.node_results.isnot(None),
+        )
+        .order_by(WorkflowRun.created_at.desc())
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+
+    # Aggregate per-node stats
+    node_stats: dict[str, dict] = {}
+    for node_results_json in rows:
+        if not isinstance(node_results_json, dict):
+            continue
+        for node_id, nr in node_results_json.items():
+            if not isinstance(nr, dict):
+                continue
+            if node_id not in node_stats:
+                node_stats[node_id] = {
+                    "node_id": node_id,
+                    "total": 0,
+                    "completed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                    "total_duration_ms": 0,
+                    "min_duration_ms": None,
+                    "max_duration_ms": None,
+                }
+            stats = node_stats[node_id]
+            stats["total"] += 1
+            status = nr.get("status", "")
+            if status == "completed":
+                stats["completed"] += 1
+            elif status == "failed":
+                stats["failed"] += 1
+            elif status == "skipped":
+                stats["skipped"] += 1
+
+            dur = nr.get("duration_ms")
+            if isinstance(dur, (int, float)) and dur > 0:
+                stats["total_duration_ms"] += dur
+                if stats["min_duration_ms"] is None or dur < stats["min_duration_ms"]:
+                    stats["min_duration_ms"] = dur
+                if stats["max_duration_ms"] is None or dur > stats["max_duration_ms"]:
+                    stats["max_duration_ms"] = dur
+
+    # Compute averages and success rates
+    result_list = []
+    for stats in node_stats.values():
+        finished = stats["completed"] + stats["failed"]
+        avg_ms = (
+            int(stats["total_duration_ms"] / finished)
+            if finished > 0
+            else None
+        )
+        success_rate = (
+            round(stats["completed"] / finished * 100, 1)
+            if finished > 0
+            else None
+        )
+        result_list.append({
+            "node_id": stats["node_id"],
+            "total_runs": stats["total"],
+            "completed": stats["completed"],
+            "failed": stats["failed"],
+            "skipped": stats["skipped"],
+            "avg_duration_ms": avg_ms,
+            "min_duration_ms": stats["min_duration_ms"],
+            "max_duration_ms": stats["max_duration_ms"],
+            "success_rate": success_rate,
+        })
+
+    # Sort by total runs descending
+    result_list.sort(key=lambda x: x["total_runs"], reverse=True)
+
+    return ApiResponse(data={
+        "runs_analyzed": len(rows),
+        "nodes": result_list,
+    })
+
+
 @router.get("/{workflow_id}/runs/{run_id}", response_model=ApiResponse)
 async def get_workflow_run(
     workflow_id: str,
