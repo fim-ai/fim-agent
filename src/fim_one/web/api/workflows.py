@@ -378,7 +378,7 @@ async def duplicate_workflow(
     wf = await _get_accessible_workflow(workflow_id, current_user.id, db)
     copy = Workflow(
         user_id=current_user.id,
-        name=f"{wf.name} (copy)",
+        name=f"{wf.name} (Copy)",
         icon=wf.icon,
         description=wf.description,
         blueprint=wf.blueprint,
@@ -843,6 +843,7 @@ async def list_workflow_runs(
     workflow_id: str,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    status: str | None = Query(None, pattern="^(pending|running|completed|failed|cancelled)$"),
     current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> PaginatedResponse:
@@ -850,6 +851,8 @@ async def list_workflow_runs(
     await _get_accessible_workflow(workflow_id, current_user.id, db)
 
     base = select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
+    if status:
+        base = base.where(WorkflowRun.status == status)
 
     count_result = await db.execute(
         select(func.count()).select_from(base.subquery())

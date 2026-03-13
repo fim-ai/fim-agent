@@ -27,6 +27,13 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { fmtDuration } from "@/lib/utils"
 import { workflowApi } from "@/lib/api"
@@ -154,15 +161,29 @@ export function RunHistorySheet({
   const [isLoading, setIsLoading] = useState(false)
   const [selectedRun, setSelectedRun] = useState<WorkflowRunResponse | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>("__all__")
 
-  // Load runs when sheet opens
+  const statusOptions = useMemo(
+    () =>
+      [
+        { value: "__all__", label: t("historyFilterAll") },
+        { value: "completed", label: t("historyFilterCompleted") },
+        { value: "failed", label: t("historyFilterFailed") },
+        { value: "cancelled", label: t("historyFilterCancelled") },
+        { value: "running", label: t("historyFilterRunning") },
+      ] as const,
+    [t],
+  )
+
+  // Load runs when sheet opens or filter changes
   useEffect(() => {
     if (!open || !workflowId) return
     let cancelled = false
     setIsLoading(true)
     setSelectedRun(null)
+    const apiStatus = statusFilter === "__all__" ? undefined : statusFilter
     workflowApi
-      .getRuns(workflowId)
+      .getRuns(workflowId, 1, 20, apiStatus)
       .then((data) => {
         if (!cancelled) setRuns(data.items)
       })
@@ -175,7 +196,7 @@ export function RunHistorySheet({
     return () => {
       cancelled = true
     }
-  }, [open, workflowId, t])
+  }, [open, workflowId, statusFilter, t])
 
   const handleSelectRun = useCallback(
     async (run: WorkflowRunResponse) => {
@@ -236,6 +257,24 @@ export function RunHistorySheet({
             </>
           )}
         </SheetHeader>
+
+        {/* Status filter — only visible in list view */}
+        {!selectedRun && (
+          <div className="px-4 py-2 border-b border-border/40 shrink-0">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger size="sm" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <ScrollArea className="flex-1 min-h-0">
           {isLoading || isLoadingDetail ? (
@@ -346,7 +385,11 @@ export function RunHistorySheet({
           ) : runs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Clock className="h-8 w-8 mb-2 opacity-40" />
-              <p className="text-sm">{t("historyEmpty")}</p>
+              <p className="text-sm">
+                {statusFilter === "__all__"
+                  ? t("historyEmpty")
+                  : t("historyEmptyFiltered")}
+              </p>
             </div>
           ) : (
             /* Run list */

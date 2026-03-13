@@ -939,10 +939,13 @@ export const workflowApi = {
       method: "DELETE",
     }),
 
-  getRuns: (workflowId: string, page = 1, size = 20) =>
-    apiFetch<PaginatedResponse<WorkflowRunResponse>>(
-      `/api/workflows/${workflowId}/runs?page=${page}&size=${size}`,
-    ),
+  getRuns: (workflowId: string, page = 1, size = 20, status?: string) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) })
+    if (status) params.set("status", status)
+    return apiFetch<PaginatedResponse<WorkflowRunResponse>>(
+      `/api/workflows/${workflowId}/runs?${params.toString()}`,
+    )
+  },
 
   getRun: (workflowId: string, runId: string) =>
     apiFetch<ApiResponse<WorkflowRunResponse>>(
