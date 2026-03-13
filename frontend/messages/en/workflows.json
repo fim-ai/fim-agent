@@ -183,12 +183,33 @@
   "configSectionParameters": "Parameters",
   "configSectionOutput": "Output",
 
+  "configSystemPrompt": "System Prompt",
+  "configSystemPromptHint": "Set the model's behavior and role",
+  "configModelTier": "Model Tier",
+  "configModelTierFast": "Fast",
+  "configModelTierMain": "Main",
+  "configModelTierHint": "Fast for speed, Main for quality",
+
+  "configStartName": "Name",
+  "configStartType": "Type",
+  "configStartDefault": "Default",
+  "configStartRequired": "Req",
+
+  "configOutputMappingHint": "Map workflow outputs to upstream node variables",
+  "configHeaderKey": "Header name",
+  "configHeaderValue": "Header value",
+  "configSectionHeaders": "Headers",
+  "configCodeOutputHint_python": "Assign your result to a variable named 'result'",
+  "configCodeOutputHint_javascript": "Assign your result to a variable named 'output'",
+  "configCodeHint": "Write your code below. Return values via the output variable.",
+
   "configVariableRefHint": "Use {{node_id.output}} to reference upstream outputs",
 
   "errorDuplicateStart": "Only one Start node is allowed per workflow",
   "errorDuplicateEnd": "Only one End node is allowed per workflow",
 
   "addNodePickerTitle": "Add Node",
+  "edgeDefaultLabel": "Else",
 
   "variableCount": "{count} variables",
   "mappingCount": "{count} mappings",

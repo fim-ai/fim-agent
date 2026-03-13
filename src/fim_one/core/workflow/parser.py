@@ -84,12 +84,13 @@ def parse_blueprint(raw: dict[str, Any]) -> WorkflowBlueprint:
         elif node_type == NodeType.END:
             end_count += 1
 
-        # Parse optional error_strategy from node data
+        # Parse optional error_strategy from node data (case-insensitive)
         raw_error_strategy = node_data.get("error_strategy", "")
         error_strategy = ErrorStrategy.STOP_WORKFLOW
         if raw_error_strategy:
+            normalized_strategy = raw_error_strategy.lower().replace("-", "_")
             try:
-                error_strategy = ErrorStrategy(raw_error_strategy)
+                error_strategy = ErrorStrategy(normalized_strategy)
             except ValueError:
                 pass  # fallback to default
 

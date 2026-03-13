@@ -203,43 +203,62 @@ function StartConfig({ data, updateField, t, otherNodes }: ConfigProps) {
           {t("configAddVariable")}
         </Button>
       </div>
+
+      {/* Compact table header */}
+      {variables.length > 0 && (
+        <div className="grid grid-cols-[1fr_72px_28px] gap-1 px-0.5">
+          <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+            {t("configStartName")}
+          </span>
+          <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+            {t("configStartType")}
+          </span>
+          <span />
+        </div>
+      )}
+
+      {/* Compact inline rows */}
       {variables.map((v, i) => (
-        <div key={i} className="space-y-2 rounded-md border border-border p-2">
-          <div className="flex items-center gap-2">
+        <div key={i} className="space-y-1.5 rounded-md border border-border p-2">
+          {/* Row 1: Name + Type + Remove */}
+          <div className="grid grid-cols-[1fr_72px_28px] gap-1 items-center">
             <Input
-              className="h-7 text-xs flex-1"
+              className="h-7 text-xs"
               placeholder={t("configVariableName")}
               value={v.name}
               onChange={(e) => updateVariable(i, "name", e.target.value)}
             />
-            <Button variant="ghost" size="icon-sm" onClick={() => removeVariable(i)}>
+            <Select value={v.type} onValueChange={(val) => updateVariable(i, "type", val)}>
+              <SelectTrigger className="w-full h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="string">String</SelectItem>
+                <SelectItem value="number">Number</SelectItem>
+                <SelectItem value="boolean">Boolean</SelectItem>
+                <SelectItem value="object">Object</SelectItem>
+                <SelectItem value="array">Array</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => removeVariable(i)}>
               <Trash2 className="h-3 w-3 text-destructive" />
             </Button>
           </div>
-          <Select value={v.type} onValueChange={(val) => updateVariable(i, "type", val)}>
-            <SelectTrigger className="w-full h-7 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="string">String</SelectItem>
-              <SelectItem value="number">Number</SelectItem>
-              <SelectItem value="boolean">Boolean</SelectItem>
-              <SelectItem value="object">Object</SelectItem>
-              <SelectItem value="array">Array</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            className="h-7 text-xs"
-            placeholder={t("configVariableDefault")}
-            value={v.default_value ?? ""}
-            onChange={(e) => updateVariable(i, "default_value", e.target.value)}
-          />
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] text-muted-foreground">{t("configVariableRequired")}</label>
-            <Switch
-              checked={v.required ?? false}
-              onCheckedChange={(checked) => updateVariable(i, "required", checked)}
+          {/* Row 2: Default + Required toggle */}
+          <div className="flex items-center gap-2">
+            <Input
+              className="h-7 text-xs flex-1"
+              placeholder={t("configStartDefault")}
+              value={v.default_value ?? ""}
+              onChange={(e) => updateVariable(i, "default_value", e.target.value)}
             />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <label className="text-[10px] text-muted-foreground">{t("configStartRequired")}</label>
+              <Switch
+                checked={v.required ?? false}
+                onCheckedChange={(checked) => updateVariable(i, "required", checked)}
+              />
+            </div>
           </div>
         </div>
       ))}
@@ -282,42 +301,43 @@ function EndConfig({ data, updateField, t, otherNodes }: ConfigProps) {
           {t("configAddMapping")}
         </Button>
       </div>
+      <p className="text-[10px] text-muted-foreground/60">
+        {t("configOutputMappingHint")}
+      </p>
       {entries.map(([key, value], i) => (
-        <div key={i} className="flex items-center gap-2">
-          <Input
-            className="h-7 text-xs flex-1"
-            placeholder={t("configKey")}
-            value={key}
-            onChange={(e) => updateMapping(key, e.target.value, value)}
-          />
-          <Input
-            className="h-7 text-xs flex-1"
-            placeholder={t("configValue")}
-            value={value}
-            onChange={(e) => updateMapping(key, key, e.target.value)}
-          />
-          <Button variant="ghost" size="icon-sm" onClick={() => removeMapping(key)}>
-            <Trash2 className="h-3 w-3 text-destructive" />
-          </Button>
+        <div key={i} className="space-y-1 rounded-md border border-border p-2">
+          <div className="flex items-center gap-2">
+            <Input
+              className="h-7 text-xs flex-1"
+              placeholder={t("configKey")}
+              value={key}
+              onChange={(e) => updateMapping(key, e.target.value, value)}
+            />
+            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => removeMapping(key)}>
+              <Trash2 className="h-3 w-3 text-destructive" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-1">
+            <Input
+              className="h-7 text-xs flex-1 font-mono"
+              placeholder={t("configValue")}
+              value={value}
+              onChange={(e) => updateMapping(key, key, e.target.value)}
+            />
+            <VariablePicker
+              sourceNodes={otherNodes}
+              onInsert={(ref) => updateMapping(key, key, value + ref)}
+            />
+          </div>
         </div>
       ))}
-      <InsertVariableBar
-        otherNodes={otherNodes}
-        t={t}
-        onInsert={(ref) => {
-          // For end node, we append to the last mapping value or hint usage
-          const lastKey = entries.length > 0 ? entries[entries.length - 1][0] : ""
-          const lastValue = entries.length > 0 ? entries[entries.length - 1][1] : ""
-          if (entries.length > 0) {
-            updateMapping(lastKey, lastKey, lastValue + ref)
-          }
-        }}
-      />
     </div>
   )
 }
 
 function LLMConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  const modelTier = (data.model_tier ?? "main") as string
+
   return (
     <div className="space-y-3">
       {/* Model section */}
@@ -343,8 +363,54 @@ function LLMConfig({ data, updateField, t, otherNodes }: ConfigProps) {
         </Select>
       </div>
 
+      {/* Model Tier toggle */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configModelTier")}</label>
+        <div className="flex rounded-md border border-border overflow-hidden">
+          <button
+            type="button"
+            className={`flex-1 h-7 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              modelTier === "fast"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-muted-foreground hover:bg-muted"
+            }`}
+            onClick={() => updateField("model_tier", "fast")}
+          >
+            {t("configModelTierFast")}
+          </button>
+          <button
+            type="button"
+            className={`flex-1 h-7 text-xs font-medium transition-colors border-l border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              modelTier === "main"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-muted-foreground hover:bg-muted"
+            }`}
+            onClick={() => updateField("model_tier", "main")}
+          >
+            {t("configModelTierMain")}
+          </button>
+        </div>
+        <p className="text-[10px] text-muted-foreground/60">
+          {t("configModelTierHint")}
+        </p>
+      </div>
+
       {/* Prompt section */}
       <SectionHeader label={t("configSectionPrompt")} />
+
+      {/* System Prompt */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configSystemPrompt")}</label>
+        <Textarea
+          className="text-xs resize-none"
+          rows={3}
+          placeholder={t("configSystemPromptHint")}
+          value={(data.system_prompt ?? "") as string}
+          onChange={(e) => updateField("system_prompt", e.target.value)}
+        />
+      </div>
+
+      {/* User Prompt template */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium">{t("configPromptTemplate")}</label>
@@ -796,6 +862,31 @@ function ConnectorConfig({ data, updateField, t, otherNodes }: ConfigProps) {
 }
 
 function HTTPRequestConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  const headers = (data.headers ?? {}) as Record<string, string>
+  const headerEntries = Object.entries(headers)
+
+  const addHeader = () => {
+    updateField("headers", { ...headers, "": "" })
+  }
+
+  const removeHeader = (key: string) => {
+    const updated = { ...headers }
+    delete updated[key]
+    updateField("headers", updated)
+  }
+
+  const updateHeader = (oldKey: string, newKey: string, value: string) => {
+    const updated: Record<string, string> = {}
+    for (const [k, v] of Object.entries(headers)) {
+      if (k === oldKey) {
+        updated[newKey] = value
+      } else {
+        updated[k] = v
+      }
+    }
+    updateField("headers", updated)
+  }
+
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -823,6 +914,36 @@ function HTTPRequestConfig({ data, updateField, t, otherNodes }: ConfigProps) {
         />
       </div>
 
+      {/* Headers section */}
+      <SectionHeader label={t("configSectionHeaders")} />
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium">{t("configHeaders")}</label>
+        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={addHeader}>
+          <Plus className="h-3 w-3" />
+          {t("configAddHeader")}
+        </Button>
+      </div>
+      {headerEntries.map(([key, value], i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <Input
+            className="h-7 text-xs flex-1"
+            placeholder={t("configHeaderKey")}
+            value={key}
+            onChange={(e) => updateHeader(key, e.target.value, value)}
+          />
+          <Input
+            className="h-7 text-xs flex-1"
+            placeholder={t("configHeaderValue")}
+            value={value}
+            onChange={(e) => updateHeader(key, key, e.target.value)}
+          />
+          <Button variant="ghost" size="icon-sm" className="h-7 w-7 shrink-0" onClick={() => removeHeader(key)}>
+            <Trash2 className="h-3 w-3 text-destructive" />
+          </Button>
+        </div>
+      ))}
+
+      {/* Body section */}
       <SectionHeader label={t("configBody")} />
       <div className="space-y-1.5">
         <label className="text-xs font-medium">{t("configBody")}</label>
@@ -934,11 +1055,13 @@ function TemplateTransformConfig({ data, updateField, t, otherNodes }: ConfigPro
 }
 
 function CodeExecutionConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  const language = (data.language ?? "python") as string
+
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
         <label className="text-xs font-medium">{t("configLanguage")}</label>
-        <Select value={(data.language ?? "python") as string} onValueChange={(v) => updateField("language", v)}>
+        <Select value={language} onValueChange={(v) => updateField("language", v)}>
           <SelectTrigger className="w-full h-7 text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -951,13 +1074,25 @@ function CodeExecutionConfig({ data, updateField, t, otherNodes }: ConfigProps) 
 
       <SectionHeader label={t("configCode")} />
       <div className="space-y-1.5">
-        <label className="text-xs font-medium">{t("configCode")}</label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium">{t("configCode")}</label>
+          <span className="text-[10px] font-mono text-muted-foreground/50">
+            {language === "python" ? ".py" : ".js"}
+          </span>
+        </div>
         <Textarea
-          className="text-xs resize-none font-mono"
+          className="text-xs resize-none font-mono leading-relaxed bg-muted/30"
           rows={8}
+          placeholder={t("configCodeHint")}
           value={(data.code ?? "") as string}
           onChange={(e) => updateField("code", e.target.value)}
+          spellCheck={false}
         />
+        <p className="text-[10px] text-muted-foreground/60 font-mono">
+          {language === "python"
+            ? t("configCodeOutputHint_python")
+            : t("configCodeOutputHint_javascript")}
+        </p>
       </div>
 
       <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />

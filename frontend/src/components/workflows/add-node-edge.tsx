@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -11,7 +11,11 @@ import type { EdgeProps, Node } from "@xyflow/react"
 import { Plus } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
-import type { WorkflowNodeType } from "@/types/workflow"
+import type {
+  WorkflowNodeType,
+  ConditionNodeData,
+  QuestionClassifierNodeData,
+} from "@/types/workflow"
 
 const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
   start: { variables: [] },
@@ -71,6 +75,41 @@ export function AddNodeEdge({
     targetPosition,
     borderRadius: 8,
   })
+
+  // Resolve edge label from condition/classifier source nodes
+  const edgeLabel = useMemo(() => {
+    if (!sourceHandleId) return null
+    const sourceNode = getNodes().find((n) => n.id === source)
+    if (!sourceNode) return null
+
+    if (sourceNode.type === "conditionBranch") {
+      const nodeData = sourceNode.data as unknown as ConditionNodeData
+      const conditions = nodeData.conditions ?? []
+      // sourceHandle format: "condition-{id}"
+      const conditionId = sourceHandleId.replace(/^condition-/, "")
+      const matched = conditions.find((c) => c.id === conditionId)
+      if (matched) return matched.label || null
+      // Fallback for default handle
+      if (sourceHandleId === "source-default") return t("edgeDefaultLabel")
+      return null
+    }
+
+    if (sourceNode.type === "questionClassifier") {
+      const nodeData = sourceNode.data as unknown as QuestionClassifierNodeData
+      const classes = nodeData.classes ?? []
+      // sourceHandle format: "class-{id}"
+      const classId = sourceHandleId.replace(/^class-/, "")
+      const matched = classes.find((c) => c.id === classId)
+      if (matched) return matched.label || null
+      return null
+    }
+
+    return null
+  }, [source, sourceHandleId, getNodes, t])
+
+  // Position the label near the source end of the edge (1/4 of the way from source)
+  const edgeLabelX = sourceX + (labelX - sourceX) * 0.45
+  const edgeLabelY = sourceY + (labelY - sourceY) * 0.45
 
   // Close picker when clicking outside
   useEffect(() => {
@@ -142,6 +181,19 @@ export function AddNodeEdge({
         }}
       />
       <EdgeLabelRenderer>
+        {/* Edge label for condition/classifier branches */}
+        {edgeLabel && (
+          <div
+            className="nodrag nopan pointer-events-none absolute"
+            style={{
+              transform: `translate(-50%, -50%) translate(${edgeLabelX}px, ${edgeLabelY}px)`,
+            }}
+          >
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground whitespace-nowrap">
+              {edgeLabel}
+            </span>
+          </div>
+        )}
         <div
           className="nodrag nopan pointer-events-auto absolute"
           style={{
