@@ -335,5 +335,75 @@ def validate_blueprint(blueprint: WorkflowBlueprint) -> list[BlueprintWarning]:
                     code="empty_code",
                     message="Code execution node has no code",
                 ))
+        elif node.type == NodeType.LIST_OPERATION:
+            if not node.data.get("input_variable"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_input_variable",
+                    message="List operation node has no input variable",
+                ))
+            operation = node.data.get("operation", "")
+            if operation in ("filter", "map", "sort") and not node.data.get("expression"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_expression",
+                    message=f"List operation '{operation}' requires an expression",
+                ))
+        elif node.type == NodeType.TRANSFORM:
+            if not node.data.get("input_variable"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_input_variable",
+                    message="Transform node has no input variable",
+                ))
+            operations = node.data.get("operations", [])
+            if not operations:
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="empty_operations",
+                    message="Transform node has no operations configured",
+                ))
+        elif node.type == NodeType.ITERATOR:
+            if not node.data.get("list_variable"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_list_variable",
+                    message="Iterator node has no list variable configured",
+                ))
+        elif node.type == NodeType.LOOP:
+            if not node.data.get("condition"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_condition",
+                    message="Loop node has no condition expression",
+                ))
+        elif node.type == NodeType.DOCUMENT_EXTRACTOR:
+            if not node.data.get("input_variable"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_input_variable",
+                    message="Document extractor node has no input variable",
+                ))
+        elif node.type == NodeType.QUESTION_UNDERSTANDING:
+            if not node.data.get("input_variable"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_input_variable",
+                    message="Question understanding node has no input variable",
+                ))
+        elif node.type == NodeType.PARAMETER_EXTRACTOR:
+            if not node.data.get("input_text"):
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="missing_input_text",
+                    message="Parameter extractor node has no input text",
+                ))
+            params = node.data.get("parameters", [])
+            if not params:
+                warnings.append(BlueprintWarning(
+                    node_id=node.id,
+                    code="empty_parameters",
+                    message="Parameter extractor has no parameters to extract",
+                ))
 
     return warnings
