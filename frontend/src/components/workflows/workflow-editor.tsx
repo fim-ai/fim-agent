@@ -555,13 +555,30 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   // Connection validation: don't connect to Start, don't connect from End
   const isValidConnection = useCallback(
     (connection: Connection | { source: string; target: string }) => {
+      // No self-connections
+      if (connection.source === connection.target) return false
+
       const targetNode = nodes.find((n) => n.id === connection.target)
       const sourceNode = nodes.find((n) => n.id === connection.source)
+      // Can't connect TO a Start node or FROM an End node
       if (targetNode?.type === "start") return false
       if (sourceNode?.type === "end") return false
+
+      // No duplicate edges (same source → target, same handles)
+      const srcHandle = (connection as Connection).sourceHandle ?? null
+      const tgtHandle = (connection as Connection).targetHandle ?? null
+      const duplicate = edges.some(
+        (e) =>
+          e.source === connection.source &&
+          e.target === connection.target &&
+          (e.sourceHandle ?? null) === srcHandle &&
+          (e.targetHandle ?? null) === tgtHandle,
+      )
+      if (duplicate) return false
+
       return true
     },
-    [nodes],
+    [nodes, edges],
   )
 
   // Drop handler for palette drag-and-drop
