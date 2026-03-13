@@ -200,6 +200,9 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   // Track whether we are currently restoring from history to avoid re-pushing
   const isRestoringRef = useRef(false)
 
+  // Clipboard for copy/paste (stored in ref to avoid re-renders)
+  const copiedNodesRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] })
+
   // Push nodes/edges to history whenever they change (skipped during restore)
   useEffect(() => {
     if (isRestoringRef.current) {
@@ -312,21 +315,148 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     [nodes, selectedNodeId, setNodes, setEdges, t],
   )
 
-  // Keyboard shortcuts: Cmd+Z = undo, Cmd+Shift+Z = redo, Backspace/Delete = delete selected
+  // --- Copy selected nodes into the clipboard ref ---
+  const handleCopySelected = useCallback(() => {
+    const selectedNodes = nodes.filter((n) => n.selected)
+    if (selectedNodes.length === 0) return
+
+    const selectedIds = new Set(selectedNodes.map((n) => n.id))
+    // Only copy edges that connect two selected nodes (internal edges)
+    const internalEdges = edges.filter(
+      (e) => selectedIds.has(e.source) && selectedIds.has(e.target),
+    )
+
+    copiedNodesRef.current = {
+      nodes: selectedNodes.map((n) => ({ ...n, data: { ...n.data } })),
+      edges: internalEdges.map((e) => ({ ...e })),
+    }
+  }, [nodes, edges])
+
+  // --- Paste copied nodes with offset and new IDs ---
+  const handlePaste = useCallback(() => {
+    const { nodes: copiedNodes, edges: copiedEdges } = copiedNodesRef.current
+    if (copiedNodes.length === 0) return
+
+    // Build old-id -> new-id mapping
+    const idMap = new Map<string, string>()
+    const now = Date.now()
+    for (let i = 0; i < copiedNodes.length; i++) {
+      const oldId = copiedNodes[i].id
+      const nodeType = copiedNodes[i].type ?? "node"
+      idMap.set(oldId, `${nodeType}_${now}_${i}`)
+    }
+
+    // Create new nodes with offset position; skip start/end (singleton constraint)
+    const newNodes: Node[] = []
+    for (const cn of copiedNodes) {
+      if (cn.type === "start" || cn.type === "end") continue
+      newNodes.push({
+        ...cn,
+        id: idMap.get(cn.id)!,
+        position: { x: cn.position.x + 50, y: cn.position.y + 50 },
+        data: { ...cn.data },
+        selected: true,
+      })
+    }
+
+    if (newNodes.length === 0) return
+
+    const newNodeIds = new Set(newNodes.map((n) => n.id))
+
+    // Recreate internal edges with new IDs
+    const newEdges: Edge[] = []
+    for (const ce of copiedEdges) {
+      const newSource = idMap.get(ce.source)
+      const newTarget = idMap.get(ce.target)
+      // Only create edge if both endpoints were pasted (start/end filtering)
+      if (newSource && newTarget && newNodeIds.has(newSource) && newNodeIds.has(newTarget)) {
+        newEdges.push({
+          ...ce,
+          id: `e-${newSource}-${ce.sourceHandle ?? "default"}-${newTarget}-${ce.targetHandle ?? "default"}`,
+          source: newSource,
+          target: newTarget,
+        })
+      }
+    }
+
+    // Deselect existing nodes, add pasted nodes as selected
+    setNodes((nds) => [
+      ...nds.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      ...newNodes,
+    ])
+    setEdges((eds) => [...eds, ...newEdges])
+  }, [setNodes, setEdges])
+
+  // --- Duplicate = copy + paste in one step ---
+  const handleDuplicateSelected = useCallback(() => {
+    handleCopySelected()
+    handlePaste()
+  }, [handleCopySelected, handlePaste])
+
+  // --- Select all nodes ---
+  const handleSelectAll = useCallback(() => {
+    setNodes((nds) => nds.map((n) => (n.selected ? n : { ...n, selected: true })))
+  }, [setNodes])
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't intercept when typing in an input/textarea
-      const tag = (e.target as HTMLElement)?.tagName
+      // Don't intercept when typing in an input/textarea or contentEditable
+      const target = e.target as HTMLElement
+      const tag = target?.tagName
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+      if (target?.isContentEditable) return
 
-      // Undo/Redo: Cmd+Z / Cmd+Shift+Z
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+      const modKey = e.metaKey || e.ctrlKey
+      const key = e.key.toLowerCase()
+
+      // Undo: Cmd+Z (without Shift)
+      if (modKey && key === "z" && !e.shiftKey) {
         e.preventDefault()
-        if (e.shiftKey) {
-          handleRedo()
-        } else {
-          handleUndo()
-        }
+        handleUndo()
+        return
+      }
+
+      // Redo: Cmd+Shift+Z or Cmd+Y
+      if (modKey && ((key === "z" && e.shiftKey) || key === "y")) {
+        e.preventDefault()
+        handleRedo()
+        return
+      }
+
+      // Copy: Cmd+C
+      if (modKey && key === "c" && !e.shiftKey) {
+        e.preventDefault()
+        handleCopySelected()
+        return
+      }
+
+      // Paste: Cmd+V
+      if (modKey && key === "v" && !e.shiftKey) {
+        e.preventDefault()
+        handlePaste()
+        return
+      }
+
+      // Select all: Cmd+A
+      if (modKey && key === "a" && !e.shiftKey) {
+        e.preventDefault()
+        handleSelectAll()
+        return
+      }
+
+      // Duplicate: Cmd+D
+      if (modKey && key === "d" && !e.shiftKey) {
+        e.preventDefault()
+        handleDuplicateSelected()
+        return
+      }
+
+      // Escape: deselect all nodes and close config panel
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)))
+        setSelectedNodeId(null)
         return
       }
 
@@ -338,7 +468,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [handleUndo, handleRedo, handleDeleteSelected])
+  }, [handleUndo, handleRedo, handleDeleteSelected, handleCopySelected, handlePaste, handleSelectAll, handleDuplicateSelected, setNodes])
 
   // Notify parent of undo/redo state changes
   useEffect(() => {
