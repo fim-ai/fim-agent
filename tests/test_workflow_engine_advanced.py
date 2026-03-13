@@ -633,3 +633,894 @@ class TestWorkflowTimeout:
         skipped_reasons = [e[1].get("reason", "") for e in skip_events]
         # At least some nodes should be skipped due to timeout
         assert any("timeout" in r.lower() or "Workflow timeout" in r for r in skipped_reasons)
+
+
+# ---------------------------------------------------------------------------
+# Condition Branch Routing & Edge Activation
+# ---------------------------------------------------------------------------
+
+
+def _condition_branch_node(
+    node_id: str,
+    conditions: list[dict],
+    default_handle: str = "source-default",
+    **data: Any,
+) -> dict:
+    """Helper to build a CONDITION_BRANCH node definition."""
+    return {
+        "id": node_id,
+        "type": "custom",
+        "position": {"x": 200, "y": 0},
+        "data": {
+            "type": "CONDITION_BRANCH",
+            "conditions": conditions,
+            "default_handle": default_handle,
+            **data,
+        },
+    }
+
+
+def _variable_assign_node(
+    node_id: str,
+    assignments: list[dict] | None = None,
+    **data: Any,
+) -> dict:
+    """Helper to build a VARIABLE_ASSIGN node (lightweight pass-through)."""
+    return {
+        "id": node_id,
+        "type": "custom",
+        "position": {"x": 300, "y": 0},
+        "data": {
+            "type": "VARIABLE_ASSIGN",
+            "assignments": assignments or [],
+            **data,
+        },
+    }
+
+
+def _question_classifier_node(
+    node_id: str,
+    classes: list[dict],
+    input_variable: str = "",
+    default_handle: str = "",
+    **data: Any,
+) -> dict:
+    """Helper to build a QUESTION_CLASSIFIER node definition."""
+    return {
+        "id": node_id,
+        "type": "custom",
+        "position": {"x": 200, "y": 0},
+        "data": {
+            "type": "QUESTION_CLASSIFIER",
+            "classes": classes,
+            "input_variable": input_variable,
+            "default_handle": default_handle,
+            **data,
+        },
+    }
+
+
+def _events_by_type(events: list[tuple[str, dict]], event_type: str) -> list[dict]:
+    """Filter collected events by event name, returning just the data dicts."""
+    return [data for name, data in events if name == event_type]
+
+
+def _completed_node_ids(events: list[tuple[str, dict]]) -> set[str]:
+    """Return the set of node_ids that emitted node_completed events."""
+    return {d["node_id"] for d in _events_by_type(events, "node_completed")}
+
+
+def _skipped_node_ids(events: list[tuple[str, dict]]) -> set[str]:
+    """Return the set of node_ids that emitted node_skipped events."""
+    return {d["node_id"] for d in _events_by_type(events, "node_skipped")}
+
+
+class TestConditionBranchRouting:
+    """Test condition branching, multi-handle routing, and edge activation logic."""
+
+    # ------------------------------------------------------------------
+    # 1. Condition evaluates to TRUE — only the true branch runs
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_condition_true_branch_only(self):
+        """Start -> ConditionBranch -> (true: NodeA, false: NodeB) -> End.
+
+        The condition evaluates to true, so NodeA should run and NodeB
+        should be skipped.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "true_branch",
+                            "expression": "1 == 1",
+                            "handle": "condition-true_branch",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node(
+                    "node_a",
+                    assignments=[{"variable": "branch", "value": "A"}],
+                ),
+                _variable_assign_node(
+                    "node_b",
+                    assignments=[{"variable": "branch", "value": "B"}],
+                ),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                # True branch edge: sourceHandle matches the condition handle
+                _edge("cond_1", "node_a", sourceHandle="condition-true_branch"),
+                # False/default branch edge
+                _edge("cond_1", "node_b", sourceHandle="source-default"),
+                _edge("node_a", "end_1"),
+                _edge("node_b", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "node_a" in completed, "NodeA (true branch) should have completed"
+        assert "node_b" in skipped, "NodeB (false branch) should have been skipped"
+        assert "end_1" in completed, "End node should have completed"
+
+        # Verify the workflow completed successfully
+        event_names = [name for name, _ in events]
+        assert "run_completed" in event_names
+
+    # ------------------------------------------------------------------
+    # 2. Condition evaluates to FALSE — only the default branch runs
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_condition_false_branch_only(self):
+        """Same graph as above but the condition evaluates to false, so
+        NodeB (default branch) runs and NodeA is skipped.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "true_branch",
+                            # This condition is always false
+                            "expression": "1 == 0",
+                            "handle": "condition-true_branch",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node(
+                    "node_a",
+                    assignments=[{"variable": "branch", "value": "A"}],
+                ),
+                _variable_assign_node(
+                    "node_b",
+                    assignments=[{"variable": "branch", "value": "B"}],
+                ),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "node_a", sourceHandle="condition-true_branch"),
+                _edge("cond_1", "node_b", sourceHandle="source-default"),
+                _edge("node_a", "end_1"),
+                _edge("node_b", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "node_a" in skipped, "NodeA (true branch) should have been skipped"
+        assert "node_b" in completed, "NodeB (default branch) should have completed"
+        assert "end_1" in completed, "End node should have completed"
+
+        event_names = [name for name, _ in events]
+        assert "run_completed" in event_names
+
+    # ------------------------------------------------------------------
+    # 3. Multi-handle condition with 3+ branches — only matching activates
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_multi_handle_condition(self):
+        """ConditionBranch with handle_0, handle_1, handle_2, and default.
+
+        Only the second condition (handle_1) should match, so only its
+        target node runs; the other branch nodes are skipped.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "h0",
+                            "expression": "1 > 10",  # false
+                            "handle": "condition-h0",
+                        },
+                        {
+                            "id": "h1",
+                            "expression": "5 > 3",  # TRUE — first match wins
+                            "handle": "condition-h1",
+                        },
+                        {
+                            "id": "h2",
+                            "expression": "True",  # would be true, but h1 wins first
+                            "handle": "condition-h2",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node("branch_0"),
+                _variable_assign_node("branch_1"),
+                _variable_assign_node("branch_2"),
+                _variable_assign_node("branch_default"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "branch_0", sourceHandle="condition-h0"),
+                _edge("cond_1", "branch_1", sourceHandle="condition-h1"),
+                _edge("cond_1", "branch_2", sourceHandle="condition-h2"),
+                _edge("cond_1", "branch_default", sourceHandle="source-default"),
+                _edge("branch_0", "end_1"),
+                _edge("branch_1", "end_1"),
+                _edge("branch_2", "end_1"),
+                _edge("branch_default", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "branch_1" in completed, "branch_1 (matching condition) should run"
+        assert "branch_0" in skipped, "branch_0 should be skipped"
+        assert "branch_2" in skipped, "branch_2 should be skipped"
+        assert "branch_default" in skipped, "branch_default should be skipped"
+        assert "end_1" in completed, "End node should still complete"
+
+    # ------------------------------------------------------------------
+    # 4. Diamond merge after condition — merge node runs regardless
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_diamond_merge_after_condition(self):
+        """Start -> Condition -> (true: A, false: B) -> Merge -> End.
+
+        The merge node receives input from both branches.  Regardless of
+        which branch was taken, the merge node should run because at least
+        one incoming edge remains active.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "true_branch",
+                            "expression": "1 == 1",  # true
+                            "handle": "condition-true_branch",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node(
+                    "node_a",
+                    assignments=[{"variable": "result", "value": "from_A"}],
+                ),
+                _variable_assign_node(
+                    "node_b",
+                    assignments=[{"variable": "result", "value": "from_B"}],
+                ),
+                _variable_assign_node("merge_node"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "node_a", sourceHandle="condition-true_branch"),
+                _edge("cond_1", "node_b", sourceHandle="source-default"),
+                # Both branches feed into the merge node
+                _edge("node_a", "merge_node"),
+                _edge("node_b", "merge_node"),
+                _edge("merge_node", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        # True branch taken: node_a runs, node_b skipped
+        assert "node_a" in completed
+        assert "node_b" in skipped
+
+        # Merge node must still run — it has one active incoming edge (from node_a)
+        # even though the edge from node_b is inactive (node_b was skipped).
+        # The engine considers a node ready when all predecessors are in
+        # completed/failed/skipped AND at least one incoming edge is active.
+        assert "merge_node" in completed, (
+            "Merge node should run because at least one incoming edge is active"
+        )
+        assert "end_1" in completed
+
+        event_names = [name for name, _ in events]
+        assert "run_completed" in event_names
+
+    # ------------------------------------------------------------------
+    # 4b. Diamond merge — false branch
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_diamond_merge_after_condition_false_branch(self):
+        """Same diamond but the condition evaluates to false. The merge
+        node should still run, fed by node_b.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "true_branch",
+                            "expression": "1 == 0",  # false
+                            "handle": "condition-true_branch",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node(
+                    "node_a",
+                    assignments=[{"variable": "result", "value": "from_A"}],
+                ),
+                _variable_assign_node(
+                    "node_b",
+                    assignments=[{"variable": "result", "value": "from_B"}],
+                ),
+                _variable_assign_node("merge_node"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "node_a", sourceHandle="condition-true_branch"),
+                _edge("cond_1", "node_b", sourceHandle="source-default"),
+                _edge("node_a", "merge_node"),
+                _edge("node_b", "merge_node"),
+                _edge("merge_node", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "node_a" in skipped
+        assert "node_b" in completed
+        assert "merge_node" in completed, (
+            "Merge node should run via the active false-branch edge"
+        )
+        assert "end_1" in completed
+
+    # ------------------------------------------------------------------
+    # 5. Nested conditions
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_nested_conditions(self):
+        """Start -> Cond1 -> (true: Cond2 -> (true: A, false: B), false: C) -> End.
+
+        Both conditions evaluate to true, so the path is:
+        Start -> Cond1 -> Cond2 -> A -> End.
+        Nodes B and C should be skipped.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                # Outer condition — evaluates to true (takes the true branch)
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "outer_true",
+                            "expression": "10 > 5",
+                            "handle": "condition-outer_true",
+                        },
+                    ],
+                    default_handle="source-default-1",
+                ),
+                # Inner condition (on the true branch of cond_1) — also true
+                _condition_branch_node(
+                    "cond_2",
+                    conditions=[
+                        {
+                            "id": "inner_true",
+                            "expression": "3 == 3",
+                            "handle": "condition-inner_true",
+                        },
+                    ],
+                    default_handle="source-default-2",
+                ),
+                _variable_assign_node(
+                    "node_a",
+                    assignments=[{"variable": "path", "value": "A"}],
+                ),
+                _variable_assign_node(
+                    "node_b",
+                    assignments=[{"variable": "path", "value": "B"}],
+                ),
+                _variable_assign_node(
+                    "node_c",
+                    assignments=[{"variable": "path", "value": "C"}],
+                ),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                # Outer true -> inner condition
+                _edge("cond_1", "cond_2", sourceHandle="condition-outer_true"),
+                # Outer false -> C
+                _edge("cond_1", "node_c", sourceHandle="source-default-1"),
+                # Inner true -> A
+                _edge("cond_2", "node_a", sourceHandle="condition-inner_true"),
+                # Inner false -> B
+                _edge("cond_2", "node_b", sourceHandle="source-default-2"),
+                _edge("node_a", "end_1"),
+                _edge("node_b", "end_1"),
+                _edge("node_c", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "cond_1" in completed
+        assert "cond_2" in completed, "Inner condition should run (outer was true)"
+        assert "node_a" in completed, "Node A should run (both conditions true)"
+        assert "node_b" in skipped, "Node B should be skipped (inner condition was true)"
+        assert "node_c" in skipped, "Node C should be skipped (outer condition was true)"
+        assert "end_1" in completed
+
+    # ------------------------------------------------------------------
+    # 5b. Nested conditions — outer false
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_nested_conditions_outer_false(self):
+        """When the outer condition is false, cond_2 is skipped.
+
+        Current engine behavior: when a condition node is skipped (never
+        executed), it does NOT deactivate its outgoing edges because
+        ``active_handles`` is only set when a node *completes*.  As a
+        result, ``node_a`` and ``node_b`` (downstream of the skipped
+        ``cond_2``) still see active incoming edges and run.
+
+        This test documents the actual behavior rather than an ideal
+        cascading-skip semantic.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "outer_true",
+                            "expression": "10 < 5",  # FALSE
+                            "handle": "condition-outer_true",
+                        },
+                    ],
+                    default_handle="source-default-1",
+                ),
+                _condition_branch_node(
+                    "cond_2",
+                    conditions=[
+                        {
+                            "id": "inner_true",
+                            "expression": "3 == 3",
+                            "handle": "condition-inner_true",
+                        },
+                    ],
+                    default_handle="source-default-2",
+                ),
+                _variable_assign_node("node_a"),
+                _variable_assign_node("node_b"),
+                _variable_assign_node("node_c"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "cond_2", sourceHandle="condition-outer_true"),
+                _edge("cond_1", "node_c", sourceHandle="source-default-1"),
+                _edge("cond_2", "node_a", sourceHandle="condition-inner_true"),
+                _edge("cond_2", "node_b", sourceHandle="source-default-2"),
+                _edge("node_a", "end_1"),
+                _edge("node_b", "end_1"),
+                _edge("node_c", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "cond_2" in skipped, "Inner condition should be skipped (outer was false)"
+        # NOTE: node_a and node_b run because cond_2's outgoing edges are
+        # never deactivated (cond_2 was skipped, not completed with active_handles).
+        assert "node_a" in completed, (
+            "node_a runs because skipped cond_2 does not deactivate outgoing edges"
+        )
+        assert "node_b" in completed, (
+            "node_b runs for the same reason"
+        )
+        assert "node_c" in completed, "Node C (outer default branch) should run"
+        assert "end_1" in completed
+
+    # ------------------------------------------------------------------
+    # 5c. Nested conditions — outer true, inner false
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_nested_conditions_inner_false(self):
+        """Outer condition true, inner condition false.  Path is:
+        Start -> Cond1 -> Cond2 -> B -> End.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "outer_true",
+                            "expression": "10 > 5",  # TRUE
+                            "handle": "condition-outer_true",
+                        },
+                    ],
+                    default_handle="source-default-1",
+                ),
+                _condition_branch_node(
+                    "cond_2",
+                    conditions=[
+                        {
+                            "id": "inner_true",
+                            "expression": "3 == 99",  # FALSE
+                            "handle": "condition-inner_true",
+                        },
+                    ],
+                    default_handle="source-default-2",
+                ),
+                _variable_assign_node("node_a"),
+                _variable_assign_node("node_b"),
+                _variable_assign_node("node_c"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "cond_2", sourceHandle="condition-outer_true"),
+                _edge("cond_1", "node_c", sourceHandle="source-default-1"),
+                _edge("cond_2", "node_a", sourceHandle="condition-inner_true"),
+                _edge("cond_2", "node_b", sourceHandle="source-default-2"),
+                _edge("node_a", "end_1"),
+                _edge("node_b", "end_1"),
+                _edge("node_c", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "cond_2" in completed
+        assert "node_a" in skipped, "Node A should be skipped (inner condition false)"
+        assert "node_b" in completed, "Node B (inner default) should run"
+        assert "node_c" in skipped, "Node C should be skipped (outer condition true)"
+        assert "end_1" in completed
+
+    # ------------------------------------------------------------------
+    # 6. QuestionClassifier routing — mock LLM to return a specific class
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_question_classifier_routing(self):
+        """Start -> QuestionClassifier -> (class_0: A, class_1: B) -> End.
+
+        Mock the LLM to return "Technical" which maps to class_1.
+        Verify only branch B activates.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _question_classifier_node(
+                    "qc_1",
+                    classes=[
+                        {"id": "c0", "label": "General"},
+                        {"id": "c1", "label": "Technical"},
+                    ],
+                    input_variable="input.question",
+                ),
+                _variable_assign_node(
+                    "branch_general",
+                    assignments=[{"variable": "route", "value": "general"}],
+                ),
+                _variable_assign_node(
+                    "branch_technical",
+                    assignments=[{"variable": "route", "value": "technical"}],
+                ),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "qc_1"),
+                _edge("qc_1", "branch_general", sourceHandle="class-c0"),
+                _edge("qc_1", "branch_technical", sourceHandle="class-c1"),
+                _edge("branch_general", "end_1"),
+                _edge("branch_technical", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+
+        # Mock the QuestionClassifierExecutor.execute to return "Technical"
+        # which maps to handle "class-c1"
+        async def mock_qc_execute(node, store, ctx):
+            # Simulate the executor storing its result and returning active_handles
+            await store.set(f"{node.id}.output", "Technical")
+            await store.set(f"{node.id}.active_handle", "class-c1")
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output="Technical",
+                active_handles=["class-c1"],
+                duration_ms=1,
+            )
+
+        with patch(
+            "fim_one.core.workflow.nodes.QuestionClassifierExecutor.execute",
+            side_effect=mock_qc_execute,
+        ):
+            events = await _collect_events(
+                engine, bp, inputs={"question": "How do I configure SSL?"}
+            )
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "branch_technical" in completed, (
+            "Technical branch should run (LLM returned 'Technical')"
+        )
+        assert "branch_general" in skipped, (
+            "General branch should be skipped"
+        )
+        assert "end_1" in completed
+
+    # ------------------------------------------------------------------
+    # 6b. QuestionClassifier routing — first class matches
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_question_classifier_routing_first_class(self):
+        """Mock LLM to return 'General' (class_0).  Branch A runs, B skipped."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                _question_classifier_node(
+                    "qc_1",
+                    classes=[
+                        {"id": "c0", "label": "General"},
+                        {"id": "c1", "label": "Technical"},
+                    ],
+                    input_variable="input.question",
+                ),
+                _variable_assign_node("branch_general"),
+                _variable_assign_node("branch_technical"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "qc_1"),
+                _edge("qc_1", "branch_general", sourceHandle="class-c0"),
+                _edge("qc_1", "branch_technical", sourceHandle="class-c1"),
+                _edge("branch_general", "end_1"),
+                _edge("branch_technical", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+
+        async def mock_qc_execute(node, store, ctx):
+            await store.set(f"{node.id}.output", "General")
+            await store.set(f"{node.id}.active_handle", "class-c0")
+            return NodeResult(
+                node_id=node.id,
+                status=NodeStatus.COMPLETED,
+                output="General",
+                active_handles=["class-c0"],
+                duration_ms=1,
+            )
+
+        with patch(
+            "fim_one.core.workflow.nodes.QuestionClassifierExecutor.execute",
+            side_effect=mock_qc_execute,
+        ):
+            events = await _collect_events(
+                engine, bp, inputs={"question": "Hello there!"}
+            )
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "branch_general" in completed
+        assert "branch_technical" in skipped
+        assert "end_1" in completed
+
+    # ------------------------------------------------------------------
+    # 7. Condition with variable from store (input-driven branching)
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_condition_with_input_variable(self):
+        """The condition expression references an input variable.
+
+        Input score=85 -> condition checks 'score > 70' -> true branch runs.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "high_score",
+                            "variable": "score",
+                            "operator": ">",
+                            "value": "70",
+                            "handle": "condition-high_score",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node(
+                    "pass_node",
+                    assignments=[{"variable": "result", "value": "pass"}],
+                ),
+                _variable_assign_node(
+                    "fail_node",
+                    assignments=[{"variable": "result", "value": "fail"}],
+                ),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "pass_node", sourceHandle="condition-high_score"),
+                _edge("cond_1", "fail_node", sourceHandle="source-default"),
+                _edge("pass_node", "end_1"),
+                _edge("fail_node", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp, inputs={"score": 85})
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "pass_node" in completed, "Score 85 > 70 should take the pass branch"
+        assert "fail_node" in skipped
+
+    # ------------------------------------------------------------------
+    # 8. Condition with input variable — below threshold
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_condition_with_input_variable_below_threshold(self):
+        """Input score=50 -> condition 'score > 70' is false -> default runs."""
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "high_score",
+                            "variable": "score",
+                            "operator": ">",
+                            "value": "70",
+                            "handle": "condition-high_score",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node("pass_node"),
+                _variable_assign_node("fail_node"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "pass_node", sourceHandle="condition-high_score"),
+                _edge("cond_1", "fail_node", sourceHandle="source-default"),
+                _edge("pass_node", "end_1"),
+                _edge("fail_node", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp, inputs={"score": 50})
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "pass_node" in skipped, "Score 50 <= 70 should skip the pass branch"
+        assert "fail_node" in completed, "Default (fail) branch should run"
+
+    # ------------------------------------------------------------------
+    # 9. All conditions false — default handle activates
+    # ------------------------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_all_conditions_false_activates_default(self):
+        """When none of the explicit conditions match, the default branch
+        must activate.
+        """
+        raw = {
+            "nodes": [
+                _start_node(),
+                _condition_branch_node(
+                    "cond_1",
+                    conditions=[
+                        {
+                            "id": "never_1",
+                            "expression": "False",
+                            "handle": "condition-never_1",
+                        },
+                        {
+                            "id": "never_2",
+                            "expression": "0 > 1",
+                            "handle": "condition-never_2",
+                        },
+                    ],
+                    default_handle="source-default",
+                ),
+                _variable_assign_node("branch_1"),
+                _variable_assign_node("branch_2"),
+                _variable_assign_node("branch_default"),
+                _end_node(),
+            ],
+            "edges": [
+                _edge("start_1", "cond_1"),
+                _edge("cond_1", "branch_1", sourceHandle="condition-never_1"),
+                _edge("cond_1", "branch_2", sourceHandle="condition-never_2"),
+                _edge("cond_1", "branch_default", sourceHandle="source-default"),
+                _edge("branch_1", "end_1"),
+                _edge("branch_2", "end_1"),
+                _edge("branch_default", "end_1"),
+            ],
+        }
+        bp = parse_blueprint(raw)
+        engine = WorkflowEngine(max_concurrency=1)
+        events = await _collect_events(engine, bp)
+
+        completed = _completed_node_ids(events)
+        skipped = _skipped_node_ids(events)
+
+        assert "branch_1" in skipped
+        assert "branch_2" in skipped
+        assert "branch_default" in completed, "Default branch should activate"
+        assert "end_1" in completed
