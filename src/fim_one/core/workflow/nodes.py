@@ -350,13 +350,13 @@ class ConditionBranchExecutor:
                         )
                         continue
                 else:
-                    # LLM mode — use llm_prompt
-                    llm_prompt = cond.get("llm_prompt", "")
-                    if not llm_prompt or not handle:
-                        continue
-                    # For LLM mode, evaluate via LLM (simplified: just match first)
-                    active_handle = handle
-                    break
+                    # LLM mode — defer to batch LLM evaluation below
+                    pass
+
+            if mode != "expression" and active_handle is None:
+                active_handle = await self._evaluate_llm(
+                    node, conditions, store, default_handle,
+                )
 
             if active_handle is None:
                 active_handle = default_handle
@@ -379,6 +379,129 @@ class ConditionBranchExecutor:
                 error=f"Condition error: {exc}",
                 duration_ms=_ms_since(t0),
             )
+
+    async def _evaluate_llm(
+        self,
+        node: WorkflowNodeDef,
+        conditions: list[dict[str, Any]],
+        store: VariableStore,
+        default_handle: str,
+    ) -> str | None:
+        """Use the fast LLM to decide which condition branch to activate.
+
+        Builds a classification prompt from each condition's ``llm_prompt``
+        and ``label``, asks the LLM to pick exactly one, then maps the
+        response back to the corresponding ``condition-{id}`` handle.
+
+        Returns the matched handle, or *None* so the caller falls through
+        to the default.
+        """
+        from fim_one.core.model.types import ChatMessage
+        from fim_one.db import create_session
+        from fim_one.web.deps import get_effective_fast_llm
+
+        # Build the list of candidate branches with interpolated prompts
+        candidates: list[dict[str, str]] = []
+        for cond in conditions:
+            label = cond.get("label", "")
+            llm_prompt = cond.get("llm_prompt", "")
+            if not label or not llm_prompt:
+                continue
+            cond_id = cond.get("id", cond.get("handle", ""))
+            handle = (
+                f"condition-{cond_id}"
+                if cond_id and not cond_id.startswith("condition-")
+                else cond_id
+            )
+            if not handle:
+                continue
+            # Interpolate variables referenced in the llm_prompt
+            interpolated_prompt = await store.interpolate(llm_prompt)
+            candidates.append({
+                "label": label,
+                "description": interpolated_prompt,
+                "handle": handle,
+            })
+
+        if not candidates:
+            logger.warning(
+                "ConditionBranch node %s in LLM mode has no valid candidates",
+                node.id,
+            )
+            return None
+
+        # Build the numbered list for the system prompt
+        numbered = "\n".join(
+            f"{i + 1}. {c['label']}: {c['description']}"
+            for i, c in enumerate(candidates)
+        )
+
+        # Optional user-level context from the node's llm_prompt field
+        node_llm_prompt = node.data.get("llm_prompt", "")
+        context_section = ""
+        if node_llm_prompt:
+            interpolated_context = await store.interpolate(node_llm_prompt)
+            context_section = f"\nAdditional context:\n{interpolated_context}\n"
+
+        system_prompt = (
+            "You are a condition evaluator. Based on the descriptions below, "
+            "determine which ONE condition is satisfied. Respond with ONLY the "
+            "condition label — nothing else. If none clearly match, respond "
+            'with "DEFAULT".\n\n'
+            f"Conditions:\n{numbered}"
+            f"{context_section}"
+        )
+
+        # Provide the current variable snapshot as user context so the LLM
+        # can reason about runtime values.
+        snapshot = await store.snapshot_safe()
+        # Trim large values to keep token usage reasonable
+        trimmed: dict[str, Any] = {}
+        for k, v in snapshot.items():
+            sv = str(v)
+            trimmed[k] = sv[:500] if len(sv) > 500 else v
+        user_content = (
+            "Current variables:\n"
+            f"```json\n{json.dumps(trimmed, ensure_ascii=False, default=str)}\n```\n\n"
+            "Which condition is satisfied?"
+        )
+
+        async with create_session() as db:
+            llm = await get_effective_fast_llm(db)
+
+        result = await llm.chat([
+            ChatMessage(role="system", content=system_prompt),
+            ChatMessage(role="user", content=user_content),
+        ])
+
+        answer = (result.message.content or "").strip()
+        logger.debug(
+            "ConditionBranch LLM response for node %s: %r", node.id, answer,
+        )
+
+        # Match the LLM answer to a candidate label (case-insensitive)
+        answer_lower = answer.lower()
+        for c in candidates:
+            if c["label"].lower() == answer_lower:
+                return c["handle"]
+
+        # Fuzzy fallback: check if the answer contains exactly one label
+        matched_handles: list[str] = []
+        for c in candidates:
+            if c["label"].lower() in answer_lower:
+                matched_handles.append(c["handle"])
+        if len(matched_handles) == 1:
+            return matched_handles[0]
+
+        # No match — fall through to default
+        if answer_lower != "default":
+            logger.warning(
+                "ConditionBranch LLM node %s returned unrecognized answer %r; "
+                "falling back to default handle",
+                node.id,
+                answer,
+            )
+        return None
 
 
 # ---------------------------------------------------------------------------
