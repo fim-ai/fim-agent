@@ -15,6 +15,7 @@ description: "FIM One 的所有重要变更。"
   ### 新增
 </div>
 
+* **管理后台：审核日志 Tab** — 管理员审计页面新增"系统日志 / 审核日志"分段切换。审核日志面板调用新接口 `GET /api/admin/review-log`（支持按组织、资源类型、操作筛选，limit/offset 分页），展示时间、组织名、资源类型、资源名、操作状态（颜色编码：绿=已通过、红=已拒绝、琥珀=已提交/已重提、灰=已撤销）及操作人。全面支持国际化（中英文）。
 * **自由模式切换 + 逐条模式追踪**：用户现可在会话中自由切换 Auto/React/DAG 模式，无需开新对话。每条助手消息在 `metadata.mode` 中记录实际执行模式。历史消息逐条检测并使用正确的渲染引擎（优先读 metadata，回退至 SSE 事件指纹识别）。移除侧栏模式图标。每轮显示模式标签。
 * **三级模型角色 (F5)**：General、Fast、Reasoning 三个模型层级的独立环境变量配置。Fast 模型不再继承主模型的推理相关设置。新增环境变量：`FAST_LLM_API_KEY`、`FAST_LLM_BASE_URL`、`FAST_LLM_TEMPERATURE`、`REASONING_LLM_MODEL`、`REASONING_LLM_API_KEY`、`REASONING_LLM_BASE_URL`、`REASONING_LLM_TEMPERATURE`、`REASONING_LLM_CONTEXT_SIZE`、`REASONING_LLM_MAX_OUTPUT_TOKENS`、`REASONING_LLM_EFFORT`、`REASONING_LLM_BUDGET`
 * **结构化步骤输出 (F2)**：`StepOutput` 数据类替代 DAG 步骤中的纯字符串结果，为后续支持步骤间的结构化数据和产物传递奠定基础

@@ -169,7 +169,7 @@ flowchart LR
 - [ ] **Connector fork**: clone + customize existing connectors
 - [ ] **Database connectors Phase 4**: enterprise drivers — Oracle (`oracledb`), SQL Server (`aioodbc`), 达梦 DM8 (`aioodbc` + DM ODBC), 南大通用 GBase (`aioodbc` + GBase ODBC)
 - [ ] **Message push**: Lark, WeCom, Slack, Email notification actions
-- [ ] **Operation audit**: detailed logging of who did what
+- [x] **Operation audit**: detailed logging of who did what — admin review log audit tab added (publish review trail per org/resource)
 - [ ] **Semantic Schema Annotations**: extend connector schema fields with `semantic_tag`, `description`, and `pii` flags; annotations surfaced in LLM tool descriptions so the agent understands field intent without guessing from column names
 
 **Impact**: Implementation engineers (no Python required) can add connectors in 1-2 hours. Token cost for tool definitions drops by 93%+ at scale.

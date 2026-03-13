@@ -201,7 +201,7 @@ flowchart LR
 - [ ] **连接器分叉**：复制并自定义现有连接器
 - [ ] **数据库连接器 Phase 4**：企业级驱动 — Oracle (`oracledb`)、SQL Server (`aioodbc`)、达梦 DM8 (`aioodbc` + DM ODBC)、南大通用 GBase (`aioodbc` + GBase ODBC)
 - [ ] **消息推送**：Lark、WeCom、Slack、Email 通知动作
-- [ ] **操作审计**：详细记录谁执行了哪些操作
+- [x] **操作审计**：详细记录谁执行了哪些操作 — 管理员审核日志 Tab 已上线（按组织/资源维度追踪发布审核全流程）
 - [ ] **语义 Schema 标注**：为连接器 Schema 字段扩展 `semantic_tag`（语义标签）、`description`（字段说明）和 `pii`（隐私敏感）标志；标注内容在 LLM 工具描述中透出，让 Agent 无需靠猜列名就能理解字段含义
 
 **影响**：实施工程师 (无需 Python) 可在 1-2 小时内新增连接器。工具定义的 token 成本在规模化场景下降低 93%+。
