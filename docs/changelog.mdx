@@ -9,8 +9,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
+### Added
+
+- **Per-node execution statistics panel** — New stats panel (`node-stats-panel.tsx`) showing per-node success rates, average durations, and failure counts sorted worst-first. Integrated into the workflow toolbar. New `getNodeStats` API client method and `NodeStatEntry` type for frontend consumption.
+- **Phase 3 nodes: SubWorkflow and ENV** — Two new node types with backend executors, parser validation, and 14 new tests (total: 304 → 306):
+  - **SubWorkflow**: Stub executor for nested workflow orchestration — select a target workflow and map input/output variables.
+  - **ENV**: Reads encrypted environment variables at runtime with key selection and fallback defaults.
+- **SubWorkflow and ENV frontend components** — Full frontend integration: `sub-workflow-node.tsx` and `env-node.tsx` with config forms, palette entries, minimap colors, and node type record entries across all type maps.
+- **Two new workflow templates (14 total)** — "Secure API Integration" (ENV → HTTP with auth headers) and "Sub-Workflow Orchestration" (LLM → SubWorkflow → summarize).
+- **Keyboard shortcuts dialog** — Press `?` to view all available keyboard shortcuts in a dialog overlay.
+
 ### Changed
 
+- **Workflow test suite expanded to 306 tests** — Added 14 Phase 3 tests for SubWorkflow and ENV node executors. Added per-node execution statistics tests. Total: 275 → 306.
 - **Workflow test suite expanded to 275 tests** — Added 23 advanced engine tests (retry with exponential backoff, cancellation during retry, expression evaluation, variable store helpers) in separate test file. Total: 252 → 275.
 - **Workflow test suite expanded to 252 tests** — Added HumanIntervention tests (8: auto-approve, interpolation, assignee/timeout, defaults, validation warnings) and new template tests (4: human approval pipeline, multi-step data processing, knowledge-enhanced agent, iterative review loop). Total: 240 → 252.
 - **Workflow test suite expanded to 240 tests** — Added Phase 2 validation tests (15 tests for ListOperation, Transform, Iterator, Loop, DocumentExtractor, QuestionUnderstanding, ParameterExtractor warnings) and Phase 2 template tests (5 tests for new templates). Total: 220 → 240.

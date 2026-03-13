@@ -9,26 +9,37 @@ description: "FIM One 的所有重要更改。"
 
 ## [未发布]
 
+### 已添加
+
+- **每节点执行统计面板** — 新的统计面板（`node-stats-panel.tsx`），显示每节点的成功率、平均耗时和失败次数，按最差优先排序。已集成到工作流工具栏中。新增 `getNodeStats` API 客户端方法和 `NodeStatEntry` 类型供前端使用。
+- **第 3 阶段节点：SubWorkflow 和 ENV** — 两个新节点类型，包含后端执行器、解析器验证和 14 个新测试（总计：304 → 306）：
+  - **SubWorkflow**：用于嵌套工作流编排的存根执行器 — 选择目标工作流并映射输入/输出变量。
+  - **ENV**：在运行时读取加密的环境变量，支持密钥选择和回退默认值。
+- **SubWorkflow 和 ENV 前端组件** — 完整的前端集成：`sub-workflow-node.tsx` 和 `env-node.tsx`，包含配置表单、调色板条目、小地图颜色以及所有类型映射中的节点类型记录条目。
+- **两个新工作流模板（共 14 个）** — "安全 API 集成"（ENV → HTTP 带认证头）和"子工作流编排"（LLM → SubWorkflow → 总结）。
+- **键盘快捷键对话框** — 按 `?` 可在对话框覆盖层中查看所有可用的键盘快捷键。
+
 ### 已更改
 
+- **工作流测试套件扩展至 306 个测试** — 为 SubWorkflow 和 ENV 节点执行器添加了 14 个 Phase 3 测试。添加了按节点执行统计测试。总计：275 → 306。
 - **工作流测试套件扩展至 275 个测试** — 在单独的测试文件中添加了 23 个高级引擎测试（指数退避重试、重试期间取消、表达式求值、变量存储助手）。总计：252 → 275。
 - **工作流测试套件扩展至 252 个测试** — 添加了 HumanIntervention 测试（8 个：自动批准、插值、受理人/超时、默认值、验证警告）和新模板测试（4 个：人工批准管道、多步数据处理、知识增强智能体、迭代审查循环）。总计：240 → 252。
-- **工作流测试套件扩展至 240 个测试** — 添加了第 2 阶段验证测试（15 个测试用于 ListOperation、Transform、Iterator、Loop、DocumentExtractor、QuestionUnderstanding、ParameterExtractor 警告）和第 2 阶段模板测试（5 个新模板测试）。总计：220 → 240。
-- **工作流测试套件扩展至 220 个测试** — 为 DocumentExtractor 添加了 20 个测试（12 个测试：full_text/pages/metadata/tables 模式、base64 解码、page_range 解析、URL 存根错误、空输入、破折号分隔符）和 QuestionUnderstanding（8 个测试：使用 LLM 模拟的 rewrite/classify/decompose/expand 模式、自定义系统提示、变量插值、缺失输入）。总计：200 → 220。
-- **工作流测试套件扩展至 200 个测试** — 为 ListOperation 添加了 50 个测试（21 个测试：filter、map、sort、slice、flatten、unique、reverse、length、JSON 字符串输入、无效类型、缺失配置、索引在作用域内、默认输出变量）和 Transform（29 个测试：json_path、所有类型的类型转换、格式模板、regex_extract、所有变体的 string_op、所有变体的 math_op、5 步管道链接、除以零、通配符路径、未知操作）。总计：150 → 200。
+- **工作流测试套件扩展至 240 个测试** — 添加了 Phase 2 验证测试（15 个测试用于 ListOperation、Transform、Iterator、Loop、DocumentExtractor、QuestionUnderstanding、ParameterExtractor 警告）和 Phase 2 模板测试（5 个新模板测试）。总计：220 → 240。
+- **工作流测试套件扩展至 220 个测试** — 为 DocumentExtractor 添加了 20 个测试（12 个测试：full_text/pages/metadata/tables 模式、base64 解码、page_range 解析、URL stub 错误、空输入、破折号分隔符）和 QuestionUnderstanding（8 个测试：使用 LLM 模拟的 rewrite/classify/decompose/expand 模式、自定义系统提示、变量插值、缺失输入）。总计：200 → 220。
+- **工作流测试套件扩展至 200 个测试** — 为 ListOperation 添加了 50 个测试（21 个测试：filter、map、sort、slice、flatten、unique、reverse、length、JSON 字符串输入、无效类型、缺失配置、index-in-scope、默认输出变量）和 Transform（29 个测试：json_path、所有类型的 type_cast、格式模板、regex_extract、所有变体的 string_op、所有变体的 math_op、5 步管道链接、除以零、通配符路径、未知操作）。总计：150 → 200。
 - **工作流测试套件扩展至 150 个测试** — 为 Loop 添加了 12 个测试（6 个测试：基本计数、max_iterations 安全性、零迭代、空条件、自定义变量名、变量插值）和 ParameterExtractor（6 个测试：基本提取、缺失输入、空参数、无效 JSON、变量插值、提取提示包含）。总计：138 → 150。
-- **工作流测试套件扩展至 138 个测试** — 为第 2 阶段 Iterator 添加了 20 个测试（9 个测试：基本列表、JSON 解析、max_iterations、空列表、缺失配置、None 转空、模板引用、非列表拒绝、元数据）和 VariableAggregator（11 个测试：list/concat/merge/first_non_empty 模式、空输入边界情况、None 跳过、未知模式）。总计：118 → 138。
+- **工作流测试套件扩展至 138 个测试** — 为 Phase 2 Iterator 添加了 20 个测试（9 个测试：基本列表、JSON 解析、max_iterations、空列表、缺失配置、None 转空、模板引用、非列表拒绝、元数据）和 VariableAggregator（11 个测试：list/concat/merge/first_non_empty 模式、空输入边界情况、None 跳过、未知模式）。总计：118 → 138。
 - **工作流测试套件扩展至 118 个测试** — 为 ConditionBranch LLM 模式添加了 7 个测试（精确匹配、不区分大小写、模糊匹配、无匹配回退、DEFAULT 响应、无候选项、变量插值）。总计：111 → 118。
-- **工作流运行模式视觉反馈大修** — 基于环形的节点状态样式替代基于边框的方法、带有 ping 效果的动画状态点用于运行中的节点、`useMemo` 派生的 `displayNodes`/`displayEdges` 用于清晰的状态分离，以及已完成到运行中节点之间的边动画。
+- **工作流运行模式视觉反馈大修** — 基于环形的节点状态样式替代基于边框的方法、运行节点的动画状态点带 ping 效果、`useMemo` 派生的 `displayNodes`/`displayEdges` 用于清晰的状态分离，以及已完成到运行节点之间的边动画。
 - **工作流测试套件扩展至 105 个测试** — 添加了模板验证测试、导入/导出往返、变量存储高级方法、死锁检测、多条件分支、问题分类器和全面的蓝图验证。总计：68 → 97 → 105。
-- **工作流测试套件扩展至 68 个测试** — 添加了 24 个新测试，涵盖 eval 命名空间展平（17 个测试用于点号键解析、短别名生成、带有平面名称的 ConditionBranch/VariableAssign）和蓝图验证警告（7 个测试用于断开连接的节点、无法到达的端点、空条件/提示/代码）。总工作流测试计数：34 → 68。
+- **工作流测试套件扩展至 68 个测试** — 添加了 24 个新测试，涵盖 eval 命名空间扁平化（17 个测试用于点号键解析、短别名生成、带扁平名称的 ConditionBranch/VariableAssign）和蓝图验证警告（7 个测试用于断开连接的节点、无法到达的端点、空条件/提示/代码）。工作流测试总数：34 → 68。
 - **工作流编辑器大修（Dify 风格）** — 受 Dify 启发的工作流编辑器完整视觉重新设计：
   - 水平（从左到右）布局替代从上到下；所有 12 种节点类型使用左/右句柄
   - 左侧彩色条节点设计，紧凑 220px 宽度、较小图标和运行状态徽章
-  - 边上添加节点：自定义 `AddNodeEdge`，带有"+"中点按钮和节点类型选择器弹出窗口，可分割现有边
+  - 边上添加节点：自定义 `AddNodeEdge`，带"+"中点按钮和节点类型选择器弹窗，可分割现有边
   - 更丰富的配置面板：LLM 节点的模型选择器下拉菜单、条件的操作符下拉菜单（==、!=、>、<、contains 等）、部分标题、`InsertVariableHint` 和 `OutputVariableField` 用于所有输出节点
-  - 可折叠节点调色板（仅图标模式），带有类别分组；已放置时开始/结束节点变暗
-  - 放置时单一开始/结束验证；`fitViewOptions` 带有 `maxZoom:1` 以防止小图形上的过度缩放
+  - 可折叠节点调色板（仅图标模式）带类别分组；已放置时 Start/End 节点变暗
+  - 放置时单个 Start/End 验证；`fitViewOptions` 带 `maxZoom:1` 以防止小图表过度缩放
 
 ### 已添加
 
