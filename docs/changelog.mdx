@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Changed
 
+- **Workflow test suite expanded to 150 tests** — Added 12 tests for Loop (6 tests: basic counting, max_iterations safety, zero iterations, empty condition, custom variable name, variable interpolation) and ParameterExtractor (6 tests: basic extraction, missing input, empty params, invalid JSON, variable interpolation, extraction prompt inclusion). Total: 138 → 150.
 - **Workflow test suite expanded to 138 tests** — Added 20 tests for Phase 2 Iterator (9 tests: basic list, JSON parsing, max_iterations, empty list, missing config, None-to-empty, template refs, non-list rejection, metadata) and VariableAggregator (11 tests: list/concat/merge/first_non_empty modes, edge cases for empty inputs, None skipping, unknown mode). Total: 118 → 138.
 - **Workflow test suite expanded to 118 tests** — Added 7 tests for ConditionBranch LLM mode (exact match, case-insensitive, fuzzy, no-match fallback, DEFAULT response, no-candidates, variable interpolation). Total: 111 → 118.
 - **Workflow run-mode visual feedback overhaul** — Ring-based node status styling replacing border-based approach, animated status dots with ping effect for running nodes, `useMemo`-derived `displayNodes`/`displayEdges` for clean state separation, and edge animation between completed-to-running nodes.
@@ -36,6 +37,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Workflow ConditionBranch LLM Mode** — Proper LLM-based condition evaluation replacing the naive "match first" stub. Builds a classification prompt from condition labels, calls the fast LLM, and uses case-insensitive + fuzzy matching.
 - **Reactive Edge Labels** — Edge labels for condition/classifier branches now use `useNodesData()` for real-time updates when conditions or classes are edited in the config panel.
 - **Workflow Statistics Panel** — Sheet-based stats display showing total runs, completed/failed/cancelled counts, success rate with visual progress bar, average duration, and last run time with relative formatting. Triggered from a BarChart3 icon in the toolbar.
+- **Phase 2 Workflow Nodes: Loop & ParameterExtractor** — Two more advanced node types:
+  - **Loop**: While-condition loop with simpleeval expression evaluation, configurable loop variable name, and max_iterations safety limit. Frontend with condition input, variable name, and iteration limit config.
+  - **ParameterExtractor**: LLM-based structured parameter extraction from text. Define typed parameters (name/type/description/required), provide input text reference, and optionally add extraction instructions. Returns parsed JSON. Frontend with parameter list editor and extraction prompt textarea.
 - **Phase 2 Workflow Nodes: Iterator & VariableAggregator** — Two new advanced node types:
   - **Iterator**: Iterate over lists with configurable item/index variable names and max_iterations safety limit. Supports native lists, JSON string parsing, and template variable references.
   - **VariableAggregator**: Merge outputs from multiple upstream branches via four modes — collect into list, concatenate strings (custom separator), merge dicts, or take first non-empty value.
