@@ -170,5 +170,19 @@
   "resourceTypeKb": "Knowledge Base",
   "resourceTypeMcpServer": "MCP Server",
   "platformOrgName": "Platform",
-  "platformOrgDescription": "Default platform-wide organization. All users are automatically enrolled."
+  "platformOrgDescription": "Default platform-wide organization. All users are automatically enrolled.",
+
+  "reviewHistory": "Review History",
+  "reviewHistoryTitle": "Review History",
+  "reviewHistoryDescription": "Audit trail of publish review decisions for this organization.",
+  "reviewHistoryEmpty": "No review history found.",
+  "reviewHistorySelectOrg": "Select organization",
+  "reviewHistoryLoadFailed": "Failed to load review history",
+  "reviewHistoryColTime": "Time",
+  "reviewHistoryColType": "Type",
+  "reviewHistoryColResource": "Resource",
+  "reviewHistoryColAction": "Action",
+  "reviewHistoryColActor": "Operator",
+  "reviewHistoryActionUnpublished": "Unpublished",
+  "reviewHistoryActionResubmitted": "Resubmitted"
 }

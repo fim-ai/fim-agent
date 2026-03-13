@@ -170,5 +170,19 @@
   "resourceTypeKb": "知识库",
   "resourceTypeMcpServer": "MCP 服务器",
   "platformOrgName": "平台组织",
-  "platformOrgDescription": "默认全局组织，所有用户自动加入。"
+  "platformOrgDescription": "默认全局组织，所有用户自动加入。",
+
+  "reviewHistory": "审核历史",
+  "reviewHistoryTitle": "审核历史",
+  "reviewHistoryDescription": "该组织的发布审核操作记录。",
+  "reviewHistoryEmpty": "暂无审核历史记录。",
+  "reviewHistorySelectOrg": "选择组织",
+  "reviewHistoryLoadFailed": "加载审核历史失败",
+  "reviewHistoryColTime": "时间",
+  "reviewHistoryColType": "类型",
+  "reviewHistoryColResource": "资源名",
+  "reviewHistoryColAction": "操作",
+  "reviewHistoryColActor": "操作人",
+  "reviewHistoryActionUnpublished": "已撤销",
+  "reviewHistoryActionResubmitted": "已重提"
 }
