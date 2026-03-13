@@ -1110,14 +1110,9 @@ class TestConditionBranchRouting:
     async def test_nested_conditions_outer_false(self):
         """When the outer condition is false, cond_2 is skipped.
 
-        Current engine behavior: when a condition node is skipped (never
-        executed), it does NOT deactivate its outgoing edges because
-        ``active_handles`` is only set when a node *completes*.  As a
-        result, ``node_a`` and ``node_b`` (downstream of the skipped
-        ``cond_2``) still see active incoming edges and run.
-
-        This test documents the actual behavior rather than an ideal
-        cascading-skip semantic.
+        A skipped branching node (CONDITION_BRANCH / QUESTION_CLASSIFIER)
+        deactivates all its outgoing edges, causing downstream nodes to
+        cascade-skip as well.
         """
         raw = {
             "nodes": [
@@ -1168,13 +1163,12 @@ class TestConditionBranchRouting:
         skipped = _skipped_node_ids(events)
 
         assert "cond_2" in skipped, "Inner condition should be skipped (outer was false)"
-        # NOTE: node_a and node_b run because cond_2's outgoing edges are
-        # never deactivated (cond_2 was skipped, not completed with active_handles).
-        assert "node_a" in completed, (
-            "node_a runs because skipped cond_2 does not deactivate outgoing edges"
+        # Skipped cond_2 deactivates all outgoing edges → node_a and node_b cascade-skip
+        assert "node_a" in skipped, (
+            "node_a should be skipped because cond_2 was skipped and deactivated its edges"
         )
-        assert "node_b" in completed, (
-            "node_b runs for the same reason"
+        assert "node_b" in skipped, (
+            "node_b should be skipped for the same reason"
         )
         assert "node_c" in completed, "Node C (outer default branch) should run"
         assert "end_1" in completed

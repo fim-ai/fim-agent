@@ -432,6 +432,17 @@ class WorkflowEngine:
                         pending.discard(nid)
                         completed.add(nid)
                         node_status[nid] = NodeStatus.SKIPPED
+
+                        # When a branching node is skipped, deactivate all its
+                        # outgoing edges so downstream nodes cascade-skip too.
+                        node_def = node_index[nid]
+                        if node_def.type in (
+                            NodeType.CONDITION_BRANCH,
+                            NodeType.QUESTION_CLASSIFIER,
+                        ):
+                            for edge in outgoing_edges.get(nid, []):
+                                active_edges.discard(edge.id)
+
                         await event_queue.put((
                             "node_skipped",
                             {"node_id": nid, "reason": "Branch not active"},
@@ -443,6 +454,12 @@ class WorkflowEngine:
                         node_status[nid] = NodeStatus.RUNNING
                         task = asyncio.create_task(_run_node(nid))
                         running_tasks[task] = nid
+
+                    # Skipping nodes changes the completed set, which may
+                    # unlock additional nodes.  Re-evaluate before assuming
+                    # deadlock.
+                    if skip and not ready and not running_tasks and pending:
+                        continue
 
                     if not running_tasks:
                         if pending:
