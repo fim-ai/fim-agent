@@ -240,5 +240,42 @@
   "validationValid": "Blueprint is valid",
   "validationWarnings": "{count} warning(s)",
   "validationInvalid": "Blueprint has errors",
-  "validationChecking": "Validating..."
+  "validationChecking": "Validating...",
+
+  "templatesTitle": "Templates",
+  "templatesDescription": "Start with a pre-built workflow template",
+  "templateUse": "Use Template",
+  "templatePreview": "Preview",
+  "templateCategory_basic": "Basic",
+  "templateCategory_ai": "AI",
+  "templateCategory_integration": "Integration",
+  "templateCategory_data": "Data",
+  "templateCreateSuccess": "Workflow created from template",
+  "templateCreateFailed": "Failed to create workflow from template",
+
+  "statsTitle": "Statistics",
+  "statsTotalRuns": "Total Runs",
+  "statsCompleted": "Completed",
+  "statsFailed": "Failed",
+  "statsCancelled": "Cancelled",
+  "statsSuccessRate": "Success Rate",
+  "statsAvgDuration": "Avg Duration",
+  "statsLastRun": "Last Run",
+  "statsNoRuns": "No runs yet",
+
+  "runModeRunning": "Running...",
+  "runModeCompleted": "Completed",
+  "runModeFailed": "Failed",
+
+  "configErrorStrategy": "On Error",
+  "configErrorStrategy_stop_workflow": "Stop Workflow",
+  "configErrorStrategy_continue": "Continue",
+  "configErrorStrategy_fail_branch": "Fail Branch",
+  "configErrorStrategyHint_stop_workflow": "Stop the entire workflow when this node fails",
+  "configErrorStrategyHint_continue": "Mark as failed but continue executing downstream nodes",
+  "configErrorStrategyHint_fail_branch": "Skip all downstream nodes in this branch",
+  "configTimeout": "Timeout (ms)",
+  "configTimeoutHint": "Maximum execution time for this node",
+
+  "configSectionAdvanced": "Advanced"
 }

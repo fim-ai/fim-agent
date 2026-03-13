@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useTranslations } from "next-intl"
-import { Plus, Trash2, X } from "lucide-react"
+import { ChevronDown, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import {
   AlertDialog,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { VariablePicker } from "./variable-picker"
 import type { Node } from "@xyflow/react"
-import type { WorkflowNodeType } from "@/types/workflow"
+import type { WorkflowNodeType, ErrorStrategy } from "@/types/workflow"
 
 interface NodeConfigPanelProps {
   node: Node | null
@@ -86,6 +87,16 @@ export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }:
             otherNodes={otherNodes}
           />
 
+          {/* Advanced section — error strategy + timeout (not for Start/End) */}
+          {nodeType !== "start" && nodeType !== "end" && (
+            <AdvancedSection
+              errorStrategy={(node.data.error_strategy as ErrorStrategy) ?? "stop_workflow"}
+              timeoutMs={(node.data.timeout_ms as number) ?? 30000}
+              onChangeErrorStrategy={(v) => updateField("error_strategy", v)}
+              onChangeTimeout={(v) => updateField("timeout_ms", v)}
+            />
+          )}
+
           {/* Delete node button — disabled for start/end nodes */}
           {nodeType !== "start" && nodeType !== "end" && (
             <>
@@ -126,6 +137,91 @@ export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }:
     </div>
   )
 }
+
+// --- Advanced Section (error strategy + timeout) ---
+
+const ERROR_STRATEGIES: ErrorStrategy[] = ["stop_workflow", "continue", "fail_branch"]
+
+function AdvancedSection({
+  errorStrategy,
+  timeoutMs,
+  onChangeErrorStrategy,
+  onChangeTimeout,
+}: {
+  errorStrategy: ErrorStrategy
+  timeoutMs: number
+  onChangeErrorStrategy: (v: ErrorStrategy) => void
+  onChangeTimeout: (v: number) => void
+}) {
+  const t = useTranslations("workflows")
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <>
+      <Separator className="my-1" />
+      <button
+        type="button"
+        className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {t("configSectionAdvanced")}
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 transition-transform duration-200",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
+      {expanded && (
+        <div className="space-y-3 pb-1">
+          {/* Error strategy */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">{t("configErrorStrategy")}</label>
+            <Select
+              value={errorStrategy}
+              onValueChange={(v) => onChangeErrorStrategy(v as ErrorStrategy)}
+            >
+              <SelectTrigger className="w-full h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ERROR_STRATEGIES.map((s) => (
+                  <SelectItem key={s} value={s} className="text-xs">
+                    {t(`configErrorStrategy_${s}` as Parameters<typeof t>[0])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              {t(`configErrorStrategyHint_${errorStrategy}` as Parameters<typeof t>[0])}
+            </p>
+          </div>
+          {/* Timeout */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">{t("configTimeout")}</label>
+            <Input
+              type="number"
+              className="h-7 text-xs"
+              value={timeoutMs}
+              min={1000}
+              max={600000}
+              step={1000}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10)
+                if (!isNaN(v) && v > 0) onChangeTimeout(v)
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              {t("configTimeoutHint")}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// --- Per-node config fields ---
 
 interface NodeConfigFieldsProps {
   nodeType: WorkflowNodeType

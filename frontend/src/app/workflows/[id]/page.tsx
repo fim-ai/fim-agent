@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { Loader2, Clock } from "lucide-react"
@@ -44,6 +44,7 @@ export default function WorkflowEditorPage() {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const workflowId = params.id as string
 
   const [workflow, setWorkflow] = useState<WorkflowResponse | null>(null)
@@ -260,6 +261,14 @@ export default function WorkflowEditorPage() {
     setFinalError(null)
     setRunDuration(null)
   }, [])
+
+  // Auto-open run panel when navigated with ?run=true
+  useEffect(() => {
+    if (searchParams.get("run") === "true" && workflow && !isLoadingWorkflow) {
+      handleRun()
+      router.replace(`/workflows/${workflowId}`, { scroll: false })
+    }
+  }, [searchParams, workflow, isLoadingWorkflow, workflowId, router, handleRun])
 
   const handleRunAgain = useCallback(() => {
     setNodeResults(null)

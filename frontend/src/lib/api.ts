@@ -1,6 +1,6 @@
 import { getApiBaseUrl, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "./constants"
 import type { UserInfo, TokenResponse, LoginRequest, LoginWithCodeRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest, SetupRequest } from "@/types/auth"
-import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse } from "@/types/workflow"
+import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate } from "@/types/workflow"
 import type {
   ConversationResponse,
   ConversationDetail,
@@ -1000,6 +1000,18 @@ export const workflowApi = {
     }>>("/api/workflows/validate", {
       method: "POST",
       body: JSON.stringify({ blueprint }),
+    }).then((r) => r.data),
+
+  getStats: (id: string) =>
+    apiFetch<ApiResponse<WorkflowStats>>(`/api/workflows/${id}/stats`).then((r) => r.data),
+
+  getTemplates: () =>
+    apiFetch<ApiResponse<WorkflowTemplate[]>>("/api/workflows/templates").then((r) => r.data),
+
+  createFromTemplate: (templateId: string, name?: string) =>
+    apiFetch<ApiResponse<WorkflowResponse>>("/api/workflows/from-template", {
+      method: "POST",
+      body: JSON.stringify({ template_id: templateId, name }),
     }).then((r) => r.data),
 }
 

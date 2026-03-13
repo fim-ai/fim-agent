@@ -28,11 +28,15 @@ export interface WorkflowBlueprint {
   viewport: { x: number; y: number; zoom: number }
 }
 
+export type ErrorStrategy = "stop_workflow" | "continue" | "fail_branch"
+
 export interface WorkflowNode {
   id: string
   type: WorkflowNodeType
   position: { x: number; y: number }
   data: Record<string, unknown>
+  error_strategy?: ErrorStrategy
+  timeout_ms?: number
 }
 
 export interface WorkflowEdge {
@@ -195,3 +199,31 @@ export interface NodeRunResult {
 // --- Node run status for canvas overlay ---
 
 export type NodeRunStatus = "pending" | "running" | "completed" | "failed" | "skipped"
+
+// --- Stats ---
+
+export interface WorkflowStats {
+  total_runs: number
+  completed: number
+  failed: number
+  cancelled: number
+  success_rate: number | null
+  avg_duration_ms: number | null
+  last_run_at: string | null
+}
+
+// --- Templates ---
+
+export interface WorkflowTemplate {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: string
+  blueprint: WorkflowBlueprint
+}
+
+export interface WorkflowFromTemplateRequest {
+  template_id: string
+  name?: string
+}

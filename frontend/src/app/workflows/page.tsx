@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { workflowApi, orgApi } from "@/lib/api"
 import type { UserOrg } from "@/lib/api"
 import { WorkflowCard } from "@/components/workflows/workflow-card"
+import { TemplatePicker } from "@/components/workflows/template-picker"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { WorkflowResponse } from "@/types/workflow"
 
@@ -44,6 +45,8 @@ export default function WorkflowsPage() {
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
   const [orgsLoading, setOrgsLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false)
 
   // Auth guard
   useEffect(() => {
@@ -132,7 +135,8 @@ export default function WorkflowsPage() {
     }
   }
 
-  const handleCreate = async () => {
+  const handleCreateBlank = async () => {
+    setIsCreatingFromTemplate(true)
     try {
       const workflow = await workflowApi.create({
         name: t("editorUntitled"),
@@ -145,9 +149,26 @@ export default function WorkflowsPage() {
           viewport: { x: 0, y: 0, zoom: 1 },
         },
       })
+      setShowTemplatePicker(false)
       router.push(`/workflows/${workflow.id}`)
     } catch {
       toast.error(t("workflowCreateFailed"))
+    } finally {
+      setIsCreatingFromTemplate(false)
+    }
+  }
+
+  const handleCreateFromTemplate = async (templateId: string) => {
+    setIsCreatingFromTemplate(true)
+    try {
+      const workflow = await workflowApi.createFromTemplate(templateId)
+      setShowTemplatePicker(false)
+      toast.success(t("templateCreateSuccess"))
+      router.push(`/workflows/${workflow.id}`)
+    } catch {
+      toast.error(t("templateCreateFailed"))
+    } finally {
+      setIsCreatingFromTemplate(false)
     }
   }
 
@@ -231,7 +252,7 @@ export default function WorkflowsPage() {
             <Upload className="h-3.5 w-3.5" />
             {tc("import")}
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={handleCreate}>
+          <Button size="sm" className="gap-1.5" onClick={() => setShowTemplatePicker(true)}>
             <Plus className="h-4 w-4" />
             {t("newWorkflow")}
           </Button>
@@ -264,7 +285,7 @@ export default function WorkflowsPage() {
               variant="outline"
               size="sm"
               className="mt-4 gap-1.5"
-              onClick={handleCreate}
+              onClick={() => setShowTemplatePicker(true)}
             >
               <Plus className="h-4 w-4" />
               {t("createWorkflow")}
@@ -377,6 +398,15 @@ export default function WorkflowsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Template Picker */}
+      <TemplatePicker
+        open={showTemplatePicker}
+        onOpenChange={setShowTemplatePicker}
+        onSelectTemplate={handleCreateFromTemplate}
+        onCreateBlank={handleCreateBlank}
+        isCreating={isCreatingFromTemplate}
+      />
     </div>
   )
 }
