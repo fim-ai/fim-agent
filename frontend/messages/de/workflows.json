@@ -304,5 +304,16 @@
   "configAddInputVariable": "Variablenverweis hinzufügen",
   "configLoopCondition": "Schleifenbedingung",
   "configLoopMaxIterations": "Maximale Iterationen",
-  "configLoopConditionHint": "Ausdruck, der bei jeder Iteration ausgewertet wird — Schleife wird fortgesetzt, solange wahr"
+  "configLoopConditionHint": "Ausdruck, der bei jeder Iteration ausgewertet wird — Schleife wird fortgesetzt, solange wahr",
+  "configLoopVariable": "Schleifenvariablenname",
+  "configInputText": "Eingabetext",
+  "configInputTextPlaceholder": "{{node_id.output}} — Text zum Extrahieren aus",
+  "configExtractParams": "Zu extrahierende Parameter",
+  "configParamName": "Name",
+  "configParamType": "Typ",
+  "configParamDescription": "Beschreibung",
+  "configParamRequired": "Erforderlich",
+  "configExtractionPrompt": "Zusätzliche Anweisungen",
+  "configExtractionPromptHint": "Optional: zusätzliche Anleitung für die LLM-Extraktion",
+  "paramCount": "{count} Parameter"
 }

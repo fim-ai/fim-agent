@@ -304,5 +304,16 @@
   "configAddInputVariable": "Ajouter une référence de variable",
   "configLoopCondition": "Condition de boucle",
   "configLoopMaxIterations": "Nombre maximum d'itérations",
-  "configLoopConditionHint": "Expression évaluée à chaque itération — la boucle continue tant qu'elle est vraie"
+  "configLoopConditionHint": "Expression évaluée à chaque itération — la boucle continue tant qu'elle est vraie",
+  "configLoopVariable": "Nom de la variable de boucle",
+  "configInputText": "Texte d'entrée",
+  "configInputTextPlaceholder": "{{node_id.output}} — texte à extraire",
+  "configExtractParams": "Paramètres à extraire",
+  "configParamName": "Nom",
+  "configParamType": "Type",
+  "configParamDescription": "Description",
+  "configParamRequired": "Requis",
+  "configExtractionPrompt": "Instructions supplémentaires",
+  "configExtractionPromptHint": "Optionnel : conseils supplémentaires pour l'extraction LLM",
+  "paramCount": "{count} paramètres"
 }

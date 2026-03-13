@@ -16,7 +16,9 @@ import {
   FileText,
   Code,
   Repeat,
+  RefreshCw,
   Combine,
+  FileSearch,
   Braces,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,7 +51,9 @@ const nodeTypeIcons: Record<WorkflowNodeType, React.ReactNode> = {
   templateTransform: <FileText className="h-3 w-3" />,
   codeExecution: <Code className="h-3 w-3" />,
   iterator: <Repeat className="h-3 w-3" />,
+  loop: <RefreshCw className="h-3 w-3" />,
   variableAggregator: <Combine className="h-3 w-3" />,
+  parameterExtractor: <FileSearch className="h-3 w-3" />,
 }
 
 const nodeTypeColors: Record<WorkflowNodeType, string> = {
@@ -66,7 +70,9 @@ const nodeTypeColors: Record<WorkflowNodeType, string> = {
   templateTransform: "text-amber-500",
   codeExecution: "text-emerald-500",
   iterator: "text-cyan-500",
+  loop: "text-orange-500",
   variableAggregator: "text-sky-500",
+  parameterExtractor: "text-violet-500",
 }
 
 // --- Helper: extract output variables from a node ---

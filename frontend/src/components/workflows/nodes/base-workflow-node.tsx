@@ -18,7 +18,9 @@ const categoryColorMap: Record<string, string> = {
   templateTransform: "bg-amber-500",
   codeExecution: "bg-emerald-500",
   iterator: "bg-cyan-500",
+  loop: "bg-orange-500",
   variableAggregator: "bg-sky-500",
+  parameterExtractor: "bg-violet-500",
 }
 
 const runStatusStyles: Record<NodeRunStatus, { ring: string; extra: string }> = {

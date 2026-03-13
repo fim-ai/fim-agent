@@ -304,5 +304,16 @@
   "configAddInputVariable": "変数参照を追加",
   "configLoopCondition": "ループ条件",
   "configLoopMaxIterations": "最大反復回数",
-  "configLoopConditionHint": "各反復で評価される式 — 真の間ループが続く"
+  "configLoopConditionHint": "各反復で評価される式 — 真の間ループが続く",
+  "configLoopVariable": "ループ変数名",
+  "configInputText": "入力テキスト",
+  "configInputTextPlaceholder": "{{node_id.output}} — 抽出するテキスト",
+  "configExtractParams": "抽出するパラメータ",
+  "configParamName": "名前",
+  "configParamType": "タイプ",
+  "configParamDescription": "説明",
+  "configParamRequired": "必須",
+  "configExtractionPrompt": "追加の指示",
+  "configExtractionPromptHint": "オプション: LLM抽出の追加ガイダンス",
+  "paramCount": "{count}個のパラメータ"
 }

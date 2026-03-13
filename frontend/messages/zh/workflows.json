@@ -304,5 +304,16 @@
   "configAddInputVariable": "添加变量引用",
   "configLoopCondition": "循环条件",
   "configLoopMaxIterations": "最大迭代次数",
-  "configLoopConditionHint": "每次迭代时计算的表达式 — 当为真时循环继续"
+  "configLoopConditionHint": "每次迭代时计算的表达式 — 当为真时循环继续",
+  "configLoopVariable": "循环变量名称",
+  "configInputText": "输入文本",
+  "configInputTextPlaceholder": "{{node_id.output}} — 要提取的文本",
+  "configExtractParams": "要提取的参数",
+  "configParamName": "名称",
+  "configParamType": "类型",
+  "configParamDescription": "描述",
+  "configParamRequired": "必需",
+  "configExtractionPrompt": "附加说明",
+  "configExtractionPromptHint": "可选：为LLM提取提供额外指导",
+  "paramCount": "{count} 个参数"
 }

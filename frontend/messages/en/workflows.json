@@ -338,5 +338,18 @@
 
   "configLoopCondition": "Loop condition",
   "configLoopMaxIterations": "Max iterations",
-  "configLoopConditionHint": "Expression evaluated each iteration — loop continues while true"
+  "configLoopConditionHint": "Expression evaluated each iteration — loop continues while true",
+  "configLoopVariable": "Loop variable name",
+
+  "configInputText": "Input text",
+  "configInputTextPlaceholder": "{{node_id.output}} — text to extract from",
+  "configExtractParams": "Parameters to extract",
+  "configAddParam": "Add parameter",
+  "configParamName": "Name",
+  "configParamType": "Type",
+  "configParamDescription": "Description",
+  "configParamRequired": "Required",
+  "configExtractionPrompt": "Additional instructions",
+  "configExtractionPromptHint": "Optional: extra guidance for the LLM extraction",
+  "paramCount": "{count} parameters"
 }

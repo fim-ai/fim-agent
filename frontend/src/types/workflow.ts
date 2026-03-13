@@ -61,7 +61,9 @@ export type WorkflowNodeType =
   | "templateTransform"
   | "codeExecution"
   | "iterator"
+  | "loop"
   | "variableAggregator"
+  | "parameterExtractor"
 
 // --- Per-node data interfaces ---
 
@@ -161,10 +163,27 @@ export interface IteratorNodeData {
   max_iterations: number
 }
 
+export interface LoopNodeData {
+  condition: string
+  max_iterations: number
+  loop_variable: string
+}
+
 export interface VariableAggregatorNodeData {
   variables: string[]
   mode: "list" | "concat" | "merge" | "first_non_empty"
   separator: string
+}
+
+export interface ParameterExtractorNodeData {
+  input_text: string
+  parameters: Array<{
+    name: string
+    type: string
+    description: string
+    required?: boolean
+  }>
+  extraction_prompt?: string
 }
 
 // --- Create / Update payloads ---

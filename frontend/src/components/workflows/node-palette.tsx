@@ -16,7 +16,9 @@ import {
   FileText,
   Code,
   Repeat,
+  RefreshCw,
   Combine,
+  FileSearch,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
@@ -53,6 +55,7 @@ const categories: NodePaletteCategory[] = [
       { type: "questionClassifier", icon: <MessageSquareMore className="h-3.5 w-3.5" />, color: "text-teal-500" },
       { type: "agent", icon: <Bot className="h-3.5 w-3.5" />, color: "text-indigo-500" },
       { type: "knowledgeRetrieval", icon: <Library className="h-3.5 w-3.5" />, color: "text-teal-500" },
+      { type: "parameterExtractor", icon: <FileSearch className="h-3.5 w-3.5" />, color: "text-violet-500" },
     ],
   },
   {
@@ -60,6 +63,7 @@ const categories: NodePaletteCategory[] = [
     items: [
       { type: "conditionBranch", icon: <GitBranch className="h-3.5 w-3.5" />, color: "text-orange-500" },
       { type: "iterator", icon: <Repeat className="h-3.5 w-3.5" />, color: "text-cyan-500" },
+      { type: "loop", icon: <RefreshCw className="h-3.5 w-3.5" />, color: "text-orange-500" },
     ],
   },
   {

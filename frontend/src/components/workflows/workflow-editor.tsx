@@ -50,7 +50,9 @@ import { VariableAssignNode } from "./nodes/variable-assign-node"
 import { TemplateTransformNode } from "./nodes/template-transform-node"
 import { CodeExecutionNode } from "./nodes/code-execution-node"
 import { IteratorNode } from "./nodes/iterator-node"
+import { LoopNode } from "./nodes/loop-node"
 import { VariableAggregatorNode } from "./nodes/variable-aggregator-node"
+import { ParameterExtractorNode } from "./nodes/parameter-extractor-node"
 
 // MUST be defined outside the component to prevent ReactFlow infinite re-renders
 const nodeTypes = {
@@ -67,7 +69,9 @@ const nodeTypes = {
   templateTransform: TemplateTransformNode,
   codeExecution: CodeExecutionNode,
   iterator: IteratorNode,
+  loop: LoopNode,
   variableAggregator: VariableAggregatorNode,
+  parameterExtractor: ParameterExtractorNode,
 }
 
 // Custom edge types - defined outside component for stability
@@ -90,7 +94,9 @@ const minimapNodeColor: Record<string, string> = {
   templateTransform: "#f59e0b",
   codeExecution: "#10b981",
   iterator: "#06b6d4",
+  loop: "#f97316",
   variableAggregator: "#0ea5e9",
+  parameterExtractor: "#8b5cf6",
 }
 
 const getMinimapNodeColor = (node: Node) => minimapNodeColor[node.type ?? ""] ?? "#6b7280"
@@ -109,7 +115,9 @@ const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
   templateTransform: { template: "", output_variable: "template_result" },
   codeExecution: { language: "python", code: "", output_variable: "code_result" },
   iterator: { list_variable: "", iterator_variable: "current_item", index_variable: "current_index", max_iterations: 100 },
+  loop: { condition: "", max_iterations: 50, loop_variable: "loop_index" },
   variableAggregator: { variables: [], mode: "list", separator: "\n" },
+  parameterExtractor: { input_text: "", parameters: [], extraction_prompt: "" },
 }
 
 interface WorkflowEditorProps {

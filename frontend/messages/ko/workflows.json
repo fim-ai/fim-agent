@@ -304,5 +304,16 @@
   "configAddInputVariable": "변수 참조 추가",
   "configLoopCondition": "루프 조건",
   "configLoopMaxIterations": "최대 반복 횟수",
-  "configLoopConditionHint": "각 반복마다 평가되는 표현식 — 참인 동안 루프 계속"
+  "configLoopConditionHint": "각 반복마다 평가되는 표현식 — 참인 동안 루프 계속",
+  "configLoopVariable": "루프 변수 이름",
+  "configInputText": "입력 텍스트",
+  "configInputTextPlaceholder": "{{node_id.output}} — 추출할 텍스트",
+  "configExtractParams": "추출할 매개변수",
+  "configParamName": "이름",
+  "configParamType": "유형",
+  "configParamDescription": "설명",
+  "configParamRequired": "필수",
+  "configExtractionPrompt": "추가 지침",
+  "configExtractionPromptHint": "선택사항: LLM 추출을 위한 추가 안내",
+  "paramCount": "{count}개 매개변수"
 }

@@ -280,8 +280,12 @@ function NodeConfigFields({ nodeType, data, updateField, otherNodes }: NodeConfi
       return <CodeExecutionConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "iterator":
       return <IteratorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
+    case "loop":
+      return <LoopConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "variableAggregator":
       return <VariableAggregatorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
+    case "parameterExtractor":
+      return <ParameterExtractorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     default:
       return <p className="text-xs text-muted-foreground">No configuration available</p>
   }
@@ -1424,6 +1428,184 @@ function VariableAggregatorConfig({ data, updateField, t, otherNodes }: ConfigPr
           otherNodes={otherNodes}
           onInsert={(ref) => updateField("variables", [...variables, ref])}
           t={t}
+        />
+      </div>
+    </div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LoopConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  return (
+    <div className="space-y-3">
+      {/* Condition */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configLoopCondition")}</label>
+        <Input
+          className="h-7 text-xs font-mono"
+          placeholder="loop_index < 10"
+          value={(data.condition ?? "") as string}
+          onChange={(e) => updateField("condition", e.target.value)}
+        />
+        <p className="text-[10px] text-muted-foreground/60">
+          {t("configLoopConditionHint")}
+        </p>
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          onInsert={(ref) => updateField("condition", ((data.condition ?? "") as string) + ref)}
+          t={t}
+        />
+      </div>
+
+      {/* Loop variable name */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configLoopVariable")}</label>
+        <Input
+          className="h-7 text-xs"
+          placeholder="loop_index"
+          value={(data.loop_variable ?? "loop_index") as string}
+          onChange={(e) => updateField("loop_variable", e.target.value)}
+        />
+      </div>
+
+      {/* Max iterations */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configLoopMaxIterations")}</label>
+        <Input
+          type="number"
+          className="h-7 text-xs"
+          value={(data.max_iterations ?? 50) as number}
+          min={1}
+          max={10000}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            if (!isNaN(v) && v > 0) updateField("max_iterations", v)
+          }}
+        />
+        <p className="text-[10px] text-muted-foreground/60">
+          {t("configMaxIterationsHint")}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ParameterExtractorConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  const params = (data.parameters ?? []) as Array<{
+    name: string
+    type: string
+    description: string
+    required?: boolean
+  }>
+
+  const addParam = () => {
+    updateField("parameters", [
+      ...params,
+      { name: "", type: "string", description: "", required: true },
+    ])
+  }
+
+  const removeParam = (index: number) => {
+    updateField("parameters", params.filter((_, i) => i !== index))
+  }
+
+  const updateParam = (index: number, field: string, value: unknown) => {
+    const updated = [...params]
+    updated[index] = { ...updated[index], [field]: value }
+    updateField("parameters", updated)
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Input text */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configInputText")}</label>
+        <Input
+          className="h-7 text-xs font-mono"
+          placeholder={t("configInputTextPlaceholder")}
+          value={(data.input_text ?? "") as string}
+          onChange={(e) => updateField("input_text", e.target.value)}
+        />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          onInsert={(ref) => updateField("input_text", ((data.input_text ?? "") as string) + ref)}
+          t={t}
+        />
+      </div>
+
+      {/* Parameters to extract */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium">{t("configExtractParams")}</label>
+          <Button variant="ghost" size="icon-sm" onClick={addParam} className="h-5 w-5">
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+        {params.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground/60">{t("configAddParam")}</p>
+        ) : (
+          <div className="space-y-2">
+            {params.map((p, i) => (
+              <div key={i} className="rounded-md border border-border/50 p-2 space-y-1.5">
+                <div className="flex items-center gap-1">
+                  <Input
+                    className="h-6 text-xs flex-1"
+                    placeholder={t("configParamName")}
+                    value={p.name}
+                    onChange={(e) => updateParam(i, "name", e.target.value)}
+                  />
+                  <Select
+                    value={p.type}
+                    onValueChange={(v) => updateParam(i, "type", v)}
+                  >
+                    <SelectTrigger className="w-[90px] h-6 text-[10px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["string", "number", "boolean", "array"].map((t2) => (
+                        <SelectItem key={t2} value={t2} className="text-xs">{t2}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => removeParam(i)}
+                    className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                <Input
+                  className="h-6 text-[10px]"
+                  placeholder={t("configParamDescription")}
+                  value={p.description}
+                  onChange={(e) => updateParam(i, "description", e.target.value)}
+                />
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    checked={p.required !== false}
+                    onCheckedChange={(v) => updateParam(i, "required", v)}
+                    className="scale-75 origin-left"
+                  />
+                  <span className="text-[10px] text-muted-foreground">{t("configParamRequired")}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Additional instructions */}
+      <SectionHeader label={t("configSectionPrompt")} />
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configExtractionPrompt")}</label>
+        <Textarea
+          className="text-xs resize-none"
+          rows={3}
+          placeholder={t("configExtractionPromptHint")}
+          value={(data.extraction_prompt ?? "") as string}
+          onChange={(e) => updateField("extraction_prompt", e.target.value)}
         />
       </div>
     </div>

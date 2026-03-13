@@ -32,7 +32,9 @@ const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
   templateTransform: { template: "", output_variable: "template_result" },
   codeExecution: { language: "python", code: "", output_variable: "code_result" },
   iterator: { list_variable: "", iterator_variable: "current_item", index_variable: "current_index", max_iterations: 100 },
+  loop: { condition: "", max_iterations: 50, loop_variable: "loop_index" },
   variableAggregator: { variables: [], mode: "list", separator: "\n" },
+  parameterExtractor: { input_text: "", parameters: [], extraction_prompt: "" },
 }
 
 const nodeTypeOptions: { type: WorkflowNodeType; color: string }[] = [
@@ -47,7 +49,9 @@ const nodeTypeOptions: { type: WorkflowNodeType; color: string }[] = [
   { type: "templateTransform", color: "text-amber-500" },
   { type: "codeExecution", color: "text-emerald-500" },
   { type: "iterator", color: "text-cyan-500" },
+  { type: "loop", color: "text-orange-500" },
   { type: "variableAggregator", color: "text-sky-500" },
+  { type: "parameterExtractor", color: "text-violet-500" },
 ]
 
 export function AddNodeEdge({
