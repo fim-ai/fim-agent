@@ -6,6 +6,7 @@ import {
   EdgeLabelRenderer,
   getSmoothStepPath,
   useReactFlow,
+  useNodesData,
 } from "@xyflow/react"
 import type { EdgeProps, Node } from "@xyflow/react"
 import { Plus, X } from "lucide-react"
@@ -66,6 +67,10 @@ export function AddNodeEdge({
   const [showPicker, setShowPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
 
+  // Subscribe reactively to source node data so edge labels update when
+  // conditions/classes are edited in the config panel
+  const sourceNodeData = useNodesData(source)
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -78,12 +83,10 @@ export function AddNodeEdge({
 
   // Resolve edge label from condition/classifier source nodes
   const edgeLabel = useMemo(() => {
-    if (!sourceHandleId) return null
-    const sourceNode = getNodes().find((n) => n.id === source)
-    if (!sourceNode) return null
+    if (!sourceHandleId || !sourceNodeData) return null
 
-    if (sourceNode.type === "conditionBranch") {
-      const nodeData = sourceNode.data as unknown as ConditionNodeData
+    if (sourceNodeData.type === "conditionBranch") {
+      const nodeData = sourceNodeData.data as unknown as ConditionNodeData
       const conditions = nodeData.conditions ?? []
       // sourceHandle format: "condition-{id}"
       const conditionId = sourceHandleId.replace(/^condition-/, "")
@@ -94,8 +97,8 @@ export function AddNodeEdge({
       return null
     }
 
-    if (sourceNode.type === "questionClassifier") {
-      const nodeData = sourceNode.data as unknown as QuestionClassifierNodeData
+    if (sourceNodeData.type === "questionClassifier") {
+      const nodeData = sourceNodeData.data as unknown as QuestionClassifierNodeData
       const classes = nodeData.classes ?? []
       // sourceHandle format: "class-{id}"
       const classId = sourceHandleId.replace(/^class-/, "")
@@ -105,7 +108,7 @@ export function AddNodeEdge({
     }
 
     return null
-  }, [source, sourceHandleId, getNodes, t])
+  }, [sourceHandleId, sourceNodeData, t])
 
   // Position the label near the source end of the edge (1/4 of the way from source)
   const edgeLabelX = sourceX + (labelX - sourceX) * 0.45
