@@ -274,5 +274,7 @@
   "envVarsKeyEmpty": "键名为必填项",
   "envVarsMenuItem": "环境变量",
   "editorAddDescription": "添加描述...",
-  "editorDescription": "描述"
+  "editorDescription": "描述",
+  "configNote": "备注",
+  "configNotePlaceholder": "添加备注..."
 }

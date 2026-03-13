@@ -10,13 +10,14 @@ import type { KnowledgeRetrievalNodeData, NodeRunStatus } from "@/types/workflow
 
 function KnowledgeRetrievalNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as KnowledgeRetrievalNodeData & { runStatus?: NodeRunStatus; kb_name?: string }
+  const nodeData = data as unknown as KnowledgeRetrievalNodeData & { runStatus?: NodeRunStatus; kb_name?: string; note?: string }
 
   return (
     <BaseWorkflowNode
       nodeType="knowledgeRetrieval"
       icon={<Library className="h-3 w-3 text-teal-500" />}
       title={t("nodeType_knowledgeRetrieval")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

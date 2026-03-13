@@ -274,5 +274,7 @@
   "envVarsKeyEmpty": "Schlüsselname ist erforderlich",
   "envVarsMenuItem": "Umgebungsvariablen",
   "editorAddDescription": "Beschreibung hinzufügen...",
-  "editorDescription": "Beschreibung"
+  "editorDescription": "Beschreibung",
+  "configNote": "Notiz",
+  "configNotePlaceholder": "Notiz hinzufügen..."
 }

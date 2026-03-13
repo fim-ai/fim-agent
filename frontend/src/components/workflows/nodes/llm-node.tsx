@@ -10,13 +10,14 @@ import type { LLMNodeData, NodeRunStatus } from "@/types/workflow"
 
 function LLMNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as LLMNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as LLMNodeData & { runStatus?: NodeRunStatus; note?: string }
 
   return (
     <BaseWorkflowNode
       nodeType="llm"
       icon={<Brain className="h-3 w-3 text-blue-500" />}
       title={t("nodeType_llm")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

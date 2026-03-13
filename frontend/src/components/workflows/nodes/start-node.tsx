@@ -10,7 +10,7 @@ import type { StartNodeData, NodeRunStatus } from "@/types/workflow"
 
 function StartNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as StartNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as StartNodeData & { runStatus?: NodeRunStatus; note?: string }
   const varCount = nodeData.variables?.length ?? 0
 
   return (
@@ -18,6 +18,7 @@ function StartNodeComponent({ data, selected }: NodeProps) {
       nodeType="start"
       icon={<Play className="h-3 w-3 text-green-500" />}
       title={t("nodeType_start")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

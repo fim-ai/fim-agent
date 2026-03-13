@@ -146,6 +146,9 @@
   "historyBack": "Back to list",
   "historyButton": "History",
 
+  "configNote": "Note",
+  "configNotePlaceholder": "Add a note...",
+
   "configVariables": "Variables",
   "configAddVariable": "Add variable",
   "configVariableName": "Variable name",

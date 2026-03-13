@@ -274,5 +274,7 @@
   "envVarsKeyEmpty": "キー名は必須です",
   "envVarsMenuItem": "環境変数",
   "editorAddDescription": "説明を追加...",
-  "editorDescription": "説明"
+  "editorDescription": "説明",
+  "configNote": "メモ",
+  "configNotePlaceholder": "メモを追加..."
 }

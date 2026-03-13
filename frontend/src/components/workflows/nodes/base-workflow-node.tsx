@@ -39,6 +39,7 @@ interface BaseWorkflowNodeProps {
   nodeType: WorkflowNodeType
   icon: React.ReactNode
   title: string
+  note?: string
   selected?: boolean
   runStatus?: NodeRunStatus
   children?: React.ReactNode
@@ -48,6 +49,7 @@ function BaseWorkflowNodeComponent({
   nodeType,
   icon,
   title,
+  note,
   selected,
   runStatus,
   children,
@@ -57,62 +59,71 @@ function BaseWorkflowNodeComponent({
   const showDot = runStatus && runStatus !== "pending"
 
   return (
-    <div
-      className={cn(
-        "relative w-[220px] rounded-md border bg-card shadow-sm transition-all duration-150 overflow-visible",
-        statusStyle ? statusStyle.ring : "",
-        statusStyle?.extra,
-        !statusStyle && "border-border",
-        selected && "outline-2 outline-offset-1 outline-primary",
-      )}
-    >
-      {/* Status dot in top-right corner */}
-      {showDot && (
-        <>
-          <span
-            className={cn(
-              "absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-card z-10",
-              statusDotColor[runStatus],
-            )}
-          />
-          {runStatus === "running" && (
+    <div className="flex flex-col items-start">
+      <div
+        className={cn(
+          "relative w-[220px] rounded-md border bg-card shadow-sm transition-all duration-150 overflow-visible",
+          statusStyle ? statusStyle.ring : "",
+          statusStyle?.extra,
+          !statusStyle && "border-border",
+          selected && "outline-2 outline-offset-1 outline-primary",
+        )}
+      >
+        {/* Status dot in top-right corner */}
+        {showDot && (
+          <>
             <span
               className={cn(
-                "absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-card animate-ping z-10",
+                "absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-card z-10",
                 statusDotColor[runStatus],
               )}
             />
-          )}
-        </>
-      )}
+            {runStatus === "running" && (
+              <span
+                className={cn(
+                  "absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-card animate-ping z-10",
+                  statusDotColor[runStatus],
+                )}
+              />
+            )}
+          </>
+        )}
 
-      <div className="flex flex-row">
-        {/* Left color bar */}
-        <div className={cn("w-1 shrink-0 rounded-l-md", barColor)} />
+        <div className="flex flex-row">
+          {/* Left color bar */}
+          <div className={cn("w-1 shrink-0 rounded-l-md", barColor)} />
 
-        {/* Content area */}
-        <div className="flex-1 min-w-0">
-          {/* Icon + title row */}
-          <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted/60">
-              {icon}
+          {/* Content area */}
+          <div className="flex-1 min-w-0">
+            {/* Icon + title row */}
+            <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted/60">
+                {icon}
+              </div>
+              <span className="text-[11px] font-medium text-card-foreground truncate flex-1">
+                {title}
+              </span>
+              {runStatus && runStatus !== "pending" && (
+                <RunStatusBadge status={runStatus} />
+              )}
             </div>
-            <span className="text-[11px] font-medium text-card-foreground truncate flex-1">
-              {title}
-            </span>
-            {runStatus && runStatus !== "pending" && (
-              <RunStatusBadge status={runStatus} />
+
+            {/* Node-specific content */}
+            {children && (
+              <div className="px-2.5 pb-2 pt-0">
+                {children}
+              </div>
             )}
           </div>
-
-          {/* Node-specific content */}
-          {children && (
-            <div className="px-2.5 pb-2 pt-0">
-              {children}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Note annotation below the node */}
+      {note && (
+        <p className="text-[10px] italic text-muted-foreground max-w-[220px] truncate mt-0.5 px-1">
+          {note}
+        </p>
+      )}
     </div>
   )
 }

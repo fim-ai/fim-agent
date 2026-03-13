@@ -80,6 +80,26 @@ export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }:
           <p className="text-sm font-medium text-foreground">
             {t(`nodeType_${nodeType}` as Parameters<typeof t>[0])}
           </p>
+
+          {/* Note annotation — available for all node types */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">
+              {t("configNote")}
+            </label>
+            <Textarea
+              value={(node.data.note as string) ?? ""}
+              onChange={(e) => updateField("note", e.target.value || undefined)}
+              placeholder={t("configNotePlaceholder")}
+              className="min-h-[32px] h-auto text-xs resize-none"
+              rows={1}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement
+                target.style.height = "auto"
+                target.style.height = `${target.scrollHeight}px`
+              }}
+            />
+          </div>
+
           <NodeConfigFields
             nodeType={nodeType}
             data={node.data as Record<string, unknown>}

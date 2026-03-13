@@ -274,5 +274,7 @@
   "envVarsKeyEmpty": "Le nom de la clé est requis",
   "envVarsMenuItem": "Variables d'environnement",
   "editorAddDescription": "Ajouter une description...",
-  "editorDescription": "Description"
+  "editorDescription": "Description",
+  "configNote": "Remarque",
+  "configNotePlaceholder": "Ajouter une remarque..."
 }

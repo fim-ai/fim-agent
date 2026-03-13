@@ -10,13 +10,14 @@ import type { ConnectorNodeData, NodeRunStatus } from "@/types/workflow"
 
 function ConnectorNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as ConnectorNodeData & { runStatus?: NodeRunStatus; connector_name?: string }
+  const nodeData = data as unknown as ConnectorNodeData & { runStatus?: NodeRunStatus; connector_name?: string; note?: string }
 
   return (
     <BaseWorkflowNode
       nodeType="connector"
       icon={<Plug className="h-3 w-3 text-purple-500" />}
       title={t("nodeType_connector")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

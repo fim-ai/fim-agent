@@ -10,7 +10,7 @@ import type { QuestionClassifierNodeData, NodeRunStatus } from "@/types/workflow
 
 function QuestionClassifierNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as QuestionClassifierNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as QuestionClassifierNodeData & { runStatus?: NodeRunStatus; note?: string }
   const classes = nodeData.classes ?? []
 
   // Calculate vertical spacing for stacked source handles on the right
@@ -22,6 +22,7 @@ function QuestionClassifierNodeComponent({ data, selected }: NodeProps) {
       nodeType="questionClassifier"
       icon={<MessageSquareMore className="h-3 w-3 text-teal-500" />}
       title={t("nodeType_questionClassifier")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

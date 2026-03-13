@@ -10,13 +10,14 @@ import type { CodeExecutionNodeData, NodeRunStatus } from "@/types/workflow"
 
 function CodeExecutionNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as CodeExecutionNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as CodeExecutionNodeData & { runStatus?: NodeRunStatus; note?: string }
 
   return (
     <BaseWorkflowNode
       nodeType="codeExecution"
       icon={<Code className="h-3 w-3 text-emerald-500" />}
       title={t("nodeType_codeExecution")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

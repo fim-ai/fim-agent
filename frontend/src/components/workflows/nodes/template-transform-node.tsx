@@ -10,13 +10,14 @@ import type { TemplateTransformNodeData, NodeRunStatus } from "@/types/workflow"
 
 function TemplateTransformNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as TemplateTransformNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as TemplateTransformNodeData & { runStatus?: NodeRunStatus; note?: string }
 
   return (
     <BaseWorkflowNode
       nodeType="templateTransform"
       icon={<FileText className="h-3 w-3 text-amber-500" />}
       title={t("nodeType_templateTransform")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

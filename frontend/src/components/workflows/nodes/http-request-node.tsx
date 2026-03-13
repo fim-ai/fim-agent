@@ -10,13 +10,14 @@ import type { HTTPRequestNodeData, NodeRunStatus } from "@/types/workflow"
 
 function HTTPRequestNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as HTTPRequestNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as HTTPRequestNodeData & { runStatus?: NodeRunStatus; note?: string }
 
   return (
     <BaseWorkflowNode
       nodeType="httpRequest"
       icon={<Globe className="h-3 w-3 text-slate-500" />}
       title={t("nodeType_httpRequest")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >

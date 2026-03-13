@@ -10,7 +10,7 @@ import type { VariableAssignNodeData, NodeRunStatus } from "@/types/workflow"
 
 function VariableAssignNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as VariableAssignNodeData & { runStatus?: NodeRunStatus }
+  const nodeData = data as unknown as VariableAssignNodeData & { runStatus?: NodeRunStatus; note?: string }
   const count = nodeData.assignments?.length ?? 0
 
   return (
@@ -18,6 +18,7 @@ function VariableAssignNodeComponent({ data, selected }: NodeProps) {
       nodeType="variableAssign"
       icon={<Variable className="h-3 w-3 text-gray-500" />}
       title={t("nodeType_variableAssign")}
+      note={nodeData.note}
       selected={selected}
       runStatus={nodeData.runStatus}
     >
