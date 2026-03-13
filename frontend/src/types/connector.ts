@@ -70,6 +70,10 @@ export interface ConnectorResponse {
   user_id: string // connector owner id
   has_default_credentials: boolean
   allow_fallback: boolean
+  publish_status: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
   actions: ConnectorActionResponse[]
   created_at: string
   updated_at: string | null

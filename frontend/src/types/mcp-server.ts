@@ -11,6 +11,10 @@ export interface MCPServerResponse {
   headers: Record<string, string> | null
   is_active: boolean
   tool_count: number
+  publish_status: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
   created_at: string
   updated_at: string | null
 }

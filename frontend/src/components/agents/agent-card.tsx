@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, MoreHorizontal, Pencil, Trash2, Globe, GlobeLock, MessageSquare } from "lucide-react"
+import { Bot, MoreHorizontal, Pencil, Trash2, Globe, GlobeLock, MessageSquare, RotateCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { AgentResponse } from "@/types/agent"
 
 interface AgentCardProps {
@@ -20,6 +26,7 @@ interface AgentCardProps {
   onDelete: (id: string) => void
   onPublish: (id: string) => void
   onUnpublish: (id: string) => void
+  onResubmit?: (id: string) => void
 }
 
 export function AgentCard({
@@ -27,8 +34,10 @@ export function AgentCard({
   onDelete,
   onPublish,
   onUnpublish,
+  onResubmit,
 }: AgentCardProps) {
   const t = useTranslations("agents")
+  const to = useTranslations("organizations")
   const tc = useTranslations("common")
   const isPublished = agent.status === "published"
   const isGlobal = agent.is_global === true
@@ -67,6 +76,12 @@ export function AgentCard({
                 {isPublished ? <GlobeLock className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
                 {isPublished ? tc("unpublish") : tc("publish")}
               </DropdownMenuItem>
+              {agent.publish_status === "rejected" && onResubmit && (
+                <DropdownMenuItem onClick={() => onResubmit(agent.id)}>
+                  <RotateCw className="h-4 w-4" />
+                  {to("resubmit")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(agent.id)}>
                 <Trash2 className="h-4 w-4" />
@@ -77,8 +92,8 @@ export function AgentCard({
         )}
       </div>
 
-      {/* Status badge */}
-      <div className="flex items-center gap-1.5 mb-2">
+      {/* Status badges */}
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
         {isGlobal && (
           <Badge
             variant="secondary"
@@ -100,6 +115,43 @@ export function AgentCard({
             {isPublished ? tc("published") : tc("draft")}
           </Badge>
         )}
+
+        {/* Publish review status badges */}
+        {agent.publish_status === "pending_review" && (
+          <Badge
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 h-5 border-amber-400 text-amber-600 dark:text-amber-400"
+          >
+            {to("publishStatusPending")}
+          </Badge>
+        )}
+        {agent.publish_status === "approved" && (
+          <Badge
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 h-5 border-emerald-400 text-emerald-600 dark:text-emerald-400"
+          >
+            {to("publishStatusApproved")}
+          </Badge>
+        )}
+        {agent.publish_status === "rejected" && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-5 border-destructive text-destructive cursor-default"
+                >
+                  {to("publishStatusRejected")}
+                </Badge>
+              </TooltipTrigger>
+              {agent.review_note && (
+                <TooltipContent>
+                  <p>{to("rejectedNote", { note: agent.review_note })}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Description */}
@@ -107,7 +159,7 @@ export function AgentCard({
         {agent.description || t("noDescription")}
       </p>
 
-      {/* Start Chat CTA — when published or global */}
+      {/* Start Chat CTA -- when published or global */}
       {(isPublished || isGlobal) && (
         <Button
           variant="outline"
