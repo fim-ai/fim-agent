@@ -59,6 +59,30 @@ def _ms_since(start: float) -> int:
     return int((time.time() - start) * 1000)
 
 
+def _flatten_eval_names(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Build a flattened namespace for ``simpleeval`` from a dotted-key snapshot.
+
+    Given ``{"input.score": 80, "start_1.name": "A"}``, produces::
+
+        {"input_score": 80, "score": 80, "input.score": 80,
+         "start_1_name": "A", "name": "A", "start_1.name": "A"}
+
+    Short names (last segment) are added only if not already present to avoid
+    overwriting more specific keys.
+    """
+    names: dict[str, Any] = {}
+    for key, val in snapshot.items():
+        # Underscore-joined alias: "input.score" → "input_score"
+        names[key.replace(".", "_")] = val
+        # Short alias: "input.score" → "score"
+        short = key.rsplit(".", 1)[-1] if "." in key else key
+        if short not in names:
+            names[short] = val
+        # Full dotted key (for explicit references)
+        names[key] = val
+    return names
+
+
 # ---------------------------------------------------------------------------
 # 1. Start node
 # ---------------------------------------------------------------------------
@@ -278,8 +302,7 @@ class ConditionBranchExecutor:
             default_handle = node.data.get("default_handle", "source-default")
 
             snapshot = await store.snapshot_safe()
-            # Build evaluation namespace — flatten for simple access
-            eval_names = dict(snapshot)
+            eval_names = _flatten_eval_names(snapshot)
             mode = node.data.get("mode", "expression")
 
             active_handle: str | None = None
@@ -889,7 +912,7 @@ class VariableAssignExecutor:
             from simpleeval import simple_eval
 
             assignments = node.data.get("assignments", [])
-            snapshot = await store.snapshot_safe()
+            snapshot = _flatten_eval_names(await store.snapshot_safe())
 
             results: dict[str, Any] = {}
             for assignment in assignments:
