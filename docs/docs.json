@@ -201,6 +201,390 @@
           }
         ],
         "language": "zh"
+      },
+      {
+        "tabs": [
+          {
+            "tab": "ガイド",
+            "groups": [
+              {
+                "group": "はじめに",
+                "icon": "rocket",
+                "pages": [
+                  "ja/index",
+                  "ja/quickstart"
+                ]
+              },
+              {
+                "group": "設定",
+                "icon": "gear",
+                "pages": [
+                  "ja/configuration/environment-variables",
+                  "ja/configuration/database",
+                  "ja/configuration/models",
+                  "ja/configuration/oauth-providers"
+                ]
+              },
+              {
+                "group": "機能",
+                "icon": "puzzle-piece",
+                "pages": [
+                  "ja/concepts/execution-modes",
+                  "ja/concepts/ai-builder",
+                  "ja/concepts/eval-center"
+                ]
+              },
+              {
+                "group": "FIM One の拡張",
+                "icon": "plug",
+                "pages": [
+                  "ja/extension-guide"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "コンセプト",
+            "groups": [
+              {
+                "group": "アーキテクチャ",
+                "icon": "sitemap",
+                "pages": [
+                  "ja/architecture/system-overview",
+                  "ja/architecture/philosophy",
+                  "ja/architecture/context-management",
+                  "ja/architecture/connector-architecture",
+                  "ja/architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "実行エンジン",
+                "icon": "gears",
+                "pages": [
+                  "ja/architecture/react-engine",
+                  "ja/architecture/dag-engine",
+                  "ja/architecture/llm-provider-guide"
+                ]
+              },
+              {
+                "group": "戦略",
+                "icon": "chess",
+                "pages": [
+                  "ja/strategy/competitive-landscape",
+                  "ja/strategy/orthogonality-strategy"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "更新情報",
+            "groups": [
+              {
+                "group": "ロードマップ",
+                "icon": "map",
+                "pages": [
+                  "ja/roadmap"
+                ]
+              },
+              {
+                "group": "変更履歴",
+                "icon": "clock-rotate-left",
+                "pages": [
+                  "ja/changelog"
+                ]
+              }
+            ]
+          }
+        ],
+        "language": "ja"
+      },
+      {
+        "tabs": [
+          {
+            "tab": "가이드",
+            "groups": [
+              {
+                "group": "시작하기",
+                "icon": "rocket",
+                "pages": [
+                  "ko/index",
+                  "ko/quickstart"
+                ]
+              },
+              {
+                "group": "구성",
+                "icon": "gear",
+                "pages": [
+                  "ko/configuration/environment-variables",
+                  "ko/configuration/database",
+                  "ko/configuration/models",
+                  "ko/configuration/oauth-providers"
+                ]
+              },
+              {
+                "group": "기능",
+                "icon": "puzzle-piece",
+                "pages": [
+                  "ko/concepts/execution-modes",
+                  "ko/concepts/ai-builder",
+                  "ko/concepts/eval-center"
+                ]
+              },
+              {
+                "group": "FIM One 확장",
+                "icon": "plug",
+                "pages": [
+                  "ko/extension-guide"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "개념",
+            "groups": [
+              {
+                "group": "아키텍처",
+                "icon": "sitemap",
+                "pages": [
+                  "ko/architecture/system-overview",
+                  "ko/architecture/philosophy",
+                  "ko/architecture/context-management",
+                  "ko/architecture/connector-architecture",
+                  "ko/architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "실행 엔진",
+                "icon": "gears",
+                "pages": [
+                  "ko/architecture/react-engine",
+                  "ko/architecture/dag-engine",
+                  "ko/architecture/llm-provider-guide"
+                ]
+              },
+              {
+                "group": "전략",
+                "icon": "chess",
+                "pages": [
+                  "ko/strategy/competitive-landscape",
+                  "ko/strategy/orthogonality-strategy"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "업데이트",
+            "groups": [
+              {
+                "group": "로드맵",
+                "icon": "map",
+                "pages": [
+                  "ko/roadmap"
+                ]
+              },
+              {
+                "group": "변경 이력",
+                "icon": "clock-rotate-left",
+                "pages": [
+                  "ko/changelog"
+                ]
+              }
+            ]
+          }
+        ],
+        "language": "ko"
+      },
+      {
+        "tabs": [
+          {
+            "tab": "Leitfäden",
+            "groups": [
+              {
+                "group": "Erste Schritte",
+                "icon": "rocket",
+                "pages": [
+                  "de/index",
+                  "de/quickstart"
+                ]
+              },
+              {
+                "group": "Konfiguration",
+                "icon": "gear",
+                "pages": [
+                  "de/configuration/environment-variables",
+                  "de/configuration/database",
+                  "de/configuration/models",
+                  "de/configuration/oauth-providers"
+                ]
+              },
+              {
+                "group": "Funktionen",
+                "icon": "puzzle-piece",
+                "pages": [
+                  "de/concepts/execution-modes",
+                  "de/concepts/ai-builder",
+                  "de/concepts/eval-center"
+                ]
+              },
+              {
+                "group": "FIM One erweitern",
+                "icon": "plug",
+                "pages": [
+                  "de/extension-guide"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Konzepte",
+            "groups": [
+              {
+                "group": "Architektur",
+                "icon": "sitemap",
+                "pages": [
+                  "de/architecture/system-overview",
+                  "de/architecture/philosophy",
+                  "de/architecture/context-management",
+                  "de/architecture/connector-architecture",
+                  "de/architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "Ausführungsmaschinen",
+                "icon": "gears",
+                "pages": [
+                  "de/architecture/react-engine",
+                  "de/architecture/dag-engine",
+                  "de/architecture/llm-provider-guide"
+                ]
+              },
+              {
+                "group": "Strategie",
+                "icon": "chess",
+                "pages": [
+                  "de/strategy/competitive-landscape",
+                  "de/strategy/orthogonality-strategy"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Aktualisierungen",
+            "groups": [
+              {
+                "group": "Roadmap",
+                "icon": "map",
+                "pages": [
+                  "de/roadmap"
+                ]
+              },
+              {
+                "group": "Änderungsprotokoll",
+                "icon": "clock-rotate-left",
+                "pages": [
+                  "de/changelog"
+                ]
+              }
+            ]
+          }
+        ],
+        "language": "de"
+      },
+      {
+        "tabs": [
+          {
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Démarrage rapide",
+                "icon": "rocket",
+                "pages": [
+                  "fr/index",
+                  "fr/quickstart"
+                ]
+              },
+              {
+                "group": "Configuration",
+                "icon": "gear",
+                "pages": [
+                  "fr/configuration/environment-variables",
+                  "fr/configuration/database",
+                  "fr/configuration/models",
+                  "fr/configuration/oauth-providers"
+                ]
+              },
+              {
+                "group": "Fonctionnalités",
+                "icon": "puzzle-piece",
+                "pages": [
+                  "fr/concepts/execution-modes",
+                  "fr/concepts/ai-builder",
+                  "fr/concepts/eval-center"
+                ]
+              },
+              {
+                "group": "Extension de FIM One",
+                "icon": "plug",
+                "pages": [
+                  "fr/extension-guide"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Concepts",
+            "groups": [
+              {
+                "group": "Architecture",
+                "icon": "sitemap",
+                "pages": [
+                  "fr/architecture/system-overview",
+                  "fr/architecture/philosophy",
+                  "fr/architecture/context-management",
+                  "fr/architecture/connector-architecture",
+                  "fr/architecture/planning-landscape"
+                ]
+              },
+              {
+                "group": "Moteurs d'exécution",
+                "icon": "gears",
+                "pages": [
+                  "fr/architecture/react-engine",
+                  "fr/architecture/dag-engine",
+                  "fr/architecture/llm-provider-guide"
+                ]
+              },
+              {
+                "group": "Stratégie",
+                "icon": "chess",
+                "pages": [
+                  "fr/strategy/competitive-landscape",
+                  "fr/strategy/orthogonality-strategy"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Mises à jour",
+            "groups": [
+              {
+                "group": "Feuille de route",
+                "icon": "map",
+                "pages": [
+                  "fr/roadmap"
+                ]
+              },
+              {
+                "group": "Journal des modifications",
+                "icon": "clock-rotate-left",
+                "pages": [
+                  "fr/changelog"
+                ]
+              }
+            ]
+          }
+        ],
+        "language": "fr"
       }
     ]
   },

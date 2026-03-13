@@ -89,6 +89,7 @@ All UI text must use `next-intl` — **never hardcode English strings**. Use `us
 **Adding a new locale — full-stack checklist:**
 - Frontend: add to `SUPPORTED_LOCALES` in `frontend/src/i18n/request.ts`
 - Backend: update ALL locale regex patterns in `src/fim_one/web/schemas/auth.py` — includes `preferred_language` (`UpdateProfileRequest`) and `locale` (`SendVerificationCodeRequest`, `SendLoginCodeRequest`, `SendResetCodeRequest`, `SendForgotCodeRequest`). Missing this causes silent 400 rejections and locale won't persist after refresh.
+- Docs: add a full `navigation.languages[]` entry in `docs/docs.json` — copy an existing locale block, update `"language"`, translate tab/group names, and prefix all page paths with `{locale}/`. Missing this means the locale won't appear in Mintlify's language switcher even if translated files exist.
 
 ## Alembic Migration Rules (MANDATORY — SQLite/PG dual-track)
 
