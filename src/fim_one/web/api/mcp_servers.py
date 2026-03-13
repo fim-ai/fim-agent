@@ -220,9 +220,13 @@ async def update_mcp_server(
     for field, value in update_data.items():
         setattr(server, field, value)
 
-    from fim_one.web.publish_review import check_edit_revert
+    content_changed = bool(update_data.keys() - {"is_active"})
+    if content_changed:
+        from fim_one.web.publish_review import check_edit_revert
 
-    reverted = await check_edit_revert(server, db)
+        reverted = await check_edit_revert(server, db)
+    else:
+        reverted = False
 
     await db.commit()
 
@@ -307,7 +311,18 @@ async def publish_mcp_server(
         server.visibility = "org"
         server.org_id = body.org_id
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(server, body.org_id, db)
+        await apply_publish_status(server, body.org_id, db, resource_type="mcp_server")
+
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=body.org_id,
+            resource_type="mcp_server",
+            resource_id=server.id,
+            resource_name=server.name,
+            action="submitted",
+            actor=current_user,
+        )
     elif body.scope == "global":
         if not current_user.is_admin:
             raise AppError("admin_required_for_global", status_code=403)
@@ -337,6 +352,19 @@ async def resubmit_mcp_server(
     server.reviewed_by = None
     server.reviewed_at = None
     server.review_note = None
+
+    if server.org_id:
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=server.org_id,
+            resource_type="mcp_server",
+            resource_id=server.id,
+            resource_name=server.name,
+            action="resubmitted",
+            actor=current_user,
+        )
+
     await db.commit()
     await db.refresh(server)
     return ApiResponse(data=_to_response(server).model_dump())
@@ -369,8 +397,22 @@ async def unpublish_mcp_server(
     if not (is_owner or is_admin or is_org_admin):
         raise AppError("unpublish_denied", status_code=403)
 
+    # Log BEFORE clearing org_id
+    if getattr(server, "org_id", None):
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=server.org_id,
+            resource_type="mcp_server",
+            resource_id=server.id,
+            resource_name=server.name,
+            action="unpublished",
+            actor=current_user,
+        )
+
     server.visibility = "personal"
     server.org_id = None
+    server.publish_status = None
 
     await db.commit()
     await db.refresh(server)

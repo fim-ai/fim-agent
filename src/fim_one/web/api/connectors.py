@@ -162,6 +162,7 @@ def _connector_to_response(
         is_official=connector.is_official,
         forked_from=connector.forked_from,
         version=connector.version,
+        is_active=getattr(connector, "is_active", True),
         visibility=getattr(connector, "visibility", "personal"),
         org_id=getattr(connector, "org_id", None),
         allow_fallback=getattr(connector, "allow_fallback", True),
@@ -396,9 +397,13 @@ async def update_connector(
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(connector, "auth_config")
 
-    from fim_one.web.publish_review import check_edit_revert
+    content_changed = bool(update_data.keys() - {"is_active"})
+    if content_changed:
+        from fim_one.web.publish_review import check_edit_revert
 
-    reverted = await check_edit_revert(connector, db)
+        reverted = await check_edit_revert(connector, db)
+    else:
+        reverted = False
 
     await db.commit()
 
@@ -447,6 +452,19 @@ async def resubmit_connector(
     connector.reviewed_by = None
     connector.reviewed_at = None
     connector.review_note = None
+
+    if connector.org_id:
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=connector.org_id,
+            resource_type="connector",
+            resource_id=connector.id,
+            resource_name=connector.name,
+            action="resubmitted",
+            actor=current_user,
+        )
+
     await db.commit()
     await db.refresh(connector)
 
@@ -582,7 +600,18 @@ async def publish_connector(
         connector.visibility = "org"
         connector.org_id = body.org_id
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(connector, body.org_id, db)
+        await apply_publish_status(connector, body.org_id, db, resource_type="connector")
+
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=body.org_id,
+            resource_type="connector",
+            resource_id=connector.id,
+            resource_name=connector.name,
+            action="submitted",
+            actor=current_user,
+        )
     elif body.scope == "global":
         if not current_user.is_admin:
             raise AppError("admin_required_for_global", status_code=403)
@@ -635,8 +664,22 @@ async def unpublish_connector(
     if not (is_owner or is_admin or is_org_admin):
         raise AppError("unpublish_denied", status_code=403)
 
+    # Log BEFORE clearing org_id
+    if getattr(connector, "org_id", None):
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=connector.org_id,
+            resource_type="connector",
+            resource_id=connector.id,
+            resource_name=connector.name,
+            action="unpublished",
+            actor=current_user,
+        )
+
     connector.visibility = "personal"
     connector.org_id = None
+    connector.publish_status = None
 
     await db.commit()
     await db.refresh(connector)
@@ -906,6 +949,6 @@ async def toggle_connector(
     if connector.user_id != current_user.id:
         raise AppError("permission_denied", status_code=403)
 
-    connector.status = "suspended" if connector.status == "published" else "published"
+    connector.is_active = not connector.is_active
     await db.commit()
-    return ApiResponse(data={"id": connector_id, "status": connector.status})
+    return ApiResponse(data={"id": connector_id, "is_active": connector.is_active})

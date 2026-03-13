@@ -42,6 +42,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         published_at=(
             agent.published_at.isoformat() if agent.published_at else None
         ),
+        is_active=agent.is_active,
         is_builder=agent.is_builder,
         discoverable=agent.discoverable,
         sub_agent_ids=agent.sub_agent_ids,
@@ -232,9 +233,13 @@ async def update_agent(
     for field, value in update_data.items():
         setattr(agent, field, value)
 
-    from fim_one.web.publish_review import check_edit_revert
+    content_changed = bool(update_data.keys() - {"is_active"})
+    if content_changed:
+        from fim_one.web.publish_review import check_edit_revert
 
-    reverted = await check_edit_revert(agent, db)
+        reverted = await check_edit_revert(agent, db)
+    else:
+        reverted = False
 
     await db.commit()
     result = await db.execute(select(Agent).where(Agent.id == agent.id))
@@ -275,7 +280,7 @@ async def publish_agent(
         agent.visibility = "org"
         agent.org_id = body.org_id
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(agent, body.org_id, db)
+        await apply_publish_status(agent, body.org_id, db, resource_type="agent")
     elif body.scope == "global":
         if not current_user.is_admin:
             raise AppError("admin_required_for_global", status_code=403)
@@ -285,8 +290,20 @@ async def publish_agent(
     else:
         raise AppError("invalid_scope", status_code=400)
 
-    agent.status = "published"
     agent.published_at = datetime.now(UTC)
+
+    # Audit log: submitted (org scope only — org_id is set at this point)
+    if body.scope == "org" and body.org_id:
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=body.org_id,
+            resource_type="agent",
+            resource_id=agent.id,
+            resource_name=agent.name,
+            action="submitted",
+            actor=current_user,
+        )
 
     # Check referenced resources and warn about private dependencies
     warnings: list[str] = []
@@ -334,6 +351,19 @@ async def resubmit_agent(
     agent.reviewed_by = None
     agent.reviewed_at = None
     agent.review_note = None
+
+    if agent.org_id:
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=agent.org_id,
+            resource_type="agent",
+            resource_id=agent.id,
+            resource_name=agent.name,
+            action="resubmitted",
+            actor=current_user,
+        )
+
     await db.commit()
     await db.refresh(agent)
     return ApiResponse(data=_agent_to_response(agent).model_dump())
@@ -366,10 +396,23 @@ async def unpublish_agent(
     if not (is_owner or is_admin or is_org_admin):
         raise AppError("unpublish_denied", status_code=403)
 
+    # Log BEFORE clearing org_id so we capture which org it was unpublished from
+    if agent.org_id:
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=agent.org_id,
+            resource_type="agent",
+            resource_id=agent.id,
+            resource_name=agent.name,
+            action="unpublished",
+            actor=current_user,
+        )
+
     agent.visibility = "personal"
     agent.org_id = None
-    agent.status = "draft"
     agent.published_at = None
+    agent.publish_status = None
 
     await db.commit()
     await db.refresh(agent)

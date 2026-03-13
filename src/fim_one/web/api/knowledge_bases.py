@@ -63,6 +63,7 @@ def _kb_to_response(kb: KnowledgeBase) -> KBResponse:
         document_count=kb.document_count,
         total_chunks=kb.total_chunks,
         status=kb.status,
+        is_active=getattr(kb, "is_active", True),
         visibility=getattr(kb, "visibility", "personal"),
         org_id=getattr(kb, "org_id", None),
         publish_status=getattr(kb, "publish_status", None),
@@ -188,9 +189,13 @@ async def update_kb(
     for field, value in update_data.items():
         setattr(kb, field, value)
 
-    from fim_one.web.publish_review import check_edit_revert
+    content_changed = bool(update_data.keys() - {"is_active"})
+    if content_changed:
+        from fim_one.web.publish_review import check_edit_revert
 
-    reverted = await check_edit_revert(kb, db)
+        reverted = await check_edit_revert(kb, db)
+    else:
+        reverted = False
 
     await db.commit()
     result = await db.execute(
@@ -258,7 +263,18 @@ async def publish_kb(
         kb.visibility = "org"
         kb.org_id = body.org_id
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(kb, body.org_id, db)
+        await apply_publish_status(kb, body.org_id, db, resource_type="knowledge_base")
+
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=body.org_id,
+            resource_type="knowledge_base",
+            resource_id=kb.id,
+            resource_name=kb.name,
+            action="submitted",
+            actor=current_user,
+        )
     elif body.scope == "global":
         if not current_user.is_admin:
             raise AppError("admin_required_for_global", status_code=403)
@@ -286,6 +302,19 @@ async def resubmit_kb(
     kb.reviewed_by = None
     kb.reviewed_at = None
     kb.review_note = None
+
+    if kb.org_id:
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=kb.org_id,
+            resource_type="knowledge_base",
+            resource_id=kb.id,
+            resource_name=kb.name,
+            action="resubmitted",
+            actor=current_user,
+        )
+
     await db.commit()
     await db.refresh(kb)
     return ApiResponse(data=_kb_to_response(kb).model_dump())
@@ -320,8 +349,22 @@ async def unpublish_kb(
     if not (is_owner or is_admin or is_org_admin):
         raise AppError("unpublish_denied", status_code=403)
 
+    # Log BEFORE clearing org_id
+    if getattr(kb, "org_id", None):
+        from fim_one.web.api.reviews import log_review_event
+        await log_review_event(
+            db=db,
+            org_id=kb.org_id,
+            resource_type="knowledge_base",
+            resource_id=kb.id,
+            resource_name=kb.name,
+            action="unpublished",
+            actor=current_user,
+        )
+
     kb.visibility = "personal"
     kb.org_id = None
+    kb.publish_status = None
 
     await db.commit()
     await db.refresh(kb)
@@ -1277,6 +1320,6 @@ async def toggle_knowledge_base(
     if kb.user_id != current_user.id:
         raise AppError("permission_denied", status_code=403)
 
-    kb.status = "suspended" if kb.status == "active" else "active"
+    kb.is_active = not kb.is_active
     await db.commit()
-    return ApiResponse(data={"id": kb_id, "status": kb.status})
+    return ApiResponse(data={"id": kb_id, "is_active": kb.is_active})
