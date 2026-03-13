@@ -590,6 +590,157 @@ _AGENT_WITH_KB: dict[str, Any] = {
 
 
 # ---------------------------------------------------------------------------
+# Template 7 — List Processing with Transform
+# ---------------------------------------------------------------------------
+
+_LIST_TRANSFORM_PIPELINE: dict[str, Any] = {
+    "id": "list-transform-pipeline",
+    "name": "List Processing Pipeline",
+    "description": "Filter and transform a list of items, then format the output",
+    "icon": "ListFilter",
+    "category": "data",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "variables": [
+                        {"name": "items", "type": "string", "required": True,
+                         "description": "JSON array of items to process"},
+                    ],
+                },
+                x=0,
+                y=200,
+            ),
+            _node(
+                "filter_1",
+                "LIST_OPERATION",
+                {
+                    "label": "Filter Items",
+                    "input_variable": "{{input.items}}",
+                    "operation": "filter",
+                    "expression": "item is not None",
+                    "output_variable": "filtered",
+                },
+                x=300,
+                y=200,
+            ),
+            _node(
+                "transform_1",
+                "TRANSFORM",
+                {
+                    "label": "Transform Data",
+                    "input_variable": "{{filter_1.filtered}}",
+                    "operations": [
+                        {"type": "type_cast", "config": {"target_type": "json"}},
+                        {"type": "format", "config": {"template": "Processed {value}"}},
+                    ],
+                    "output_variable": "transformed",
+                },
+                x=600,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_mapping": {
+                        "result": "{{transform_1.transformed}}",
+                    },
+                },
+                x=900,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-filter", "start_1", "filter_1"),
+            _edge("e-filter-transform", "filter_1", "transform_1"),
+            _edge("e-transform-end", "transform_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Template 8 — Question Understanding + LLM
+# ---------------------------------------------------------------------------
+
+_QUESTION_ENHANCED_QA: dict[str, Any] = {
+    "id": "question-enhanced-qa",
+    "name": "Enhanced Question Answering",
+    "description": "Preprocess user questions for clarity, then answer with an LLM",
+    "icon": "MessageCircleQuestion",
+    "category": "ai",
+    "blueprint": {
+        "nodes": [
+            _node(
+                "start_1",
+                "START",
+                {
+                    "label": "Start",
+                    "variables": [
+                        {"name": "question", "type": "string", "required": True,
+                         "description": "User question (may be messy or unclear)"},
+                    ],
+                },
+                x=0,
+                y=200,
+            ),
+            _node(
+                "qu_1",
+                "QUESTION_UNDERSTANDING",
+                {
+                    "label": "Clarify Question",
+                    "input_variable": "{{input.question}}",
+                    "mode": "rewrite",
+                    "output_variable": "clear_question",
+                },
+                x=300,
+                y=200,
+            ),
+            _node(
+                "llm_1",
+                "LLM",
+                {
+                    "label": "Answer",
+                    "prompt_template": (
+                        "Answer the following question thoroughly and accurately.\n\n"
+                        "Question: {{qu_1.clear_question}}"
+                    ),
+                    "model": "",
+                },
+                x=600,
+                y=200,
+            ),
+            _node(
+                "end_1",
+                "END",
+                {
+                    "label": "End",
+                    "output_mapping": {
+                        "answer": "{{llm_1.output}}",
+                        "original_question": "{{input.question}}",
+                        "clarified_question": "{{qu_1.clear_question}}",
+                    },
+                },
+                x=900,
+                y=200,
+            ),
+        ],
+        "edges": [
+            _edge("e-start-qu", "start_1", "qu_1"),
+            _edge("e-qu-llm", "qu_1", "llm_1"),
+            _edge("e-llm-end", "llm_1", "end_1"),
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -600,6 +751,8 @@ WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
     _HTTP_PIPELINE,
     _DATA_PIPELINE,
     _AGENT_WITH_KB,
+    _LIST_TRANSFORM_PIPELINE,
+    _QUESTION_ENHANCED_QA,
 ]
 
 _TEMPLATES_BY_ID: dict[str, dict[str, Any]] = {t["id"]: t for t in WORKFLOW_TEMPLATES}
