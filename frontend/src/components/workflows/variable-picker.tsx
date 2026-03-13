@@ -15,6 +15,8 @@ import {
   Variable,
   FileText,
   Code,
+  Repeat,
+  Combine,
   Braces,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -46,6 +48,8 @@ const nodeTypeIcons: Record<WorkflowNodeType, React.ReactNode> = {
   variableAssign: <Variable className="h-3 w-3" />,
   templateTransform: <FileText className="h-3 w-3" />,
   codeExecution: <Code className="h-3 w-3" />,
+  iterator: <Repeat className="h-3 w-3" />,
+  variableAggregator: <Combine className="h-3 w-3" />,
 }
 
 const nodeTypeColors: Record<WorkflowNodeType, string> = {
@@ -61,6 +65,8 @@ const nodeTypeColors: Record<WorkflowNodeType, string> = {
   variableAssign: "text-gray-500",
   templateTransform: "text-amber-500",
   codeExecution: "text-emerald-500",
+  iterator: "text-cyan-500",
+  variableAggregator: "text-sky-500",
 }
 
 // --- Helper: extract output variables from a node ---

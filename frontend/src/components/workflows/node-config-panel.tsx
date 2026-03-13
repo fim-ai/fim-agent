@@ -278,6 +278,10 @@ function NodeConfigFields({ nodeType, data, updateField, otherNodes }: NodeConfi
       return <TemplateTransformConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     case "codeExecution":
       return <CodeExecutionConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
+    case "iterator":
+      return <IteratorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
+    case "variableAggregator":
+      return <VariableAggregatorConfig data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
     default:
       return <p className="text-xs text-muted-foreground">No configuration available</p>
   }
@@ -1261,6 +1265,167 @@ function CodeExecutionConfig({ data, updateField, t, otherNodes }: ConfigProps) 
       </div>
 
       <OutputVariableField data={data} updateField={updateField} t={t} otherNodes={otherNodes} />
+    </div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function IteratorConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  return (
+    <div className="space-y-3">
+      {/* List variable */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configListVariable")}</label>
+        <Input
+          className="h-7 text-xs font-mono"
+          placeholder={t("configListVariablePlaceholder")}
+          value={(data.list_variable ?? "") as string}
+          onChange={(e) => updateField("list_variable", e.target.value)}
+        />
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          onInsert={(ref) => updateField("list_variable", ((data.list_variable ?? "") as string) + ref)}
+          t={t}
+        />
+      </div>
+
+      {/* Iterator variable name */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configIteratorVariable")}</label>
+        <Input
+          className="h-7 text-xs"
+          placeholder="current_item"
+          value={(data.iterator_variable ?? "current_item") as string}
+          onChange={(e) => updateField("iterator_variable", e.target.value)}
+        />
+      </div>
+
+      {/* Index variable name */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configIndexVariable")}</label>
+        <Input
+          className="h-7 text-xs"
+          placeholder="current_index"
+          value={(data.index_variable ?? "current_index") as string}
+          onChange={(e) => updateField("index_variable", e.target.value)}
+        />
+      </div>
+
+      {/* Max iterations */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configMaxIterations")}</label>
+        <Input
+          type="number"
+          className="h-7 text-xs"
+          value={(data.max_iterations ?? 100) as number}
+          min={1}
+          max={10000}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            if (!isNaN(v) && v > 0) updateField("max_iterations", v)
+          }}
+        />
+        <p className="text-[10px] text-muted-foreground/60">
+          {t("configMaxIterationsHint")}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+const AGGREGATE_MODES = ["list", "concat", "merge", "first_non_empty"] as const
+
+function VariableAggregatorConfig({ data, updateField, t, otherNodes }: ConfigProps) {
+  const variables = (data.variables ?? []) as string[]
+  const mode = (data.mode ?? "list") as string
+
+  const addVariable = () => {
+    updateField("variables", [...variables, ""])
+  }
+
+  const removeVariable = (index: number) => {
+    updateField("variables", variables.filter((_, i) => i !== index))
+  }
+
+  const updateVariable = (index: number, value: string) => {
+    const updated = [...variables]
+    updated[index] = value
+    updateField("variables", updated)
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Aggregation mode */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">{t("configAggregateMode")}</label>
+        <Select
+          value={mode}
+          onValueChange={(v) => updateField("mode", v)}
+        >
+          <SelectTrigger className="w-full h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {AGGREGATE_MODES.map((m) => (
+              <SelectItem key={m} value={m} className="text-xs">
+                {t(`configAggregateMode_${m}` as Parameters<typeof t>[0])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Separator (only for concat mode) */}
+      {mode === "concat" && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">{t("configSeparator")}</label>
+          <Input
+            className="h-7 text-xs"
+            placeholder="\n"
+            value={(data.separator ?? "\n") as string}
+            onChange={(e) => updateField("separator", e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Input variables */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium">{t("configInputVariables")}</label>
+          <Button variant="ghost" size="icon-sm" onClick={addVariable} className="h-5 w-5">
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+        {variables.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground/60">{t("variablePickerEmpty")}</p>
+        ) : (
+          <div className="space-y-1.5">
+            {variables.map((v, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <Input
+                  className="h-7 text-xs font-mono flex-1"
+                  placeholder="{{node_id.output}}"
+                  value={v}
+                  onChange={(e) => updateVariable(i, e.target.value)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => removeVariable(i)}
+                  className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+        <InsertVariableBar
+          otherNodes={otherNodes}
+          onInsert={(ref) => updateField("variables", [...variables, ref])}
+          t={t}
+        />
+      </div>
     </div>
   )
 }

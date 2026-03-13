@@ -60,6 +60,8 @@ export type WorkflowNodeType =
   | "variableAssign"
   | "templateTransform"
   | "codeExecution"
+  | "iterator"
+  | "variableAggregator"
 
 // --- Per-node data interfaces ---
 
@@ -150,6 +152,19 @@ export interface CodeExecutionNodeData {
   language: "python" | "javascript"
   code: string
   output_variable: string
+}
+
+export interface IteratorNodeData {
+  list_variable: string
+  iterator_variable: string
+  index_variable: string
+  max_iterations: number
+}
+
+export interface VariableAggregatorNodeData {
+  variables: string[]
+  mode: "list" | "concat" | "merge" | "first_non_empty"
+  separator: string
 }
 
 // --- Create / Update payloads ---

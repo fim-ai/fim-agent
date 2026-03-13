@@ -15,6 +15,8 @@ import {
   Variable,
   FileText,
   Code,
+  Repeat,
+  Combine,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
@@ -57,6 +59,7 @@ const categories: NodePaletteCategory[] = [
     key: "categoryLogic",
     items: [
       { type: "conditionBranch", icon: <GitBranch className="h-3.5 w-3.5" />, color: "text-orange-500" },
+      { type: "iterator", icon: <Repeat className="h-3.5 w-3.5" />, color: "text-cyan-500" },
     ],
   },
   {
@@ -70,6 +73,7 @@ const categories: NodePaletteCategory[] = [
     key: "categoryData",
     items: [
       { type: "variableAssign", icon: <Variable className="h-3.5 w-3.5" />, color: "text-gray-500" },
+      { type: "variableAggregator", icon: <Combine className="h-3.5 w-3.5" />, color: "text-sky-500" },
       { type: "templateTransform", icon: <FileText className="h-3.5 w-3.5" />, color: "text-amber-500" },
       { type: "codeExecution", icon: <Code className="h-3.5 w-3.5" />, color: "text-emerald-500" },
     ],

@@ -59,6 +59,10 @@
   "nodeType_variableAssign": "Variable Assign",
   "nodeType_templateTransform": "Template Transform",
   "nodeType_codeExecution": "Code Execution",
+  "nodeType_iterator": "Iterator",
+  "nodeType_loop": "Loop",
+  "nodeType_variableAggregator": "Variable Aggregator",
+  "nodeType_parameterExtractor": "Parameter Extractor",
 
   "nodeDesc_start": "Entry point with input variables",
   "nodeDesc_end": "Output results and end workflow",
@@ -72,6 +76,10 @@
   "nodeDesc_variableAssign": "Assign values to variables",
   "nodeDesc_templateTransform": "Transform data with a template",
   "nodeDesc_codeExecution": "Run Python or JavaScript code",
+  "nodeDesc_iterator": "Iterate over a list of items",
+  "nodeDesc_loop": "Repeat until a condition is met",
+  "nodeDesc_variableAggregator": "Merge outputs from multiple branches",
+  "nodeDesc_parameterExtractor": "Extract structured parameters from text",
 
   "categoryFlow": "Flow",
   "categoryAI": "AI",
@@ -262,6 +270,8 @@
   "templateUse": "Use Template",
   "templatePreview": "Preview",
   "templateCategory_basic": "Basic",
+  "templateCategory_intermediate": "Intermediate",
+  "templateCategory_advanced": "Advanced",
   "templateCategory_ai": "AI",
   "templateCategory_integration": "Integration",
   "templateCategory_data": "Data",
@@ -277,6 +287,7 @@
   "statsAvgDuration": "Avg Duration",
   "statsLastRun": "Last Run",
   "statsNoRuns": "No runs yet",
+  "statsButton": "Statistics",
 
   "runModeRunning": "Running...",
   "runModeCompleted": "Completed",
@@ -308,5 +319,24 @@
   "envVarsReenterWarning": "Values are encrypted and cannot be retrieved. Saving will overwrite all existing values — re-enter any you want to keep.",
   "envVarsKeyDuplicate": "Duplicate key name",
   "envVarsKeyEmpty": "Key name is required",
-  "envVarsMenuItem": "Environment Variables"
+  "envVarsMenuItem": "Environment Variables",
+
+  "configListVariable": "List variable",
+  "configListVariablePlaceholder": "{{node_id.output}} referencing a list",
+  "configIteratorVariable": "Item variable name",
+  "configIndexVariable": "Index variable name",
+  "configMaxIterations": "Max iterations",
+  "configMaxIterationsHint": "Safety limit to prevent infinite loops",
+  "configAggregateMode": "Aggregation mode",
+  "configAggregateMode_list": "Collect into list",
+  "configAggregateMode_concat": "Concatenate strings",
+  "configAggregateMode_merge": "Merge objects",
+  "configAggregateMode_first_non_empty": "First non-empty value",
+  "configSeparator": "Separator",
+  "configInputVariables": "Input variables",
+  "configAddInputVariable": "Add variable reference",
+
+  "configLoopCondition": "Loop condition",
+  "configLoopMaxIterations": "Max iterations",
+  "configLoopConditionHint": "Expression evaluated each iteration — loop continues while true"
 }
