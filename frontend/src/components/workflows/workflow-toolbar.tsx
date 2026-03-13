@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   BarChart3,
+  Braces,
   CheckCircle2,
   Copy,
   Download,
@@ -92,6 +93,7 @@ interface WorkflowToolbarProps {
   onUnpublish?: () => void
   onResubmit?: () => void
   onEnvVars?: () => void
+  onVariables?: () => void
 }
 
 export function WorkflowToolbar({
@@ -129,6 +131,7 @@ export function WorkflowToolbar({
   onUnpublish,
   onResubmit,
   onEnvVars,
+  onVariables,
 }: WorkflowToolbarProps) {
   const t = useTranslations("workflows")
   const to = useTranslations("organizations")
@@ -484,6 +487,22 @@ export function WorkflowToolbar({
           </TooltipTrigger>
           <TooltipContent>{t("editorAutoLayout")}</TooltipContent>
         </Tooltip>
+
+        {onVariables && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onVariables}
+                aria-label={t("variablesButton")}
+              >
+                <Braces className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t("variablesButton")}</TooltipContent>
+          </Tooltip>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

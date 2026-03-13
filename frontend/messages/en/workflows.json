@@ -515,5 +515,27 @@
   "versionHistoryCurrent": "Current",
   "versionHistoryNoDescription": "No description",
   "versionHistoryVersion": "v{version}",
-  "versionHistoryLoadMore": "Load more"
+  "versionHistoryLoadMore": "Load more",
+
+  "variablesPanelTitle": "Workflow Variables",
+  "variablesPanelDescription": "Define variables that persist across all nodes in this workflow",
+  "variablesPanelEmpty": "No workflow variables defined yet.",
+  "variablesPanelAdd": "Add Variable",
+  "variablesPanelName": "Name",
+  "variablesPanelNamePlaceholder": "variable_name",
+  "variablesPanelType": "Type",
+  "variablesPanelDefaultValue": "Default",
+  "variablesPanelDefaultPlaceholder": "Default value",
+  "variablesPanelDescription_field": "Description",
+  "variablesPanelDescriptionPlaceholder": "What this variable is used for",
+  "variablesPanelDeleteTitle": "Delete variable?",
+  "variablesPanelDeleteDescription": "This variable will be removed from the workflow. Nodes referencing it may break.",
+  "variablesPanelNameEmpty": "Variable name is required",
+  "variablesPanelNameDuplicate": "Variable name already exists",
+  "variablesPanelNameInvalid": "Name must start with a letter and contain only letters, numbers, and underscores",
+  "variablesPanelTypeString": "String",
+  "variablesPanelTypeNumber": "Number",
+  "variablesPanelTypeBoolean": "Boolean",
+  "variablesPanelTypeJson": "JSON",
+  "variablesButton": "Variables"
 }

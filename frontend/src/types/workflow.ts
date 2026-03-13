@@ -22,10 +22,18 @@ export interface WorkflowResponse {
   updated_at: string
 }
 
+export interface WorkflowVariable {
+  name: string
+  type: "string" | "number" | "boolean" | "json"
+  default_value: string
+  description: string
+}
+
 export interface WorkflowBlueprint {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   viewport: { x: number; y: number; zoom: number }
+  variables?: WorkflowVariable[]
 }
 
 export type ErrorStrategy = "stop_workflow" | "continue" | "fail_branch"

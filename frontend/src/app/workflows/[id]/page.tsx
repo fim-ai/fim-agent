@@ -34,9 +34,11 @@ import { WorkflowStatsPanel } from "@/components/workflows/workflow-stats-panel"
 import { NodeStatsPanel } from "@/components/workflows/node-stats-panel"
 import { ValidationPanel } from "@/components/workflows/validation-panel"
 import { EnvVarsDialog } from "@/components/workflows/env-vars-dialog"
+import { VariablesPanel } from "@/components/workflows/variables-panel"
 import type {
   WorkflowResponse,
   WorkflowBlueprint,
+  WorkflowVariable,
   WorkflowNodeType,
   WorkflowValidateResponse,
   StartNodeData,
@@ -91,6 +93,9 @@ export default function WorkflowEditorPage() {
 
   // Env vars dialog state
   const [showEnvDialog, setShowEnvDialog] = useState(false)
+
+  // Variables panel state
+  const [variablesPanelOpen, setVariablesPanelOpen] = useState(false)
 
   // Undo/redo state (synced from editor via callback)
   const [canUndo, setCanUndo] = useState(false)
@@ -282,6 +287,14 @@ export default function WorkflowEditorPage() {
       handleSave()
     }, 5000)
   }, [triggerValidation, handleSave])
+
+  const handleVariablesChange = useCallback(
+    (variables: WorkflowVariable[]) => {
+      const updated = { ...blueprintRef.current, variables }
+      handleBlueprintChange(updated)
+    },
+    [handleBlueprintChange],
+  )
 
   // Keyboard shortcuts (Cmd+S to save immediately, cancels pending auto-save)
   useEffect(() => {
@@ -700,6 +713,7 @@ export default function WorkflowEditorPage() {
         onUnpublish={handleUnpublishClick}
         onResubmit={handleResubmit}
         onEnvVars={() => setShowEnvDialog(true)}
+        onVariables={() => setVariablesPanelOpen(true)}
       />
 
       <WorkflowEditor
@@ -886,6 +900,14 @@ export default function WorkflowEditorPage() {
         onOpenChange={setServerValidationOpen}
         isLoading={isServerValidating}
         result={serverValidationResult}
+      />
+
+      {/* Variables Panel */}
+      <VariablesPanel
+        open={variablesPanelOpen}
+        onOpenChange={setVariablesPanelOpen}
+        variables={blueprintRef.current.variables ?? []}
+        onChange={handleVariablesChange}
       />
     </div>
   )
