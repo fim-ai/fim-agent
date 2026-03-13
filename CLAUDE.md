@@ -78,11 +78,11 @@ Create/edit forms MUST guard against accidental close (modal backdrop, X button,
 All UI text must use `next-intl` — **never hardcode English strings**. Use `useTranslations("{ns}")` in components. Shared strings (Save/Cancel/Delete) → `useTranslations("common")`. New namespace = just drop JSON files, auto-discovered via `fs.readdirSync`.
 
 **Translation workflow — English only, auto-sync the rest:**
-- **Only edit `messages/en/{ns}.json`** — never manually edit `messages/zh/`, `messages/ja/`, `messages/ko/`, `messages/de/`, `messages/fr/`
+- **NEVER manually edit any non-English file** — this includes `messages/zh/`, `messages/ja/`, `messages/ko/`, `messages/de/`, `messages/fr/`, `docs/zh/`, `docs/ja/`, `docs/ko/`, `docs/de/`, `docs/fr/`, `README.zh.md`, `README.ja.md`, `README.ko.md`, `README.de.md`, `README.fr.md`. ALL of these are auto-generated.
+- **Only edit English sources**: `messages/en/{ns}.json`, `docs/*.mdx` (root level), `README.md`
 - Other locales are **auto-translated on commit** via the pre-commit hook (`scripts/hooks/pre-commit`)
 - The hook calls `scripts/translate.py` which translates new/changed keys incrementally using the project's Fast LLM
 - To add a new namespace: create `messages/en/{ns}.json` only; other locale files are generated automatically
-- Same rule applies to `docs/*.mdx` and `README.md` — edit EN only, translations auto-sync on commit
 - To force full retranslation: `uv run scripts/translate.py --all`
 - Hook setup (run once after clone): `bash scripts/setup-hooks.sh`
 
