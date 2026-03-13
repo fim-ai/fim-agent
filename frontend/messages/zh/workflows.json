@@ -247,5 +247,9 @@
   "configErrorStrategyHint_fail_branch": "跳过此分支中的所有下游节点",
   "configTimeout": "超时 (ms)",
   "configTimeoutHint": "此节点的最大执行时间",
-  "configSectionAdvanced": "高级"
+  "configSectionAdvanced": "高级",
+  "editorUnsaved": "未保存的更改",
+  "editorSavedJustNow": "已保存",
+  "editorSavedSecondsAgo": "已保存 {seconds}秒前",
+  "editorSavedMinutesAgo": "已保存 {minutes}分钟前"
 }

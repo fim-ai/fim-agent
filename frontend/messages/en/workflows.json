@@ -87,6 +87,10 @@
 
   "editorSave": "Save",
   "editorSaving": "Saving...",
+  "editorUnsaved": "Unsaved changes",
+  "editorSavedJustNow": "Saved",
+  "editorSavedSecondsAgo": "Saved {seconds}s ago",
+  "editorSavedMinutesAgo": "Saved {minutes}m ago",
   "editorRun": "Run",
   "editorRunning": "Running...",
   "editorBackToList": "Back to Workflows",

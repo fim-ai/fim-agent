@@ -247,5 +247,9 @@
   "configErrorStrategyHint_fail_branch": "Überspringen Sie alle nachgelagerten Knoten in diesem Branch",
   "configTimeout": "Timeout (ms)",
   "configTimeoutHint": "Maximale Ausführungszeit für diesen Knoten",
-  "configSectionAdvanced": "Erweitert"
+  "configSectionAdvanced": "Erweitert",
+  "editorUnsaved": "Ungespeicherte Änderungen",
+  "editorSavedJustNow": "Gespeichert",
+  "editorSavedSecondsAgo": "Vor {seconds}s gespeichert",
+  "editorSavedMinutesAgo": "Vor {minutes}m gespeichert"
 }

@@ -247,5 +247,9 @@
   "configErrorStrategyHint_fail_branch": "このブランチのすべての下流ノードをスキップします",
   "configTimeout": "タイムアウト (ms)",
   "configTimeoutHint": "このノードの最大実行時間",
-  "configSectionAdvanced": "詳細設定"
+  "configSectionAdvanced": "詳細設定",
+  "editorUnsaved": "保存されていない変更",
+  "editorSavedJustNow": "保存済み",
+  "editorSavedSecondsAgo": "{seconds}秒前に保存",
+  "editorSavedMinutesAgo": "{minutes}分前に保存"
 }

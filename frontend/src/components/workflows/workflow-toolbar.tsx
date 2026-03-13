@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import {
@@ -58,6 +58,8 @@ interface WorkflowToolbarProps {
   visibility?: string
   publishStatus?: string | null
   isSaving: boolean
+  isDirty?: boolean
+  lastSavedAt?: Date | null
   isRunning: boolean
   isDuplicating?: boolean
   isValidating?: boolean
@@ -86,6 +88,8 @@ export function WorkflowToolbar({
   visibility = "personal",
   publishStatus,
   isSaving,
+  isDirty = false,
+  lastSavedAt,
   isRunning,
   isDuplicating = false,
   isValidating = false,
@@ -191,6 +195,8 @@ export function WorkflowToolbar({
             {to("publishStatusRejected")}
           </Badge>
         )}
+        {/* Auto-save status indicator */}
+        <SaveStatusIndicator isSaving={isSaving} isDirty={isDirty} lastSavedAt={lastSavedAt ?? null} />
       </div>
 
       {/* Action buttons */}
@@ -422,4 +428,61 @@ export function WorkflowToolbar({
       </div>
     </div>
   )
+}
+
+/** Compact save status: "Saving..." | "Saved X ago" | "Unsaved" */
+function SaveStatusIndicator({
+  isSaving,
+  isDirty,
+  lastSavedAt,
+}: {
+  isSaving: boolean
+  isDirty: boolean
+  lastSavedAt: Date | null
+}) {
+  const t = useTranslations("workflows")
+  const [, forceRender] = useState(0)
+
+  // Re-render every 30s to update relative time
+  useEffect(() => {
+    if (!lastSavedAt) return
+    const id = setInterval(() => forceRender((n) => n + 1), 30_000)
+    return () => clearInterval(id)
+  }, [lastSavedAt])
+
+  if (isSaving) {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        {t("editorSaving")}
+      </span>
+    )
+  }
+
+  if (isDirty) {
+    return (
+      <span className="text-[10px] text-amber-500 dark:text-amber-400 shrink-0">
+        {t("editorUnsaved")}
+      </span>
+    )
+  }
+
+  if (lastSavedAt) {
+    const seconds = Math.floor((Date.now() - lastSavedAt.getTime()) / 1000)
+    const label =
+      seconds < 5
+        ? t("editorSavedJustNow")
+        : seconds < 60
+          ? t("editorSavedSecondsAgo", { seconds })
+          : t("editorSavedMinutesAgo", { minutes: Math.floor(seconds / 60) })
+
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+        <CheckCircle2 className="h-3 w-3 text-green-500" />
+        {label}
+      </span>
+    )
+  }
+
+  return null
 }

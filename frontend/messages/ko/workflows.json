@@ -247,5 +247,9 @@
   "configErrorStrategyHint_fail_branch": "이 분기의 모든 다운스트림 노드를 건너뜁니다",
   "configTimeout": "타임아웃 (ms)",
   "configTimeoutHint": "이 노드의 최대 실행 시간",
-  "configSectionAdvanced": "고급"
+  "configSectionAdvanced": "고급",
+  "editorUnsaved": "저장되지 않은 변경사항",
+  "editorSavedJustNow": "저장됨",
+  "editorSavedSecondsAgo": "{seconds}초 전에 저장됨",
+  "editorSavedMinutesAgo": "{minutes}분 전에 저장됨"
 }

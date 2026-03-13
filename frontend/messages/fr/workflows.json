@@ -247,5 +247,9 @@
   "configErrorStrategyHint_fail_branch": "Ignorer tous les nœuds en aval de cette branche",
   "configTimeout": "Délai d'expiration (ms)",
   "configTimeoutHint": "Durée d'exécution maximale pour ce nœud",
-  "configSectionAdvanced": "Avancé"
+  "configSectionAdvanced": "Avancé",
+  "editorUnsaved": "Modifications non enregistrées",
+  "editorSavedJustNow": "Enregistré",
+  "editorSavedSecondsAgo": "Enregistré il y a {seconds}s",
+  "editorSavedMinutesAgo": "Enregistré il y a {minutes}m"
 }

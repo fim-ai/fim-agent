@@ -52,6 +52,8 @@ export default function WorkflowEditorPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
@@ -135,11 +137,14 @@ export default function WorkflowEditorPage() {
     }, 2000)
   }, [])
 
-  // Clean up validation timer on unmount
+  // Clean up timers on unmount
   useEffect(() => {
     return () => {
       if (validationTimerRef.current) {
         clearTimeout(validationTimerRef.current)
+      }
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
       }
     }
   }, [])
@@ -186,12 +191,6 @@ export default function WorkflowEditorPage() {
     return () => window.removeEventListener("beforeunload", handler)
   }, [isDirty])
 
-  const handleBlueprintChange = useCallback((bp: WorkflowBlueprint) => {
-    blueprintRef.current = bp
-    setIsDirty(true)
-    triggerValidation()
-  }, [triggerValidation])
-
   const handleNameChange = useCallback(
     async (name: string) => {
       if (!workflow) return
@@ -232,13 +231,27 @@ export default function WorkflowEditorPage() {
       })
       setWorkflow(updated)
       setIsDirty(false)
-      toast.success(t("workflowUpdated"))
+      setLastSavedAt(new Date())
     } catch {
       toast.error(t("workflowUpdateFailed"))
     } finally {
       setIsSaving(false)
     }
   }, [workflow, t])
+
+  const handleBlueprintChange = useCallback((bp: WorkflowBlueprint) => {
+    blueprintRef.current = bp
+    setIsDirty(true)
+    triggerValidation()
+
+    // Auto-save after 5 seconds of inactivity
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSave()
+    }, 5000)
+  }, [triggerValidation, handleSave])
 
   // Keyboard shortcuts (Cmd+S to save)
   useEffect(() => {
@@ -581,6 +594,8 @@ export default function WorkflowEditorPage() {
         visibility={workflow.visibility}
         publishStatus={workflow.publish_status}
         isSaving={isSaving}
+        isDirty={isDirty}
+        lastSavedAt={lastSavedAt}
         isRunning={isRunning}
         isDuplicating={isDuplicating}
         isValidating={isValidating}
