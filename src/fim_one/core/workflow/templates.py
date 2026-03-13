@@ -443,6 +443,7 @@ _DATA_PIPELINE: dict[str, Any] = {
     "id": "data-processing-pipeline",
     "name": "Data Processing Pipeline",
     "description": "Process input data with code, transform with a template, and output results.",
+    "icon": "Database",
     "category": "data",
     "blueprint": {
         "nodes": [
@@ -523,6 +524,7 @@ _AGENT_WITH_KB: dict[str, Any] = {
     "id": "agent-with-knowledge",
     "name": "Agent with Knowledge Retrieval",
     "description": "Retrieve relevant context from a knowledge base, then delegate to an AI agent for intelligent processing.",
+    "icon": "Bot",
     "category": "ai",
     "blueprint": {
         "nodes": [
