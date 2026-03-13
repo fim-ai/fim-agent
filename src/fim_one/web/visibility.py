@@ -27,8 +27,18 @@ def build_visibility_filter(
     ]
 
     if user_org_ids:
+        # Only show org resources that either don't need review or are approved.
+        # pending_review and rejected resources are hidden from other org members
+        # (the owner still sees them via the user_id == user_id condition above).
         conditions.append(
-            and_(model.visibility == "org", model.org_id.in_(user_org_ids))
+            and_(
+                model.visibility == "org",
+                model.org_id.in_(user_org_ids),
+                or_(
+                    model.publish_status == None,  # noqa: E711 — no review needed
+                    model.publish_status == "approved",
+                ),
+            )
         )
 
     if subscribed_ids:
