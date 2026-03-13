@@ -208,9 +208,15 @@
   "resubmitError": "Failed to resubmit connector",
   "publish": "Publish to Organization",
   "unpublish": "Revert to Personal",
-  "resubmit": "Resubmit for Review",
+  "resubmit": "Resubmit",
   "pendingReview": "Pending Review",
   "approved": "Approved",
   "rejected": "Rejected",
-  "orgBadge": "Organization"
+  "orgBadge": "Organization",
+  "connectorPublished": "Connector published",
+  "connectorPublishFailed": "Failed to publish connector",
+  "connectorUnpublished": "Connector unpublished",
+  "connectorUnpublishFailed": "Failed to unpublish connector",
+  "connectorResubmitted": "Connector resubmitted for review",
+  "connectorResubmitFailed": "Failed to resubmit connector"
 }

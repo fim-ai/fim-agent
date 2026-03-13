@@ -151,7 +151,7 @@
   "resubmitFailed": "Failed to resubmit",
   "publishRequiresReview": "Publishing to this organization requires admin review",
   "publishStatusPending": "Pending Review",
-  "publishStatusApproved": "Approved",
+  "publishStatusApproved": "Published",
   "publishStatusRejected": "Rejected",
   "rejectedNote": "Rejection reason: {note}",
   "editWillRevert": "Editing will revert this resource to pending review status",

@@ -208,9 +208,15 @@
   "resubmitError": "重新提交失败",
   "publish": "发布到组织",
   "unpublish": "恢复为个人",
-  "resubmit": "重新提交审核",
+  "resubmit": "重新提交",
   "pendingReview": "待审核",
   "approved": "已通过",
   "rejected": "已拒绝",
-  "orgBadge": "组织"
+  "orgBadge": "组织",
+  "connectorPublished": "连接器已发布",
+  "connectorPublishFailed": "发布连接器失败",
+  "connectorUnpublished": "连接器已取消发布",
+  "connectorUnpublishFailed": "取消发布连接器失败",
+  "connectorResubmitted": "连接器已重新提交审核",
+  "connectorResubmitFailed": "重新提交连接器失败"
 }

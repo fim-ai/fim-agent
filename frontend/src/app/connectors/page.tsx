@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Plus, Plug, Trash2, LayoutGrid, Database, Globe, ChevronDown, Loader2, Clock } from "lucide-react"
+import { Plus, Plug, Trash2, LayoutGrid, Database, Globe, ChevronDown, Loader2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -16,23 +16,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -73,8 +62,8 @@ function ConnectorsPageInner() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingPublishId, setPendingPublishId] = useState<string | null>(null)
   const [pendingUnpublishId, setPendingUnpublishId] = useState<string | null>(null)
+  const [publishScope, setPublishScope] = useState<"personal" | "org">("personal")
   const [publishOrgId, setPublishOrgId] = useState<string>("")
-  const [publishAllowFallback, setPublishAllowFallback] = useState(true)
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
   const [orgsLoading, setOrgsLoading] = useState(false)
 
@@ -102,16 +91,6 @@ function ConnectorsPageInner() {
   }, [user, loadConnectors])
 
   const handleDelete = (id: string) => setPendingDeleteId(id)
-  const handlePublish = (id: string) => {
-    setPendingPublishId(id)
-    setPublishOrgId("")
-    setPublishAllowFallback(true)
-    setOrgsLoading(true)
-    orgApi.list().then((orgs) => {
-      setUserOrgs(orgs)
-    }).catch(() => {}).finally(() => setOrgsLoading(false))
-  }
-  const handleUnpublish = (id: string) => setPendingUnpublishId(id)
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
@@ -123,13 +102,25 @@ function ConnectorsPageInner() {
     }
   }
 
+  const handlePublish = (id: string) => {
+    setPendingPublishId(id)
+    setPublishScope("personal")
+    setPublishOrgId("")
+    setOrgsLoading(true)
+    orgApi.list().then((orgs) => {
+      setUserOrgs(orgs)
+    }).catch(() => {}).finally(() => setOrgsLoading(false))
+  }
+
+  const handleUnpublish = (id: string) => setPendingUnpublishId(id)
+
   const handleResubmit = async (id: string) => {
     try {
       const updated = await connectorApi.resubmit(id)
       setConnectors((prev) => prev.map((c) => (c.id === id ? updated : c)))
-      toast.success(t("resubmitSuccess"))
+      toast.success(t("connectorResubmitted"))
     } catch {
-      toast.error(t("resubmitError"))
+      toast.error(t("connectorResubmitFailed"))
     }
   }
 
@@ -153,13 +144,12 @@ function ConnectorsPageInner() {
     try {
       const updated = await connectorApi.publish(id, {
         scope: "org",
-        org_id: publishOrgId,
-        allow_fallback: publishAllowFallback,
+        org_id: publishOrgId || undefined,
       })
       setConnectors((prev) => prev.map((c) => (c.id === id ? updated : c)))
-      toast.success(t("publishSuccess"))
+      toast.success(t("connectorPublished"))
     } catch {
-      toast.error(t("publishError"))
+      toast.error(t("connectorPublishFailed"))
     }
   }
 
@@ -170,16 +160,12 @@ function ConnectorsPageInner() {
     try {
       const updated = await connectorApi.unpublish(id)
       setConnectors((prev) => prev.map((c) => (c.id === id ? updated : c)))
-      toast.success(t("unpublishSuccess"))
+      toast.success(t("connectorUnpublished"))
     } catch {
-      toast.error(t("unpublishError"))
+      toast.error(t("connectorUnpublishFailed"))
     }
   }
 
-  // Find selected org for review notice
-  const selectedOrg = publishOrgId
-    ? userOrgs.find((o) => o.id === publishOrgId)
-    : null
 
   if (authLoading || !user) return null
 
@@ -281,7 +267,6 @@ function ConnectorsPageInner() {
                   onDelete={handleDelete}
                   onPublish={handlePublish}
                   onUnpublish={handleUnpublish}
-                  onToggleActive={(isActive) => handleToggleActive(connector.id, isActive)}
                   onResubmit={handleResubmit}
                 />
               ))}
@@ -314,29 +299,50 @@ function ConnectorsPageInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Publish Dialog */}
+      {/* Publish Confirmation */}
       <Dialog open={pendingPublishId !== null} onOpenChange={(open) => { if (!open) setPendingPublishId(null) }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{t("publishTitle")}</DialogTitle>
+            <DialogTitle>{tc("publish")}</DialogTitle>
             <DialogDescription>
-              {t("publishDescription")}
+              {t("subtitle")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              {orgsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                </div>
-              ) : userOrgs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("publishNoOrgs")}</p>
-              ) : (
-                <>
-                  <Label className="text-sm font-medium">{t("publishSelectOrg")}</Label>
+              <Label className="text-sm font-medium">{tc("publish")}</Label>
+              <div className="flex gap-2">
+                {(["personal", "org"] as const).map((scope) => (
+                  <button
+                    key={scope}
+                    type="button"
+                    onClick={() => {
+                      setPublishScope(scope)
+                      if (scope === "org" && userOrgs.length > 0) setPublishOrgId(userOrgs[0].id)
+                    }}
+                    className={`flex-1 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      publishScope === scope
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "border-input text-muted-foreground hover:border-foreground/30"
+                    }`}
+                  >
+                    {scope === "personal" ? tc("draft") : tc("publish")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {publishScope === "org" && (
+              <div className="space-y-2">
+                {orgsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  </div>
+                ) : userOrgs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{tc("unpublished")}</p>
+                ) : (
                   <Select value={publishOrgId} onValueChange={setPublishOrgId}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder={t("publishSelectOrg")} />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {userOrgs.map((org) => (
@@ -344,36 +350,16 @@ function ConnectorsPageInner() {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  {/* Allow fallback toggle */}
-                  <div className="flex items-center justify-between gap-3 pt-2">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">{t("publishAllowFallback")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("publishAllowFallbackDescription")}</p>
-                    </div>
-                    <Switch
-                      checked={publishAllowFallback}
-                      onCheckedChange={setPublishAllowFallback}
-                    />
-                  </div>
-
-                  {/* Review notice */}
-                  {selectedOrg?.review_connectors && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-md">
-                      <Clock className="h-4 w-4 shrink-0" />
-                      <span>{t("publishReviewWarning")}</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" className="px-6" onClick={() => setPendingPublishId(null)}>{tc("cancel")}</Button>
             <Button
               className="px-6"
               onClick={confirmPublish}
-              disabled={orgsLoading || userOrgs.length === 0 || !publishOrgId}
+              disabled={publishScope === "org" && (orgsLoading || userOrgs.length === 0 || !publishOrgId)}
             >
               {tc("publish")}
             </Button>
@@ -382,22 +368,20 @@ function ConnectorsPageInner() {
       </Dialog>
 
       {/* Unpublish Confirmation */}
-      <AlertDialog open={pendingUnpublishId !== null} onOpenChange={(open) => { if (!open) setPendingUnpublishId(null) }}>
-        <AlertDialogContent className="sm:max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("unpublishTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("unpublishDescription")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmUnpublish}>
-              {t("unpublish")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={pendingUnpublishId !== null} onOpenChange={(open) => { if (!open) setPendingUnpublishId(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{tc("unpublish")}</DialogTitle>
+            <DialogDescription>
+              {t("subtitle")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" className="px-6" onClick={() => setPendingUnpublishId(null)}>{tc("cancel")}</Button>
+            <Button variant="secondary" className="px-6" onClick={confirmUnpublish}>{tc("unpublish")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

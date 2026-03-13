@@ -885,6 +885,7 @@ export const connectorApi = {
       { method: "DELETE" },
     ).then(() => undefined),
 
+  // Publish / Unpublish
   publish: (id: string, body: { scope: string; org_id?: string; allow_fallback?: boolean }) =>
     apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/publish`, {
       method: "POST",
@@ -897,8 +898,9 @@ export const connectorApi = {
     }).then((r) => r.data),
 
   resubmit: (id: string) =>
-    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/resubmit`, {
+    apiFetch<ApiResponse<ConnectorResponse>>(`/api/connectors/${id}/publish`, {
       method: "POST",
+      body: JSON.stringify({ scope: "org", resubmit: true }),
     }).then((r) => r.data),
 
   toggleActive: (id: string, isActive: boolean) =>

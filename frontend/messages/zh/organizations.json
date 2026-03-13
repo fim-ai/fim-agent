@@ -151,7 +151,7 @@
   "resubmitFailed": "重新提交失败",
   "publishRequiresReview": "发布到此组织需要管理员审核",
   "publishStatusPending": "待审核",
-  "publishStatusApproved": "已通过",
+  "publishStatusApproved": "已发布",
   "publishStatusRejected": "已拒绝",
   "rejectedNote": "拒绝原因：{note}",
   "editWillRevert": "编辑将使此资源回到待审核状态",
