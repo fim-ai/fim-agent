@@ -287,5 +287,21 @@
   "configTimeout": "Timeout (ms)",
   "configTimeoutHint": "Maximum execution time for this node",
 
-  "configSectionAdvanced": "Advanced"
+  "configSectionAdvanced": "Advanced",
+
+  "envVarsTitle": "Environment Variables",
+  "envVarsDescription": "Configure encrypted environment variables (API keys, secrets) accessible by workflow nodes at runtime.",
+  "envVarsEmpty": "No environment variables configured yet.",
+  "envVarsKeyLabel": "Key",
+  "envVarsValueLabel": "Value",
+  "envVarsAdd": "Add Variable",
+  "envVarsSaved": "Environment variables saved",
+  "envVarsSaveFailed": "Failed to save environment variables",
+  "envVarsKeyPlaceholder": "VARIABLE_NAME",
+  "envVarsValuePlaceholder": "Enter value...",
+  "envVarsValueMasked": "Encrypted — enter a new value to overwrite",
+  "envVarsReenterWarning": "Values are encrypted and cannot be retrieved. Saving will overwrite all existing values — re-enter any you want to keep.",
+  "envVarsKeyDuplicate": "Duplicate key name",
+  "envVarsKeyEmpty": "Key name is required",
+  "envVarsMenuItem": "Environment Variables"
 }

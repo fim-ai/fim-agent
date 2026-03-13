@@ -12,6 +12,7 @@ import {
   Globe,
   GlobeLock,
   History,
+  Key,
   LayoutGrid,
   Loader2,
   MoreHorizontal,
@@ -80,6 +81,7 @@ interface WorkflowToolbarProps {
   onPublish?: () => void
   onUnpublish?: () => void
   onResubmit?: () => void
+  onEnvVars?: () => void
 }
 
 export function WorkflowToolbar({
@@ -110,6 +112,7 @@ export function WorkflowToolbar({
   onPublish,
   onUnpublish,
   onResubmit,
+  onEnvVars,
 }: WorkflowToolbarProps) {
   const t = useTranslations("workflows")
   const to = useTranslations("organizations")
@@ -395,6 +398,12 @@ export function WorkflowToolbar({
               <Download className="h-4 w-4" />
               {tc("export")}
             </DropdownMenuItem>
+            {onEnvVars && (
+              <DropdownMenuItem onClick={onEnvVars}>
+                <Key className="h-4 w-4" />
+                {t("envVarsMenuItem")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onDuplicate} disabled={isDuplicating}>
               {isDuplicating ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -257,5 +257,20 @@
   "workflowCount": "{count} sur {total}",
   "sortUpdated": "Récemment modifiés",
   "sortCreated": "Récemment créés",
-  "sortName": "Nom (A-Z)"
+  "sortName": "Nom (A-Z)",
+  "envVarsTitle": "Variables d'environnement",
+  "envVarsDescription": "Configurez des variables d'environnement chiffrées (clés API, secrets) accessibles par les nœuds de flux de travail à l'exécution.",
+  "envVarsEmpty": "Aucune variable d'environnement configurée pour le moment.",
+  "envVarsKeyLabel": "Clé",
+  "envVarsValueLabel": "Valeur",
+  "envVarsAdd": "Ajouter une variable",
+  "envVarsSaved": "Variables d'environnement enregistrées",
+  "envVarsSaveFailed": "Échec de l'enregistrement des variables d'environnement",
+  "envVarsKeyPlaceholder": "VARIABLE_NAME",
+  "envVarsValuePlaceholder": "Entrez la valeur...",
+  "envVarsValueMasked": "Chiffré — entrez une nouvelle valeur pour remplacer",
+  "envVarsReenterWarning": "Les valeurs sont chiffrées et ne peuvent pas être récupérées. L'enregistrement remplacera toutes les valeurs existantes — réentrez celles que vous souhaitez conserver.",
+  "envVarsKeyDuplicate": "Nom de clé en doublon",
+  "envVarsKeyEmpty": "Le nom de la clé est requis",
+  "envVarsMenuItem": "Variables d'environnement"
 }

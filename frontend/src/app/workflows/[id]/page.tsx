@@ -29,6 +29,7 @@ import { WorkflowToolbar, type ValidationResult } from "@/components/workflows/w
 import { WorkflowEditor } from "@/components/workflows/workflow-editor"
 import type { WorkflowEditorHandle } from "@/components/workflows/workflow-editor"
 import { RunHistorySheet } from "@/components/workflows/run-history-sheet"
+import { EnvVarsDialog } from "@/components/workflows/env-vars-dialog"
 import type {
   WorkflowResponse,
   WorkflowBlueprint,
@@ -75,6 +76,9 @@ export default function WorkflowEditorPage() {
 
   // History sheet state
   const [historyOpen, setHistoryOpen] = useState(false)
+
+  // Env vars dialog state
+  const [showEnvDialog, setShowEnvDialog] = useState(false)
 
   // Undo/redo state (synced from editor via callback)
   const [canUndo, setCanUndo] = useState(false)
@@ -620,6 +624,7 @@ export default function WorkflowEditorPage() {
         onPublish={handlePublishClick}
         onUnpublish={handleUnpublishClick}
         onResubmit={handleResubmit}
+        onEnvVars={() => setShowEnvDialog(true)}
       />
 
       <WorkflowEditor
@@ -761,6 +766,13 @@ export default function WorkflowEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Env Variables Dialog */}
+      <EnvVarsDialog
+        workflowId={workflowId}
+        open={showEnvDialog}
+        onOpenChange={setShowEnvDialog}
+      />
 
       {/* Run History Sheet */}
       <RunHistorySheet

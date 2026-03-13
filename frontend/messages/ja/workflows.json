@@ -257,5 +257,20 @@
   "workflowCount": "{count} / {total}",
   "sortUpdated": "最近更新",
   "sortCreated": "最近作成",
-  "sortName": "名前 (A-Z)"
+  "sortName": "名前 (A-Z)",
+  "envVarsTitle": "環境変数",
+  "envVarsDescription": "暗号化された環境変数（APIキー、シークレット）を設定し、ワークフローノードが実行時にアクセスできるようにします。",
+  "envVarsEmpty": "環境変数はまだ設定されていません。",
+  "envVarsKeyLabel": "キー",
+  "envVarsValueLabel": "値",
+  "envVarsAdd": "変数を追加",
+  "envVarsSaved": "環境変数が保存されました",
+  "envVarsSaveFailed": "環境変数の保存に失敗しました",
+  "envVarsKeyPlaceholder": "VARIABLE_NAME",
+  "envVarsValuePlaceholder": "値を入力...",
+  "envVarsValueMasked": "暗号化済み — 上書きするには新しい値を入力してください",
+  "envVarsReenterWarning": "値は暗号化されており、取得できません。保存すると既存のすべての値が上書きされます。保持したい値は再度入力してください。",
+  "envVarsKeyDuplicate": "キー名が重複しています",
+  "envVarsKeyEmpty": "キー名は必須です",
+  "envVarsMenuItem": "環境変数"
 }

@@ -257,5 +257,20 @@
   "workflowCount": "{count} von {total}",
   "sortUpdated": "Kürzlich aktualisiert",
   "sortCreated": "Kürzlich erstellt",
-  "sortName": "Name (A-Z)"
+  "sortName": "Name (A-Z)",
+  "envVarsTitle": "Umgebungsvariablen",
+  "envVarsDescription": "Konfigurieren Sie verschlüsselte Umgebungsvariablen (API-Schlüssel, Geheimnisse), auf die Workflow-Knoten zur Laufzeit zugreifen können.",
+  "envVarsEmpty": "Noch keine Umgebungsvariablen konfiguriert.",
+  "envVarsKeyLabel": "Schlüssel",
+  "envVarsValueLabel": "Wert",
+  "envVarsAdd": "Variable hinzufügen",
+  "envVarsSaved": "Umgebungsvariablen gespeichert",
+  "envVarsSaveFailed": "Fehler beim Speichern der Umgebungsvariablen",
+  "envVarsKeyPlaceholder": "VARIABLE_NAME",
+  "envVarsValuePlaceholder": "Wert eingeben...",
+  "envVarsValueMasked": "Verschlüsselt — geben Sie einen neuen Wert ein, um zu überschreiben",
+  "envVarsReenterWarning": "Werte sind verschlüsselt und können nicht abgerufen werden. Das Speichern überschreibt alle vorhandenen Werte — geben Sie alle erneut ein, die Sie behalten möchten.",
+  "envVarsKeyDuplicate": "Doppelter Schlüsselname",
+  "envVarsKeyEmpty": "Schlüsselname ist erforderlich",
+  "envVarsMenuItem": "Umgebungsvariablen"
 }

@@ -1013,6 +1013,15 @@ export const workflowApi = {
       method: "POST",
       body: JSON.stringify({ template_id: templateId, name }),
     }).then((r) => r.data),
+
+  getEnvKeys: (id: string) =>
+    apiFetch<ApiResponse<{ keys: string[] }>>(`/api/workflows/${id}/env`).then((r) => r.data),
+
+  updateEnv: (id: string, envVars: Record<string, string>) =>
+    apiFetch<ApiResponse<{ keys: string[] }>>(`/api/workflows/${id}/env`, {
+      method: "PUT",
+      body: JSON.stringify({ env_vars: envVars }),
+    }).then((r) => r.data),
 }
 
 // --- Skill API ---

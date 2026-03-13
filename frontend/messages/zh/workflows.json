@@ -257,5 +257,20 @@
   "workflowCount": "{count} 个，共 {total} 个",
   "sortUpdated": "最近更新",
   "sortCreated": "最近创建",
-  "sortName": "名称 (A-Z)"
+  "sortName": "名称 (A-Z)",
+  "envVarsTitle": "环境变量",
+  "envVarsDescription": "配置加密的环境变量（API密钥、密钥）供工作流节点在运行时访问。",
+  "envVarsEmpty": "尚未配置环境变量。",
+  "envVarsKeyLabel": "键",
+  "envVarsValueLabel": "值",
+  "envVarsAdd": "添加变量",
+  "envVarsSaved": "环境变量已保存",
+  "envVarsSaveFailed": "保存环境变量失败",
+  "envVarsKeyPlaceholder": "VARIABLE_NAME",
+  "envVarsValuePlaceholder": "输入值...",
+  "envVarsValueMasked": "已加密 — 输入新值以覆盖",
+  "envVarsReenterWarning": "值已加密且无法检索。保存将覆盖所有现有值 — 请重新输入要保留的任何值。",
+  "envVarsKeyDuplicate": "键名重复",
+  "envVarsKeyEmpty": "键名为必填项",
+  "envVarsMenuItem": "环境变量"
 }
