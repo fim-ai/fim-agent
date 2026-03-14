@@ -11,6 +11,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Scheduled triggers** — Cron configuration per workflow with timezone selection, default inputs, and next-run-at calculation. Frontend dialog with preset cron buttons (every 5 min / hourly / daily / weekly / monthly).
+- **Public API trigger endpoint** — Per-workflow API keys (`wf_` prefix) for external execution without user auth, with rate limiting.
+- **API key management dialog** — Generate, regenerate, and revoke workflow API keys with copy button, trigger URL display, and cURL/JavaScript usage examples.
+- **Real-time execution log viewer** — Chronological SSE event stream in the run panel with timestamps, color-coded event type badges, and filter toggles per event type.
+- **Batch run dialog** — Run workflows with multiple input sets (JSON editor), configurable parallelism (1-10), collapsible per-item results, and JSON export.
+- **30 scheduled trigger tests** — Cron validation, schema handling, and timezone support.
+- **14 batch execution tests** — Schema validation and concurrent engine execution.
 - **Workflow-level timeout** — New `workflow_timeout_ms` parameter in the engine cancels all pending/running nodes when exceeded, with bounded async wait for responsive timeout detection.
 - **Re-run with last inputs** — "Run Again" button pre-fills the input form with values from the previous run.
 - **Run history status filter** — Dropdown to filter workflow runs by Completed/Failed/Cancelled/Running.
@@ -39,6 +46,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Changed
 
+- **Run panel Results/Logs tabs** — Run panel now uses a tabbed layout (Results + Logs) for better organization of execution output and event streams.
 - **Replaced elkjs with lightweight BFS auto-layout** — Custom BFS algorithm replaces elkjs (430 kB); `/workflows/[id]` bundle reduced from 473 kB to 43 kB.
 - **Expanded workflow list sort options** — Newest, Oldest, Name A-Z, Name Z-A, Recently Updated.
 - **Workflow test suite expanded to 306 tests** — Added 14 Phase 3 tests for SubWorkflow and ENV node executors. Added per-node execution statistics tests. Total: 275 → 306.
