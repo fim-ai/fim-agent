@@ -731,5 +731,6 @@
   "noTraceData": "Keine Trace-Daten verfügbar. Führen Sie mit Debug-Modus aus, um detaillierte Traces zu erhalten.",
   "enableDebugTrace": "Debug-Trace aktivieren",
   "debugTraceEnabled": "Debug-Trace aktiviert - erfasst detaillierte Ausführungsdaten",
-  "debugTraceDisabled": "Normalmodus - führen Sie mit Debug aus, um vollständige Traces zu erhalten"
+  "debugTraceDisabled": "Normalmodus - führen Sie mit Debug aus, um vollständige Traces zu erhalten",
+  "validationIssues": "Validierungsprobleme"
 }

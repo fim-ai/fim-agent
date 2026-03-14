@@ -1,7 +1,7 @@
 "use client"
 
 import { memo } from "react"
-import { Loader2, Clock, AlertCircle, MessageSquare } from "lucide-react"
+import { Loader2, Clock, AlertCircle, AlertTriangle, MessageSquare } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import {
@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { NodeRunStatus, NodeRunOverlayData, WorkflowNodeType } from "@/types/workflow"
+import type { NodeRunStatus, NodeRunOverlayData, NodeValidationState, WorkflowNodeType } from "@/types/workflow"
 
 const categoryColorMap: Record<string, string> = {
   start: "bg-green-500",
@@ -72,6 +72,7 @@ interface BaseWorkflowNodeProps {
   selected?: boolean
   runStatus?: NodeRunStatus
   runOverlay?: NodeRunOverlayData
+  validationState?: NodeValidationState
   children?: React.ReactNode
 }
 
@@ -84,6 +85,7 @@ function BaseWorkflowNodeComponent({
   selected,
   runStatus,
   runOverlay,
+  validationState,
   children,
 }: BaseWorkflowNodeProps) {
   const t = useTranslations("workflows")
@@ -91,6 +93,10 @@ function BaseWorkflowNodeComponent({
   const statusStyle = runStatus ? runStatusStyles[runStatus] : null
   const showDot = runStatus && runStatus !== "pending"
   const showOverlay = runStatus && runStatus !== "pending" && runOverlay
+
+  const errorCount = validationState?.errors.length ?? 0
+  const warningCount = validationState?.warnings.length ?? 0
+  const hasValidationIssues = errorCount > 0 || warningCount > 0
   const hasTooltipContent =
     showOverlay &&
     (runOverlay.durationMs != null ||
@@ -108,6 +114,16 @@ function BaseWorkflowNodeComponent({
         selected && "outline-2 outline-offset-1 outline-primary",
       )}
     >
+      {/* Validation badge in top-left corner */}
+      {hasValidationIssues && (
+        <ValidationBadge
+          errorCount={errorCount}
+          warningCount={warningCount}
+          errors={validationState?.errors ?? []}
+          warnings={validationState?.warnings ?? []}
+        />
+      )}
+
       {/* Status dot in top-right corner */}
       {showDot && (
         <>
@@ -242,6 +258,65 @@ function BaseWorkflowNodeComponent({
         </p>
       )}
     </div>
+  )
+}
+
+function ValidationBadge({
+  errorCount,
+  warningCount,
+  errors,
+  warnings,
+}: {
+  errorCount: number
+  warningCount: number
+  errors: string[]
+  warnings: string[]
+}) {
+  const t = useTranslations("workflows")
+
+  // Error takes priority for the badge display
+  const isError = errorCount > 0
+  const badgeCount = isError ? errorCount : warningCount
+
+  const tooltipContent = (
+    <div className="max-w-[240px] space-y-1.5">
+      <p className="font-medium text-[11px]">{t("validationIssues")}</p>
+      {errors.map((msg, i) => (
+        <div key={`err-${i}`} className="flex items-start gap-1.5">
+          <AlertCircle className="h-3 w-3 shrink-0 mt-0.5 text-red-400" />
+          <span className="text-[10px] leading-tight">{msg}</span>
+        </div>
+      ))}
+      {warnings.map((msg, i) => (
+        <div key={`warn-${i}`} className="flex items-start gap-1.5">
+          <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5 text-amber-400" />
+          <span className="text-[10px] leading-tight">{msg}</span>
+        </div>
+      ))}
+    </div>
+  )
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "absolute -top-1.5 -left-1.5 z-10 flex items-center justify-center",
+              "h-5 w-5 rounded-full text-[9px] font-bold leading-none cursor-default",
+              isError
+                ? "bg-destructive text-destructive-foreground"
+                : "bg-amber-500/90 text-white",
+            )}
+          >
+            {badgeCount}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="p-2">
+          {tooltipContent}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

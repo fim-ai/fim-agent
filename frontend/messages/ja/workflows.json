@@ -731,5 +731,6 @@
   "noTraceData": "トレースデータがありません。詳細なトレースを取得するにはデバッグモードで実行してください。",
   "enableDebugTrace": "デバッグトレースを有効にする",
   "debugTraceEnabled": "デバッグトレースが有効になりました - 詳細な実行データをキャプチャします",
-  "debugTraceDisabled": "通常モード - 完全なトレースを取得するにはデバッグで実行してください"
+  "debugTraceDisabled": "通常モード - 完全なトレースを取得するにはデバッグで実行してください",
+  "validationIssues": "検証の問題"
 }

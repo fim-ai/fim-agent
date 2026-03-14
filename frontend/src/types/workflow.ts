@@ -517,6 +517,13 @@ export interface NodeTestResponse {
   variables_after: Record<string, unknown>
 }
 
+// --- Per-node validation state injected into node data for canvas overlay ---
+
+export interface NodeValidationState {
+  errors: string[]
+  warnings: string[]
+}
+
 // --- Version types ---
 
 export interface WorkflowVersionResponse {

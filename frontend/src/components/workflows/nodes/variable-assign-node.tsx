@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { Variable } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { VariableAssignNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { VariableAssignNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function VariableAssignNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as VariableAssignNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as VariableAssignNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const count = nodeData.assignments?.length ?? 0
 
   return (
@@ -23,6 +23,7 @@ function VariableAssignNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <p className="text-[10px] text-muted-foreground">
         {t("assignmentCount", { count })}

@@ -731,5 +731,6 @@
   "noTraceData": "사용 가능한 추적 데이터가 없습니다. 자세한 추적을 위해 디버그 모드로 실행하세요.",
   "enableDebugTrace": "디버그 추적 활성화",
   "debugTraceEnabled": "디버그 추적 활성화됨 - 상세한 실행 데이터 캡처",
-  "debugTraceDisabled": "일반 모드 - 전체 추적을 위해 디버그로 실행하세요"
+  "debugTraceDisabled": "일반 모드 - 전체 추적을 위해 디버그로 실행하세요",
+  "validationIssues": "유효성 검사 문제"
 }

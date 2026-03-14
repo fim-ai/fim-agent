@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { FileText } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { TemplateTransformNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { TemplateTransformNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function TemplateTransformNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as TemplateTransformNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as TemplateTransformNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
 
   return (
     <BaseWorkflowNode
@@ -22,6 +22,7 @@ function TemplateTransformNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       {nodeData.template && (
         <p className="text-[10px] text-muted-foreground/70 line-clamp-1 font-mono">

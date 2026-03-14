@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { ArrowRightLeft } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { TransformNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { TransformNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function TransformNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as TransformNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as TransformNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const opCount = nodeData.operations?.length ?? 0
 
   return (
@@ -23,6 +23,7 @@ function TransformNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <p className="text-[10px] text-muted-foreground">
         {t("operationCount", { count: opCount })}

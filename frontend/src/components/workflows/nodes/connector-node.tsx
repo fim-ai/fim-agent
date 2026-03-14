@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { Plug } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { ConnectorNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { ConnectorNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function ConnectorNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as ConnectorNodeData & { runStatus?: NodeRunStatus; connector_name?: string; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as ConnectorNodeData & { runStatus?: NodeRunStatus; connector_name?: string; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
 
   return (
     <BaseWorkflowNode
@@ -22,6 +22,7 @@ function ConnectorNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="space-y-0.5">
         {nodeData.connector_name && (

@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { MessageCircleQuestion } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { QuestionUnderstandingNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { QuestionUnderstandingNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function QuestionUnderstandingNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as QuestionUnderstandingNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as QuestionUnderstandingNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const mode = nodeData.mode ?? "rewrite"
 
   return (
@@ -23,6 +23,7 @@ function QuestionUnderstandingNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="flex items-center gap-1">
         <span className="inline-flex items-center rounded bg-pink-500/10 px-1.5 py-0.5 text-[10px] font-medium text-pink-500 dark:text-pink-400">

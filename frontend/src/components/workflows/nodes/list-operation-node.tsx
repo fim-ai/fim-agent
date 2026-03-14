@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { ListFilter } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { ListOperationNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { ListOperationNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function ListOperationNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as ListOperationNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as ListOperationNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const operation = nodeData.operation ?? "filter"
 
   return (
@@ -23,6 +23,7 @@ function ListOperationNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="flex items-center gap-1">
         <span className="inline-flex items-center rounded bg-lime-500/10 px-1.5 py-0.5 text-[10px] font-medium text-lime-600 dark:text-lime-400">

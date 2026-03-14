@@ -731,5 +731,6 @@
   "noTraceData": "没有可用的追踪数据。以调试模式运行以获取详细追踪。",
   "enableDebugTrace": "启用调试追踪",
   "debugTraceEnabled": "调试追踪已启用 - 捕获详细的执行数据",
-  "debugTraceDisabled": "普通模式 - 以调试模式运行以获取完整追踪"
+  "debugTraceDisabled": "普通模式 - 以调试模式运行以获取完整追踪",
+  "validationIssues": "验证问题"
 }

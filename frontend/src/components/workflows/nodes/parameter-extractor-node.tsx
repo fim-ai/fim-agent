@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { FileSearch } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { ParameterExtractorNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { ParameterExtractorNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function ParameterExtractorNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as ParameterExtractorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as ParameterExtractorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const count = nodeData.parameters?.length ?? 0
 
   return (
@@ -23,6 +23,7 @@ function ParameterExtractorNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <p className="text-[10px] text-muted-foreground">
         {t("paramCount", { count })}

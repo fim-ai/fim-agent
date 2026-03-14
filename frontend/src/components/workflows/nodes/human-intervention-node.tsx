@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { UserCheck } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { HumanInterventionNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { HumanInterventionNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function HumanInterventionNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as HumanInterventionNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as HumanInterventionNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
 
   return (
     <BaseWorkflowNode
@@ -22,6 +22,7 @@ function HumanInterventionNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       {nodeData.prompt_message && (
         <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">

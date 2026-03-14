@@ -41,8 +41,10 @@ import type {
   WorkflowNodeType,
   StartNodeData,
   NodeRunResult,
+  NodeValidationState,
   WorkflowLogEvent,
 } from "@/types/workflow"
+import type { ValidationResult } from "@/components/workflows/workflow-toolbar"
 
 import { StartNode } from "./nodes/start-node"
 import { EndNode } from "./nodes/end-node"
@@ -192,6 +194,8 @@ export interface WorkflowEditorHandle {
   canRedo: boolean
   applyRunOverlay: (nodeResults: Record<string, NodeRunResult>) => void
   clearRunOverlay: () => void
+  applyValidationOverlay: (result: ValidationResult) => void
+  clearValidationOverlay: () => void
 }
 
 export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorProps>(function WorkflowEditor({
@@ -492,7 +496,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
       // Search node data values (prompt_template, variable names, output_variable, etc.)
       const dataStr = node.data
         ? Object.entries(node.data)
-            .filter(([key]) => key !== "runStatus" && key !== "_runOverlay")
+            .filter(([key]) => key !== "runStatus" && key !== "_runOverlay" && key !== "_validationState")
             .map(([, value]) => {
               if (typeof value === "string") return value
               if (Array.isArray(value)) {
@@ -569,6 +573,58 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
       return { ...node, data: restData }
     }))
     setHasRunOverlay(false)
+  }, [setNodes])
+
+  // --- Validation overlay handlers ---
+
+  const applyValidationOverlay = useCallback((result: ValidationResult) => {
+    // Build a map of node_id -> NodeValidationState from the validation result
+    const overlay: Record<string, NodeValidationState> = {}
+
+    // The error field is a global error (not node-specific), shown in toolbar
+    // The warnings array has node_id that maps to specific nodes
+    for (const w of result.warnings) {
+      if (!w.node_id) continue
+      if (!overlay[w.node_id]) {
+        overlay[w.node_id] = { errors: [], warnings: [] }
+      }
+      overlay[w.node_id].warnings.push(w.message)
+    }
+
+    // If there's a global error and the result is invalid, mark it on relevant nodes if any
+    if (result.error && !result.valid) {
+      // Global error doesn't have a node_id — it shows in the toolbar popover
+      // We still apply any per-node warnings from above
+    }
+
+    setNodes(currentNodes =>
+      currentNodes.map(node => {
+        const state = overlay[node.id]
+        if (state) {
+          return { ...node, data: { ...node.data, _validationState: state } }
+        }
+        // Clear any previous validation state for nodes with no issues
+        if (node.data._validationState) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { _validationState, ...rest } = node.data as Record<string, unknown>
+          return { ...node, data: rest }
+        }
+        return node
+      }),
+    )
+  }, [setNodes])
+
+  const clearValidationOverlay = useCallback(() => {
+    setNodes(currentNodes =>
+      currentNodes.map(node => {
+        if (node.data._validationState) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { _validationState, ...rest } = node.data as Record<string, unknown>
+          return { ...node, data: rest }
+        }
+        return node
+      }),
+    )
   }, [setNodes])
 
   const handleSearchQueryChange = useCallback((query: string) => {
@@ -811,12 +867,17 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     if (syncTimer.current) clearTimeout(syncTimer.current)
     syncTimer.current = setTimeout(() => {
       onBlueprintChange({
-        nodes: nodes.map((n) => ({
-          id: n.id,
-          type: n.type as WorkflowNodeType,
-          position: n.position,
-          data: n.data as Record<string, unknown>,
-        })),
+        nodes: nodes.map((n) => {
+          // Strip transient overlay fields before persisting
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { runStatus: _rs, _runOverlay: _ro, _validationState: _vs, ...cleanData } = n.data as Record<string, unknown>
+          return {
+            id: n.id,
+            type: n.type as WorkflowNodeType,
+            position: n.position,
+            data: cleanData,
+          }
+        }),
         edges: edges.map((e) => ({
           id: e.id,
           source: e.source,
@@ -961,8 +1022,11 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
 
   const handleNodeDataUpdate = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
+      // When a node is edited, clear its validation state (stale results)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _validationState: _discarded, ...cleanData } = data
       setNodes((nds) =>
-        nds.map((n) => (n.id === nodeId ? { ...n, data } : n)),
+        nds.map((n) => (n.id === nodeId ? { ...n, data: cleanData } : n)),
       )
     },
     [setNodes],
@@ -989,7 +1053,9 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     canRedo,
     applyRunOverlay: handleViewRunOnCanvas,
     clearRunOverlay,
-  }), [handleAutoLayout, handleUndo, handleRedo, canUndo, canRedo, handleViewRunOnCanvas, clearRunOverlay])
+    applyValidationOverlay,
+    clearValidationOverlay,
+  }), [handleAutoLayout, handleUndo, handleRedo, canUndo, canRedo, handleViewRunOnCanvas, clearRunOverlay, applyValidationOverlay, clearValidationOverlay])
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden relative">

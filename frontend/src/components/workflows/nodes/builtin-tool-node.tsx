@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { useTranslations } from "next-intl"
 import { Wrench } from "lucide-react"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { BuiltinToolNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { BuiltinToolNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function BuiltinToolNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as BuiltinToolNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as BuiltinToolNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
 
   return (
     <BaseWorkflowNode
@@ -22,6 +22,7 @@ function BuiltinToolNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="space-y-0.5">
         {nodeData.tool_id && (

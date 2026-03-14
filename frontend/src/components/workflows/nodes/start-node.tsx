@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { Play } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { StartNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { StartNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function StartNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as StartNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as StartNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const varCount = nodeData.variables?.length ?? 0
 
   return (
@@ -23,6 +23,7 @@ function StartNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <p className="text-[10px] text-muted-foreground">
         {t("variableCount", { count: varCount })}

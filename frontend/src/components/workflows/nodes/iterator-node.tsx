@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { Repeat } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { IteratorNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { IteratorNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function IteratorNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as IteratorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as IteratorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const maxIter = nodeData.max_iterations ?? 100
 
   return (
@@ -23,6 +23,7 @@ function IteratorNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <p className="text-[10px] text-muted-foreground truncate">
         {nodeData.list_variable

@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { GitBranch } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { SubWorkflowNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { SubWorkflowNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function SubWorkflowNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as SubWorkflowNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as SubWorkflowNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
 
   const mappingCount = Object.keys(nodeData.input_mapping ?? {}).length
 
@@ -24,6 +24,7 @@ function SubWorkflowNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="space-y-0.5">
         {nodeData.workflow_id && (

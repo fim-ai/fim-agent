@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { Combine } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { VariableAggregatorNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { VariableAggregatorNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function VariableAggregatorNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as VariableAggregatorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as VariableAggregatorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const count = nodeData.variables?.length ?? 0
   const mode = nodeData.mode ?? "list"
 
@@ -24,6 +24,7 @@ function VariableAggregatorNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <p className="text-[10px] text-muted-foreground">
         {t("variableCount", { count })} · {t(`configAggregateMode_${mode}` as Parameters<typeof t>[0])}

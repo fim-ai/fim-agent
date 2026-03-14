@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { useTranslations } from "next-intl"
 import { Cable } from "lucide-react"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { MCPNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { MCPNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function MCPNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as MCPNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as MCPNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
 
   return (
     <BaseWorkflowNode
@@ -22,6 +22,7 @@ function MCPNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="space-y-0.5">
         {nodeData.server_id && (

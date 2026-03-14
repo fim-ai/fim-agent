@@ -178,9 +178,12 @@ export default function WorkflowEditorPage() {
       try {
         const result = await workflowApi.validate(bp as unknown as Record<string, unknown>)
         setValidationResult(result)
+        // Apply validation badges on canvas nodes
+        editorRef.current?.applyValidationOverlay(result)
       } catch {
         // Silently ignore validation failures — don't block the user
         setValidationResult(null)
+        editorRef.current?.clearValidationOverlay()
       } finally {
         setIsValidating(false)
       }

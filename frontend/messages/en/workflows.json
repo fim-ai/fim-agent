@@ -303,6 +303,7 @@
   "errorCannotDeleteStart": "Cannot delete the Start node",
   "errorCannotDeleteEnd": "Cannot delete the End node",
 
+  "validationIssues": "Validation Issues",
   "validationValid": "Blueprint is valid",
   "validationWarnings": "{count} warning(s)",
   "validationInvalid": "Blueprint has errors",

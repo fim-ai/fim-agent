@@ -6,11 +6,11 @@ import type { NodeProps } from "@xyflow/react"
 import { FileScan } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BaseWorkflowNode } from "./base-workflow-node"
-import type { DocumentExtractorNodeData, NodeRunStatus, NodeRunOverlayData } from "@/types/workflow"
+import type { DocumentExtractorNodeData, NodeRunStatus, NodeRunOverlayData, NodeValidationState } from "@/types/workflow"
 
 function DocumentExtractorNodeComponent({ data, selected }: NodeProps) {
   const t = useTranslations("workflows")
-  const nodeData = data as unknown as DocumentExtractorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData }
+  const nodeData = data as unknown as DocumentExtractorNodeData & { runStatus?: NodeRunStatus; note?: string; comment?: string; _runOverlay?: NodeRunOverlayData; _validationState?: NodeValidationState }
   const extractMode = nodeData.extract_mode ?? "full_text"
   const inputType = nodeData.input_type ?? "text"
 
@@ -24,6 +24,7 @@ function DocumentExtractorNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       runStatus={nodeData.runStatus}
       runOverlay={nodeData._runOverlay}
+      validationState={nodeData._validationState}
     >
       <div className="flex items-center gap-1">
         <span className="inline-flex items-center rounded bg-amber-600/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">

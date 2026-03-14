@@ -731,5 +731,6 @@
   "noTraceData": "Aucune donnée de trace disponible. Exécutez en mode débogage pour des traces détaillées.",
   "enableDebugTrace": "Activer la trace de débogage",
   "debugTraceEnabled": "Trace de débogage activée - capture les données d'exécution détaillées",
-  "debugTraceDisabled": "Mode normal - exécutez avec le débogage pour la trace complète"
+  "debugTraceDisabled": "Mode normal - exécutez avec le débogage pour la trace complète",
+  "validationIssues": "Problèmes de validation"
 }
