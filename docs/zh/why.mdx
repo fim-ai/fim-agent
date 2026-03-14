@@ -1,0 +1,141 @@
+---
+title: "为什么选择 FIM One"
+description: "您的公司有许多互不通信的系统。FIM One 将它们连接起来 — 无需修改您的任何代码。"
+---
+
+## 每家公司都面临的问题
+
+从50人的初创公司到财富500强企业，每家公司的背后都堆积着多年积累的系统混乱：
+
+```
+ERP (SAP, Kingdee, Yonyou)        — finance, inventory, supply chain
+CRM (Salesforce, HubSpot)         — customers, deals, pipelines
+OA  (Seeyon, Weaver, Feishu/Lark) — approvals, documents, workflows
+HR  (Workday, BambooHR)           — payroll, org charts, leave
+Custom databases                   — orders, assets, tickets
+Legacy systems                     — "nobody dares touch it"
+```
+
+每个系统都是一个**信息孤岛**。数据存储在一个地方，工作流存储在另一个地方，审批流程存储在第三个地方。员工花费数小时在系统之间复制粘贴，通过邮件发送截图，手动协调本应自动流转的数据。
+
+**现在每个系统供应商都提供自己的AI。** Feishu有其AI。Salesforce有Einstein。SAP有Joule。但每一个都只在**自己的围墙内**聪慧。Feishu AI无法检查你的ERP余额。Salesforce Einstein无法触发你的OA审批。它们在设计上就被限制在特定领域——因为连接竞争对手的系统违背了它们的商业利益。
+
+## FIM One 的作用
+
+FIM One 是**外部的、第三方的、水平的平台**，连接所有系统。
+
+<Tip>
+**客户端代码零改动。** FIM One 主动桥接现有系统——读取数据库、调用 API、推送通知——仅使用您提供的凭证和网络访问权限。
+</Tip>
+
+您提供的内容：
+- 数据库凭证（建议使用只读账户）
+- API 端点和身份验证密钥
+- 网络白名单访问权限
+
+FIM One 提供的内容：
+- 理解并协调**所有**系统的 AI
+- 每项操作都经过审计，每次写入都由人工确认把关
+- 您的数据保留在您的系统中——FIM One 提供智能层，而不是数据湖
+
+## 两种模式，一个平台
+
+| 模式 | 说明 | 开始使用 |
+|------|-----------|------------|
+| **Copilot** | AI 嵌入单个系统内——在用户现有 UI 中与用户协作 | 快速证明价值：在 ERP 中嵌入"财务 Copilot" |
+| **Hub** | 连接所有系统的中央 AI 门户——跨系统编排 | 扩展价值：在一个地方连接 ERP + CRM + OA + Lark |
+
+**先立足后扩展**：从一个系统中的 Copilot 开始。用户无需学习新工具即可看到即时价值。当 ROI 得到证明后，设置 Hub——一个所有系统与 AI 相遇的中央门户。Copilot 继续运行；Hub 添加跨系统智能。
+
+> Copilot 在单个系统内证明价值。Hub 跨所有系统释放价值。
+
+## 为什么不直接...
+
+### ...使用 MuleSoft 还是传统 iPaaS？
+
+MuleSoft 连接系统到系统。FIM One 连接系统到 **AI**。传统 iPaaS 需要数月的自定义映射、专门的集成团队和六位数的合同。FIM One 从语义上理解您的数据——用自然语言描述您想要的内容，AI 会自动判断需要查询哪些系统以及如何组合结果。
+
+### ...自己编写 ETL 管道？
+
+每次源系统升级其架构时，ETL 就会中断。FIM One 实时连接 — 无需数据复制、无需同步作业、无需管道维护。而且它是双向工作的：从一个系统读取，写入另一个系统，每次写入都需要人工确认。
+
+### ...使用 Dify、n8n 或工作流构建器？
+
+工作流构建器要求你在新的画布上**复制**你的业务逻辑。但你的工作流已经存在——在你的 OA、ERP、审批系统中。你不需要另一个流程图编辑器。你需要连接到这些流程已经运行的系统的 AI。
+
+FIM One 不会复制工作流逻辑。从连接器的角度来看，每个复杂操作——转移、拒绝、升级、共同签署——都会折叠为单个 API 调用及其参数。目标系统管理状态机。FIM One 只是调用 API。
+
+### ...使用 AI 智能体平台（Manus、AutoGPT）？
+
+自主智能体功能强大但难以控制。它们会因 API 失败而重复消耗 token、偏离目标，且无法在没有自定义集成的情况下连接到您的专有系统。FIM One 提供**有界自主性** — 具有护栏的动态规划、故障连接器上的断路器，以及对写操作的人工确认门。
+
+### ...让每个供应商的内置 AI 来处理呢？
+
+飞书 AI 在飞书内部工作。Salesforce Einstein 在 Salesforce 内部工作。两者都无法跨越边界。**没有供应商会构建真正的跨系统集成** — 这与他们的锁定激励相悖。FIM One 是唯一没有这种利益冲突的参与者。
+
+## FIM One 如何连接
+
+FIM One 使用三层架构，将传输与治理分离：
+
+```
+FIM One Platform (AI orchestration, multi-tenant, UI)
+    ↓
+Connector Governance Layer (audit, auth, confirmation gate, circuit breaker)
+    ↓
+Connector (API / Database / MCP protocol)
+    ↓
+Your Systems (ERP, CRM, OA, databases, custom APIs)
+```
+
+**治理层**使其达到企业级就绪状态：
+
+| 功能 | 作用 |
+|-----------|-------------|
+| **审计日志** | 记录每次工具调用 — 谁、做什么、何时、结果 |
+| **人工确认** | 写操作在执行前需要显式用户批准 |
+| **断路器** | 如果系统宕机，FIM One 立即停止重试，而不是继续消耗 token |
+| **凭证加密** | 静态 AES-GCM 加密，按用户隔离凭证 |
+| **只读强制** | 默认只读；写操作显式受限 |
+
+智能体不知道也不关心它是在与 SAP、PostgreSQL 数据库还是自定义 REST API 通信。连接器是标准化的桥接 — 添加新系统只需连接器配置，无需代码更改。
+
+## 构建连接器的三种方式
+
+您无需编写 Python 代码即可连接新系统：
+
+| 方法 | 时间 | 所需技能 |
+|--------|------|---------------|
+| **导入 OpenAPI 规范** | 几分钟 | 上传 YAML/JSON 规范或 URL — 连接器自动生成 |
+| **AI 聊天构建器** | 几分钟 | 用自然语言描述 API — AI 生成连接器配置 |
+| **MCP 生态系统** | 几分钟 | 直接连接任何 MCP 服务器 — 开源 MCP 社区开箱即用 |
+
+对于企业数据库，FIM One 支持直接 SQL 访问 PostgreSQL、MySQL、Oracle、SQL Server 和国产遗留数据库（DM、KingbaseES、GBase、Highgo），具有模式内省、AI 驱动的注释和只读查询执行功能。
+
+## 为什么是现在
+
+两件事改变了使 FIM One 今天成为可能的条件：
+
+**1. AI 模型终于足够聪明来进行编排。** GPT-4、Claude 和 Gemini 具有原生工具调用、长上下文窗口（200K+）和推理能力，使动态跨系统编排变得可靠。三年前，这还是一个研究问题。今天，它是一个工程问题。
+
+**2. 连接层仍然没有人负责。** 模型不断变得更聪明，但它们永远不会原生加密你的数据库凭证、管理你的 OAuth 令牌、执行你的 RBAC 策略或审计你的工具调用。那是基础设施工作——也是 FIM One 所做的工作。
+
+> 离纯 LLM 编排越远，朝向企业系统集成越近，护城河就越持久。
+
+AI 模型拥有智能。FIM One 拥有连接。更聪明的模型使 FIM One **更好**，而不是冗余——因为更好的推理意味着通过相同连接器进行更好的跨系统编排。
+
+## 快速开始
+
+<CardGroup cols={2}>
+  <Card title="快速入门" icon="rocket" href="/quickstart">
+    使用 Docker 或本地开发在几分钟内运行 FIM One。
+  </Card>
+  <Card title="连接器架构" icon="plug" href="/architecture/connector-architecture">
+    FIM One 如何连接到您的系统 — 三层架构。
+  </Card>
+  <Card title="执行模式" icon="arrows-split-up-and-left" href="/concepts/execution-modes">
+    独立、副驾驶和中心 — 三种部署方式。
+  </Card>
+  <Card title="在云上尝试" icon="cloud" href="https://cloud.fim.ai">
+    无需设置 — 登录并开始连接。
+  </Card>
+</CardGroup>

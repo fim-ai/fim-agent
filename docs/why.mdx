@@ -1,0 +1,141 @@
+---
+title: "Why FIM One"
+description: "Your company has dozens of systems that don't talk to each other. FIM One connects them — without touching a single line of your code."
+---
+
+## The Problem Every Company Has
+
+Behind every company — from a 50-person startup to a Fortune 500 — sits a tangle of systems accumulated over years:
+
+```
+ERP (SAP, Kingdee, Yonyou)        — finance, inventory, supply chain
+CRM (Salesforce, HubSpot)         — customers, deals, pipelines
+OA  (Seeyon, Weaver, Feishu/Lark) — approvals, documents, workflows
+HR  (Workday, BambooHR)           — payroll, org charts, leave
+Custom databases                   — orders, assets, tickets
+Legacy systems                     — "nobody dares touch it"
+```
+
+Each system is an **information silo**. Data lives in one place, workflows live in another, approvals live in a third. People spend hours copy-pasting between them, emailing screenshots, and manually reconciling data that should flow automatically.
+
+**Every system vendor offers their own AI now.** Feishu has its AI. Salesforce has Einstein. SAP has Joule. But each one is smart only **inside its own walls**. Feishu AI can't check your ERP balance. Salesforce Einstein can't trigger your OA approval. They are domain-locked by design — because connecting to competitors is against their business interests.
+
+## What FIM One Does
+
+FIM One is the **external, third-party, horizontal platform** that connects all of them.
+
+<Tip>
+**The client changes zero code.** FIM One bridges into existing systems proactively — reading databases, calling APIs, pushing notifications — using only the credentials and network access you provide.
+</Tip>
+
+What you provide:
+- Database credentials (read-only accounts recommended)
+- API endpoints and authentication keys
+- Network whitelist access
+
+What FIM One delivers:
+- AI that understands and orchestrates across **all** your systems
+- Every operation audited, every write gated by human confirmation
+- Your data stays in your systems — FIM One provides the intelligence layer, not a data lake
+
+## Two Modes, One Platform
+
+| Mode | What it is | Start here |
+|------|-----------|------------|
+| **Copilot** | AI embedded inside one system — works alongside users in their existing UI | Prove value fast: embed a "Finance Copilot" in your ERP |
+| **Hub** | Central AI portal connecting all systems — cross-system orchestration | Scale value: connect ERP + CRM + OA + Lark in one place |
+
+**Land and Expand**: Start with a Copilot in one system. Users see immediate value without learning a new tool. When the ROI is proven, set up a Hub — a central portal where all your systems meet AI. The Copilot keeps running; the Hub adds cross-system intelligence.
+
+> Copilot proves value inside one system. Hub unlocks value across all systems.
+
+## Why Not Just...
+
+### ...use MuleSoft or traditional iPaaS?
+
+MuleSoft connects systems to systems. FIM One connects systems to **AI**. Traditional iPaaS requires months of custom mapping, dedicated integration teams, and six-figure contracts. FIM One understands your data semantically — describe what you want in natural language, and the AI figures out which systems to query and how to combine the results.
+
+### ...write ETL pipelines yourself?
+
+ETL breaks every time a source system upgrades its schema. FIM One connects live — no data copying, no sync jobs, no pipeline maintenance. And it works bidirectionally: read from one system, write to another, with human confirmation on every write.
+
+### ...use Dify, n8n, or a workflow builder?
+
+Workflow builders ask you to **replicate** your business logic on a new canvas. But your workflows already exist — in your OA, your ERP, your approval systems. You don't want another flowchart editor. You want AI that connects to the systems where those flows already run.
+
+FIM One doesn't duplicate workflow logic. From the connector's perspective, every complex operation — transfer, reject, escalate, co-sign — collapses to a single API call with parameters. The target system manages the state machine. FIM One just calls the API.
+
+### ...use an AI agent platform (Manus, AutoGPT)?
+
+Autonomous agents are powerful but uncontrolled. They burn tokens retrying failed APIs, drift from goals, and can't connect to your proprietary systems without custom integration. FIM One provides **bounded autonomy** — dynamic planning with guardrails, circuit breakers on failing connectors, and human confirmation gates on write operations.
+
+### ...let each vendor's built-in AI handle it?
+
+Feishu AI works inside Feishu. Salesforce Einstein works inside Salesforce. Neither can cross the boundary. **No vendor will build genuine cross-system integration** — it's against their lock-in incentive. FIM One is the only player without that conflict of interest.
+
+## How FIM One Connects
+
+FIM One uses a three-layer architecture that separates transport from governance:
+
+```
+FIM One Platform (AI orchestration, multi-tenant, UI)
+    ↓
+Connector Governance Layer (audit, auth, confirmation gate, circuit breaker)
+    ↓
+Connector (API / Database / MCP protocol)
+    ↓
+Your Systems (ERP, CRM, OA, databases, custom APIs)
+```
+
+The **Governance Layer** is what makes this enterprise-ready:
+
+| Capability | What it does |
+|-----------|-------------|
+| **Audit logging** | Every tool call recorded — who, what, when, result |
+| **Human confirmation** | Write operations require explicit user approval before execution |
+| **Circuit breaker** | If a system goes down, FIM One stops retrying immediately instead of burning tokens |
+| **Credential encryption** | AES-GCM encryption at rest, per-user credential isolation |
+| **Read-only enforcement** | Default to read-only; write operations explicitly gated |
+
+The agent doesn't know or care whether it's talking to SAP, a PostgreSQL database, or a custom REST API. Connectors are standardized bridges — adding a new system requires only connector configuration, not code changes.
+
+## Three Ways to Build Connectors
+
+You don't need to write Python to connect a new system:
+
+| Method | Time | Skill required |
+|--------|------|---------------|
+| **Import OpenAPI spec** | Minutes | Upload a YAML/JSON spec or URL — connectors generated automatically |
+| **AI chat builder** | Minutes | Describe the API in natural language — AI generates the connector config |
+| **MCP ecosystem** | Minutes | Connect any MCP server directly — the open-source MCP community works out of the box |
+
+For enterprise databases, FIM One supports direct SQL access to PostgreSQL, MySQL, Oracle, SQL Server, and Chinese legacy databases (DM, KingbaseES, GBase, Highgo) with schema introspection, AI-powered annotation, and read-only query execution.
+
+## Why Now
+
+Two things changed that make FIM One possible today:
+
+**1. AI models are finally smart enough to orchestrate.** GPT-4, Claude, and Gemini have native tool calling, long context windows (200K+), and reasoning capabilities that make dynamic cross-system orchestration reliable. Three years ago, this was a research problem. Today, it's an engineering problem.
+
+**2. The connection layer is still nobody's job.** Models keep getting smarter, but they will never natively encrypt your database credentials, manage your OAuth tokens, enforce your RBAC policies, or audit your tool calls. That's infrastructure work — and it's the work FIM One does.
+
+> The further from pure LLM orchestration toward enterprise system integration, the more durable the moat.
+
+AI models own the intelligence. FIM One owns the connection. Smarter models make FIM One **better**, not redundant — because better reasoning means better cross-system orchestration through the same connectors.
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get FIM One running in minutes with Docker or local development.
+  </Card>
+  <Card title="Connector Architecture" icon="plug" href="/architecture/connector-architecture">
+    How FIM One connects to your systems — the three-layer architecture.
+  </Card>
+  <Card title="Execution Modes" icon="arrows-split-up-and-left" href="/concepts/execution-modes">
+    Standalone, Copilot, and Hub — three ways to deploy.
+  </Card>
+  <Card title="Try on Cloud" icon="cloud" href="https://cloud.fim.ai">
+    No setup required — sign in and start connecting.
+  </Card>
+</CardGroup>

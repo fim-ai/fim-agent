@@ -20,6 +20,7 @@
                 "icon": "rocket",
                 "pages": [
                   "index",
+                  "why",
                   "quickstart"
                 ]
               },
@@ -116,6 +117,7 @@
                 "icon": "rocket",
                 "pages": [
                   "zh/index",
+                  "zh/why",
                   "zh/quickstart"
                 ]
               },
@@ -212,6 +214,7 @@
                 "icon": "rocket",
                 "pages": [
                   "ja/index",
+                  "ja/why",
                   "ja/quickstart"
                 ]
               },
@@ -308,6 +311,7 @@
                 "icon": "rocket",
                 "pages": [
                   "ko/index",
+                  "ko/why",
                   "ko/quickstart"
                 ]
               },
@@ -404,6 +408,7 @@
                 "icon": "rocket",
                 "pages": [
                   "de/index",
+                  "de/why",
                   "de/quickstart"
                 ]
               },
@@ -500,6 +505,7 @@
                 "icon": "rocket",
                 "pages": [
                   "fr/index",
+                  "fr/why",
                   "fr/quickstart"
                 ]
               },
