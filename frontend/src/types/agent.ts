@@ -26,6 +26,7 @@ export interface AgentResponse {
   is_builder?: boolean
   discoverable?: boolean
   sub_agent_ids?: string[] | null
+  allow_as_sub_agent?: boolean
   skill_ids?: string[] | null
   compact_instructions?: string | null
   publish_status: string | null

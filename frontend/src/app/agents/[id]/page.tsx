@@ -57,6 +57,12 @@ export default function AgentEditorPage() {
     try {
       setIsLoading(true)
       const data = await agentApi.get(id)
+      // Non-owners cannot access agent settings (black box model)
+      // They can only chat via /new?agent=<id>
+      if (user && data.user_id !== user.id) {
+        router.replace("/agents")
+        return
+      }
       setAgent(data)
       setIsNew(false)
     } catch (err) {
@@ -65,7 +71,7 @@ export default function AgentEditorPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [id, router])
+  }, [id, router, user])
 
   useEffect(() => {
     if (user && id !== "new") loadAgent()

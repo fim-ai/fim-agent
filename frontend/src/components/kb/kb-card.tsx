@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Building2, CheckCircle2, Clock, Download, Eye, MoreHorizontal, PackageMinus, Pencil, ShoppingBag, Trash2, XCircle } from "lucide-react"
+import { Building2, Clock, Download, Eye, MoreHorizontal, PackageMinus, Pencil, ShoppingBag, Trash2, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -82,7 +82,7 @@ export function KBCard({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : isInstalled && onUninstall ? (
+        ) : !isOwner && onUninstall ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -94,40 +94,13 @@ export function KBCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/kb/${kb.id}`}>
-                  <Eye className="h-4 w-4" />
-                  {t("view")}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onUninstall(kb.id)}>
                 <PackageMinus className="h-4 w-4" />
                 {tc("uninstall")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/kb/${kb.id}`}>
-                  <Eye className="h-4 w-4" />
-                  {t("view")}
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        ) : null}
       </div>
 
       {/* Installed / Shared badge (non-owner) */}

@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl"
 import {
   BookOpen,
   Building2,
-  CheckCircle2,
   Clock,
   Download,
   Globe,
@@ -214,7 +213,7 @@ export function SkillCard({
         {skill.description || t("noDescription")}
       </p>
 
-      {/* Edit CTA - only for owners */}
+      {/* Edit CTA — owner only */}
       {isOwner && onEdit && (
         <Button
           variant="outline"

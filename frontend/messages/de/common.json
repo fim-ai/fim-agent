@@ -115,5 +115,6 @@
   "fromMarket": "Aus dem Marktplatz",
   "uninstall": "Deinstallieren",
   "uninstalled": "Ressource deinstalliert",
-  "publishedToMarket": "Im Marketplace veröffentlicht"
+  "publishedToMarket": "Im Marketplace veröffentlicht",
+  "install": "Installieren"
 }

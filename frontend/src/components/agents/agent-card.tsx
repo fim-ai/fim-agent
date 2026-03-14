@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, Building2, CheckCircle2, Clock, Download, MoreHorizontal, PackageMinus, Pencil, Trash2, Globe, GlobeLock, MessageSquare, Radar, RotateCw, ShoppingBag, XCircle } from "lucide-react"
+import { Bot, Building2, Clock, Download, MoreHorizontal, PackageMinus, Pencil, Trash2, Globe, GlobeLock, MessageSquare, Radar, RotateCw, ShoppingBag, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -91,16 +91,16 @@ export function AgentCard({
                 <DropdownMenuItem onClick={() => onResubmit(agent.id)}>
                   <RotateCw className="h-4 w-4" />
                   {to("resubmit")}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(agent.id)}>
+                <Trash2 className="h-4 w-4" />
+                {tc("delete")}
               </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onDelete(agent.id)}>
-              <Trash2 className="h-4 w-4" />
-              {tc("delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+            </DropdownMenuContent>
           </DropdownMenu>
-        ) : isInstalled && onUninstall ? (
+        ) : !isOwner && onUninstall ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -112,6 +112,13 @@ export function AgentCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/new?agent=${agent.id}`}>
+                  <MessageSquare className="h-4 w-4" />
+                  {t("startChat")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onUninstall(agent.id)}>
                 <PackageMinus className="h-4 w-4" />
                 {tc("uninstall")}
@@ -210,8 +217,8 @@ export function AgentCard({
         {agent.description || t("noDescription")}
       </p>
 
-      {/* Start Chat CTA — when published */}
-      {isPublished && (
+      {/* Start Chat CTA — published owner agents or any non-owner shared agent */}
+      {(isPublished || !isOwner) && (
         <Button
           variant="outline"
           size="sm"
