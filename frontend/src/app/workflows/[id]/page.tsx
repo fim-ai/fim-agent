@@ -37,6 +37,8 @@ import { EnvVarsDialog } from "@/components/workflows/env-vars-dialog"
 import { VariablesPanel } from "@/components/workflows/variables-panel"
 import { AnalyticsPanel } from "@/components/workflows/analytics-panel"
 import { WebhookConfigDialog } from "@/components/workflows/webhook-config-dialog"
+import { ApiKeyDialog } from "@/components/workflows/api-key-dialog"
+import { ScheduleDialog } from "@/components/workflows/schedule-dialog"
 import type {
   WorkflowResponse,
   WorkflowBlueprint,
@@ -104,6 +106,13 @@ export default function WorkflowEditorPage() {
 
   // Webhook dialog state
   const [showWebhookDialog, setShowWebhookDialog] = useState(false)
+
+  // API key dialog state
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false)
+
+  // Schedule dialog state
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false)
+  const [scheduleActive, setScheduleActive] = useState(false)
 
   // Undo/redo state (synced from editor via callback)
   const [canUndo, setCanUndo] = useState(false)
@@ -214,6 +223,20 @@ export default function WorkflowEditorPage() {
       cancelled = true
     }
   }, [user, workflowId, router, t, triggerValidation])
+
+  // Load schedule status
+  useEffect(() => {
+    if (!user || !workflowId) return
+    workflowApi
+      .getSchedule(workflowId)
+      .then((data) => {
+        setScheduleActive(data.enabled)
+      })
+      .catch(() => {
+        // No schedule configured — that's fine
+        setScheduleActive(false)
+      })
+  }, [user, workflowId])
 
   // Dirty state beforeunload guard
   useEffect(() => {
@@ -616,6 +639,14 @@ export default function WorkflowEditorPage() {
     setWorkflow((prev) => prev ? { ...prev, webhook_url: webhookUrl } : prev)
   }, [])
 
+  const handleApiKeyChanged = useCallback((hasKey: boolean) => {
+    setWorkflow((prev) => prev ? { ...prev, has_api_key: hasKey } : prev)
+  }, [])
+
+  const handleScheduleChange = useCallback((hasSchedule: boolean) => {
+    setScheduleActive(hasSchedule)
+  }, [])
+
   const handleAutoLayout = useCallback(() => {
     editorRef.current?.autoLayout()
   }, [])
@@ -733,6 +764,10 @@ export default function WorkflowEditorPage() {
         onAnalytics={() => setAnalyticsOpen(true)}
         onWebhook={() => setShowWebhookDialog(true)}
         webhookConfigured={!!workflow.webhook_url}
+        onApiKey={() => setShowApiKeyDialog(true)}
+        apiKeyConfigured={!!workflow.has_api_key}
+        onSchedule={() => setShowScheduleDialog(true)}
+        scheduleActive={scheduleActive}
       />
 
       <WorkflowEditor
@@ -944,6 +979,23 @@ export default function WorkflowEditorPage() {
         open={showWebhookDialog}
         onOpenChange={setShowWebhookDialog}
         onSaved={handleWebhookSaved}
+      />
+
+      {/* API Key Dialog */}
+      <ApiKeyDialog
+        workflowId={workflowId}
+        hasApiKey={!!workflow.has_api_key}
+        open={showApiKeyDialog}
+        onOpenChange={setShowApiKeyDialog}
+        onApiKeyChanged={handleApiKeyChanged}
+      />
+
+      {/* Schedule Config Dialog */}
+      <ScheduleDialog
+        workflowId={workflowId}
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        onScheduleChange={handleScheduleChange}
       />
     </div>
   )

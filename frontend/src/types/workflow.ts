@@ -19,6 +19,7 @@ export interface WorkflowResponse {
   reviewed_at: string | null
   review_note: string | null
   webhook_url: string | null
+  has_api_key: boolean
   created_at: string
   updated_at: string
 }
@@ -419,6 +420,23 @@ export interface WorkflowTemplate {
 export interface WorkflowFromTemplateRequest {
   template_id: string
   name?: string
+}
+
+// --- Schedule types ---
+
+export interface WorkflowScheduleResponse {
+  cron: string
+  enabled: boolean
+  inputs: Record<string, unknown> | null
+  timezone: string
+  next_run_at: string | null
+}
+
+export interface WorkflowScheduleUpdate {
+  cron: string
+  enabled: boolean
+  inputs?: Record<string, unknown> | null
+  timezone?: string
 }
 
 // --- Version types ---

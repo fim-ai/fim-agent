@@ -1,6 +1,6 @@
 import { getApiBaseUrl, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "./constants"
 import type { UserInfo, TokenResponse, LoginRequest, LoginWithCodeRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest, SetupRequest } from "@/types/auth"
-import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate, NodeStatsResponse, WorkflowValidateResponse, WorkflowVersionResponse, WorkflowAnalyticsResponse } from "@/types/workflow"
+import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate, NodeStatsResponse, WorkflowValidateResponse, WorkflowVersionResponse, WorkflowAnalyticsResponse, WorkflowScheduleResponse, WorkflowScheduleUpdate } from "@/types/workflow"
 import type {
   ConversationResponse,
   ConversationDetail,
@@ -1062,6 +1062,37 @@ export const workflowApi = {
     apiFetch<ApiResponse<{ success: boolean; status_code?: number; error?: string }>>(
       `/api/workflows/${id}/test-webhook`,
       { method: "POST" },
+    ).then((r) => r.data),
+
+  // --- Schedule ---
+  getSchedule: (id: string) =>
+    apiFetch<ApiResponse<WorkflowScheduleResponse>>(
+      `/api/workflows/${id}/schedule`,
+    ).then((r) => r.data),
+
+  updateSchedule: (id: string, body: WorkflowScheduleUpdate) =>
+    apiFetch<ApiResponse<WorkflowScheduleResponse>>(
+      `/api/workflows/${id}/schedule`,
+      { method: "PUT", body: JSON.stringify(body) },
+    ).then((r) => r.data),
+
+  deleteSchedule: (id: string) =>
+    apiFetch<ApiResponse<{ deleted: boolean }>>(
+      `/api/workflows/${id}/schedule`,
+      { method: "DELETE" },
+    ).then((r) => r.data),
+
+  // --- API Key ---
+  generateApiKey: (id: string) =>
+    apiFetch<ApiResponse<{ api_key: string; workflow_id: string }>>(
+      `/api/workflows/${id}/generate-api-key`,
+      { method: "POST" },
+    ).then((r) => r.data),
+
+  revokeApiKey: (id: string) =>
+    apiFetch<ApiResponse<{ revoked: boolean }>>(
+      `/api/workflows/${id}/api-key`,
+      { method: "DELETE" },
     ).then((r) => r.data),
 }
 

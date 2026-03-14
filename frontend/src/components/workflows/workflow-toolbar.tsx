@@ -11,6 +11,7 @@ import {
   Bell,
   Braces,
   CheckCircle2,
+  Clock,
   Copy,
   Download,
   GitBranch,
@@ -18,6 +19,7 @@ import {
   GlobeLock,
   History,
   Key,
+  KeyRound,
   LayoutGrid,
   Loader2,
   MoreHorizontal,
@@ -98,6 +100,10 @@ interface WorkflowToolbarProps {
   onAnalytics?: () => void
   onWebhook?: () => void
   webhookConfigured?: boolean
+  onApiKey?: () => void
+  apiKeyConfigured?: boolean
+  onSchedule?: () => void
+  scheduleActive?: boolean
 }
 
 export function WorkflowToolbar({
@@ -139,6 +145,10 @@ export function WorkflowToolbar({
   onAnalytics,
   onWebhook,
   webhookConfigured = false,
+  onApiKey,
+  apiKeyConfigured = false,
+  onSchedule,
+  scheduleActive = false,
 }: WorkflowToolbarProps) {
   const t = useTranslations("workflows")
   const to = useTranslations("organizations")
@@ -541,6 +551,28 @@ export function WorkflowToolbar({
                   )}
                 </span>
                 {t("webhookMenuItem")}
+              </DropdownMenuItem>
+            )}
+            {onSchedule && (
+              <DropdownMenuItem onClick={onSchedule}>
+                <span className="relative">
+                  <Clock className="h-4 w-4" />
+                  {scheduleActive && (
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  )}
+                </span>
+                {t("scheduleMenuItem")}
+              </DropdownMenuItem>
+            )}
+            {onApiKey && (
+              <DropdownMenuItem onClick={onApiKey}>
+                <span className="relative">
+                  <KeyRound className="h-4 w-4" />
+                  {apiKeyConfigured && (
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  )}
+                </span>
+                {t("apiKeyMenuItem")}
               </DropdownMenuItem>
             )}
             {onAnalytics && (
