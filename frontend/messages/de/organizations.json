@@ -190,5 +190,7 @@
   "marketOrgName": "Marketplace",
   "marketOrgDescription": "Öffentlicher Marketplace. Hier veröffentlichte Ressourcen sind für alle Benutzer zum Durchsuchen und Abonnieren verfügbar.",
   "cannotDeleteMarketOrg": "Die Marketplace-Organisation kann nicht gelöscht werden",
-  "cannotLeaveMarketOrg": "Die Marketplace-Organisation kann nicht verlassen werden"
+  "cannotLeaveMarketOrg": "Die Marketplace-Organisation kann nicht verlassen werden",
+  "cannotAddMemberToMarketOrg": "Mitglieder können nicht zum Marketplace hinzugefügt werden",
+  "marketplaceReviewLocked": "Marketplace erfordert immer eine Überprüfung"
 }

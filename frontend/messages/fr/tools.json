@@ -88,7 +88,7 @@
   "publishNoOrgs": "Vous n'êtes membre d'aucune organisation.",
   "allowFallback": "Autoriser le recours aux identifiants",
   "allowFallbackHelp": "Lorsqu'elle est activée, les membres de l'organisation sans identifiants personnels utiliseront les identifiants intégrés de ce serveur. Si ces identifiants impliquent des API payantes ou des services privés, toute utilisation dans votre organisation sera facturée à votre compte.",
-  "mcpServerPublished": "Serveur MCP publié dans l'organisation",
+  "mcpServerPublished": "Serveur MCP publié",
   "mcpServerPublishFailed": "Échec de la publication du serveur MCP",
   "mcpServerUnpublished": "Serveur MCP dépublié",
   "mcpServerUnpublishFailed": "Échec de la dépublication du serveur MCP",

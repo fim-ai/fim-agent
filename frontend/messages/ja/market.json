@@ -17,6 +17,7 @@
   "publishToMarketplace": "マーケットプレイスに公開",
   "marketplaceReviewRequired": "マーケットプレイスに公開されたすべてのリソースは、表示される前に管理者のレビューが必要です。",
   "publishTarget": "公開先",
-  "publishTargetOrg": "組織",
-  "publishTargetMarketplace": "マーケットプレイス"
+  "publishTargetOrg": "マイ組織",
+  "publishTargetMarketplace": "マーケットプレイス",
+  "marketplaceReviewLocked": "マーケットプレイスは常にレビューが必要です"
 }

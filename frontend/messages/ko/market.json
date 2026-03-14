@@ -17,6 +17,7 @@
   "publishToMarketplace": "마켓플레이스에 게시",
   "marketplaceReviewRequired": "마켓플레이스에 게시된 모든 리소스는 표시되기 전에 관리자 검토가 필요합니다.",
   "publishTarget": "게시 대상",
-  "publishTargetOrg": "조직",
-  "publishTargetMarketplace": "마켓플레이스"
+  "publishTargetOrg": "내 조직",
+  "publishTargetMarketplace": "마켓플레이스",
+  "marketplaceReviewLocked": "마켓플레이스는 항상 검토가 필요합니다"
 }

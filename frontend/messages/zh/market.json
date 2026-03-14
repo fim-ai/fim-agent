@@ -17,6 +17,7 @@
   "publishToMarketplace": "发布到市场",
   "marketplaceReviewRequired": "所有发布到市场的资源在显示前需要管理员审核。",
   "publishTarget": "发布目标",
-  "publishTargetOrg": "组织",
-  "publishTargetMarketplace": "市场"
+  "publishTargetOrg": "我的组织",
+  "publishTargetMarketplace": "市场",
+  "marketplaceReviewLocked": "应用市场始终需要审核"
 }

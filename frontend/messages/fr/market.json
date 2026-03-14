@@ -17,6 +17,7 @@
   "publishToMarketplace": "Publier sur le Marketplace",
   "marketplaceReviewRequired": "Toutes les ressources publiées sur le Marketplace nécessitent un examen administrateur avant de devenir visibles.",
   "publishTarget": "Cible de publication",
-  "publishTargetOrg": "Organisation",
-  "publishTargetMarketplace": "Marketplace"
+  "publishTargetOrg": "Mon Organisation",
+  "publishTargetMarketplace": "Marketplace",
+  "marketplaceReviewLocked": "La Place de marché nécessite toujours un examen"
 }

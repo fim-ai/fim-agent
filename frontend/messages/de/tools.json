@@ -88,7 +88,7 @@
   "publishNoOrgs": "Sie sind nicht Mitglied einer Organisation.",
   "allowFallback": "Fallback für Anmeldedaten zulassen",
   "allowFallbackHelp": "Wenn aktiviert, verwenden Organisationsmitglieder ohne persönliche Anmeldedaten die integrierten Anmeldedaten dieses Servers. Wenn diese Anmeldedaten kostenpflichtige APIs oder private Dienste betreffen, werden alle Nutzungen in Ihrer Organisation auf Ihr Konto abgerechnet.",
-  "mcpServerPublished": "MCP-Server in der Organisation veröffentlicht",
+  "mcpServerPublished": "MCP-Server veröffentlicht",
   "mcpServerPublishFailed": "Fehler beim Veröffentlichen des MCP-Servers",
   "mcpServerUnpublished": "MCP-Server nicht veröffentlicht",
   "mcpServerUnpublishFailed": "Fehler beim Aufheben der Veröffentlichung des MCP-Servers",

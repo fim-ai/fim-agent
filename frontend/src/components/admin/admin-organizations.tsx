@@ -990,30 +990,57 @@ export function AdminOrganizations() {
                 <label className="text-sm font-medium">{t("reviewSettings")}</label>
                 <p className="text-xs text-muted-foreground">{t("reviewSettingsDescription")}</p>
               </div>
+              {editTarget?.id === MARKET_ORG_ID && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">{t("marketplaceReviewLocked")}</p>
+              )}
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewAgentsLabel")}</label>
-                  <Switch checked={editReviewAgents} onCheckedChange={setEditReviewAgents} />
+                  <Switch
+                    checked={editTarget?.id === MARKET_ORG_ID ? true : editReviewAgents}
+                    onCheckedChange={setEditReviewAgents}
+                    disabled={editTarget?.id === MARKET_ORG_ID}
+                  />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewConnectorsLabel")}</label>
-                  <Switch checked={editReviewConnectors} onCheckedChange={setEditReviewConnectors} />
+                  <Switch
+                    checked={editTarget?.id === MARKET_ORG_ID ? true : editReviewConnectors}
+                    onCheckedChange={setEditReviewConnectors}
+                    disabled={editTarget?.id === MARKET_ORG_ID}
+                  />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewKbsLabel")}</label>
-                  <Switch checked={editReviewKbs} onCheckedChange={setEditReviewKbs} />
+                  <Switch
+                    checked={editTarget?.id === MARKET_ORG_ID ? true : editReviewKbs}
+                    onCheckedChange={setEditReviewKbs}
+                    disabled={editTarget?.id === MARKET_ORG_ID}
+                  />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewMcpServersLabel")}</label>
-                  <Switch checked={editReviewMcpServers} onCheckedChange={setEditReviewMcpServers} />
+                  <Switch
+                    checked={editTarget?.id === MARKET_ORG_ID ? true : editReviewMcpServers}
+                    onCheckedChange={setEditReviewMcpServers}
+                    disabled={editTarget?.id === MARKET_ORG_ID}
+                  />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewWorkflowsLabel")}</label>
-                  <Switch checked={editReviewWorkflows} onCheckedChange={setEditReviewWorkflows} />
+                  <Switch
+                    checked={editTarget?.id === MARKET_ORG_ID ? true : editReviewWorkflows}
+                    onCheckedChange={setEditReviewWorkflows}
+                    disabled={editTarget?.id === MARKET_ORG_ID}
+                  />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewSkillsLabel")}</label>
-                  <Switch checked={editReviewSkills} onCheckedChange={setEditReviewSkills} />
+                  <Switch
+                    checked={editTarget?.id === MARKET_ORG_ID ? true : editReviewSkills}
+                    onCheckedChange={setEditReviewSkills}
+                    disabled={editTarget?.id === MARKET_ORG_ID}
+                  />
                 </div>
               </div>
             </div>

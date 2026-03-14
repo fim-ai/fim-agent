@@ -17,6 +17,7 @@
   "publishToMarketplace": "Im Marketplace veröffentlichen",
   "marketplaceReviewRequired": "Alle im Marketplace veröffentlichten Ressourcen müssen vor ihrer Sichtbarkeit von einem Administrator überprüft werden.",
   "publishTarget": "Veröffentlichungsziel",
-  "publishTargetOrg": "Organisation",
-  "publishTargetMarketplace": "Marketplace"
+  "publishTargetOrg": "Meine Organisation",
+  "publishTargetMarketplace": "Marketplace",
+  "marketplaceReviewLocked": "Marketplace erfordert immer eine Überprüfung"
 }

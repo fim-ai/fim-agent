@@ -190,5 +190,7 @@
   "marketOrgName": "마켓플레이스",
   "marketOrgDescription": "공개 마켓플레이스입니다. 여기에 게시된 리소스는 모든 사용자가 검색하고 구독할 수 있습니다.",
   "cannotDeleteMarketOrg": "마켓플레이스 조직은 삭제할 수 없습니다",
-  "cannotLeaveMarketOrg": "마켓플레이스 조직을 떠날 수 없습니다"
+  "cannotLeaveMarketOrg": "마켓플레이스 조직을 떠날 수 없습니다",
+  "cannotAddMemberToMarketOrg": "마켓플레이스에 멤버를 추가할 수 없습니다",
+  "marketplaceReviewLocked": "마켓플레이스는 항상 검토가 필요합니다"
 }

@@ -88,7 +88,7 @@
   "publishNoOrgs": "您不是任何组织的成员。",
   "allowFallback": "允许凭证回退",
   "allowFallbackHelp": "启用后，没有个人凭证的组织成员将使用此服务器的内置凭证。如果这些凭证涉及付费 API 或私有服务，您的组织中的所有使用费用将计入您的账户。",
-  "mcpServerPublished": "MCP 服务器已发布到组织",
+  "mcpServerPublished": "MCP 服务器已发布",
   "mcpServerPublishFailed": "发布 MCP 服务器失败",
   "mcpServerUnpublished": "MCP 服务器已取消发布",
   "mcpServerUnpublishFailed": "取消发布 MCP 服务器失败",

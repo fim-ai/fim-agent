@@ -23,7 +23,7 @@ from fim_one.web.auth import (
 from fim_one.web.exceptions import AppError
 from fim_one.web.models.organization import OrgMembership, Organization
 from fim_one.web.models.user import User
-from fim_one.web.platform import MARKET_ORG_ID
+from fim_one.web.platform import MARKET_ORG_ID, is_market_org
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse
 
 # ---------------------------------------------------------------------------
@@ -333,6 +333,14 @@ async def update_org(
 
     update_data = body.model_dump(exclude_unset=True)
 
+    # Market org review settings are locked — always require review
+    if is_market_org(org_id):
+        for key in (
+            "review_agents", "review_connectors", "review_kbs",
+            "review_mcp_servers", "review_workflows", "review_skills",
+        ):
+            update_data.pop(key, None)
+
     # Validate slug uniqueness if changing
     if "slug" in update_data and update_data["slug"] is not None:
         update_data["slug"] = await _ensure_unique_slug(
@@ -418,6 +426,9 @@ async def add_member(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
     """Add a member by username or email. Requires admin+ role."""
+    if is_market_org(org_id):
+        raise AppError("cannot_add_member_to_market_org", status_code=400)
+
     await require_org_admin(org_id, current_user, db)
 
     # Verify the org exists
@@ -671,6 +682,14 @@ async def admin_update_org(
         raise AppError("org_not_found", status_code=404)
 
     update_data = body.model_dump(exclude_unset=True)
+
+    # Market org review settings are locked — always require review
+    if is_market_org(org_id):
+        for key in (
+            "review_agents", "review_connectors", "review_kbs",
+            "review_mcp_servers", "review_workflows", "review_skills",
+        ):
+            update_data.pop(key, None)
 
     if "slug" in update_data and update_data["slug"] is not None:
         update_data["slug"] = await _ensure_unique_slug(

@@ -88,7 +88,7 @@
   "publishNoOrgs": "You are not a member of any organization.",
   "allowFallback": "Allow credential fallback",
   "allowFallbackHelp": "When enabled, org members without personal credentials will use this server's built-in credentials. If those credentials involve paid APIs or private services, all usage across your org will be billed to your account.",
-  "mcpServerPublished": "MCP server published to organization",
+  "mcpServerPublished": "MCP server published",
   "mcpServerPublishFailed": "Failed to publish MCP server",
   "mcpServerUnpublished": "MCP server unpublished",
   "mcpServerUnpublishFailed": "Failed to unpublish MCP server",

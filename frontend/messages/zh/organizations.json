@@ -190,5 +190,7 @@
   "marketOrgName": "应用市场",
   "marketOrgDescription": "公共应用市场。发布在此处的资源可供所有用户浏览和订阅。",
   "cannotDeleteMarketOrg": "应用市场组织无法删除",
-  "cannotLeaveMarketOrg": "无法离开应用市场组织"
+  "cannotLeaveMarketOrg": "无法离开应用市场组织",
+  "cannotAddMemberToMarketOrg": "无法将成员添加到市场",
+  "marketplaceReviewLocked": "市场始终需要审查"
 }

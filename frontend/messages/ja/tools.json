@@ -88,7 +88,7 @@
   "publishNoOrgs": "どの組織のメンバーでもありません。",
   "allowFallback": "認証情報のフォールバックを許可",
   "allowFallbackHelp": "有効にすると、個人の認証情報を持たない組織メンバーはこのサーバーの組み込み認証情報を使用します。これらの認証情報が有料API またはプライベートサービスに関連する場合、組織全体の使用料金はあなたのアカウントに請求されます。",
-  "mcpServerPublished": "MCP サーバーが組織に公開されました",
+  "mcpServerPublished": "MCPサーバーが公開されました",
   "mcpServerPublishFailed": "MCP サーバーの公開に失敗しました",
   "mcpServerUnpublished": "MCP サーバーが非公開になりました",
   "mcpServerUnpublishFailed": "MCP サーバーの非公開化に失敗しました",

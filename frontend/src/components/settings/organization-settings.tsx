@@ -113,6 +113,7 @@ interface OrgFormDialogProps {
 function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogProps) {
   const t = useTranslations("organizations")
   const tc = useTranslations("common")
+  const isMarketOrg = initial?.id === MARKET_ORG_ID
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -267,40 +268,48 @@ function OrgFormDialog({ open, onOpenChange, initial, onSaved }: OrgFormDialogPr
                 <label className="text-sm font-medium">{t("reviewSettings")}</label>
                 <p className="text-xs text-muted-foreground">{t("reviewSettingsDescription")}</p>
               </div>
+              {isMarketOrg && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">{t("marketplaceReviewLocked")}</p>
+              )}
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewAgentsLabel")}</label>
                   <Switch
-                    checked={reviewAgents}
+                    checked={isMarketOrg ? true : reviewAgents}
                     onCheckedChange={(v) => { setReviewAgents(v); setDirty(true) }}
+                    disabled={isMarketOrg}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewConnectorsLabel")}</label>
                   <Switch
-                    checked={reviewConnectors}
+                    checked={isMarketOrg ? true : reviewConnectors}
                     onCheckedChange={(v) => { setReviewConnectors(v); setDirty(true) }}
+                    disabled={isMarketOrg}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewKbsLabel")}</label>
                   <Switch
-                    checked={reviewKbs}
+                    checked={isMarketOrg ? true : reviewKbs}
                     onCheckedChange={(v) => { setReviewKbs(v); setDirty(true) }}
+                    disabled={isMarketOrg}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewMcpServersLabel")}</label>
                   <Switch
-                    checked={reviewMcpServers}
+                    checked={isMarketOrg ? true : reviewMcpServers}
                     onCheckedChange={(v) => { setReviewMcpServers(v); setDirty(true) }}
+                    disabled={isMarketOrg}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewWorkflowsLabel")}</label>
                   <Switch
-                    checked={reviewWorkflows}
+                    checked={isMarketOrg ? true : reviewWorkflows}
                     onCheckedChange={(v) => { setReviewWorkflows(v); setDirty(true) }}
+                    disabled={isMarketOrg}
                   />
                 </div>
               </div>
@@ -1170,6 +1179,12 @@ function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMember
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {isOwner && (
+                <DropdownMenuItem onClick={() => onEdit(org)}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  {tc("edit")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => onManageMembers(org)}>
                 <Users className="mr-2 h-4 w-4" />
                 {t("manageMembers")}

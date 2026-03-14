@@ -8,8 +8,9 @@
   "publishToMarketplace": "Publish to Marketplace",
   "marketplaceReviewRequired": "All resources published to the Marketplace require admin review before they become visible.",
   "publishTarget": "Publish Target",
-  "publishTargetOrg": "Organization",
+  "publishTargetOrg": "My Organization",
   "publishTargetMarketplace": "Marketplace",
+  "marketplaceReviewLocked": "Marketplace always requires review",
   "types": {
     "all": "All",
     "agent": "Agents",

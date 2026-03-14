@@ -190,5 +190,7 @@
   "marketOrgName": "マーケットプレイス",
   "marketOrgDescription": "公開マーケットプレイス。ここに公開されたリソースはすべてのユーザーが閲覧およびサブスクライブできます。",
   "cannotDeleteMarketOrg": "マーケットプレイス組織は削除できません",
-  "cannotLeaveMarketOrg": "マーケットプレイス組織から退出することはできません"
+  "cannotLeaveMarketOrg": "マーケットプレイス組織から退出することはできません",
+  "cannotAddMemberToMarketOrg": "マーケットプレイスにはメンバーを追加できません",
+  "marketplaceReviewLocked": "マーケットプレイスは常にレビューが必要です"
 }

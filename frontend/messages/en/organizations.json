@@ -181,6 +181,8 @@
   "marketOrgDescription": "Public marketplace. Resources published here are available for all users to browse and subscribe.",
   "cannotDeleteMarketOrg": "The Marketplace organization cannot be deleted",
   "cannotLeaveMarketOrg": "The Marketplace organization cannot be left",
+  "cannotAddMemberToMarketOrg": "Members cannot be added to the Marketplace",
+  "marketplaceReviewLocked": "Marketplace always requires review",
 
   "reviewHistory": "Review History",
   "reviewHistoryTitle": "Review History",

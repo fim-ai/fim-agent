@@ -88,7 +88,7 @@
   "publishNoOrgs": "어떤 조직의 구성원도 아닙니다.",
   "allowFallback": "자격증명 폴백 허용",
   "allowFallbackHelp": "활성화되면, 개인 자격증명이 없는 조직 구성원이 이 서버의 기본 제공 자격증명을 사용합니다. 이러한 자격증명이 유료 API 또는 비공개 서비스를 포함하는 경우, 조직 전체의 모든 사용량이 귀하의 계정으로 청구됩니다.",
-  "mcpServerPublished": "MCP 서버가 조직에 게시되었습니다",
+  "mcpServerPublished": "MCP 서버 게시됨",
   "mcpServerPublishFailed": "MCP 서버 게시 실패",
   "mcpServerUnpublished": "MCP 서버가 게시 취소되었습니다",
   "mcpServerUnpublishFailed": "MCP 서버 게시 취소 실패",
