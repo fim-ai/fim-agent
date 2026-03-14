@@ -351,7 +351,7 @@ async def register(
     return _build_token_response(user, access, refresh)
 
 
-@router.post("/login")
+@router.post("/login", response_model=None)
 async def login(
     body: LoginRequest,
     request: Request,

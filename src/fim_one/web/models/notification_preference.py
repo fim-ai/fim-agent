@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -31,10 +32,10 @@ class NotificationPreference(UUIDPKMixin, Base):
         Boolean, default=True, nullable=False, server_default=sa.text("TRUE")
     )
     config: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at: Mapped = mapped_column(
+    updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=True
     )
 

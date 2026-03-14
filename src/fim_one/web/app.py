@@ -42,6 +42,15 @@ from .api.admin_resources import router as admin_resources_router
 from .api.admin_templates import router as admin_templates_router
 from .api.admin_extra import router as admin_extra_router
 from .api.admin_workflows import router as admin_workflows_router
+from .api.admin_skills import router as admin_skills_router
+from .api.admin_eval import router as admin_eval_router
+from .api.admin_credentials import router as admin_credentials_router
+from .api.admin_reviews import router as admin_reviews_router
+from .api.admin_schedules import router as admin_schedules_router
+from .api.admin_analytics import router as admin_analytics_router
+from .api.admin_resources_overview import router as admin_resources_overview_router
+from .api.admin_notifications import router as admin_notifications_router
+from .api.admin_batch import router as admin_batch_router
 from .api.agents import router as agents_router
 from .api.auth import router as auth_router
 from .api.chat import router as chat_router
@@ -297,6 +306,15 @@ def create_app() -> FastAPI:
     app.include_router(admin_templates_router)
     app.include_router(admin_extra_router)
     app.include_router(admin_workflows_router)
+    app.include_router(admin_skills_router)
+    app.include_router(admin_eval_router)
+    app.include_router(admin_credentials_router)
+    app.include_router(admin_reviews_router)
+    app.include_router(admin_schedules_router)
+    app.include_router(admin_analytics_router)
+    app.include_router(admin_resources_overview_router)
+    app.include_router(admin_notifications_router)
+    app.include_router(admin_batch_router)
     app.include_router(chat_router)
     app.include_router(auth_router)
     app.include_router(oauth_router)

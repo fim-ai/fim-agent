@@ -353,3 +353,90 @@ async def list_active_sessions(
         )
         for u in users
     ]
+
+
+# ---------------------------------------------------------------------------
+# IP Rules batch import
+# ---------------------------------------------------------------------------
+
+
+class IpRuleBatchImportItem(BaseModel):
+    ip_address: str = Field(..., max_length=45)
+    rule_type: str = Field(..., pattern=r"^(allow|deny)$")
+    description: str | None = Field(None, max_length=255)
+
+    @field_validator("ip_address")
+    @classmethod
+    def validate_ip_batch(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("IP address cannot be empty")
+        try:
+            if "/" in v:
+                ipaddress.ip_network(v, strict=False)
+            else:
+                ipaddress.ip_address(v)
+        except ValueError:
+            raise ValueError(f"Invalid IP address or CIDR: {v}")
+        return v
+
+
+class IpRuleBatchImportRequest(BaseModel):
+    rules: list[IpRuleBatchImportItem] = Field(..., min_length=1, max_length=500)
+
+
+class IpRuleBatchImportResponse(BaseModel):
+    added: int
+    skipped: int
+    errors: list[str] = Field(default_factory=list)
+
+
+@router.post("/ip-rules/batch-import", response_model=IpRuleBatchImportResponse)
+async def batch_import_ip_rules(
+    body: IpRuleBatchImportRequest,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> IpRuleBatchImportResponse:
+    """Batch import IP rules from a list. Skips duplicates."""
+    # Fetch existing rules for duplicate detection
+    existing_result = await db.execute(
+        select(IpRule.ip_address, IpRule.rule_type)
+    )
+    existing_pairs = {(r[0], r[1]) for r in existing_result.all()}
+
+    added = 0
+    skipped = 0
+    errors: list[str] = []
+
+    for item in body.rules:
+        pair = (item.ip_address, item.rule_type)
+        if pair in existing_pairs:
+            skipped += 1
+            continue
+
+        rule = IpRule(
+            ip_address=item.ip_address,
+            rule_type=item.rule_type,
+            note=item.description,
+            is_active=True,
+            created_by_id=current_user.id,
+        )
+        db.add(rule)
+        existing_pairs.add(pair)  # Prevent duplicates within the same batch
+        added += 1
+
+    if added > 0:
+        await db.commit()
+
+    await write_audit(
+        db,
+        current_user,
+        "ip_rule.batch_import",
+        detail=f"Imported {added} IP rule(s), skipped {skipped}",
+    )
+
+    return IpRuleBatchImportResponse(
+        added=added,
+        skipped=skipped,
+        errors=errors,
+    )
