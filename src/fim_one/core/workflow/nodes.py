@@ -2688,13 +2688,48 @@ class MCPExecutor:
 
 
 class BuiltinToolExecutor:
-    """Execute a builtin tool from the system ToolRegistry. Currently a stub."""
+    """Look up a built-in tool by ``tool_id``, execute it, and store the result.
+
+    Node data shape::
+
+        {
+            "tool_id": "web_search",
+            "parameters": {"query": "{{user_input}}", ...},
+            "output_variable": "result_var_name"
+        }
+
+    The executor resolves ``{{variable}}`` placeholders in parameter values
+    using the :class:`VariableStore`, then delegates to the tool's ``run()``
+    method.  If the tool returns a :class:`ToolResult`, the ``content`` field
+    is used as the stored output string; plain ``str`` results are stored
+    directly.
+
+    Args:
+        registry: Optional pre-built :class:`ToolRegistry`.  When ``None``
+            (the default, used by the engine), the registry is created via
+            :func:`fim_one.web.deps.get_tools` at execution time.  Passing a
+            registry explicitly is useful for testing.
+    """
+
+    def __init__(
+        self,
+        registry: "ToolRegistry | None" = None,
+    ) -> None:
+        self._registry = registry
 
     @staticmethod
     def output_schema() -> list[dict[str, str]]:
         return [
             {"name": "output", "type": "any", "description": "Tool execution result"},
         ]
+
+    def _resolve_registry(self) -> "ToolRegistry":
+        """Return the tool registry, building one lazily if needed."""
+        if self._registry is not None:
+            return self._registry
+        from fim_one.web.deps import get_tools
+
+        return get_tools()
 
     async def execute(
         self,
@@ -2704,47 +2739,62 @@ class BuiltinToolExecutor:
     ) -> NodeResult:
         t0 = time.time()
         try:
-            tool_id = node.data.get("tool_id", "")
-            params_raw = node.data.get("parameters", {})
-            output_var = node.data.get("output_variable", "tool_result")
+            from fim_one.core.tool.base import ToolResult
 
+            tool_id: str = node.data.get("tool_id", "")
             if not tool_id:
                 return NodeResult(
                     node_id=node.id,
                     status=NodeStatus.FAILED,
-                    error="BuiltinTool node missing tool_id",
+                    error="BuiltinTool node has no tool_id",
                     duration_ms=_ms_since(t0),
                 )
 
-            # Interpolate parameter values
-            params = {}
-            for key, val in params_raw.items():
-                if isinstance(val, str):
+            # Resolve the tool from the registry
+            registry = self._resolve_registry()
+            tool = registry.get(tool_id)
+            if tool is None:
+                available = [t.name for t in registry.list_tools()]
+                return NodeResult(
+                    node_id=node.id,
+                    status=NodeStatus.FAILED,
+                    error=(
+                        f"Tool '{tool_id}' not found in registry. "
+                        f"Available tools: {', '.join(sorted(available))}"
+                    ),
+                    duration_ms=_ms_since(t0),
+                )
+
+            # Interpolate {{variable}} placeholders in parameters
+            params_template: dict[str, Any] = node.data.get("parameters", {})
+            params: dict[str, Any] = {}
+            for key, val in params_template.items():
+                if isinstance(val, str) and "{{" in val:
                     params[key] = await store.interpolate(val)
                 else:
                     params[key] = val
 
-            # Stub: in production this would look up tool_id in ToolRegistry and execute
-            logger.info(
-                "BuiltinTool node %s: tool=%s, params=%s",
-                node.id, tool_id, params,
-            )
+            # Execute the tool
+            raw_result = await tool.run(**params)
 
-            result = {
-                "tool_id": tool_id,
-                "parameters": params,
-                "result": f"Builtin tool '{tool_id}' execution pending implementation",
-                "status": "stub",
-            }
+            # Normalise output — tools may return str or ToolResult
+            if isinstance(raw_result, ToolResult):
+                output: str = raw_result.content
+            else:
+                output = str(raw_result) if raw_result is not None else ""
 
-            await store.set(output_var, result)
-            await store.set(f"{node.id}.output", result)
-            await store.set(f"{node.id}.{output_var}", result)
+            # Store under the standard node output key
+            await store.set(f"{node.id}.output", output)
+
+            # Also store under a user-defined output variable if specified
+            output_variable = node.data.get("output_variable", "")
+            if output_variable:
+                await store.set(output_variable, output)
 
             return NodeResult(
                 node_id=node.id,
                 status=NodeStatus.COMPLETED,
-                output=result,
+                output=output[:500],
                 duration_ms=_ms_since(t0),
             )
         except Exception as exc:
