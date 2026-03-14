@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import {
   Play,
@@ -15,6 +15,7 @@ import {
   Variable,
   FileText,
   Code,
+  Clock,
   Repeat,
   RefreshCw,
   Combine,
@@ -102,11 +103,17 @@ const categories: NodePaletteCategory[] = [
   },
 ]
 
+/** Flat lookup from node type to its palette item (icon + color) */
+const itemByType: Record<WorkflowNodeType, NodePaletteItem> = Object.fromEntries(
+  categories.flatMap((cat) => cat.items.map((item) => [item.type, item])),
+) as Record<WorkflowNodeType, NodePaletteItem>
+
 interface NodePaletteProps {
   existingNodeTypes?: Set<string>
+  recentNodes?: WorkflowNodeType[]
 }
 
-export function NodePalette({ existingNodeTypes }: NodePaletteProps) {
+export function NodePalette({ existingNodeTypes, recentNodes = [] }: NodePaletteProps) {
   const t = useTranslations("workflows")
   const [search, setSearch] = useState("")
   const [collapsed, setCollapsed] = useState(false)
@@ -120,6 +127,34 @@ export function NodePalette({ existingNodeTypes }: NodePaletteProps) {
   }
 
   const searchLower = search.toLowerCase()
+
+  /** Check whether a node item matches the current search query */
+  const matchesSearch = (item: NodePaletteItem): boolean => {
+    if (!searchLower) return true
+    const name = t(`nodeType_${item.type}` as Parameters<typeof t>[0]).toLowerCase()
+    const desc = t(`nodeDesc_${item.type}` as Parameters<typeof t>[0]).toLowerCase()
+    return (
+      name.includes(searchLower) ||
+      desc.includes(searchLower) ||
+      item.type.toLowerCase().includes(searchLower)
+    )
+  }
+
+  /** Filtered recently used items */
+  const filteredRecent = useMemo(() => {
+    return recentNodes
+      .filter((type) => itemByType[type] != null)
+      .map((type) => itemByType[type])
+      .filter(matchesSearch)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentNodes, searchLower])
+
+  /** Whether ANY category or recent section has results */
+  const hasAnyResults = useMemo(() => {
+    if (filteredRecent.length > 0) return true
+    return categories.some((cat) => cat.items.some(matchesSearch))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchLower, filteredRecent.length])
 
   const isSingletonDisabled = (type: WorkflowNodeType) => {
     if (type === "start" && existingNodeTypes?.has("start")) return true
@@ -199,7 +234,7 @@ export function NodePalette({ existingNodeTypes }: NodePaletteProps) {
       </div>
       <div className="px-3 pb-2 shrink-0">
         <Input
-          placeholder={t("paletteSearch")}
+          placeholder={t("searchNodes")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-7 text-xs"
@@ -207,12 +242,52 @@ export function NodePalette({ existingNodeTypes }: NodePaletteProps) {
       </div>
       <ScrollArea className="flex-1 min-h-0">
         <div className="px-3 pb-3 space-y-3">
+          {/* Recently Used section */}
+          {filteredRecent.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {t("recentlyUsed")}
+              </p>
+              <div className="space-y-0.5">
+                {filteredRecent.map((item) => {
+                  const disabled = isSingletonDisabled(item.type)
+                  return (
+                    <div
+                      key={`recent-${item.type}`}
+                      draggable={!disabled}
+                      onDragStart={(e) => {
+                        if (disabled) { e.preventDefault(); return }
+                        handleDragStart(e, item.type)
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors",
+                        disabled
+                          ? "opacity-30 cursor-not-allowed"
+                          : "cursor-grab active:cursor-grabbing hover:bg-accent/50",
+                      )}
+                    >
+                      <div className={cn("shrink-0", item.color)}>
+                        {item.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">
+                          {t(`nodeType_${item.type}` as Parameters<typeof t>[0])}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/60 truncate">
+                          {t(`nodeDesc_${item.type}` as Parameters<typeof t>[0])}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Category sections */}
           {categories.map((cat) => {
-            const filtered = cat.items.filter((item) => {
-              if (!searchLower) return true
-              const name = t(`nodeType_${item.type}` as Parameters<typeof t>[0]).toLowerCase()
-              return name.includes(searchLower) || item.type.toLowerCase().includes(searchLower)
-            })
+            const filtered = cat.items.filter(matchesSearch)
             if (filtered.length === 0) return null
             return (
               <div key={cat.key}>
@@ -258,6 +333,13 @@ export function NodePalette({ existingNodeTypes }: NodePaletteProps) {
               </div>
             )
           })}
+
+          {/* No results message */}
+          {!hasAnyResults && (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              {t("noNodeSearchResults")}
+            </p>
+          )}
         </div>
       </ScrollArea>
     </div>

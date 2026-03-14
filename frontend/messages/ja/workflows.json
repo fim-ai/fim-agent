@@ -715,5 +715,8 @@
   "unfavorite": "お気に入りから削除",
   "viewRunOnCanvas": "キャンバスで表示",
   "runReplayActive": "過去の実行を表示中",
-  "clearRunOverlay": "クリア"
+  "clearRunOverlay": "クリア",
+  "recentlyUsed": "最近使用したもの",
+  "noNodeSearchResults": "一致するノードがありません",
+  "searchNodes": "ノードを検索..."
 }

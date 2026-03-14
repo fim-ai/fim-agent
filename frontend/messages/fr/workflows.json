@@ -715,5 +715,8 @@
   "unfavorite": "Retirer des favoris",
   "viewRunOnCanvas": "Afficher sur le canevas",
   "runReplayActive": "Affichage d'une exécution antérieure",
-  "clearRunOverlay": "Effacer"
+  "clearRunOverlay": "Effacer",
+  "recentlyUsed": "Récemment utilisé",
+  "noNodeSearchResults": "Aucun nœud correspondant",
+  "searchNodes": "Rechercher des nœuds..."
 }

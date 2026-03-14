@@ -715,5 +715,8 @@
   "unfavorite": "Aus Favoriten entfernen",
   "viewRunOnCanvas": "Auf Canvas anzeigen",
   "runReplayActive": "Frühere Ausführung wird angezeigt",
-  "clearRunOverlay": "Löschen"
+  "clearRunOverlay": "Löschen",
+  "recentlyUsed": "Kürzlich verwendet",
+  "noNodeSearchResults": "Keine übereinstimmenden Knoten",
+  "searchNodes": "Knoten durchsuchen..."
 }

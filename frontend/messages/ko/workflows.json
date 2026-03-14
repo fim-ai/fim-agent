@@ -715,5 +715,8 @@
   "unfavorite": "즐겨찾기 제거",
   "viewRunOnCanvas": "캔버스에서 보기",
   "runReplayActive": "과거 실행 보기",
-  "clearRunOverlay": "지우기"
+  "clearRunOverlay": "지우기",
+  "recentlyUsed": "최근 사용",
+  "noNodeSearchResults": "일치하는 노드 없음",
+  "searchNodes": "노드 검색..."
 }

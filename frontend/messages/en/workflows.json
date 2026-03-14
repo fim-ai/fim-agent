@@ -54,6 +54,10 @@
   "sortNameDesc": "Name Z-A",
   "sortUpdated": "Recently updated",
 
+  "recentlyUsed": "Recently Used",
+  "noNodeSearchResults": "No matching nodes",
+  "searchNodes": "Search nodes...",
+
   "nodeType_start": "Start",
   "nodeType_end": "End",
   "nodeType_llm": "LLM",

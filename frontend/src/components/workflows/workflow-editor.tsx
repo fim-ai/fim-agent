@@ -27,6 +27,7 @@ import { Beaker, Copy, Trash2, Settings, Clipboard, MousePointerSquareDashed, Ma
 import { Button } from "@/components/ui/button"
 
 import { useWorkflowHistory } from "@/hooks/use-workflow-history"
+import { useRecentNodes } from "@/hooks/use-recent-nodes"
 import { getAutoLayoutedNodes } from "./auto-layout"
 import { NodePalette } from "./node-palette"
 import { NodeConfigPanel } from "./node-config-panel"
@@ -217,6 +218,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   const { resolvedTheme } = useTheme()
   const rfColorMode = resolvedTheme === "dark" ? "dark" : "light"
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
+  const { recentNodes, addRecentNode } = useRecentNodes()
   const rfInstanceRef = useRef<ReactFlowInstance | null>(null)
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -913,8 +915,9 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
       }
 
       setNodes((nds) => [...nds, newNode])
+      addRecentNode(nodeType)
     },
-    [setNodes, nodes, t],
+    [setNodes, nodes, t, addRecentNode],
   )
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -991,7 +994,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden relative">
       {/* Left palette */}
-      <NodePalette existingNodeTypes={existingNodeTypes} />
+      <NodePalette existingNodeTypes={existingNodeTypes} recentNodes={recentNodes} />
 
       {/* Center: React Flow canvas */}
       <div className="flex-1 min-w-0 relative" ref={reactFlowWrapper}>
