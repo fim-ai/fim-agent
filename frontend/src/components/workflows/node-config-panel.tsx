@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react"
 import { useTranslations } from "next-intl"
-import { ChevronDown, MessageSquare, Plus, Trash2, X } from "lucide-react"
+import { Beaker, ChevronDown, MessageSquare, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,10 +24,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { VariablePicker } from "./variable-picker"
+import { TestNodeDialog } from "./test-node-dialog"
 import type { Node } from "@xyflow/react"
 import type { WorkflowNodeType, ErrorStrategy } from "@/types/workflow"
 
 interface NodeConfigPanelProps {
+  workflowId: string
   node: Node | null
   allNodes: Node[]
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void
@@ -35,9 +37,10 @@ interface NodeConfigPanelProps {
   onClose: () => void
 }
 
-export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }: NodeConfigPanelProps) {
+export function NodeConfigPanel({ workflowId, node, allNodes, onUpdate, onDelete, onClose }: NodeConfigPanelProps) {
   const t = useTranslations("workflows")
   const tc = useTranslations("common")
+  const [testDialogOpen, setTestDialogOpen] = useState(false)
 
   const updateField = useCallback(
     (field: string, value: unknown) => {
@@ -71,9 +74,19 @@ export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }:
         <h3 className="text-xs font-semibold text-foreground">
           {t("configTitle")}
         </h3>
-        <Button variant="ghost" size="icon-sm" onClick={onClose}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setTestDialogOpen(true)}
+            title={t("testNode")}
+          >
+            <Beaker className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 space-y-4">
@@ -164,6 +177,16 @@ export function NodeConfigPanel({ node, allNodes, onUpdate, onDelete, onClose }:
           )}
         </div>
       </ScrollArea>
+
+      {/* Test Node Dialog */}
+      <TestNodeDialog
+        workflowId={workflowId}
+        nodeId={node.id}
+        nodeType={nodeType}
+        nodeLabel={t(`nodeType_${nodeType}` as Parameters<typeof t>[0])}
+        open={testDialogOpen}
+        onOpenChange={setTestDialogOpen}
+      />
     </div>
   )
 }

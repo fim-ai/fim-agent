@@ -23,12 +23,13 @@ import type {
 import "@xyflow/react/dist/style.css"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
-import { Copy, Trash2, Settings, Clipboard, MousePointerSquareDashed, Maximize2, LayoutGrid } from "lucide-react"
+import { Beaker, Copy, Trash2, Settings, Clipboard, MousePointerSquareDashed, Maximize2, LayoutGrid } from "lucide-react"
 
 import { useWorkflowHistory } from "@/hooks/use-workflow-history"
 import { getAutoLayoutedNodes } from "./auto-layout"
 import { NodePalette } from "./node-palette"
 import { NodeConfigPanel } from "./node-config-panel"
+import { TestNodeDialog } from "./test-node-dialog"
 import { RunPanel } from "./run-panel"
 import { AddNodeEdge } from "./add-node-edge"
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog"
@@ -161,6 +162,7 @@ const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
 }
 
 interface WorkflowEditorProps {
+  workflowId: string
   blueprint: WorkflowBlueprint
   onBlueprintChange: (blueprint: WorkflowBlueprint) => void
   onUndoRedoChange?: (canUndo: boolean, canRedo: boolean) => void
@@ -189,6 +191,7 @@ export interface WorkflowEditorHandle {
 }
 
 export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorProps>(function WorkflowEditor({
+  workflowId,
   blueprint,
   onBlueprintChange,
   onUndoRedoChange,
@@ -237,6 +240,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     | null
   >(null)
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
+  const [testNodeTarget, setTestNodeTarget] = useState<{ nodeId: string; nodeType: WorkflowNodeType; label: string } | null>(null)
 
   // --- Canvas search state ---
   const [searchOpen, setSearchOpen] = useState(false)
@@ -1019,6 +1023,23 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
                 className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground hover:bg-accent/50 transition-colors"
                 onClick={() => {
                   if (ctxNode) {
+                    const nType = ctxNode.type as WorkflowNodeType
+                    setTestNodeTarget({
+                      nodeId: ctxNode.id,
+                      nodeType: nType,
+                      label: t(`nodeType_${nType}` as Parameters<typeof t>[0]),
+                    })
+                  }
+                  setContextMenu(null)
+                }}
+              >
+                <Beaker className="h-3.5 w-3.5" />
+                {t("contextMenuTestNode")}
+              </button>
+              <button
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground hover:bg-accent/50 transition-colors"
+                onClick={() => {
+                  if (ctxNode) {
                     copiedNodesRef.current = {
                       nodes: [{ ...ctxNode, data: { ...ctxNode.data } }],
                       edges: [],
@@ -1133,6 +1154,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
       {/* Right config panel */}
       {selectedNodeId && (
         <NodeConfigPanel
+          workflowId={workflowId}
           node={selectedNode}
           allNodes={nodes}
           onUpdate={handleNodeDataUpdate}
@@ -1146,6 +1168,20 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
         open={shortcutsDialogOpen}
         onOpenChange={setShortcutsDialogOpen}
       />
+
+      {/* Test node dialog (opened from context menu) */}
+      {testNodeTarget && (
+        <TestNodeDialog
+          workflowId={workflowId}
+          nodeId={testNodeTarget.nodeId}
+          nodeType={testNodeTarget.nodeType}
+          nodeLabel={testNodeTarget.label}
+          open={!!testNodeTarget}
+          onOpenChange={(open) => {
+            if (!open) setTestNodeTarget(null)
+          }}
+        />
+      )}
     </div>
   )
 })

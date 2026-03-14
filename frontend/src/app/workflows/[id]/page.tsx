@@ -799,6 +799,7 @@ export default function WorkflowEditorPage() {
 
       <WorkflowEditor
         ref={editorRef}
+        workflowId={workflowId}
         blueprint={workflow.blueprint}
         onBlueprintChange={handleBlueprintChange}
         onUndoRedoChange={handleUndoRedoChange}
