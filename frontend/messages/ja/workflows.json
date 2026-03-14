@@ -562,5 +562,9 @@
   "webhookSaveFailed": "Webhook の保存に失敗しました",
   "webhookCleared": "Webhook を削除しました",
   "webhookClearFailed": "Webhook の削除に失敗しました",
-  "webhookClearButton": "削除"
+  "webhookClearButton": "削除",
+  "canvasSearchPlaceholder": "ノードを検索...",
+  "canvasSearchCount": "{current} / {total}",
+  "canvasSearchNoResults": "結果がありません",
+  "shortcutsAction_search": "ノードを検索"
 }

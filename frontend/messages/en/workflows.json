@@ -621,5 +621,10 @@
   "webhookSaveFailed": "Failed to save webhook",
   "webhookCleared": "Webhook removed",
   "webhookClearFailed": "Failed to remove webhook",
-  "webhookClearButton": "Clear"
+  "webhookClearButton": "Clear",
+
+  "canvasSearchPlaceholder": "Search nodes...",
+  "canvasSearchCount": "{current} of {total}",
+  "canvasSearchNoResults": "No results",
+  "shortcutsAction_search": "Search nodes"
 }

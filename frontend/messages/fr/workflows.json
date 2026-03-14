@@ -562,5 +562,9 @@
   "webhookSaveFailed": "Échec de l'enregistrement du webhook",
   "webhookCleared": "Webhook supprimé",
   "webhookClearFailed": "Échec de la suppression du webhook",
-  "webhookClearButton": "Effacer"
+  "webhookClearButton": "Effacer",
+  "canvasSearchPlaceholder": "Rechercher des nœuds...",
+  "canvasSearchCount": "{current} sur {total}",
+  "canvasSearchNoResults": "Aucun résultat",
+  "shortcutsAction_search": "Rechercher des nœuds"
 }

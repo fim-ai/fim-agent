@@ -562,5 +562,9 @@
   "webhookSaveFailed": "웹훅 저장에 실패했습니다",
   "webhookCleared": "웹훅이 제거되었습니다",
   "webhookClearFailed": "웹훅 제거에 실패했습니다",
-  "webhookClearButton": "제거"
+  "webhookClearButton": "제거",
+  "canvasSearchPlaceholder": "노드 검색...",
+  "canvasSearchCount": "{current}/{total}",
+  "canvasSearchNoResults": "결과 없음",
+  "shortcutsAction_search": "노드 검색"
 }

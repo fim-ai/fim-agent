@@ -19,6 +19,7 @@ const MOD = isMac ? "\u2318" : "Ctrl"
 const shortcuts = [
   { section: "general" as const, items: [
     { keys: [`${MOD}+S`], action: "save" },
+    { keys: [`${MOD}+F`], action: "search" },
     { keys: [`${MOD}+Z`], action: "undo" },
     { keys: [`${MOD}+Shift+Z`, `${MOD}+Y`], action: "redo" },
     { keys: ["Escape"], action: "deselect" },

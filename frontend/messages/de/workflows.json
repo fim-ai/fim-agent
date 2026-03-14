@@ -562,5 +562,9 @@
   "webhookSaveFailed": "Fehler beim Speichern des Webhooks",
   "webhookCleared": "Webhook entfernt",
   "webhookClearFailed": "Fehler beim Entfernen des Webhooks",
-  "webhookClearButton": "Löschen"
+  "webhookClearButton": "Löschen",
+  "canvasSearchPlaceholder": "Knoten durchsuchen...",
+  "canvasSearchCount": "{current} von {total}",
+  "canvasSearchNoResults": "Keine Ergebnisse",
+  "shortcutsAction_search": "Knoten durchsuchen"
 }

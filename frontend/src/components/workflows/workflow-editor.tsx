@@ -32,6 +32,7 @@ import { NodeConfigPanel } from "./node-config-panel"
 import { RunPanel } from "./run-panel"
 import { AddNodeEdge } from "./add-node-edge"
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog"
+import { CanvasSearchBar } from "./canvas-search-bar"
 import type {
   WorkflowBlueprint,
   WorkflowNodeType,
@@ -233,6 +234,11 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     | null
   >(null)
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
+
+  // --- Canvas search state ---
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchIndex, setSearchIndex] = useState(0)
 
   // --- Undo/Redo history ---
   const initialNodesRef = useRef(
@@ -458,17 +464,113 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     setNodes((nds) => nds.map((n) => (n.selected ? n : { ...n, selected: true })))
   }, [setNodes])
 
+  // --- Canvas search logic ---
+  const searchMatches = useMemo(() => {
+    if (!searchQuery.trim()) return []
+    const q = searchQuery.toLowerCase()
+    return nodes.filter((node) => {
+      // Match against node type name (e.g. "llm", "start", "conditionBranch")
+      const typeLabel = (node.type ?? "").toLowerCase()
+      // Also check the node ID
+      const nodeId = node.id.toLowerCase()
+
+      // Search node data values (prompt_template, variable names, output_variable, etc.)
+      const dataStr = node.data
+        ? Object.entries(node.data)
+            .filter(([key]) => key !== "runStatus" && key !== "_runOverlay")
+            .map(([, value]) => {
+              if (typeof value === "string") return value
+              if (Array.isArray(value)) {
+                return value
+                  .map((item) => {
+                    if (typeof item === "string") return item
+                    if (item && typeof item === "object") {
+                      return Object.values(item).filter((v) => typeof v === "string").join(" ")
+                    }
+                    return ""
+                  })
+                  .join(" ")
+              }
+              return ""
+            })
+            .join(" ")
+            .toLowerCase()
+        : ""
+
+      return typeLabel.includes(q) || nodeId.includes(q) || dataStr.includes(q)
+    })
+  }, [nodes, searchQuery])
+
+  // Reset search index when matches change
+  useEffect(() => {
+    if (searchIndex >= searchMatches.length) {
+      setSearchIndex(0)
+    }
+  }, [searchMatches.length, searchIndex])
+
+  const handleSearchOpen = useCallback(() => {
+    setSearchOpen(true)
+  }, [])
+
+  const handleSearchClose = useCallback(() => {
+    setSearchOpen(false)
+    setSearchQuery("")
+    setSearchIndex(0)
+  }, [])
+
+  const handleSearchQueryChange = useCallback((query: string) => {
+    setSearchQuery(query)
+    setSearchIndex(0)
+  }, [])
+
+  const handleSearchNext = useCallback(() => {
+    if (searchMatches.length === 0) return
+    const nextIndex = (searchIndex + 1) % searchMatches.length
+    setSearchIndex(nextIndex)
+    const targetNode = searchMatches[nextIndex]
+    if (targetNode && rfInstanceRef.current) {
+      rfInstanceRef.current.fitView({
+        nodes: [{ id: targetNode.id }],
+        duration: 300,
+        padding: 1.5,
+        maxZoom: 1.2,
+      })
+    }
+  }, [searchMatches, searchIndex])
+
+  const handleSearchPrev = useCallback(() => {
+    if (searchMatches.length === 0) return
+    const prevIndex = (searchIndex - 1 + searchMatches.length) % searchMatches.length
+    setSearchIndex(prevIndex)
+    const targetNode = searchMatches[prevIndex]
+    if (targetNode && rfInstanceRef.current) {
+      rfInstanceRef.current.fitView({
+        nodes: [{ id: targetNode.id }],
+        duration: 300,
+        padding: 1.5,
+        maxZoom: 1.2,
+      })
+    }
+  }, [searchMatches, searchIndex])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't intercept when typing in an input/textarea or contentEditable
       const target = e.target as HTMLElement
       const tag = target?.tagName
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
-      if (target?.isContentEditable) return
-
       const modKey = e.metaKey || e.ctrlKey
       const key = e.key.toLowerCase()
+
+      // Cmd+F: open canvas search — intercept even inside inputs
+      if (modKey && key === "f" && !e.shiftKey) {
+        e.preventDefault()
+        handleSearchOpen()
+        return
+      }
+
+      // Don't intercept when typing in an input/textarea or contentEditable
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+      if (target?.isContentEditable) return
 
       // Undo: Cmd+Z (without Shift)
       if (modKey && key === "z" && !e.shiftKey) {
@@ -519,9 +621,13 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
         return
       }
 
-      // Escape: deselect all nodes and close config panel
+      // Escape: close search first, then deselect all nodes and close config panel
       if (e.key === "Escape") {
         e.preventDefault()
+        if (searchOpen) {
+          handleSearchClose()
+          return
+        }
         setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)))
         setSelectedNodeId(null)
         return
@@ -535,7 +641,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [handleUndo, handleRedo, handleDeleteSelected, handleCopySelected, handlePaste, handleSelectAll, handleDuplicateSelected, setNodes])
+  }, [handleUndo, handleRedo, handleDeleteSelected, handleCopySelected, handlePaste, handleSelectAll, handleDuplicateSelected, setNodes, searchOpen, handleSearchOpen, handleSearchClose])
 
   // Notify parent of undo/redo state changes
   useEffect(() => {
@@ -551,40 +657,88 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     return types
   }, [nodes])
 
-  // Derived nodes with run status + overlay merged — pure derivation, no state mutation
+  // Build search match ID set + current match ID for styling
+  const searchMatchIds = useMemo(() => new Set(searchMatches.map((n) => n.id)), [searchMatches])
+  const searchCurrentId = searchMatches.length > 0 ? searchMatches[searchIndex]?.id ?? null : null
+  const isSearchActive = searchOpen && searchQuery.trim().length > 0
+
+  // Derived nodes with run status + overlay + search highlighting merged — pure derivation, no state mutation
   const displayNodes = useMemo(() => {
-    if (!nodeResults || (!runPanelOpen && !isRunning)) return nodes
-    return nodes.map((node) => {
-      const result = nodeResults[node.id]
-      const newStatus = result?.status
-      if (!newStatus) return node
+    let result = nodes
 
-      // Build overlay data for duration badge & tooltip
-      const truncate = (v: unknown): string | null => {
-        if (v == null) return null
-        const s = typeof v === "string" ? v : JSON.stringify(v)
-        return s.length > 120 ? s.slice(0, 120) + "..." : s
-      }
-      const _runOverlay = {
-        durationMs: result.duration_ms ?? null,
-        inputPreview: truncate(result.input_preview),
-        outputPreview: truncate(result.output),
-        runError: result.error ?? null,
-      }
+    // Apply run status overlays
+    if (nodeResults && (runPanelOpen || isRunning)) {
+      result = result.map((node) => {
+        const runResult = nodeResults[node.id]
+        const newStatus = runResult?.status
+        if (!newStatus) return node
 
-      // Skip update if status and overlay haven't changed
-      const prev = node.data._runOverlay as typeof _runOverlay | undefined
-      if (
-        node.data.runStatus === newStatus &&
-        prev?.durationMs === _runOverlay.durationMs &&
-        prev?.runError === _runOverlay.runError
-      ) {
+        // Build overlay data for duration badge & tooltip
+        const truncate = (v: unknown): string | null => {
+          if (v == null) return null
+          const s = typeof v === "string" ? v : JSON.stringify(v)
+          return s.length > 120 ? s.slice(0, 120) + "..." : s
+        }
+        const _runOverlay = {
+          durationMs: runResult.duration_ms ?? null,
+          inputPreview: truncate(runResult.input_preview),
+          outputPreview: truncate(runResult.output),
+          runError: runResult.error ?? null,
+        }
+
+        // Skip update if status and overlay haven't changed
+        const prev = node.data._runOverlay as typeof _runOverlay | undefined
+        if (
+          node.data.runStatus === newStatus &&
+          prev?.durationMs === _runOverlay.durationMs &&
+          prev?.runError === _runOverlay.runError
+        ) {
+          return node
+        }
+
+        return { ...node, data: { ...node.data, runStatus: newStatus, _runOverlay } }
+      })
+    }
+
+    // Apply search highlighting via className/style
+    if (isSearchActive) {
+      result = result.map((node) => {
+        const isMatch = searchMatchIds.has(node.id)
+        const isCurrent = node.id === searchCurrentId
+        if (isCurrent) {
+          return {
+            ...node,
+            className: "!opacity-100 [&>div]:ring-2 [&>div]:ring-primary [&>div]:ring-offset-1",
+            style: { ...node.style, opacity: 1 },
+          }
+        }
+        if (isMatch) {
+          return {
+            ...node,
+            className: "!opacity-100 [&>div]:ring-2 [&>div]:ring-primary/40",
+            style: { ...node.style, opacity: 1 },
+          }
+        }
+        // Non-matching: dim
+        return {
+          ...node,
+          className: "",
+          style: { ...node.style, opacity: 0.25 },
+        }
+      })
+    } else {
+      // Clear any leftover search styles
+      result = result.map((node) => {
+        if (node.className || (node.style && node.style.opacity != null)) {
+          const { opacity: _o, ...restStyle } = node.style ?? {}
+          return { ...node, className: undefined, style: Object.keys(restStyle).length > 0 ? restStyle : undefined }
+        }
         return node
-      }
+      })
+    }
 
-      return { ...node, data: { ...node.data, runStatus: newStatus, _runOverlay } }
-    })
-  }, [nodes, nodeResults, runPanelOpen, isRunning])
+    return result
+  }, [nodes, nodeResults, runPanelOpen, isRunning, isSearchActive, searchMatchIds, searchCurrentId])
 
   // Derived edges: animate when source is completed and target is running
   const displayEdges = useMemo(() => {
@@ -825,6 +979,18 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
             className="!bg-background/80 !border-border"
           />
         </ReactFlow>
+
+        {/* Canvas search bar */}
+        <CanvasSearchBar
+          open={searchOpen}
+          query={searchQuery}
+          matchCount={searchMatches.length}
+          currentIndex={searchIndex}
+          onQueryChange={handleSearchQueryChange}
+          onNext={handleSearchNext}
+          onPrev={handleSearchPrev}
+          onClose={handleSearchClose}
+        />
 
         {/* Node context menu */}
         {contextMenu?.type === "node" && (() => {
