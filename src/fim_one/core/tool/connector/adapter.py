@@ -15,6 +15,7 @@ import httpx
 
 from fim_one.core.security import get_safe_async_client, validate_url
 from fim_one.core.tool.base import BaseTool
+from fim_one.core.tool.connector.semantic_tags import enrich_parameters_schema
 from fim_one.core.tool.truncation import truncate_tool_output
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ class ConnectorToolAdapter(BaseTool):
 
     @property
     def parameters_schema(self) -> dict[str, Any]:
-        return self._parameters_schema_val
+        return enrich_parameters_schema(self._parameters_schema_val)
 
     async def run(self, **kwargs: Any) -> str:
         """Execute the HTTP request to the target system."""

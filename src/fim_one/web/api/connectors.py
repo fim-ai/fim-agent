@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from fim_one.core.security import get_safe_async_client, validate_url
 from fim_one.core.tool.connector.openapi_parser import parse_openapi_spec
+from fim_one.core.tool.connector.semantic_tags import get_all_semantic_tags
 from fim_one.web.exceptions import AppError
 from fim_one.db import get_session
 from fim_one.web.auth import get_current_user, get_user_org_ids
@@ -319,6 +320,19 @@ async def list_connectors(
         size=size,
         pages=math.ceil(total / size) if total else 0,
     )
+
+
+# ---------------------------------------------------------------------------
+# Semantic Tags
+# ---------------------------------------------------------------------------
+
+
+@router.get("/semantic-tags", response_model=ApiResponse)
+async def list_semantic_tags(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> ApiResponse:
+    """Return the list of available semantic tags with descriptions."""
+    return ApiResponse(data=get_all_semantic_tags())
 
 
 @router.get("/{connector_id}", response_model=ApiResponse)
