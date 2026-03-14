@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Pencil, Sparkles } from "lucide-react"
@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,13 +29,39 @@ import {
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { AvatarPickerDialog } from "@/components/settings/avatar-picker-dialog"
 import { useAuth } from "@/contexts/auth-context"
-import { authApi } from "@/lib/api"
+import { authApi, agentApi } from "@/lib/api"
 import { toast } from "sonner"
 
 const MAX_INSTRUCTIONS_LENGTH = 2000
 const MAX_DISPLAY_NAME_LENGTH = 50
 const MAX_USERNAME_LENGTH = 50
 const MIN_USERNAME_LENGTH = 2
+
+const TIMEZONE_OPTIONS = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Asia/Tokyo",
+  "Asia/Shanghai",
+  "Asia/Singapore",
+  "Australia/Sydney",
+]
+
+const EXEC_MODE_OPTIONS = [
+  { value: "auto", labelKey: "executionModeAuto" },
+  { value: "react", labelKey: "executionModeReact" },
+  { value: "dag", labelKey: "executionModeDag" },
+] as const
+
+interface AgentOption {
+  id: string
+  name: string
+}
 
 export function GeneralSettings() {
   const { user, updateUser } = useAuth()
@@ -52,11 +86,44 @@ export function GeneralSettings() {
   const [instructions, setInstructions] = useState("")
   const [savingInstructions, setSavingInstructions] = useState(false)
 
+  // --- Timezone ---
+  const [timezone, setTimezone] = useState("")
+  const [savingTimezone, setSavingTimezone] = useState(false)
+
+  // --- Chat Defaults ---
+  const [agents, setAgents] = useState<AgentOption[]>([])
+  const [defaultAgentId, setDefaultAgentId] = useState("")
+  const [savingAgent, setSavingAgent] = useState(false)
+  const [execMode, setExecMode] = useState("auto")
+  const [savingExecMode, setSavingExecMode] = useState(false)
+  const [extendedThinking, setExtendedThinking] = useState(false)
+  const [savingThinking, setSavingThinking] = useState(false)
+
+  // Load agents for the default agent selector
+  const loadAgents = useCallback(async () => {
+    try {
+      const data = await agentApi.list(1, 100)
+      setAgents(data.items.map((a) => ({ id: a.id, name: a.name })))
+    } catch {
+      // silently ignore — selector will just show "None"
+    }
+  }, [])
+
+  useEffect(() => {
+    loadAgents()
+  }, [loadAgents])
+
   useEffect(() => {
     if (user) {
       setUsername(user.username || "")
       setDisplayName(user.display_name || "")
       setInstructions(user.system_instructions || "")
+      // Extended profile fields — use type assertion since these are new fields
+      const u = user as unknown as Record<string, unknown>
+      setTimezone((u.timezone as string) || "")
+      setDefaultAgentId((u.default_agent_id as string) || "")
+      setExecMode((u.default_exec_mode as string) || "auto")
+      setExtendedThinking((u.default_reasoning as boolean) || false)
     }
   }, [user])
 
@@ -143,6 +210,71 @@ export function GeneralSettings() {
       toast.error(t("instructionsSaveFailed"))
     } finally {
       setSavingInstructions(false)
+    }
+  }
+
+  const handleSaveTimezone = async (value: string) => {
+    setTimezone(value)
+    setSavingTimezone(true)
+    try {
+      const updated = await authApi.updateProfile({
+        timezone: value,
+      } as Parameters<typeof authApi.updateProfile>[0])
+      updateUser(updated)
+      toast.success(t("timezoneSaved"))
+    } catch {
+      toast.error(t("timezoneSaveFailed"))
+    } finally {
+      setSavingTimezone(false)
+    }
+  }
+
+  const handleSaveDefaultAgent = async (value: string) => {
+    const agentId = value === "__none__" ? null : value
+    setDefaultAgentId(agentId || "")
+    setSavingAgent(true)
+    try {
+      const updated = await authApi.updateProfile({
+        default_agent_id: agentId,
+      } as Parameters<typeof authApi.updateProfile>[0])
+      updateUser(updated)
+      toast.success(t("defaultAgentSaved"))
+    } catch {
+      toast.error(t("defaultAgentSaveFailed"))
+    } finally {
+      setSavingAgent(false)
+    }
+  }
+
+  const handleSaveExecMode = async (value: string) => {
+    setExecMode(value)
+    setSavingExecMode(true)
+    try {
+      const updated = await authApi.updateProfile({
+        default_exec_mode: value,
+      } as Parameters<typeof authApi.updateProfile>[0])
+      updateUser(updated)
+      toast.success(t("executionModeSaved"))
+    } catch {
+      toast.error(t("executionModeSaveFailed"))
+    } finally {
+      setSavingExecMode(false)
+    }
+  }
+
+  const handleSaveExtendedThinking = async (checked: boolean) => {
+    setExtendedThinking(checked)
+    setSavingThinking(true)
+    try {
+      const updated = await authApi.updateProfile({
+        default_reasoning: checked,
+      } as Parameters<typeof authApi.updateProfile>[0])
+      updateUser(updated)
+      toast.success(t("extendedThinkingSaved"))
+    } catch {
+      toast.error(t("extendedThinkingSaveFailed"))
+    } finally {
+      setSavingThinking(false)
     }
   }
 
@@ -302,6 +434,108 @@ export function GeneralSettings() {
             >
               {savingInstructions ? tc("saving") : tc("save")}
             </Button>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Timezone Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-medium">{t("timezoneTitle")}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t("timezoneDescription")}
+          </p>
+        </div>
+
+        <Select
+          value={timezone || "__default__"}
+          onValueChange={(value) => handleSaveTimezone(value === "__default__" ? "" : value)}
+          disabled={savingTimezone}
+        >
+          <SelectTrigger className="w-full max-w-sm">
+            <SelectValue placeholder={t("timezonePlaceholder")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__default__">{t("timezonePlaceholder")}</SelectItem>
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <SelectItem key={tz} value={tz}>
+                {tz}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Separator />
+
+      {/* Chat Defaults Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-medium">{t("chatDefaultsTitle")}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t("chatDefaultsDescription")}
+          </p>
+        </div>
+
+        <div className="space-y-4 max-w-sm">
+          {/* Default Agent */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("defaultAgentLabel")}</label>
+            <Select
+              value={defaultAgentId || "__none__"}
+              onValueChange={handleSaveDefaultAgent}
+              disabled={savingAgent}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("defaultAgentNone")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">{t("defaultAgentNone")}</SelectItem>
+                {agents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Execution Mode */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("executionModeLabel")}</label>
+            <Select
+              value={execMode}
+              onValueChange={handleSaveExecMode}
+              disabled={savingExecMode}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EXEC_MODE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {t(opt.labelKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Extended Thinking */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label className="text-sm font-medium">{t("extendedThinkingLabel")}</label>
+              <p className="text-xs text-muted-foreground">
+                {t("extendedThinkingDescription")}
+              </p>
+            </div>
+            <Switch
+              checked={extendedThinking}
+              onCheckedChange={handleSaveExtendedThinking}
+              disabled={savingThinking}
+            />
           </div>
         </div>
       </div>

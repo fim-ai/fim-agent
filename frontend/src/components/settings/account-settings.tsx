@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
+import { Copy, Check, Download, Loader2, Monitor, ShieldCheck, ShieldOff } from "lucide-react"
+import { QRCodeSVG } from "qrcode.react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +26,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp"
 import { apiFetch, authApi, ApiError } from "@/lib/api"
 import { toast } from "sonner"
@@ -467,20 +477,8 @@ export function AccountSettings() {
 
       <Separator />
 
-      {/* Email Section (read-only) */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-base font-medium">{t("emailTitle")}</h3>
-          <p className="text-sm text-muted-foreground">
-            {t("emailDescription")}
-          </p>
-        </div>
-
-        <div className="max-w-sm space-y-1">
-          <p className="text-sm">{user?.email ?? ""}</p>
-          <p className="text-xs text-muted-foreground">{t("emailReadOnly")}</p>
-        </div>
-      </div>
+      {/* Email Section */}
+      <EmailChangeSection user={user} t={t} refreshUser={refreshUser} />
 
       <Separator />
 
@@ -722,6 +720,21 @@ export function AccountSettings() {
 
       <Separator />
 
+      {/* Two-Factor Authentication */}
+      <TwoFactorSection user={user} refreshUser={refreshUser} />
+
+      <Separator />
+
+      {/* Active Sessions */}
+      <SessionsSection />
+
+      <Separator />
+
+      {/* Data Export */}
+      <DataExportSection />
+
+      <Separator />
+
       {/* Danger Zone */}
       <DeleteAccountSection t={t} user={user} logout={logout} />
     </div>
@@ -861,6 +874,776 @@ function DeleteAccountSection({
           </AlertDialogContent>
         </AlertDialog>
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Email Change Section
+// ---------------------------------------------------------------------------
+
+function EmailChangeSection({
+  user,
+  t,
+  refreshUser,
+}: {
+  user: UserInfo | null
+  t: ReturnType<typeof useTranslations<"settings.account">>
+  refreshUser: () => Promise<void>
+}) {
+  const tc = useTranslations("common")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [step, setStep] = useState<1 | 2>(1)
+  const [newEmail, setNewEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [code, setCode] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const resetState = () => {
+    setStep(1)
+    setNewEmail("")
+    setPassword("")
+    setCode("")
+    setFieldErrors({})
+    setSubmitting(false)
+  }
+
+  const handleRequestChange = async () => {
+    const errors: Record<string, string> = {}
+    if (!newEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      errors.email = t("changeEmailInvalidEmail")
+    }
+    if (!password.trim()) {
+      errors.password = t("changeEmailPasswordRequired")
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await apiFetch("/api/auth/change-email/request", {
+        method: "POST",
+        body: JSON.stringify({ new_email: newEmail.trim(), password }),
+      })
+      setStep(2)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        toast.error(err.message)
+      } else {
+        toast.error(t("changeEmailFailed"))
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleConfirmChange = async () => {
+    if (code.length < 6) return
+    setSubmitting(true)
+    try {
+      await apiFetch("/api/auth/change-email/confirm", {
+        method: "POST",
+        body: JSON.stringify({ new_email: newEmail.trim(), code }),
+      })
+      toast.success(t("changeEmailSuccess"))
+      setDialogOpen(false)
+      resetState()
+      await refreshUser()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        toast.error(err.message)
+      } else {
+        toast.error(t("changeEmailFailed"))
+      }
+      setCode("")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-base font-medium">{t("emailTitle")}</h3>
+        <p className="text-sm text-muted-foreground">
+          {t("emailDescription")}
+        </p>
+      </div>
+
+      <div className="max-w-sm flex items-center gap-3">
+        <p className="text-sm flex-1">{user?.email ?? ""}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => { resetState(); setDialogOpen(true) }}
+        >
+          {t("changeEmail")}
+        </Button>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) { setDialogOpen(false); resetState() } else { setDialogOpen(true) } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("changeEmailTitle")}</DialogTitle>
+            <DialogDescription>
+              {step === 1 ? t("changeEmailDescription") : t("changeEmailCodeSent")}
+            </DialogDescription>
+          </DialogHeader>
+
+          {step === 1 && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("newEmailLabel")}</label>
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => { setNewEmail(e.target.value); setFieldErrors((p) => { const n = {...p}; delete n.email; return n }) }}
+                  placeholder={t("newEmailPlaceholder")}
+                  aria-invalid={!!fieldErrors.email}
+                />
+                {fieldErrors.email && (
+                  <p className="text-sm text-destructive">{fieldErrors.email}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("currentPasswordForEmail")}</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const n = {...p}; delete n.password; return n }) }}
+                  placeholder={t("currentPasswordForEmailPlaceholder")}
+                  aria-invalid={!!fieldErrors.password}
+                />
+                {fieldErrors.password && (
+                  <p className="text-sm text-destructive">{fieldErrors.password}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("changeEmailCodeLabel")}</label>
+                <InputOTP maxLength={6} value={code} onChange={setCode}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetState() }}>
+              {tc("cancel")}
+            </Button>
+            {step === 1 ? (
+              <Button onClick={handleRequestChange} disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("changeEmailStep1")}
+              </Button>
+            ) : (
+              <Button onClick={handleConfirmChange} disabled={submitting || code.length < 6}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("changeEmailStep2")}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Two-Factor Authentication Section
+// ---------------------------------------------------------------------------
+
+function TwoFactorSection({
+  user,
+  refreshUser,
+}: {
+  user: UserInfo | null
+  refreshUser: () => Promise<void>
+}) {
+  const t = useTranslations("settings.account")
+  const tc = useTranslations("common")
+
+  const totpEnabled = (user as unknown as Record<string, unknown>)?.totp_enabled === true
+
+  // Setup flow
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [setupStep, setSetupStep] = useState<1 | 3>(1)
+  const [otpauthUri, setOtpauthUri] = useState("")
+  const [secret, setSecret] = useState("")
+  const [verifyCode, setVerifyCode] = useState("")
+  const [backupCodes, setBackupCodes] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [secretCopied, setSecretCopied] = useState(false)
+  const [backupCopied, setBackupCopied] = useState(false)
+
+  // Disable flow
+  const [disableOpen, setDisableOpen] = useState(false)
+  const [disablePassword, setDisablePassword] = useState("")
+  const [disabling, setDisabling] = useState(false)
+
+  // Regenerate backup codes
+  const [regenOpen, setRegenOpen] = useState(false)
+  const [regenPassword, setRegenPassword] = useState("")
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenCodes, setRegenCodes] = useState<string[]>([])
+  const [regenCopied, setRegenCopied] = useState(false)
+
+  const handleStartSetup = async () => {
+    setSubmitting(true)
+    try {
+      const data = await apiFetch<{ secret: string; otpauth_uri: string }>("/api/auth/2fa/setup", {
+        method: "POST",
+      })
+      setOtpauthUri(data.otpauth_uri)
+      setSecret(data.secret)
+      setSetupStep(1)
+      setVerifyCode("")
+      setBackupCodes([])
+      setSetupOpen(true)
+    } catch (err) {
+      if (err instanceof ApiError) toast.error(err.message)
+      else toast.error(t("twoFactorSetupFailed"))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleVerifyAndEnable = async () => {
+    if (verifyCode.length < 6) return
+    setSubmitting(true)
+    try {
+      const data = await apiFetch<{ backup_codes: string[] }>("/api/auth/2fa/enable", {
+        method: "POST",
+        body: JSON.stringify({ code: verifyCode }),
+      })
+      setBackupCodes(data.backup_codes)
+      setSetupStep(3)
+      toast.success(t("twoFactorEnableSuccess"))
+      await refreshUser()
+    } catch (err) {
+      if (err instanceof ApiError) toast.error(err.message)
+      else toast.error(t("twoFactorEnableFailed"))
+      setVerifyCode("")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDisable = async () => {
+    if (!disablePassword) return
+    setDisabling(true)
+    try {
+      await apiFetch("/api/auth/2fa/disable", {
+        method: "POST",
+        body: JSON.stringify({ password: disablePassword }),
+      })
+      toast.success(t("disableTwoFactorSuccess"))
+      setDisableOpen(false)
+      setDisablePassword("")
+      await refreshUser()
+    } catch (err) {
+      if (err instanceof ApiError) toast.error(err.message)
+      else toast.error(t("disableTwoFactorFailed"))
+    } finally {
+      setDisabling(false)
+    }
+  }
+
+  const handleRegenerateBackupCodes = async () => {
+    if (!regenPassword) return
+    setRegenerating(true)
+    try {
+      const data = await apiFetch<{ backup_codes: string[] }>("/api/auth/2fa/backup-codes", {
+        method: "POST",
+        body: JSON.stringify({ password: regenPassword }),
+      })
+      setRegenCodes(data.backup_codes)
+      toast.success(t("regenerateBackupCodesSuccess"))
+      setRegenPassword("")
+    } catch (err) {
+      if (err instanceof ApiError) toast.error(err.message)
+      else toast.error(t("regenerateBackupCodesFailed"))
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
+  const copyToClipboard = async (text: string, onCopied: (v: boolean) => void) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      onCopied(true)
+      toast.success(t("backupCodesCopied"))
+      setTimeout(() => onCopied(false), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-base font-medium">{t("twoFactorTitle")}</h3>
+        <p className="text-sm text-muted-foreground">
+          {t("twoFactorDescription")}
+        </p>
+      </div>
+
+      {totpEnabled ? (
+        <div className="space-y-3 max-w-md">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <Badge variant="outline" className="border-green-500/30 bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400">
+              {t("twoFactorEnabled")}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setRegenOpen(true); setRegenCodes([]); setRegenPassword(""); setRegenCopied(false) }}>
+              {t("regenerateBackupCodes")}
+            </Button>
+            <Button variant="outline" size="sm" className="text-destructive" onClick={() => { setDisableOpen(true); setDisablePassword("") }}>
+              <ShieldOff className="mr-2 h-4 w-4" />
+              {t("disableTwoFactor")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3 max-w-md">
+          <p className="text-sm text-muted-foreground">{t("twoFactorDisabled")}</p>
+          <Button size="sm" onClick={handleStartSetup} disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t("enableTwoFactor")}
+          </Button>
+        </div>
+      )}
+
+      {/* Setup 2FA Dialog */}
+      <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("setupTwoFactorTitle")}</DialogTitle>
+            <DialogDescription>{t("setupTwoFactorDescription")}</DialogDescription>
+          </DialogHeader>
+
+          {setupStep === 1 && (
+            <div className="space-y-4 py-2">
+              {/* QR Code */}
+              <div className="flex justify-center">
+                <div className="rounded-lg border bg-white p-3">
+                  <QRCodeSVG value={otpauthUri} size={180} />
+                </div>
+              </div>
+
+              {/* Secret key for manual entry */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">{t("twoFactorSecretLabel")}</label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded border bg-muted px-2 py-1.5 text-xs font-mono break-all">
+                    {secret}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => copyToClipboard(secret, setSecretCopied)}
+                  >
+                    {secretCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Verification code input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("twoFactorCodeLabel")}</label>
+                <InputOTP maxLength={6} value={verifyCode} onChange={setVerifyCode}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+          )}
+
+          {setupStep === 3 && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-md border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 px-3 py-2">
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                  {t("backupCodesWarning")}
+                </p>
+              </div>
+              <div className="rounded-md border bg-muted/50 p-3">
+                <div className="grid grid-cols-2 gap-1">
+                  {backupCodes.map((c, i) => (
+                    <code key={i} className="text-xs font-mono text-foreground">
+                      {c}
+                    </code>
+                  ))}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(backupCodes.join("\n"), setBackupCopied)}
+              >
+                {backupCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                {tc("copy")}
+              </Button>
+            </div>
+          )}
+
+          <DialogFooter>
+            {setupStep !== 3 ? (
+              <>
+                <Button variant="outline" onClick={() => setSetupOpen(false)}>
+                  {tc("cancel")}
+                </Button>
+                <Button
+                  onClick={handleVerifyAndEnable}
+                  disabled={submitting || verifyCode.length < 6}
+                >
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {t("twoFactorVerify")}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setSetupOpen(false)}>
+                {tc("done")}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable 2FA AlertDialog */}
+      <AlertDialog open={disableOpen} onOpenChange={setDisableOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("disableTwoFactorTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("disableTwoFactorDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <label className="text-sm font-medium">{t("disableTwoFactorPasswordLabel")}</label>
+            <Input
+              type="password"
+              value={disablePassword}
+              onChange={(e) => setDisablePassword(e.target.value)}
+              placeholder={t("disableTwoFactorPasswordPlaceholder")}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDisable}
+              disabled={disabling || !disablePassword}
+            >
+              {disabling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("disableTwoFactor")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Regenerate Backup Codes Dialog */}
+      <Dialog open={regenOpen} onOpenChange={setRegenOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("regenerateBackupCodes")}</DialogTitle>
+            <DialogDescription>{t("regenerateBackupCodesConfirm")}</DialogDescription>
+          </DialogHeader>
+
+          {regenCodes.length === 0 ? (
+            <div className="space-y-2 py-2">
+              <label className="text-sm font-medium">{t("disableTwoFactorPasswordLabel")}</label>
+              <Input
+                type="password"
+                value={regenPassword}
+                onChange={(e) => setRegenPassword(e.target.value)}
+                placeholder={t("disableTwoFactorPasswordPlaceholder")}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="rounded-md border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 px-3 py-2">
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                  {t("backupCodesWarning")}
+                </p>
+              </div>
+              <div className="rounded-md border bg-muted/50 p-3">
+                <div className="grid grid-cols-2 gap-1">
+                  {regenCodes.map((c, i) => (
+                    <code key={i} className="text-xs font-mono text-foreground">
+                      {c}
+                    </code>
+                  ))}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(regenCodes.join("\n"), setRegenCopied)}
+              >
+                {regenCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                {tc("copy")}
+              </Button>
+            </div>
+          )}
+
+          <DialogFooter>
+            {regenCodes.length === 0 ? (
+              <>
+                <Button variant="outline" onClick={() => setRegenOpen(false)}>
+                  {tc("cancel")}
+                </Button>
+                <Button
+                  onClick={handleRegenerateBackupCodes}
+                  disabled={regenerating || !regenPassword}
+                >
+                  {regenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {t("regenerateBackupCodes")}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setRegenOpen(false)}>
+                {tc("done")}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Sessions Section
+// ---------------------------------------------------------------------------
+
+interface SessionItem {
+  id: string
+  user_agent: string
+  ip_address: string
+  created_at: string
+  success: boolean
+}
+
+function parseUserAgent(ua: string): string {
+  if (!ua) return "Unknown"
+  const browserPatterns = [
+    { pattern: /Chrome\/[\d.]+/, name: "Chrome" },
+    { pattern: /Firefox\/[\d.]+/, name: "Firefox" },
+    { pattern: /Safari\/[\d.]+/, name: "Safari" },
+    { pattern: /Edge\/[\d.]+/, name: "Edge" },
+  ]
+  const osPatterns = [
+    { pattern: /Windows/, name: "Windows" },
+    { pattern: /Macintosh|Mac OS/, name: "macOS" },
+    { pattern: /Linux/, name: "Linux" },
+    { pattern: /iPhone|iPad/, name: "iOS" },
+    { pattern: /Android/, name: "Android" },
+  ]
+
+  let browser = "Unknown Browser"
+  let os = ""
+  for (const bp of browserPatterns) {
+    if (bp.pattern.test(ua)) { browser = bp.name; break }
+  }
+  for (const op of osPatterns) {
+    if (op.pattern.test(ua)) { os = op.name; break }
+  }
+  return os ? `${browser} on ${os}` : browser
+}
+
+function SessionsSection() {
+  const t = useTranslations("settings.account")
+  const tc = useTranslations("common")
+  const [sessions, setSessions] = useState<SessionItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [revokeOpen, setRevokeOpen] = useState(false)
+  const [revoking, setRevoking] = useState(false)
+
+  useEffect(() => {
+    apiFetch<{ items: SessionItem[]; total: number }>("/api/me/sessions")
+      .then((data) => setSessions(data.items))
+      .catch(() => toast.error(t("sessionsLoadFailed")))
+      .finally(() => setLoading(false))
+  }, [t])
+
+  const handleRevokeAll = async () => {
+    setRevoking(true)
+    try {
+      await apiFetch("/api/me/sessions/revoke-all", { method: "POST" })
+      toast.success(t("sessionsRevokeAllSuccess"))
+      setRevokeOpen(false)
+    } catch {
+      toast.error(t("sessionsRevokeAllFailed"))
+    } finally {
+      setRevoking(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-base font-medium">{t("sessionsTitle")}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t("sessionsDescription")}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setRevokeOpen(true)}>
+          {t("sessionsRevokeAll")}
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : sessions.length === 0 ? (
+        <div className="rounded-md border border-border bg-muted/30 p-6 text-center">
+          <Monitor className="mx-auto h-6 w-6 text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">{t("sessionsNoData")}</p>
+        </div>
+      ) : (
+        <div className="rounded-md border border-border overflow-x-auto">
+          <table className="w-full min-w-max text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("sessionsDevice")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("sessionsIp")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("sessionsTime")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("sessionsStatus")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {sessions.map((s) => (
+                <tr key={s.id} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 text-foreground">{parseUserAgent(s.user_agent)}</td>
+                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.ip_address}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
+                    {new Date(s.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    {s.success ? (
+                      <Badge variant="outline" className="border-green-500/30 bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400">
+                        {t("sessionsSuccess")}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400">
+                        {t("sessionsFailed")}
+                      </Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <AlertDialog open={revokeOpen} onOpenChange={setRevokeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("sessionsRevokeAllConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("sessionsRevokeAllConfirmDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevokeAll}
+              disabled={revoking}
+            >
+              {revoking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("sessionsRevokeAll")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Data Export Section
+// ---------------------------------------------------------------------------
+
+function DataExportSection() {
+  const t = useTranslations("settings.account")
+  const [downloading, setDownloading] = useState(false)
+
+  const handleExport = async () => {
+    setDownloading(true)
+    try {
+      const token = localStorage.getItem(ACCESS_TOKEN_KEY)
+      const res = await fetch("/api/auth/me/export", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error("Export failed")
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `fim-one-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(t("dataExportSuccess"))
+    } catch {
+      toast.error(t("dataExportFailed"))
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-base font-medium">{t("dataExportTitle")}</h3>
+        <p className="text-sm text-muted-foreground">
+          {t("dataExportDescription")}
+        </p>
+      </div>
+
+      <Button variant="outline" size="sm" onClick={handleExport} disabled={downloading}>
+        {downloading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Download className="mr-2 h-4 w-4" />
+        )}
+        {downloading ? t("dataExportDownloading") : t("dataExportButton")}
+      </Button>
     </div>
   )
 }
