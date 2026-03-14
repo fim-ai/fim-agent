@@ -24,11 +24,14 @@ from fim_one.web.auth import get_current_user, get_user_org_ids
 from fim_one.web.models import User, Workflow, WorkflowRun, WorkflowVersion
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRequest
 from fim_one.web.schemas.workflow import (
+    BatchRunResultItem,
     BlueprintWarningItem,
     DryRunNodePlan,
     MostFailedNode,
     RunsPerDay,
     WorkflowAnalyticsResponse,
+    WorkflowBatchRunRequest,
+    WorkflowBatchRunResponse,
     WorkflowCreate,
     WorkflowDryRunResponse,
     WorkflowEnvVarsUpdate,
@@ -989,6 +992,184 @@ async def run_workflow(
             "Cache-Control": "no-cache, no-store",
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Batch run
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{workflow_id}/batch-run", response_model=ApiResponse)
+async def batch_run_workflow(
+    workflow_id: str,
+    body: WorkflowBatchRunRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Execute a workflow multiple times with different input sets.
+
+    Runs each input set as an independent workflow execution, bounded by
+    ``max_parallel`` concurrency.  If one run fails, the rest continue.
+    Returns a non-streaming JSON response with results for every input set.
+    """
+    wf = await _get_accessible_workflow(workflow_id, current_user.id, db)
+
+    if not wf.blueprint or not wf.blueprint.get("nodes"):
+        raise AppError("blueprint_empty", status_code=400)
+
+    from fim_one.core.workflow.engine import WorkflowEngine
+    from fim_one.core.workflow.parser import BlueprintValidationError, parse_blueprint
+
+    try:
+        parsed = parse_blueprint(wf.blueprint)
+    except BlueprintValidationError as exc:
+        raise AppError(f"invalid_blueprint: {exc}", status_code=400)
+
+    # Decrypt env vars if present
+    env_vars: dict[str, str] = {}
+    if wf.env_vars_blob:
+        try:
+            from fim_one.core.security.encryption import decrypt_credential
+
+            env_vars = decrypt_credential(wf.env_vars_blob)
+        except Exception:
+            logger.warning("Failed to decrypt workflow env vars for %s", wf.id)
+
+    batch_id = str(uuid.uuid4())
+    semaphore = asyncio.Semaphore(body.max_parallel)
+
+    async def _run_single(index: int, inputs: dict[str, Any]) -> BatchRunResultItem:
+        """Execute one workflow run within the batch."""
+        run_id = str(uuid.uuid4())
+        start_time = time.time()
+        final_status = "completed"
+        outputs: dict[str, Any] = {}
+        node_results: dict[str, Any] = {}
+        error_msg: str | None = None
+
+        # Create run record
+        try:
+            async with create_session() as run_db:
+                run = WorkflowRun(
+                    id=run_id,
+                    workflow_id=wf.id,
+                    user_id=current_user.id,
+                    blueprint_snapshot=wf.blueprint,
+                    inputs=inputs,
+                    status="pending",
+                )
+                run_db.add(run)
+                await run_db.commit()
+        except Exception:
+            logger.exception("Failed to create run record for batch item %d", index)
+            return BatchRunResultItem(
+                run_id=run_id,
+                inputs=inputs,
+                status="failed",
+                error="Failed to create run record",
+                duration_ms=0,
+            )
+
+        async with semaphore:
+            try:
+                engine = WorkflowEngine(
+                    max_concurrency=5,
+                    env_vars=env_vars,
+                    run_id=run_id,
+                    user_id=current_user.id,
+                    workflow_id=wf.id,
+                )
+
+                async for event_name, event_data in engine.execute_streaming(
+                    parsed, inputs
+                ):
+                    if event_name in (
+                        "node_started",
+                        "node_completed",
+                        "node_failed",
+                        "node_skipped",
+                    ):
+                        nid = event_data.get("node_id", "")
+                        node_results[nid] = {
+                            **(node_results.get(nid) or {}),
+                            **event_data,
+                        }
+                    elif event_name == "run_completed":
+                        outputs = event_data.get("outputs", {})
+                        final_status = event_data.get("status", "completed")
+                    elif event_name == "run_failed":
+                        final_status = "failed"
+                        error_msg = event_data.get("error")
+
+            except Exception as exc:
+                final_status = "failed"
+                error_msg = f"{type(exc).__name__}: {exc}"
+                logger.exception(
+                    "Batch run %s item %d failed", batch_id, index
+                )
+
+        elapsed_ms = int((time.time() - start_time) * 1000)
+
+        # Persist run results
+        try:
+            async with create_session() as persist_db:
+                result = await persist_db.execute(
+                    select(WorkflowRun).where(WorkflowRun.id == run_id)
+                )
+                db_run = result.scalar_one_or_none()
+                if db_run:
+                    db_run.status = final_status
+                    db_run.outputs = outputs or None
+                    db_run.node_results = node_results or None
+                    db_run.started_at = datetime.fromtimestamp(start_time, tz=UTC)
+                    db_run.completed_at = datetime.now(UTC)
+                    db_run.duration_ms = elapsed_ms
+                    db_run.error = error_msg
+                    await persist_db.commit()
+        except Exception:
+            logger.exception("Failed to persist batch run %s item %d", batch_id, index)
+
+        return BatchRunResultItem(
+            run_id=run_id,
+            inputs=inputs,
+            status=final_status,
+            outputs=outputs or None,
+            error=error_msg,
+            duration_ms=elapsed_ms,
+        )
+
+    # Launch all runs concurrently (bounded by semaphore)
+    tasks = [
+        asyncio.create_task(_run_single(i, input_set))
+        for i, input_set in enumerate(body.inputs)
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Convert any unexpected exceptions into error results
+    batch_results: list[BatchRunResultItem] = []
+    for i, result in enumerate(results):
+        if isinstance(result, BaseException):
+            logger.exception(
+                "Unexpected error in batch %s item %d", batch_id, i, exc_info=result
+            )
+            batch_results.append(
+                BatchRunResultItem(
+                    run_id="",
+                    inputs=body.inputs[i],
+                    status="failed",
+                    error=str(result),
+                    duration_ms=0,
+                )
+            )
+        else:
+            batch_results.append(result)
+
+    response = WorkflowBatchRunResponse(
+        batch_id=batch_id,
+        total=len(body.inputs),
+        results=batch_results,
+    )
+    return ApiResponse(data=response.model_dump())
 
 
 # ---------------------------------------------------------------------------

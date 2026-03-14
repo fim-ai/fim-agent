@@ -106,6 +106,47 @@ class WorkflowRunResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Batch Run
+# ---------------------------------------------------------------------------
+
+
+class WorkflowBatchRunRequest(BaseModel):
+    """Input payload to execute a workflow with multiple input sets."""
+
+    inputs: list[dict[str, Any]] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="List of input sets to run the workflow with (1-100 items).",
+    )
+    max_parallel: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Maximum number of concurrent workflow executions (1-10).",
+    )
+
+
+class BatchRunResultItem(BaseModel):
+    """Result of a single workflow execution within a batch."""
+
+    run_id: str
+    inputs: dict[str, Any]
+    status: str  # completed | failed | cancelled
+    outputs: dict[str, Any] | None = None
+    error: str | None = None
+    duration_ms: int | None = None
+
+
+class WorkflowBatchRunResponse(BaseModel):
+    """Response for a batch workflow execution."""
+
+    batch_id: str
+    total: int
+    results: list[BatchRunResultItem] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Validate / Dry Run
 # ---------------------------------------------------------------------------
 
