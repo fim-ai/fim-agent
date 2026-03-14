@@ -1054,13 +1054,18 @@ export const workflowApi = {
     ).then((r) => r.data),
 
   getTemplates: () =>
-    apiFetch<ApiResponse<WorkflowTemplate[]>>("/api/workflows/templates").then((r) => r.data),
+    apiFetch<ApiResponse<{ templates: WorkflowTemplate[]; by_category: Record<string, WorkflowTemplate[]> }>>(
+      "/api/workflow-templates",
+    ).then((r) => r.data.templates),
 
   createFromTemplate: (templateId: string, name?: string) =>
-    apiFetch<ApiResponse<WorkflowResponse>>("/api/workflows/from-template", {
-      method: "POST",
-      body: JSON.stringify({ template_id: templateId, name }),
-    }).then((r) => r.data),
+    apiFetch<ApiResponse<WorkflowResponse>>(
+      `/api/workflow-templates/${templateId}/create-workflow`,
+      {
+        method: "POST",
+        body: JSON.stringify({ template_id: templateId, name }),
+      },
+    ).then((r) => r.data),
 
   getEnvKeys: (id: string) =>
     apiFetch<ApiResponse<{ keys: string[] }>>(`/api/workflows/${id}/env`).then((r) => r.data),
