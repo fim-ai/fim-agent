@@ -1304,6 +1304,77 @@ export interface ConnectorStats {
   recent_days: { date: string; count: number }[]
 }
 
+// --- New Admin Types ---
+export interface AdminSkillInfo {
+  id: string; name: string; description: string | null; is_active: boolean
+  agents_using: number; user_id: string; username: string | null; email: string | null
+  created_at: string
+}
+export interface AdminSkillDetail extends AdminSkillInfo {
+  content: string | null; system_prompt: string | null
+}
+export interface AdminEvalDataset {
+  id: string; name: string; description: string | null; case_count: number
+  last_run_at: string | null; user_id: string; username: string | null
+  email: string | null; created_at: string
+}
+export interface AdminEvalRun {
+  id: string; dataset_name: string; status: string; pass_rate: number | null
+  tokens_used: number; user_id: string; username: string | null
+  email: string | null; created_at: string
+}
+export interface AdminEvalStats {
+  total_datasets: number; total_runs: number; avg_pass_rate: number | null
+  total_tokens: number
+}
+export interface AdminCredential {
+  id: string; user_id: string; username: string | null; email: string | null
+  resource_name: string; type: 'connector' | 'mcp'; status: string
+  updated_at: string
+}
+export interface AdminCredentialStats {
+  total: number; connector_count: number; mcp_count: number; users_with_credentials: number
+}
+export interface AdminReview {
+  id: string; resource_type: string; resource_name: string; org_name: string | null
+  submitter_name: string | null; submitted_at: string
+}
+export interface AdminReviewStats {
+  pending: number; avg_review_time_hours: number | null; approval_rate: number | null
+}
+export interface AdminSchedule {
+  id: string; workflow_id: string; workflow_name: string; user_id: string
+  username: string | null; email: string | null; cron_expression: string
+  timezone: string; is_active: boolean; next_run_at: string | null
+  last_run_at: string | null
+}
+export interface AdminScheduleStats {
+  active: number; total: number; next_run_at: string | null; failed_24h: number
+}
+export interface AdminNotificationConfig {
+  quota_hit: boolean; connector_failure: boolean
+  schedule_failure: boolean; login_anomaly: boolean
+}
+export interface AdminNotificationEvent {
+  id: string; type: string; description: string; user: string | null
+  created_at: string
+}
+export interface AdminAnalyticsByAgent {
+  agent_name: string; owner: string | null; conversations: number
+  total_tokens: number; avg_tokens_per_conv: number
+}
+export interface AdminAnalyticsByConnector {
+  connector_name: string; total_calls: number; success_rate: number
+  avg_response_time_ms: number; errors: number
+}
+export interface AdminAnalyticsByWorkflow {
+  workflow_name: string; owner: string | null; total_runs: number
+  success_rate: number; avg_duration_ms: number
+}
+export interface AdminCostProjection {
+  projected_tokens: number; daily_avg: number; trailing_total: number
+}
+
 // --- Admin API ---
 export const adminApi = {
   listUsers: (page = 1, size = 20, q?: string) => {
@@ -1610,6 +1681,129 @@ export const adminApi = {
     const qs = sp.toString()
     return apiFetch<{ items: ReviewLogItem[]; total: number; limit: number; offset: number }>(`/api/admin/review-log${qs ? `?${qs}` : ''}`)
   },
+
+  // --- Skills ---
+  listAllSkills: (params?: { page?: number; size?: number; search?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    if (params?.search) sp.set('search', params.search)
+    return apiFetch<{ items: AdminSkillInfo[]; total: number; page: number; size: number; pages: number }>(`/api/admin/skills?${sp}`)
+  },
+  getSkillDetail: (id: string) =>
+    apiFetch<AdminSkillDetail>(`/api/admin/skills/${id}`),
+  toggleSkillActive: (id: string) =>
+    apiFetch<{ ok: boolean; is_active: boolean }>(`/api/admin/skills/${id}/active`, { method: 'PATCH' }),
+  adminDeleteSkill: (id: string) =>
+    apiFetch(`/api/admin/skills/${id}`, { method: 'DELETE' }),
+  batchDeleteSkills: (ids: string[]) =>
+    apiFetch<{ deleted: number }>('/api/admin/skills/batch-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+
+  // --- Evaluations ---
+  listEvalDatasets: (params?: { page?: number; size?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    return apiFetch<{ items: AdminEvalDataset[]; total: number; page: number; size: number; pages: number }>(`/api/admin/eval/datasets?${sp}`)
+  },
+  listEvalRuns: (params?: { page?: number; size?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    return apiFetch<{ items: AdminEvalRun[]; total: number; page: number; size: number; pages: number }>(`/api/admin/eval/runs?${sp}`)
+  },
+  deleteEvalDataset: (id: string) =>
+    apiFetch(`/api/admin/eval/datasets/${id}`, { method: 'DELETE' }),
+  deleteEvalRun: (id: string) =>
+    apiFetch(`/api/admin/eval/runs/${id}`, { method: 'DELETE' }),
+  cleanupEvalRuns: (maxAgeDays: number) =>
+    apiFetch<{ deleted: number }>('/api/admin/eval/cleanup', { method: 'POST', body: JSON.stringify({ max_age_days: maxAgeDays }) }),
+  getEvalStats: () =>
+    apiFetch<AdminEvalStats>('/api/admin/eval/stats'),
+
+  // --- Credentials ---
+  listCredentials: (params?: { page?: number; size?: number; type?: string; search?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    if (params?.type) sp.set('type', params.type)
+    if (params?.search) sp.set('search', params.search)
+    return apiFetch<{ items: AdminCredential[]; total: number; page: number; size: number; pages: number }>(`/api/admin/credentials?${sp}`)
+  },
+  revokeConnectorCredential: (id: string) =>
+    apiFetch(`/api/admin/credentials/connector/${id}`, { method: 'DELETE' }),
+  revokeMcpCredential: (id: string) =>
+    apiFetch(`/api/admin/credentials/mcp/${id}`, { method: 'DELETE' }),
+  getCredentialStats: () =>
+    apiFetch<AdminCredentialStats>('/api/admin/credentials/stats'),
+
+  // --- Reviews ---
+  listPendingReviews: (params?: { page?: number; size?: number; org_id?: string; resource_type?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    if (params?.org_id) sp.set('org_id', params.org_id)
+    if (params?.resource_type) sp.set('resource_type', params.resource_type)
+    return apiFetch<{ items: AdminReview[]; total: number; page: number; size: number; pages: number }>(`/api/admin/reviews/pending?${sp}`)
+  },
+  batchApproveReviews: (reviewIds: string[]) =>
+    apiFetch<{ approved: number }>('/api/admin/reviews/batch-approve', { method: 'POST', body: JSON.stringify({ review_ids: reviewIds }) }),
+  batchRejectReviews: (reviewIds: string[], reason?: string) =>
+    apiFetch<{ rejected: number }>('/api/admin/reviews/batch-reject', { method: 'POST', body: JSON.stringify({ review_ids: reviewIds, reason }) }),
+  getReviewStats: () =>
+    apiFetch<AdminReviewStats>('/api/admin/reviews/stats'),
+
+  // --- Schedules ---
+  listSchedules: (params?: { page?: number; size?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    return apiFetch<{ items: AdminSchedule[]; total: number; page: number; size: number; pages: number }>(`/api/admin/schedules?${sp}`)
+  },
+  toggleScheduleActive: (workflowId: string) =>
+    apiFetch<{ ok: boolean; is_active: boolean }>(`/api/admin/schedules/${workflowId}/active`, { method: 'PATCH' }),
+  getScheduleStats: () =>
+    apiFetch<AdminScheduleStats>('/api/admin/schedules/stats'),
+
+  // --- Notifications ---
+  getNotificationConfig: () =>
+    apiFetch<AdminNotificationConfig>('/api/admin/notifications/config'),
+  updateNotificationConfig: (config: AdminNotificationConfig) =>
+    apiFetch<AdminNotificationConfig>('/api/admin/notifications/config', { method: 'PUT', body: JSON.stringify(config) }),
+  listNotificationEvents: (params?: { page?: number; size?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    return apiFetch<{ items: AdminNotificationEvent[]; total: number; page: number; size: number; pages: number }>(`/api/admin/notifications/events?${sp}`)
+  },
+  sendTestNotification: () =>
+    apiFetch<{ ok: boolean }>('/api/admin/notifications/test', { method: 'POST' }),
+
+  // --- Enhanced Analytics ---
+  getAnalyticsByAgent: (period: string) =>
+    apiFetch<AdminAnalyticsByAgent[]>(`/api/admin/analytics/by-agent?period=${period}`),
+  getAnalyticsByConnector: (period: string) =>
+    apiFetch<AdminAnalyticsByConnector[]>(`/api/admin/analytics/by-connector?period=${period}`),
+  getAnalyticsByWorkflow: (period: string) =>
+    apiFetch<AdminAnalyticsByWorkflow[]>(`/api/admin/analytics/by-workflow?period=${period}`),
+  getCostProjection: () =>
+    apiFetch<AdminCostProjection>('/api/admin/analytics/cost-projection'),
+
+  // --- Batch operations for Resources ---
+  batchToggleAgents: (ids: string[], isActive: boolean) =>
+    apiFetch<{ toggled: number }>('/api/admin/agents/batch-toggle', { method: 'POST', body: JSON.stringify({ ids, is_active: isActive }) }),
+  batchDeleteAgents: (ids: string[]) =>
+    apiFetch<{ deleted: number }>('/api/admin/agents/batch-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+  batchToggleKBs: (ids: string[], isActive: boolean) =>
+    apiFetch<{ toggled: number }>('/api/admin/knowledge-bases/batch-toggle', { method: 'POST', body: JSON.stringify({ ids, is_active: isActive }) }),
+  batchDeleteKBs: (ids: string[]) =>
+    apiFetch<{ deleted: number }>('/api/admin/knowledge-bases/batch-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+
+  // --- Batch operations for Connectors ---
+  batchToggleConnectors: (ids: string[], isActive: boolean) =>
+    apiFetch<{ toggled: number }>('/api/admin/connectors/batch-toggle', { method: 'POST', body: JSON.stringify({ ids, is_active: isActive }) }),
+  batchDeleteConnectors: (ids: string[]) =>
+    apiFetch<{ deleted: number }>('/api/admin/connectors/batch-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
 }
 
 // --- MCP Server API ---

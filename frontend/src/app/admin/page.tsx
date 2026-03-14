@@ -4,7 +4,12 @@ import { useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { LayoutDashboard, Activity, Plug, Settings, Shield, Users, MessageSquare, HardDrive, Cpu, Lock, Key, BookOpen, FileText, BarChart3, Wrench, Building2, GitBranch } from "lucide-react"
+import {
+  LayoutDashboard, Activity, Plug, Settings, Shield, Users, MessageSquare,
+  HardDrive, Cpu, Lock, Key, BookOpen, FileText, BarChart3, Wrench,
+  Building2, GitBranch, Sparkles, FlaskConical, KeyRound, ClipboardCheck,
+  Calendar, Bell, Scan, Webhook, Package,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { AdminOverview } from "@/components/admin/admin-overview"
@@ -24,30 +29,98 @@ import { AdminAnalytics } from "@/components/admin/admin-analytics"
 import { AdminTools } from "@/components/admin/admin-tools"
 import { AdminWorkflows } from "@/components/admin/admin-workflows"
 import { AdminOrganizations } from "@/components/admin/admin-organizations"
+import { AdminSkills } from "@/components/admin/admin-skills"
+import { AdminEval } from "@/components/admin/admin-eval"
+import { AdminCredentials } from "@/components/admin/admin-credentials"
+import { AdminReviews } from "@/components/admin/admin-reviews"
+import { AdminSchedules } from "@/components/admin/admin-schedules"
+import { AdminNotifications } from "@/components/admin/admin-notifications"
+import { AdminTraces } from "@/components/admin/admin-traces"
+import { AdminHooks } from "@/components/admin/admin-hooks"
+import { AdminPackages } from "@/components/admin/admin-packages"
 
-const TAB_KEYS = ["overview", "health", "users", "organizations", "conversations", "connectors", "models", "tools", "workflows", "audit", "storage", "security", "apikeys", "resources", "content", "analytics", "settings"] as const
+// ---------------------------------------------------------------------------
+// Tab definitions grouped logically
+// ---------------------------------------------------------------------------
 
-const TAB_ICONS = {
-  overview: LayoutDashboard,
-  health: Activity,
-  users: Users,
-  organizations: Building2,
-  conversations: MessageSquare,
-  connectors: Plug,
-  models: Cpu,
-  tools: Wrench,
-  workflows: GitBranch,
-  audit: Shield,
-  storage: HardDrive,
-  security: Lock,
-  apikeys: Key,
-  resources: BookOpen,
-  content: FileText,
-  analytics: BarChart3,
-  settings: Settings,
-} as const
+interface NavItem {
+  key: string
+  icon: React.ElementType
+  dimmed?: boolean // for "coming soon" items
+}
 
-type TabKey = (typeof TAB_KEYS)[number]
+interface NavGroup {
+  label?: string // undefined = no separator label
+  items: NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    // Core
+    items: [
+      { key: "overview", icon: LayoutDashboard },
+      { key: "health", icon: Activity },
+      { key: "users", icon: Users },
+      { key: "organizations", icon: Building2 },
+    ],
+  },
+  {
+    // Resources
+    items: [
+      { key: "resources", icon: BookOpen },
+      { key: "connectors", icon: Plug },
+      { key: "skills", icon: Sparkles },
+      { key: "workflows", icon: GitBranch },
+      { key: "schedules", icon: Calendar },
+      { key: "tools", icon: Wrench },
+      { key: "models", icon: Cpu },
+    ],
+  },
+  {
+    // Content
+    items: [
+      { key: "conversations", icon: MessageSquare },
+      { key: "content", icon: FileText },
+      { key: "evaluations", icon: FlaskConical },
+      { key: "reviews", icon: ClipboardCheck },
+    ],
+  },
+  {
+    // Security
+    items: [
+      { key: "security", icon: Lock },
+      { key: "apikeys", icon: Key },
+      { key: "credentials", icon: KeyRound },
+    ],
+  },
+  {
+    // Operations
+    items: [
+      { key: "analytics", icon: BarChart3 },
+      { key: "notifications", icon: Bell },
+      { key: "audit", icon: Shield },
+      { key: "storage", icon: HardDrive },
+    ],
+  },
+  {
+    // Settings
+    items: [
+      { key: "settings", icon: Settings },
+    ],
+  },
+  {
+    // Coming Soon
+    items: [
+      { key: "traces", icon: Scan, dimmed: true },
+      { key: "hooks", icon: Webhook, dimmed: true },
+      { key: "packages", icon: Package, dimmed: true },
+    ],
+  },
+]
+
+// Flatten for type safety
+const ALL_TAB_KEYS = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.key))
+type TabKey = (typeof ALL_TAB_KEYS)[number]
 
 function AdminPanelContent() {
   const { user, isLoading: authLoading } = useAuth()
@@ -84,25 +157,31 @@ function AdminPanelContent() {
       {/* Body: left nav + right content */}
       <div className="flex flex-1 min-h-0">
         {/* Left nav */}
-        <nav className="w-52 shrink-0 border-r border-border/40 p-4 space-y-1">
-          {TAB_KEYS.map((key) => {
-            const Icon = TAB_ICONS[key]
-            return (
-              <Link
-                key={key}
-                href={key === "overview" ? "/admin" : `/admin?tab=${key}`}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                  activeTab === key
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{t(`tabs.${key}`)}</span>
-              </Link>
-            )
-          })}
+        <nav className="w-52 shrink-0 border-r border-border/40 p-4 space-y-0.5 overflow-y-auto">
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={gi}>
+              {gi > 0 && (
+                <div className="my-2 border-t border-border/30" />
+              )}
+              {group.items.map(({ key, icon: Icon, dimmed }) => (
+                <Link
+                  key={key}
+                  href={key === "overview" ? "/admin" : `/admin?tab=${key}`}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                    activeTab === key
+                      ? "bg-accent text-accent-foreground"
+                      : dimmed
+                        ? "text-muted-foreground/50 hover:bg-accent/30 hover:text-muted-foreground"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{t(`tabs.${key}`)}</span>
+                </Link>
+              ))}
+            </div>
+          ))}
         </nav>
 
         {/* Right content */}
@@ -117,13 +196,22 @@ function AdminPanelContent() {
           {activeTab === "models" && <AdminModels />}
           {activeTab === "tools" && <AdminTools />}
           {activeTab === "workflows" && <AdminWorkflows />}
+          {activeTab === "skills" && <AdminSkills />}
+          {activeTab === "schedules" && <AdminSchedules />}
+          {activeTab === "evaluations" && <AdminEval />}
+          {activeTab === "reviews" && <AdminReviews />}
           {activeTab === "audit" && <AdminAudit />}
           {activeTab === "security" && <AdminSecurity />}
           {activeTab === "apikeys" && <AdminApiKeys />}
+          {activeTab === "credentials" && <AdminCredentials />}
           {activeTab === "resources" && <AdminResources />}
           {activeTab === "content" && <AdminContent />}
           {activeTab === "analytics" && <AdminAnalytics />}
+          {activeTab === "notifications" && <AdminNotifications />}
           {activeTab === "settings" && <AdminSettings />}
+          {activeTab === "traces" && <AdminTraces />}
+          {activeTab === "hooks" && <AdminHooks />}
+          {activeTab === "packages" && <AdminPackages />}
         </div>
       </div>
     </div>

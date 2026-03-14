@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslations, useLocale } from "next-intl"
-import { Bot, BookOpen, Loader2, MoreHorizontal, Search, Info, Trash2, FileText } from "lucide-react"
+import { Bot, BookOpen, Loader2, MoreHorizontal, Search, Info, Trash2, FileText, Power } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,6 +103,7 @@ type View = "agents" | "kbs"
 
 export function AdminResources() {
   const t = useTranslations("admin.resources")
+  const tb = useTranslations("admin.resourcesBatch")
   const tc = useTranslations("common")
   const tError = useTranslations("errors")
   const locale = useLocale()
@@ -115,6 +117,8 @@ export function AdminResources() {
   const [agentSearch, setAgentSearch] = useState("")
   const [agentLoading, setAgentLoading] = useState(true)
   const [deleteAgent, setDeleteAgent] = useState<AdminAgentInfo | null>(null)
+  const [selectedAgentIds, setSelectedAgentIds] = useState<Set<string>>(new Set())
+  const [batchAgentDeleteOpen, setBatchAgentDeleteOpen] = useState(false)
 
   // ---- KB state ----
   const [kbs, setKbs] = useState<AdminKBInfo[]>([])
@@ -123,11 +127,16 @@ export function AdminResources() {
   const [kbSearch, setKbSearch] = useState("")
   const [kbLoading, setKbLoading] = useState(true)
   const [deleteKB, setDeleteKB] = useState<AdminKBInfo | null>(null)
+  const [selectedKbIds, setSelectedKbIds] = useState<Set<string>>(new Set())
+  const [batchKbDeleteOpen, setBatchKbDeleteOpen] = useState(false)
 
   // ---- KB docs dialog ----
   const [docsKB, setDocsKB] = useState<AdminKBInfo | null>(null)
   const [docs, setDocs] = useState<AdminKBDoc[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
+
+  // ---- Batch mutation loading ----
+  const [isBatchMutating, setIsBatchMutating] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -213,6 +222,70 @@ export function AdminResources() {
     }
   }
 
+  // ---- Batch agent operations ----
+  const handleBatchDeleteAgents = async () => {
+    if (selectedAgentIds.size === 0) return
+    setIsBatchMutating(true)
+    try {
+      const result = await adminApi.batchDeleteAgents(Array.from(selectedAgentIds))
+      toast.success(tb("batchDeleted", { count: result.deleted }))
+      setBatchAgentDeleteOpen(false)
+      setSelectedAgentIds(new Set())
+      loadAgents()
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsBatchMutating(false)
+    }
+  }
+
+  const handleBatchToggleAgents = async () => {
+    if (selectedAgentIds.size === 0) return
+    setIsBatchMutating(true)
+    try {
+      const result = await adminApi.batchToggleAgents(Array.from(selectedAgentIds), true)
+      toast.success(tb("batchToggled", { count: result.toggled }))
+      setSelectedAgentIds(new Set())
+      loadAgents()
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsBatchMutating(false)
+    }
+  }
+
+  // ---- Batch KB operations ----
+  const handleBatchDeleteKBs = async () => {
+    if (selectedKbIds.size === 0) return
+    setIsBatchMutating(true)
+    try {
+      const result = await adminApi.batchDeleteKBs(Array.from(selectedKbIds))
+      toast.success(tb("batchDeleted", { count: result.deleted }))
+      setBatchKbDeleteOpen(false)
+      setSelectedKbIds(new Set())
+      loadKBs()
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsBatchMutating(false)
+    }
+  }
+
+  const handleBatchToggleKBs = async () => {
+    if (selectedKbIds.size === 0) return
+    setIsBatchMutating(true)
+    try {
+      const result = await adminApi.batchToggleKBs(Array.from(selectedKbIds), true)
+      toast.success(tb("batchToggled", { count: result.toggled }))
+      setSelectedKbIds(new Set())
+      loadKBs()
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsBatchMutating(false)
+    }
+  }
+
   // ---- View docs ----
 
   const handleViewDocs = async (kb: AdminKBInfo) => {
@@ -291,6 +364,19 @@ export function AdminResources() {
                 onChange={(e) => handleAgentSearch(e.target.value)}
               />
             </div>
+            {selectedAgentIds.size > 0 && (
+              <>
+                <span className="text-sm text-muted-foreground">{tb("selected", { count: selectedAgentIds.size })}</span>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleBatchToggleAgents} disabled={isBatchMutating}>
+                  <Power className="h-4 w-4" />
+                  {tb("batchToggle")}
+                </Button>
+                <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => setBatchAgentDeleteOpen(true)} disabled={isBatchMutating}>
+                  <Trash2 className="h-4 w-4" />
+                  {tb("batchDelete")}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Table */}
@@ -307,6 +393,15 @@ export function AdminResources() {
               <table className="w-full min-w-max text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-2.5 text-left">
+                      <Checkbox
+                        checked={selectedAgentIds.size === agents.length && agents.length > 0}
+                        onCheckedChange={() => {
+                          if (selectedAgentIds.size === agents.length) setSelectedAgentIds(new Set())
+                          else setSelectedAgentIds(new Set(agents.map((a) => a.id)))
+                        }}
+                      />
+                    </th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colName")}</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colOwner")}</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colModel")}</th>
@@ -320,6 +415,19 @@ export function AdminResources() {
                 <tbody className="divide-y divide-border">
                   {agents.map((agent) => (
                     <tr key={agent.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={selectedAgentIds.has(agent.id)}
+                          onCheckedChange={() => {
+                            setSelectedAgentIds((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(agent.id)) next.delete(agent.id)
+                              else next.add(agent.id)
+                              return next
+                            })
+                          }}
+                        />
+                      </td>
                       <td className="px-4 py-3 font-medium text-foreground">{agent.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{agent.username || agent.email || "--"}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{agent.model_name ?? "--"}</td>
@@ -398,6 +506,19 @@ export function AdminResources() {
                 onChange={(e) => handleKBSearch(e.target.value)}
               />
             </div>
+            {selectedKbIds.size > 0 && (
+              <>
+                <span className="text-sm text-muted-foreground">{tb("selected", { count: selectedKbIds.size })}</span>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleBatchToggleKBs} disabled={isBatchMutating}>
+                  <Power className="h-4 w-4" />
+                  {tb("batchToggle")}
+                </Button>
+                <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => setBatchKbDeleteOpen(true)} disabled={isBatchMutating}>
+                  <Trash2 className="h-4 w-4" />
+                  {tb("batchDelete")}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Table */}
@@ -414,6 +535,15 @@ export function AdminResources() {
               <table className="w-full min-w-max text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-2.5 text-left">
+                      <Checkbox
+                        checked={selectedKbIds.size === kbs.length && kbs.length > 0}
+                        onCheckedChange={() => {
+                          if (selectedKbIds.size === kbs.length) setSelectedKbIds(new Set())
+                          else setSelectedKbIds(new Set(kbs.map((k) => k.id)))
+                        }}
+                      />
+                    </th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colName")}</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{t("colOwner")}</th>
                     <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{t("colDocs")}</th>
@@ -426,6 +556,19 @@ export function AdminResources() {
                 <tbody className="divide-y divide-border">
                   {kbs.map((kb) => (
                     <tr key={kb.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={selectedKbIds.has(kb.id)}
+                          onCheckedChange={() => {
+                            setSelectedKbIds((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(kb.id)) next.delete(kb.id)
+                              else next.add(kb.id)
+                              return next
+                            })
+                          }}
+                        />
+                      </td>
                       <td className="px-4 py-3 font-medium text-foreground">{kb.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{kb.username || kb.email || "--"}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{kb.document_count}</td>
@@ -596,6 +739,56 @@ export function AdminResources() {
               onClick={handleDeleteKB}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {tc("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ================================================================ */}
+      {/* Batch Delete Agents AlertDialog                                   */}
+      {/* ================================================================ */}
+      <AlertDialog open={batchAgentDeleteOpen} onOpenChange={setBatchAgentDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tb("batchDeleteConfirm", { count: selectedAgentIds.size })}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tb("batchDeleteConfirmDesc", { count: selectedAgentIds.size })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBatchDeleteAgents}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isBatchMutating}
+            >
+              {isBatchMutating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {tc("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ================================================================ */}
+      {/* Batch Delete KBs AlertDialog                                     */}
+      {/* ================================================================ */}
+      <AlertDialog open={batchKbDeleteOpen} onOpenChange={setBatchKbDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tb("batchDeleteConfirm", { count: selectedKbIds.size })}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tb("batchDeleteConfirmDesc", { count: selectedKbIds.size })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBatchDeleteKBs}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isBatchMutating}
+            >
+              {isBatchMutating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {tc("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>

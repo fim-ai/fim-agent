@@ -9,10 +9,20 @@ import {
   FileText,
   MessageSquare,
   Database,
+  Bot,
+  Plug,
+  GitBranch,
+  TrendingUp,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { adminApi } from "@/lib/api"
+import type {
+  AdminAnalyticsByAgent,
+  AdminAnalyticsByConnector,
+  AdminAnalyticsByWorkflow,
+  AdminCostProjection,
+} from "@/lib/api"
 import { formatTokens } from "@/lib/utils"
 import { getErrorMessage } from "@/lib/error-utils"
 import { getApiBaseUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
@@ -41,7 +51,7 @@ interface TrendEntry {
 // Sub-tab type
 // ---------------------------------------------------------------------------
 
-type SubTab = "analytics" | "export"
+type SubTab = "analytics" | "byAgent" | "byConnector" | "byWorkflow" | "costProjection" | "export"
 
 // ---------------------------------------------------------------------------
 // Component
@@ -49,9 +59,19 @@ type SubTab = "analytics" | "export"
 
 export function AdminAnalytics() {
   const t = useTranslations("admin.analytics")
+  const te = useTranslations("admin.analyticsEnhanced")
   const tError = useTranslations("errors")
 
   const [activeTab, setActiveTab] = useState<SubTab>("analytics")
+
+  const tabs: { key: SubTab; icon: React.ElementType; label: string }[] = [
+    { key: "analytics", icon: BarChart3, label: t("analyticsTab") },
+    { key: "byAgent", icon: Bot, label: te("byAgentTab") },
+    { key: "byConnector", icon: Plug, label: te("byConnectorTab") },
+    { key: "byWorkflow", icon: GitBranch, label: te("byWorkflowTab") },
+    { key: "costProjection", icon: TrendingUp, label: te("costProjectionTab") },
+    { key: "export", icon: Download, label: t("exportTab") },
+  ]
 
   return (
     <div className="space-y-4">
@@ -62,29 +82,27 @@ export function AdminAnalytics() {
       </div>
 
       {/* Sub-tab toggle */}
-      <div className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1 w-fit">
-        <Button
-          variant={activeTab === "analytics" ? "default" : "ghost"}
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setActiveTab("analytics")}
-        >
-          <BarChart3 className="h-4 w-4" />
-          {t("analyticsTab")}
-        </Button>
-        <Button
-          variant={activeTab === "export" ? "default" : "ghost"}
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setActiveTab("export")}
-        >
-          <Download className="h-4 w-4" />
-          {t("exportTab")}
-        </Button>
+      <div className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1 w-fit flex-wrap">
+        {tabs.map(({ key, icon: Icon, label }) => (
+          <Button
+            key={key}
+            variant={activeTab === key ? "default" : "ghost"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setActiveTab(key)}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </Button>
+        ))}
       </div>
 
       {/* Sub-tab content */}
       {activeTab === "analytics" && <AnalyticsSection t={t} tError={tError} />}
+      {activeTab === "byAgent" && <ByAgentSection te={te} tError={tError} />}
+      {activeTab === "byConnector" && <ByConnectorSection te={te} tError={tError} />}
+      {activeTab === "byWorkflow" && <ByWorkflowSection te={te} tError={tError} />}
+      {activeTab === "costProjection" && <CostProjectionSection te={te} tError={tError} />}
       {activeTab === "export" && <ExportSection t={t} tError={tError} />}
     </div>
   )
@@ -327,6 +345,327 @@ function ExportSection({
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// By Agent Section
+// ---------------------------------------------------------------------------
+
+function ByAgentSection({
+  te,
+  tError,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  te: (key: string, args?: any) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tError: (key: string, args?: any) => string
+}) {
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("7d")
+  const [data, setData] = useState<AdminAnalyticsByAgent[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const result = await adminApi.getAnalyticsByAgent(period)
+      setData(result)
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [period, tError])
+
+  useEffect(() => { load() }, [load])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1 w-fit">
+        {(["7d", "30d", "90d"] as const).map((p) => (
+          <Button key={p} variant={period === p ? "default" : "ghost"} size="sm" onClick={() => setPeriod(p)}>
+            {te(`period${p.toUpperCase()}`)}
+          </Button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : data.length === 0 ? (
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          {te("noAgentData")}
+        </div>
+      ) : (
+        <div className="rounded-md border border-border overflow-x-auto">
+          <table className="w-full min-w-max text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colAgentName")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colOwner")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colConversations")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colTotalTokens")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colAvgTokens")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.map((item, i) => (
+                <tr key={i} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-medium text-foreground">{item.agent_name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{item.owner || "--"}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{item.conversations.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{formatTokens(item.total_tokens)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{formatTokens(item.avg_tokens_per_conv)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// By Connector Section
+// ---------------------------------------------------------------------------
+
+function ByConnectorSection({
+  te,
+  tError,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  te: (key: string, args?: any) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tError: (key: string, args?: any) => string
+}) {
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("7d")
+  const [data, setData] = useState<AdminAnalyticsByConnector[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const result = await adminApi.getAnalyticsByConnector(period)
+      setData(result)
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [period, tError])
+
+  useEffect(() => { load() }, [load])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1 w-fit">
+        {(["7d", "30d", "90d"] as const).map((p) => (
+          <Button key={p} variant={period === p ? "default" : "ghost"} size="sm" onClick={() => setPeriod(p)}>
+            {te(`period${p.toUpperCase()}`)}
+          </Button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : data.length === 0 ? (
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          {te("noConnectorData")}
+        </div>
+      ) : (
+        <div className="rounded-md border border-border overflow-x-auto">
+          <table className="w-full min-w-max text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colConnectorName")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colTotalCalls")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colSuccessRate")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colAvgResponseTime")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colErrors")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.map((item, i) => (
+                <tr key={i} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-medium text-foreground">{item.connector_name}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{item.total_calls.toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-16 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-green-500"
+                          style={{ width: `${item.success_rate}%` }}
+                        />
+                      </div>
+                      <span className="text-xs tabular-nums">{item.success_rate.toFixed(1)}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">{Math.round(item.avg_response_time_ms)}ms</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-red-600 dark:text-red-400">{item.errors}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// By Workflow Section
+// ---------------------------------------------------------------------------
+
+function ByWorkflowSection({
+  te,
+  tError,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  te: (key: string, args?: any) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tError: (key: string, args?: any) => string
+}) {
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("7d")
+  const [data, setData] = useState<AdminAnalyticsByWorkflow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const result = await adminApi.getAnalyticsByWorkflow(period)
+      setData(result)
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [period, tError])
+
+  useEffect(() => { load() }, [load])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1 w-fit">
+        {(["7d", "30d", "90d"] as const).map((p) => (
+          <Button key={p} variant={period === p ? "default" : "ghost"} size="sm" onClick={() => setPeriod(p)}>
+            {te(`period${p.toUpperCase()}`)}
+          </Button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : data.length === 0 ? (
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          {te("noWorkflowData")}
+        </div>
+      ) : (
+        <div className="rounded-md border border-border overflow-x-auto">
+          <table className="w-full min-w-max text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colWorkflowName")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colOwner")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colTotalRuns")}</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">{te("colSuccessRate")}</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">{te("colAvgDuration")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.map((item, i) => (
+                <tr key={i} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-medium text-foreground">{item.workflow_name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{item.owner || "--"}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{item.total_runs.toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-16 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-green-500"
+                          style={{ width: `${item.success_rate}%` }}
+                        />
+                      </div>
+                      <span className="text-xs tabular-nums">{item.success_rate.toFixed(1)}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">{Math.round(item.avg_duration_ms)}ms</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Cost Projection Section
+// ---------------------------------------------------------------------------
+
+function CostProjectionSection({
+  te,
+  tError,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  te: (key: string, args?: any) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tError: (key: string, args?: any) => string
+}) {
+  const [data, setData] = useState<AdminCostProjection | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    adminApi.getCostProjection()
+      .then(setData)
+      .catch((err) => toast.error(getErrorMessage(err, tError)))
+      .finally(() => setIsLoading(false))
+  }, [tError])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!data || (data.projected_tokens === 0 && data.daily_avg === 0)) {
+    return (
+      <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+        {te("noCostData")}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold">{te("costProjectionTitle")}</h3>
+        <p className="text-xs text-muted-foreground">{te("costProjectionSubtitle")}</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-muted/30 p-4">
+          <p className="text-xs font-medium text-muted-foreground">{te("projectedTokens")}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatTokens(data.projected_tokens)}</p>
+        </div>
+        <div className="rounded-md border border-border bg-muted/30 p-4">
+          <p className="text-xs font-medium text-muted-foreground">{te("dailyAverage")}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatTokens(data.daily_avg)}</p>
+        </div>
+        <div className="rounded-md border border-border bg-muted/30 p-4">
+          <p className="text-xs font-medium text-muted-foreground">{te("trailingTotal")}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatTokens(data.trailing_total)}</p>
+        </div>
       </div>
     </div>
   )
