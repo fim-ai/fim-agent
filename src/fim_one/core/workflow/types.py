@@ -117,3 +117,4 @@ class ExecutionContext:
     env_vars: dict[str, str] = field(default_factory=dict)
     db_session_factory: Callable[[], Any] | None = None
     depth: int = 0
+    max_run_duration: int | None = None  # seconds; None = use engine default

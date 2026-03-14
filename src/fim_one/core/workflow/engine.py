@@ -53,7 +53,7 @@ class WorkflowEngine:
         run_id: str = "",
         user_id: str = "",
         workflow_id: str = "",
-        workflow_timeout_ms: int = 0,
+        workflow_timeout_ms: int = 600_000,  # default 10 min
     ) -> None:
         self._max_concurrency = max_concurrency
         self._cancel_event = cancel_event

@@ -51,6 +51,11 @@ class Workflow(UUIDPKMixin, TimestampMixin, Base):
     )
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Maximum run duration in seconds (NULL = use engine default of 600s)
+    max_run_duration_seconds: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+
     # Optional webhook URL — receives POST on run completion/failure
     webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 

@@ -20,6 +20,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_one.db import get_session, create_session
+from fim_one.core.workflow.rate_limiter import WorkflowRateLimiter
 from fim_one.web.exceptions import AppError
 from fim_one.web.auth import get_current_user, get_user_org_ids
 from fim_one.web.models import User, Workflow, WorkflowRun, WorkflowVersion
@@ -63,6 +64,9 @@ from fim_one.web.visibility import build_visibility_filter
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
+
+# Module-level rate limiter shared across all workflow run endpoints
+_rate_limiter = WorkflowRateLimiter()
 
 
 # ---------------------------------------------------------------------------
@@ -1051,6 +1055,15 @@ async def run_workflow(
 
     # --- Normal execution mode (SSE streaming) ---
 
+    # Check rate limit before proceeding
+    allowed, rate_error = await _rate_limiter.check_rate_limit(current_user.id)
+    if not allowed:
+        raise AppError(
+            "workflow_rate_limited",
+            status_code=429,
+            detail=rate_error,
+        )
+
     # Create run record
     run_id = str(uuid.uuid4())
     run = WorkflowRun(
@@ -1077,6 +1090,12 @@ async def run_workflow(
     cancel_event = asyncio.Event()
     _running_tasks[run_id] = cancel_event
 
+    # Record run start for rate limiting
+    await _rate_limiter.record_run_start(current_user.id, run_id)
+
+    # Determine timeout: workflow-level override or engine default (600s = 10 min)
+    run_timeout_ms = (wf.max_run_duration_seconds or 600) * 1000
+
     async def generate() -> AsyncGenerator[str, None]:
         start_time = time.time()
         node_results: dict[str, Any] = {}
@@ -1100,6 +1119,7 @@ async def run_workflow(
                 run_id=run_id,
                 user_id=current_user.id,
                 workflow_id=wf.id,
+                workflow_timeout_ms=run_timeout_ms,
             )
 
             from fim_one.core.workflow.types import ExecutionContext as _EC
@@ -1174,6 +1194,7 @@ async def run_workflow(
             })
         finally:
             _running_tasks.pop(run_id, None)
+            await _rate_limiter.record_run_end(current_user.id, run_id)
             elapsed_ms = int((time.time() - start_time) * 1000)
 
             # Persist run results
