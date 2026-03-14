@@ -204,8 +204,9 @@ async def list_mcp_servers(
     subscribed_mcp_ids_set = set(subscribed_mcp_ids)
     items = []
     for s in servers:
-        resp = _to_response(s, my_has_credentials=s.id in cred_set)
-        if s.user_id == current_user.id:
+        _is_owner = s.user_id == current_user.id
+        resp = _to_response(s, is_owner=_is_owner, my_has_credentials=s.id in cred_set)
+        if _is_owner:
             resp.source = "own"
         elif s.id in subscribed_mcp_ids_set:
             resp.source = "installed"
@@ -225,14 +226,11 @@ async def list_mcp_servers(
 async def _get_accessible_server(
     server_id: str, user_id: str, db: AsyncSession,
 ) -> MCPServer:
-    """Fetch an MCP server the user owns OR an accessible org/global server."""
-    from fim_one.web.visibility import build_visibility_filter
-    user_org_ids = await get_user_org_ids(user_id, db)
+    """Fetch an MCP server the user owns, org-shared, or Market-installed."""
+    from fim_one.web.visibility import resolve_visibility
+    vis_filter, _, _ = await resolve_visibility(MCPServer, user_id, "mcp_server", db)
     result = await db.execute(
-        select(MCPServer).where(
-            MCPServer.id == server_id,
-            build_visibility_filter(MCPServer, user_id, user_org_ids),
-        )
+        select(MCPServer).where(MCPServer.id == server_id, vis_filter)
     )
     server = result.scalar_one_or_none()
     if server is None:
@@ -515,7 +513,7 @@ async def get_my_mcp_credentials(
     """Return current user's personal credentials status for this MCP server."""
     from fim_one.web.models.mcp_server_credential import MCPServerCredential
 
-    await _get_accessible_server(server_id, current_user.id, db)
+    server = await _get_accessible_server(server_id, current_user.id, db)
     result = await db.execute(
         select(MCPServerCredential).where(
             MCPServerCredential.server_id == server_id,
@@ -524,8 +522,10 @@ async def get_my_mcp_credentials(
     )
     row = result.scalar_one_or_none()
     if row is None:
+        # Return server env key names as template for pre-population
+        server_env_keys = list((server.env or {}).keys())
         return ApiResponse(
-            data=MCPMyCredentialStatus(has_credentials=False, env_keys=[]).model_dump()
+            data=MCPMyCredentialStatus(has_credentials=False, env_keys=server_env_keys).model_dump()
         )
     env: dict[str, str] = row.env_blob or {}
     return ApiResponse(

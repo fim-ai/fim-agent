@@ -83,13 +83,11 @@ async def _get_accessible_agent(
     user_id: str,
     db: AsyncSession,
 ) -> Agent:
-    """Fetch an agent the user owns OR a published org/global agent (read-only)."""
-    user_org_ids = await get_user_org_ids(user_id, db)
+    """Fetch an agent the user owns, org-shared, or Market-installed."""
+    from fim_one.web.visibility import resolve_visibility
+    vis_filter, _, _ = await resolve_visibility(Agent, user_id, "agent", db)
     result = await db.execute(
-        select(Agent).where(
-            Agent.id == agent_id,
-            build_visibility_filter(Agent, user_id, user_org_ids),
-        )
+        select(Agent).where(Agent.id == agent_id, vis_filter)
     )
     agent = result.scalar_one_or_none()
     if agent is None:

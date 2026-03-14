@@ -114,8 +114,15 @@ export function MCPServerCard({
       if (status.has_credentials && status.env && Object.keys(status.env).length > 0) {
         // Show actual saved values so user can see / edit them
         setMyKeysEnv(status.env)
+      } else if (status.env_keys && status.env_keys.length > 0) {
+        // First time: pre-fill key names from server's env template, values empty
+        const template: Record<string, string> = {}
+        for (const k of status.env_keys) {
+          template[k] = ""
+        }
+        setMyKeysEnv(template)
       } else if (server.env) {
-        // First time: pre-fill key names from server template, values empty
+        // Fallback: use server.env keys (owner view)
         const template: Record<string, string> = {}
         for (const k of Object.keys(server.env)) {
           template[k] = ""

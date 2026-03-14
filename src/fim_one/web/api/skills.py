@@ -79,13 +79,11 @@ async def _get_accessible_skill(
     user_id: str,
     db: AsyncSession,
 ) -> Skill:
-    """Fetch a skill the user owns OR a published org/global skill (read-only)."""
-    user_org_ids = await get_user_org_ids(user_id, db)
+    """Fetch a skill the user owns, org-shared, or Market-installed."""
+    from fim_one.web.visibility import resolve_visibility
+    vis_filter, _, _ = await resolve_visibility(Skill, user_id, "skill", db)
     result = await db.execute(
-        select(Skill).where(
-            Skill.id == skill_id,
-            build_visibility_filter(Skill, user_id, user_org_ids),
-        )
+        select(Skill).where(Skill.id == skill_id, vis_filter)
     )
     skill = result.scalar_one_or_none()
     if skill is None:

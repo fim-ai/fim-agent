@@ -183,13 +183,11 @@ async def _get_accessible_workflow(
     user_id: str,
     db: AsyncSession,
 ) -> Workflow:
-    """Fetch a workflow the user owns OR a published org workflow (read-only)."""
-    user_org_ids = await get_user_org_ids(user_id, db)
+    """Fetch a workflow the user owns, org-shared, or Market-installed."""
+    from fim_one.web.visibility import resolve_visibility
+    vis_filter, _, _ = await resolve_visibility(Workflow, user_id, "workflow", db)
     result = await db.execute(
-        select(Workflow).where(
-            Workflow.id == workflow_id,
-            build_visibility_filter(Workflow, user_id, user_org_ids),
-        )
+        select(Workflow).where(Workflow.id == workflow_id, vis_filter)
     )
     wf = result.scalar_one_or_none()
     if wf is None:

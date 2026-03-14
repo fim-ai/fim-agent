@@ -659,6 +659,16 @@ async def _resolve_tools(
                     DatabaseSchema as DatabaseSchemaModel,
                 )
 
+                # Use visibility filter so org-shared and Market-installed
+                # connectors are accessible, not just owner-owned ones.
+                from fim_one.web.visibility import resolve_visibility as _conn_resolve
+
+                _conn_user_id = (agent_cfg.get("owner_user_id") or user_id) if agent_cfg else user_id
+                if _conn_user_id:
+                    _conn_vis, _, _ = await _conn_resolve(ConnectorModel, _conn_user_id, "connector", session)
+                else:
+                    _conn_vis = ConnectorModel.user_id == user_id
+
                 stmt = (
                     select(ConnectorModel)
                     .options(
@@ -667,11 +677,8 @@ async def _resolve_tools(
                             DatabaseSchemaModel.columns
                         ),
                     )
-                    .where(ConnectorModel.id.in_(connector_ids))
+                    .where(ConnectorModel.id.in_(connector_ids), _conn_vis)
                 )
-                _resource_owner_id = (agent_cfg.get("owner_user_id") or user_id) if agent_cfg else user_id
-                if _resource_owner_id:
-                    stmt = stmt.where(ConnectorModel.user_id == _resource_owner_id)
                 result = await session.execute(stmt)
                 connectors = result.scalars().all()
 
@@ -948,12 +955,14 @@ async def _resolve_tools(
         from sqlalchemy import true as _true, false as _sa_false
 
         async with _create_session() as _mcp_db:
-            from fim_one.web.visibility import build_visibility_filter as _build_vis
-            from fim_one.web.auth import get_user_org_ids as _get_org_ids
+            from fim_one.web.visibility import resolve_visibility as _resolve_vis
 
-            _mcp_org_ids = await _get_org_ids(user_id, _mcp_db) if user_id else []
+            if user_id:
+                _vis_filter, _, _ = await _resolve_vis(_MCPServerModel, user_id, "mcp_server", _mcp_db)
+            else:
+                _vis_filter = _sa_false()
             _stmt = sa_select(_MCPServerModel).where(
-                _build_vis(_MCPServerModel, user_id, _mcp_org_ids) if user_id else _sa_false(),
+                _vis_filter,
                 _MCPServerModel.is_active == _true(),
             )
             _result = await _mcp_db.execute(_stmt)
