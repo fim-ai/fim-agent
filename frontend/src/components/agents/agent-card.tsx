@@ -191,15 +191,6 @@ export function AgentCard({
             {to("publishStatusPending")}
           </Badge>
         )}
-        {isOwner && agent.publish_status === "approved" && (
-          <Badge
-            variant="secondary"
-            className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-          >
-            <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-            {to("publishStatusApproved")}
-          </Badge>
-        )}
         {isOwner && agent.publish_status === "rejected" && (
           <TooltipProvider>
             <Tooltip>

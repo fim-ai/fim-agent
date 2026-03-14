@@ -209,7 +209,7 @@ export function ConnectorCard({
       )}
 
       {/* Publish review status badges -- owner only */}
-      {isOwner && (connector.publish_status === "pending_review" || connector.publish_status === "approved" || connector.publish_status === "rejected") && (
+      {isOwner && (connector.publish_status === "pending_review" || connector.publish_status === "rejected") && (
         <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
           {connector.publish_status === "pending_review" && (
             <Badge
@@ -218,15 +218,6 @@ export function ConnectorCard({
             >
               <Clock className="h-2.5 w-2.5 mr-0.5" />
               {to("publishStatusPending")}
-            </Badge>
-          )}
-          {connector.publish_status === "approved" && (
-            <Badge
-              variant="secondary"
-              className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-            >
-              <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-              {to("publishStatusApproved")}
             </Badge>
           )}
           {connector.publish_status === "rejected" && (
