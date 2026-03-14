@@ -27,7 +27,9 @@ from fim_one.core.model.usage import UsageTracker
 from fim_one.core.tool import ToolRegistry
 from fim_one.core.utils import extract_json
 
+from .hooks import HookContext, HookPoint, HookRegistry
 from .types import Action, AgentResult, StepResult
+from .workspace import AgentWorkspace
 
 # Callback invoked after each ReAct iteration.
 # Signature: (iteration, action, observation, error, step_result)
@@ -188,6 +190,14 @@ class ReActAgent:
         context_guard: Optional context-window budget manager.  When
             provided, messages are checked against a token budget before
             each LLM call and compacted if necessary.
+        hook_registry: Optional hook registry for deterministic enforcement
+            hooks that run outside the LLM loop.  When provided, hooks
+            are executed at PRE_TOOL_USE, POST_TOOL_USE, and SESSION_START
+            points automatically.
+        workspace: Optional per-conversation workspace for offloading large
+            tool outputs.  When provided, workspace tools are auto-registered
+            and tool outputs exceeding the offload threshold are saved to
+            files with a preview injected into the conversation.
     """
 
     def __init__(
@@ -200,6 +210,8 @@ class ReActAgent:
         use_native_tools: bool = True,
         memory: BaseMemory | None = None,
         context_guard: ContextGuard | None = None,
+        hook_registry: HookRegistry | None = None,
+        workspace: AgentWorkspace | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
@@ -209,6 +221,12 @@ class ReActAgent:
         self._use_native_tools = use_native_tools
         self._memory = memory
         self._context_guard = context_guard
+        self._hook_registry = hook_registry
+        self._workspace = workspace
+
+        # Auto-register workspace tools when a workspace is provided.
+        if workspace is not None:
+            self._register_workspace_tools(workspace)
 
     # ------------------------------------------------------------------
     # Public read-only properties
@@ -240,12 +258,44 @@ class ReActAgent:
         return self._context_guard
 
     @property
+    def hook_registry(self) -> HookRegistry | None:
+        """The hook registry for deterministic enforcement hooks."""
+        return self._hook_registry
+
+    @property
+    def workspace(self) -> AgentWorkspace | None:
+        """The per-conversation workspace, if configured."""
+        return self._workspace
+
+    @property
     def _native_mode_active(self) -> bool:
         """Whether native function-calling mode is currently active."""
         return (
             self._use_native_tools
             and self._llm.abilities.get("tool_call", False)
         )
+
+    def _register_workspace_tools(self, workspace: AgentWorkspace) -> None:
+        """Register the three workspace builtin tools into the tool registry.
+
+        This is called automatically during ``__init__`` when a workspace
+        is provided.  Tools that are already registered (e.g. from a
+        previous call) are silently skipped.
+        """
+        from .workspace_tools import (
+            ListWorkspaceFilesTool,
+            ReadWorkspaceFileTool,
+            WriteHandoffTool,
+        )
+
+        workspace_tools = [
+            ReadWorkspaceFileTool(workspace),
+            ListWorkspaceFilesTool(workspace),
+            WriteHandoffTool(workspace),
+        ]
+        for tool in workspace_tools:
+            if tool.name not in self._tools:
+                self._tools.register(tool)
 
     # ------------------------------------------------------------------
     # Public API
@@ -306,7 +356,7 @@ class ReActAgent:
     ) -> AsyncIterator[str]:
         """Stream the final answer via a dedicated LLM call.
 
-        Mirrors ``PlanAnalyzer.stream_synthesize()`` — tool iterations use
+        Mirrors ``PlanAnalyzer.stream_synthesize()`` -- tool iterations use
         fast non-streaming ``chat()``, then this method generates the real
         streamed answer from the full conversation context.
 
@@ -342,7 +392,7 @@ class ReActAgent:
             "You synthesize a final answer from ReAct agent execution results. "
             "Provide a concise, coherent response that addresses the original "
             "question. Do NOT include meta-commentary like 'based on the results' "
-            "or 'according to the tool output' — just answer directly.",
+            "or 'according to the tool output' -- just answer directly.",
             "",
             "Guidelines:",
             "- Present key results clearly; use markdown formatting when helpful.",
@@ -508,7 +558,7 @@ class ReActAgent:
                 if msg.role != "system":
                     messages.append(msg)
 
-        # Build user message — use vision content array when images are attached.
+        # Build user message -- use vision content array when images are attached.
         user_content: str | list[dict[str, Any]] = query
         if image_urls:
             user_content = ChatMessage.build_vision_content(query, image_urls)
@@ -603,7 +653,7 @@ class ReActAgent:
                 # agent sees them instead of ending.
                 if injected_msgs and iteration < self._max_iterations:
                     logger.info(
-                        "Deferring final answer — %d injected message(s) "
+                        "Deferring final answer -- %d injected message(s) "
                         "pending (iteration %d)",
                         len(injected_msgs),
                         iteration,
@@ -633,10 +683,16 @@ class ReActAgent:
 
             # Feed the tool result/error back into the conversation so the LLM
             # can observe and adapt on the next iteration (Observe step of ReAct).
+            observation = step.observation or "(no output)"
+            # Offload large outputs to workspace when available.
+            if self._workspace is not None and step.observation and not step.error:
+                observation = self._workspace.maybe_offload(
+                    action.tool_name or "unknown", observation,
+                )
             obs_content = (
                 f"Observation: Error: {step.error}"
                 if step.error
-                else f"Observation: {step.observation or '(no output)'}"
+                else f"Observation: {observation}"
             )
             messages.append(ChatMessage(role="user", content=obs_content))
 
@@ -715,7 +771,7 @@ class ReActAgent:
                 if msg.role != "system":
                     messages.append(msg)
 
-        # Build user message — use vision content array when images are attached.
+        # Build user message -- use vision content array when images are attached.
         user_content: str | list[dict[str, Any]] = query
         if image_urls:
             user_content = ChatMessage.build_vision_content(query, image_urls)
@@ -745,7 +801,7 @@ class ReActAgent:
                     messages, hint="react_iteration",
                 )
 
-            # Use non-streaming chat() for all iterations — fast tool loops.
+            # Use non-streaming chat() for all iterations -- fast tool loops.
             # The final answer is streamed separately via stream_answer().
             result: LLMResult = await self._llm.chat(
                 messages,
@@ -774,7 +830,7 @@ class ReActAgent:
                 messages.extend(tool_results)
                 tool_call_count += 1
 
-                # Now safe to drain — tool_use/tool_result pairing is intact.
+                # Now safe to drain -- tool_use/tool_result pairing is intact.
                 injected_msgs = (await interrupt_queue.drain()) if interrupt_queue is not None else []
                 self._emit_and_append_injections(
                     injected_msgs, messages, iteration, on_iteration,
@@ -866,12 +922,34 @@ class ReActAgent:
         async def _run_single(tc: ToolCallRequest) -> tuple[StepResult, ChatMessage]:
             from fim_one.core.tool.base import ToolResult
 
+            tool_args = dict(tc.arguments)
             action = Action(
                 type="tool_call",
                 reasoning="",
                 tool_name=tc.name,
-                tool_args=tc.arguments,
+                tool_args=tool_args,
             )
+
+            # --- PRE_TOOL_USE hooks ---
+            if self._hook_registry is not None:
+                pre_ctx = HookContext(
+                    hook_point=HookPoint.PRE_TOOL_USE,
+                    tool_name=tc.name,
+                    tool_args=tool_args,
+                )
+                pre_result = await self._hook_registry.run_pre_tool(pre_ctx)
+                if not pre_result.allow:
+                    error_msg = pre_result.error or "Tool call blocked by hook"
+                    logger.info("Hook blocked tool '%s': %s", tc.name, error_msg)
+                    step = StepResult(action=action, error=error_msg)
+                    msg = ChatMessage(
+                        role="tool",
+                        content=f"Error: {error_msg}",
+                        tool_call_id=tc.id,
+                    )
+                    return step, msg
+                if pre_result.modified_args is not None:
+                    tool_args = pre_result.modified_args
 
             tool = self._tools.get(tc.name)
             if tool is None:
@@ -888,7 +966,34 @@ class ReActAgent:
                 return step, msg
 
             try:
-                raw_result = await tool.run(**tc.arguments)
+                raw_result = await tool.run(**tool_args)
+
+                # Determine observation for POST hooks.
+                if isinstance(raw_result, ToolResult):
+                    observation = raw_result.content
+                else:
+                    observation = raw_result
+
+                # --- POST_TOOL_USE hooks ---
+                if self._hook_registry is not None:
+                    post_ctx = HookContext(
+                        hook_point=HookPoint.POST_TOOL_USE,
+                        tool_name=tc.name,
+                        tool_args=tool_args,
+                        tool_result=observation,
+                    )
+                    post_result = await self._hook_registry.run_post_tool(post_ctx)
+                    if post_result.modified_result is not None:
+                        observation = post_result.modified_result
+                        if isinstance(raw_result, ToolResult):
+                            raw_result = ToolResult(
+                                content=observation,
+                                content_type=raw_result.content_type,
+                                artifacts=raw_result.artifacts,
+                            )
+                        else:
+                            raw_result = observation
+
                 if isinstance(raw_result, ToolResult):
                     step = StepResult(
                         action=action,
@@ -912,16 +1017,27 @@ class ReActAgent:
                             "and available for download. "
                             "Do NOT paste the raw source in your answer."
                         )
+                    # Offload large ToolResult content to workspace.
+                    if self._workspace is not None:
+                        llm_content = self._workspace.maybe_offload(
+                            tc.name, llm_content,
+                        )
                     msg = ChatMessage(
                         role="tool",
                         content=llm_content,
                         tool_call_id=tc.id,
                     )
                     return step, msg
+                # Offload large plain-string results to workspace.
+                llm_result = raw_result
+                if self._workspace is not None:
+                    llm_result = self._workspace.maybe_offload(
+                        tc.name, raw_result,
+                    )
                 step = StepResult(action=action, observation=raw_result)
                 msg = ChatMessage(
                     role="tool",
-                    content=raw_result,
+                    content=llm_result,
                     tool_call_id=tc.id,
                 )
                 return step, msg
@@ -979,7 +1095,7 @@ class ReActAgent:
         """Emit SSE inject events and append a combined user message.
 
         This is shared by both ``_run_json`` and ``_run_native`` to avoid
-        duplicating the drain → emit → append logic.
+        duplicating the drain -> emit -> append logic.
         """
         if not injected_msgs:
             return
@@ -1039,6 +1155,7 @@ class ReActAgent:
         )
         if self._extra_instructions:
             prompt += f"\n\nAdditional instructions:\n{self._extra_instructions}"
+        prompt = self._inject_handoff_context(prompt)
         return prompt
 
     def _build_system_prompt_native(self) -> str:
@@ -1059,7 +1176,32 @@ class ReActAgent:
         )
         if self._extra_instructions:
             prompt += f"\n\nAdditional instructions:\n{self._extra_instructions}"
+        prompt = self._inject_handoff_context(prompt)
         return prompt
+
+    def _inject_handoff_context(self, prompt: str) -> str:
+        """Append the latest handoff note to a system prompt, if available.
+
+        This allows the agent to pick up context from a previous session
+        or from a context-compression event.
+
+        Args:
+            prompt: The system prompt to augment.
+
+        Returns:
+            The prompt with handoff context appended, or unchanged if no
+            handoff is available.
+        """
+        if self._workspace is None:
+            return prompt
+        handoff = self._workspace.read_latest_handoff()
+        if not handoff:
+            return prompt
+        return (
+            prompt
+            + "\n\n## Previous Session Context (Handoff Note)\n"
+            + handoff
+        )
 
     def _format_tool_descriptions(
         self, tools: ToolRegistry | None = None,
@@ -1172,6 +1314,10 @@ class ReActAgent:
     async def _execute_tool_call(self, action: Action) -> StepResult:
         """Look up and execute a tool, returning a ``StepResult``.
 
+        When a ``HookRegistry`` is configured, PRE_TOOL_USE hooks run
+        before the tool and POST_TOOL_USE hooks run after.  PRE hooks
+        can block the call or modify args; POST hooks can modify the result.
+
         Args:
             action: A ``tool_call`` action specifying the tool name and args.
 
@@ -1181,6 +1327,23 @@ class ReActAgent:
         from fim_one.core.tool.base import ToolResult
 
         tool_name = action.tool_name or ""
+        tool_args = dict(action.tool_args or {})
+
+        # --- PRE_TOOL_USE hooks ---
+        if self._hook_registry is not None:
+            pre_ctx = HookContext(
+                hook_point=HookPoint.PRE_TOOL_USE,
+                tool_name=tool_name,
+                tool_args=tool_args,
+            )
+            pre_result = await self._hook_registry.run_pre_tool(pre_ctx)
+            if not pre_result.allow:
+                error_msg = pre_result.error or "Tool call blocked by hook"
+                logger.info("Hook blocked tool '%s': %s", tool_name, error_msg)
+                return StepResult(action=action, error=error_msg)
+            if pre_result.modified_args is not None:
+                tool_args = pre_result.modified_args
+
         tool = self._tools.get(tool_name)
 
         if tool is None:
@@ -1192,7 +1355,34 @@ class ReActAgent:
             return StepResult(action=action, error=error_msg)
 
         try:
-            raw_result = await tool.run(**(action.tool_args or {}))
+            raw_result = await tool.run(**tool_args)
+
+            # Determine the observation string for POST hooks.
+            if isinstance(raw_result, ToolResult):
+                observation = raw_result.content
+            else:
+                observation = raw_result
+
+            # --- POST_TOOL_USE hooks ---
+            if self._hook_registry is not None:
+                post_ctx = HookContext(
+                    hook_point=HookPoint.POST_TOOL_USE,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                    tool_result=observation,
+                )
+                post_result = await self._hook_registry.run_post_tool(post_ctx)
+                if post_result.modified_result is not None:
+                    observation = post_result.modified_result
+                    if isinstance(raw_result, ToolResult):
+                        raw_result = ToolResult(
+                            content=observation,
+                            content_type=raw_result.content_type,
+                            artifacts=raw_result.artifacts,
+                        )
+                    else:
+                        raw_result = observation
+
             if isinstance(raw_result, ToolResult):
                 return StepResult(
                     action=action,
