@@ -662,5 +662,13 @@
   "batchRunExportResults": "导出结果",
   "batchRunExported": "批量结果已导出",
   "batchRunApiError": "批量运行失败",
-  "batchRunReset": "新建批量运行"
+  "batchRunReset": "新建批量运行",
+  "historyDeleteRun": "删除运行",
+  "historyRunDeleted": "运行已删除",
+  "historyRunDeleteFailed": "删除运行失败",
+  "historyClearAll": "全部清除",
+  "historyClearAllTitle": "清除运行历史",
+  "historyClearAllDescription": "这将永久删除所有已完成、失败和已取消的运行。活跃运行将被保留。",
+  "historyRunsCleared": "已清除 {count} 个运行",
+  "historyRunsClearFailed": "清除运行失败"
 }

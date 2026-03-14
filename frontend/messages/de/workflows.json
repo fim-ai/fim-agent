@@ -662,5 +662,13 @@
   "batchRunExportResults": "Ergebnisse exportieren",
   "batchRunExported": "Batch-Ergebnisse exportiert",
   "batchRunApiError": "Batch-Ausführung fehlgeschlagen",
-  "batchRunReset": "Neuer Batch"
+  "batchRunReset": "Neuer Batch",
+  "historyDeleteRun": "Ausführung löschen",
+  "historyRunDeleted": "Ausführung gelöscht",
+  "historyRunDeleteFailed": "Fehler beim Löschen der Ausführung",
+  "historyClearAll": "Alle löschen",
+  "historyClearAllTitle": "Ausführungsverlauf löschen",
+  "historyClearAllDescription": "Dies löscht dauerhaft alle abgeschlossenen, fehlgeschlagenen und abgebrochenen Ausführungen. Aktive Ausführungen bleiben erhalten.",
+  "historyRunsCleared": "{count} Ausführungen gelöscht",
+  "historyRunsClearFailed": "Fehler beim Löschen der Ausführungen"
 }

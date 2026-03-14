@@ -662,5 +662,13 @@
   "batchRunExportResults": "結果をエクスポート",
   "batchRunExported": "バッチ結果がエクスポートされました",
   "batchRunApiError": "バッチ実行に失敗しました",
-  "batchRunReset": "新規バッチ"
+  "batchRunReset": "新規バッチ",
+  "historyDeleteRun": "実行を削除",
+  "historyRunDeleted": "実行が削除されました",
+  "historyRunDeleteFailed": "実行の削除に失敗しました",
+  "historyClearAll": "すべてクリア",
+  "historyClearAllTitle": "実行履歴をクリア",
+  "historyClearAllDescription": "これにより、完了、失敗、キャンセルされたすべての実行が永久に削除されます。アクティブな実行は保持されます。",
+  "historyRunsCleared": "{count}件の実行がクリアされました",
+  "historyRunsClearFailed": "実行のクリアに失敗しました"
 }

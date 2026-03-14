@@ -958,6 +958,18 @@ export const workflowApi = {
       { method: "POST" },
     ).then((r) => r.data),
 
+  deleteRun: (workflowId: string, runId: string) =>
+    apiFetch<ApiResponse<{ deleted: string }>>(
+      `/api/workflows/${workflowId}/runs/${runId}`,
+      { method: "DELETE" },
+    ),
+
+  clearRuns: (workflowId: string) =>
+    apiFetch<ApiResponse<{ deleted_count: number }>>(
+      `/api/workflows/${workflowId}/runs`,
+      { method: "DELETE" },
+    ),
+
   batchRun: (id: string, inputs: Record<string, unknown>[], maxParallel = 3) =>
     apiFetch<ApiResponse<WorkflowBatchRunResponse>>(
       `/api/workflows/${id}/batch-run`,

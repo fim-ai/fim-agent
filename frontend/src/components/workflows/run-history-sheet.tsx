@@ -16,6 +16,7 @@ import {
   Ban,
   RotateCw,
   GitCompareArrows,
+  Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -36,6 +37,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { fmtDuration } from "@/lib/utils"
 import { workflowApi } from "@/lib/api"
@@ -158,6 +170,7 @@ export function RunHistorySheet({
   nodeTypeMap,
 }: RunHistorySheetProps) {
   const t = useTranslations("workflows")
+  const tc = useTranslations("common")
   const locale = useLocale()
 
   const [runs, setRuns] = useState<WorkflowRunResponse[]>([])
@@ -211,6 +224,36 @@ export function RunHistorySheet({
       setIsLoadingCompare(false)
     }
   }, [selectedForCompare, workflowId, t])
+
+  const handleDeleteRun = useCallback(
+    async (runId: string) => {
+      try {
+        await workflowApi.deleteRun(workflowId, runId)
+        setRuns((prev) => prev.filter((r) => r.id !== runId))
+        setSelectedForCompare((prev) => {
+          const next = new Set(prev)
+          next.delete(runId)
+          return next
+        })
+        toast.success(t("historyRunDeleted"))
+      } catch {
+        toast.error(t("historyRunDeleteFailed"))
+      }
+    },
+    [workflowId, t],
+  )
+
+  const handleClearRuns = useCallback(async () => {
+    try {
+      const res = await workflowApi.clearRuns(workflowId)
+      const count = res.data?.deleted_count ?? 0
+      setRuns((prev) => prev.filter((r) => r.status === "running" || r.status === "pending"))
+      setSelectedForCompare(new Set())
+      toast.success(t("historyRunsCleared", { count }))
+    } catch {
+      toast.error(t("historyRunsClearFailed"))
+    }
+  }, [workflowId, t])
 
   const statusOptions = useMemo(
     () =>
@@ -337,6 +380,33 @@ export function RunHistorySheet({
               )}
               {t("compareButton")}
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={runs.length === 0}
+                  className="shrink-0"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  {t("historyClearAll")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("historyClearAllTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("historyClearAllDescription")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={handleClearRuns}>
+                    {t("historyClearAll")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
 
@@ -461,7 +531,7 @@ export function RunHistorySheet({
               {runs.map((run) => (
                 <div
                   key={run.id}
-                  className="flex items-center gap-2 rounded-md border border-border p-3 hover:bg-accent/50 transition-colors"
+                  className="group flex items-center gap-2 rounded-md border border-border p-3 hover:bg-accent/50 transition-colors"
                 >
                   <Checkbox
                     checked={selectedForCompare.has(run.id)}
@@ -518,6 +588,20 @@ export function RunHistorySheet({
                       </div>
                     </div>
                   </button>
+                  {run.status !== "running" && run.status !== "pending" && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteRun(run.id)
+                      }}
+                      aria-label={t("historyDeleteRun")}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

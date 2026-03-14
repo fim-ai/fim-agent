@@ -662,5 +662,13 @@
   "batchRunExportResults": "Exporter les résultats",
   "batchRunExported": "Résultats du lot exportés",
   "batchRunApiError": "Échec de l'exécution par lot",
-  "batchRunReset": "Nouveau lot"
+  "batchRunReset": "Nouveau lot",
+  "historyDeleteRun": "Supprimer l'exécution",
+  "historyRunDeleted": "Exécution supprimée",
+  "historyRunDeleteFailed": "Échec de la suppression de l'exécution",
+  "historyClearAll": "Tout effacer",
+  "historyClearAllTitle": "Effacer l'historique des exécutions",
+  "historyClearAllDescription": "Cela supprimera définitivement toutes les exécutions terminées, échouées et annulées. Les exécutions actives seront conservées.",
+  "historyRunsCleared": "{count} exécutions effacées",
+  "historyRunsClearFailed": "Échec de l'effacement des exécutions"
 }

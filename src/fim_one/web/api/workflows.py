@@ -16,7 +16,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response, StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_one.db import get_session, create_session
@@ -2165,6 +2165,60 @@ async def cancel_workflow_run(
         await db.commit()
 
     return ApiResponse(data={"cancelled": True, "run_id": run_id})
+
+
+@router.delete("/{workflow_id}/runs/{run_id}", response_model=ApiResponse)
+async def delete_workflow_run(
+    workflow_id: str,
+    run_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Delete a single workflow run record.
+
+    Only completed, failed, or cancelled runs can be deleted.
+    Running/pending runs must be cancelled first.
+    """
+    await _get_owned_workflow(workflow_id, current_user.id, db)
+
+    result = await db.execute(
+        select(WorkflowRun).where(
+            WorkflowRun.id == run_id,
+            WorkflowRun.workflow_id == workflow_id,
+        )
+    )
+    run = result.scalar_one_or_none()
+    if run is None:
+        raise AppError("workflow_run_not_found", status_code=404)
+
+    if run.status in ("pending", "running"):
+        raise AppError("cannot_delete_active_run", status_code=409)
+
+    await db.delete(run)
+    await db.commit()
+    return ApiResponse(data={"deleted": run_id})
+
+
+@router.delete("/{workflow_id}/runs", response_model=ApiResponse)
+async def clear_workflow_runs(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Delete all completed/failed/cancelled runs for a workflow.
+
+    Active (pending/running) runs are preserved.
+    """
+    await _get_owned_workflow(workflow_id, current_user.id, db)
+
+    result = await db.execute(
+        delete(WorkflowRun).where(
+            WorkflowRun.workflow_id == workflow_id,
+            WorkflowRun.status.in_(["completed", "failed", "cancelled"]),
+        )
+    )
+    await db.commit()
+    return ApiResponse(data={"deleted_count": result.rowcount})
 
 
 # ---------------------------------------------------------------------------
