@@ -11,6 +11,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Workflow run stats on list and cards** — Backend batch-fetches run counts and success rates via GROUP BY subquery; frontend displays stats on workflow cards with color-coded success rate indicators.
+- **Workflow scheduler daemon** — Background async service polling every 60 seconds for due cron-based workflows. Croniter timezone support, semaphore-based concurrency control, `last_scheduled_at` tracking, and webhook delivery for scheduled run results. 14 scheduler daemon tests.
+- **Workflow import conflict resolver** — Detects unresolved agent/connector/KB/MCP references during workflow import. Batch DB queries with visibility filtering; frontend displays toast warnings for missing external dependencies. 17 import conflict resolver tests.
+- **Workflow delete-run and clear-runs endpoints** — `DELETE /api/workflows/{id}/runs/{run_id}` for individual run deletion; `DELETE /api/workflows/{id}/runs` to clear all completed runs. Frontend confirmation dialogs for both actions.
+- **56 workflow validation warning tests** — Comprehensive coverage of Phase 2 node validation warnings.
+- **137 workflow Phase 2 node executor tests** — Full test coverage for all Phase 2 node type executors.
 - **Scheduled triggers** — Cron configuration per workflow with timezone selection, default inputs, and next-run-at calculation. Frontend dialog with preset cron buttons (every 5 min / hourly / daily / weekly / monthly).
 - **Public API trigger endpoint** — Per-workflow API keys (`wf_` prefix) for external execution without user auth, with rate limiting.
 - **API key management dialog** — Generate, regenerate, and revoke workflow API keys with copy button, trigger URL display, and cURL/JavaScript usage examples.
