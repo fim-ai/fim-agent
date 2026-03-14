@@ -614,7 +614,11 @@ async def _resolve_tools(
     # Load connector tools when the agent has bound connectors.
     connector_ids = agent_cfg.get("connector_ids") if agent_cfg else None
     if connector_ids:
-        from fim_one.core.tool.connector import ConnectorToolAdapter
+        from fim_one.core.tool.connector import (
+            ConnectorToolAdapter,
+            build_connector_meta_tool,
+            get_connector_tool_mode,
+        )
         from fim_one.db import create_session
         from fim_one.web.models.connector import Connector as ConnectorModel
         from fim_one.web.models.connector_call_log import ConnectorCallLog
@@ -623,6 +627,7 @@ async def _resolve_tools(
         from sqlalchemy.orm import selectinload
 
         agent_id_for_log = agent_cfg.get("agent_id") if agent_cfg else None
+        _connector_tool_mode = get_connector_tool_mode(agent_cfg)
 
         async def _log_connector_call(**kwargs: Any) -> None:
             """Persist a connector call log entry in its own DB session."""
@@ -672,6 +677,9 @@ async def _resolve_tools(
 
                 api_tool_count = 0
                 db_tool_count = 0
+
+                # Collect API connectors for potential progressive mode
+                api_connectors = []
 
                 for conn in connectors:
                     if conn.type == "database" and conn.db_config:
@@ -751,34 +759,65 @@ async def _resolve_tools(
                             if _default_cred_row:
                                 resolved_creds = decrypt_credential(_default_cred_row.credentials_blob)
 
-                        for action in (conn.actions or []):
-                            adapter = ConnectorToolAdapter(
-                                connector_name=conn.name,
-                                connector_base_url=conn.base_url or "",
-                                connector_auth_type=conn.auth_type,
-                                connector_auth_config=conn.auth_config,
-                                auth_credentials=resolved_creds or None,
-                                action_name=action.name,
-                                action_description=action.description or "",
-                                action_method=action.method,
-                                action_path=action.path,
-                                action_parameters_schema=action.parameters_schema,
-                                action_request_body_template=action.request_body_template,
-                                action_response_extract=action.response_extract,
-                                action_requires_confirmation=action.requires_confirmation,
-                                connector_id=conn.id,
-                                action_id=action.id,
-                                on_call_complete=_log_connector_call,
-                            )
-                            tools.register(adapter)
-                            api_tool_count += 1
+                        if _connector_tool_mode == "progressive":
+                            # Collect for batch meta-tool creation
+                            api_connectors.append((conn, resolved_creds))
+                        else:
+                            # Legacy mode — one tool per action
+                            for action in (conn.actions or []):
+                                adapter = ConnectorToolAdapter(
+                                    connector_name=conn.name,
+                                    connector_base_url=conn.base_url or "",
+                                    connector_auth_type=conn.auth_type,
+                                    connector_auth_config=conn.auth_config,
+                                    auth_credentials=resolved_creds or None,
+                                    action_name=action.name,
+                                    action_description=action.description or "",
+                                    action_method=action.method,
+                                    action_path=action.path,
+                                    action_parameters_schema=action.parameters_schema,
+                                    action_request_body_template=action.request_body_template,
+                                    action_response_extract=action.response_extract,
+                                    action_requires_confirmation=action.requires_confirmation,
+                                    connector_id=conn.id,
+                                    action_id=action.id,
+                                    on_call_complete=_log_connector_call,
+                                )
+                                tools.register(adapter)
+                                api_tool_count += 1
 
-                logger.info(
-                    "Loaded %d API tools + %d DB tools from %d connectors",
-                    api_tool_count,
-                    db_tool_count,
-                    len(connectors),
-                )
+                # Progressive mode — build a single ConnectorMetaTool
+                if _connector_tool_mode == "progressive" and api_connectors:
+                    _cred_map = {conn.id: creds for conn, creds in api_connectors}
+                    meta_tool = build_connector_meta_tool(
+                        [conn for conn, _ in api_connectors],
+                        resolved_credentials=_cred_map,
+                        on_call_complete=_log_connector_call,
+                    )
+                    tools.register(meta_tool)
+                    total_actions = sum(
+                        len(conn.actions or []) for conn, _ in api_connectors
+                    )
+                    logger.info(
+                        "Loaded ConnectorMetaTool (progressive): %d connectors, "
+                        "%d actions consolidated into 1 tool",
+                        len(api_connectors),
+                        total_actions,
+                    )
+                elif _connector_tool_mode == "legacy":
+                    logger.info(
+                        "Loaded %d API tools + %d DB tools from %d connectors",
+                        api_tool_count,
+                        db_tool_count,
+                        len(connectors),
+                    )
+                else:
+                    logger.info(
+                        "Loaded %d API tools + %d DB tools from %d connectors",
+                        api_tool_count,
+                        db_tool_count,
+                        len(connectors),
+                    )
         except Exception:
             logger.warning("Failed to load connector tools", exc_info=True)
 
