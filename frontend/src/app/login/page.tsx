@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Globe, Sun, Moon, Check } from "lucide-react"
@@ -71,6 +72,7 @@ function LoginPageInner() {
   const [regConfirm, setRegConfirm] = useState("")
   const [regInviteCode, setRegInviteCode] = useState("")
   const [regLoading, setRegLoading] = useState(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
 
   // Inline field errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -291,6 +293,7 @@ function LoginPageInner() {
         email: regEmail,
         invite_code: regInviteCode.trim() || undefined,
         verification_code: codeOverride || verificationCode.trim() || undefined,
+        privacy_accepted: true,
       })
       // Redirect is handled by the useEffect that watches user state
     } catch (err) {
@@ -1027,7 +1030,41 @@ function LoginPageInner() {
                         />
                       )}
                     </div>
-                    <Button type="submit" className="w-full" disabled={regLoading || sendingCode}>
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="privacy-consent"
+                        checked={privacyAccepted}
+                        onCheckedChange={(checked) => setPrivacyAccepted(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="privacy-consent" className="text-sm text-muted-foreground leading-snug cursor-pointer">
+                        {t.rich("privacyConsent", {
+                          privacyPolicy: (chunks: React.ReactNode) => (
+                            <a
+                              href="https://one.fim.ai/en/privacy"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary underline hover:text-primary/80"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {chunks}
+                            </a>
+                          ),
+                          termsOfService: (chunks: React.ReactNode) => (
+                            <a
+                              href="https://one.fim.ai/en/terms"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary underline hover:text-primary/80"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {chunks}
+                            </a>
+                          ),
+                        })}
+                      </label>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={regLoading || sendingCode || !privacyAccepted}>
                       {(regLoading || sendingCode) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {emailVerificationEnabled && !sendingCode ? t("verifyEmail") : sendingCode ? t("sendingCode") : t("createAccount")}
                     </Button>

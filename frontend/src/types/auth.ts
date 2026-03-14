@@ -55,6 +55,7 @@ export interface RegisterRequest {
   email: string
   invite_code?: string
   verification_code?: string
+  privacy_accepted?: boolean
 }
 
 export interface SetupRequest {
