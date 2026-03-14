@@ -13,13 +13,6 @@ MARKET_ORG_ID = "00000000-0000-0000-0000-000000000001"
 PLATFORM_ORG_ID = MARKET_ORG_ID
 PLATFORM_ORG_SLUG = MARKET_ORG_SLUG
 
-# Shadow Market alias — same org, new semantic name.
-# The "Platform" org is now the global Market: nobody joins it,
-# resources are discovered via browse_market and accessed via
-# ResourceSubscription.  Keep PLATFORM_ORG_ID for migration compat.
-MARKET_ORG_ID = PLATFORM_ORG_ID
-
-
 
 def is_market_org(org_id: str) -> bool:
     """Return True if *org_id* is the built-in Market organisation.
