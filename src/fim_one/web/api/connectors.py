@@ -25,9 +25,15 @@ from fim_one.web.models.user import User
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRequest
 from fim_one.web.schemas.connector import (
     ActionCreate,
+    ActionExportData,
     ActionResponse,
     ActionUpdate,
     ConnectorCreate,
+    ConnectorExportData,
+    ConnectorExportMeta,
+    ConnectorForkRequest,
+    ConnectorImportRequest,
+    ConnectorImportResult,
     ConnectorResponse,
     ConnectorUpdate,
     CredentialUpsertRequest,
@@ -431,6 +437,78 @@ async def delete_connector(
     await db.delete(connector)
     await db.commit()
     return ApiResponse(data={"deleted": connector_id})
+
+
+# ---------------------------------------------------------------------------
+# Fork (clone)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{connector_id}/fork", response_model=ApiResponse)
+async def fork_connector(
+    connector_id: str,
+    body: ConnectorForkRequest | None = None,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Clone an existing connector for the current user.
+
+    Copies all configuration fields but NOT credentials, org_id, or
+    publish_status.  The forked connector is set to personal/draft ownership.
+    """
+    # Fetch the source connector — must be visible to the user (own / org / global)
+    source = await _get_visible_connector(connector_id, current_user.id, db)
+
+    fork_name = (body.name if body and body.name else f"{source.name} (Copy)")[:200]
+
+    forked = Connector(
+        user_id=current_user.id,
+        name=fork_name,
+        description=source.description,
+        icon=source.icon,
+        type=source.type,
+        base_url=source.base_url,
+        auth_type=source.auth_type,
+        auth_config=source.auth_config,
+        db_config=None,  # credentials — do NOT copy
+        status="draft",
+        is_official=False,
+        forked_from=source.id,
+        version=1,
+        visibility="personal",
+        org_id=None,
+        publish_status=None,
+        allow_fallback=source.allow_fallback,
+        is_active=True,
+    )
+    db.add(forked)
+    await db.flush()  # get forked.id
+
+    # Clone actions
+    for action in source.actions or []:
+        cloned_action = ConnectorAction(
+            connector_id=forked.id,
+            name=action.name,
+            description=action.description,
+            method=action.method,
+            path=action.path,
+            parameters_schema=action.parameters_schema,
+            request_body_template=action.request_body_template,
+            response_extract=action.response_extract,
+            requires_confirmation=action.requires_confirmation,
+        )
+        db.add(cloned_action)
+
+    await db.commit()
+
+    # Reload with actions for response
+    result = await db.execute(
+        select(Connector)
+        .options(selectinload(Connector.actions))
+        .where(Connector.id == forked.id)
+    )
+    forked = result.scalar_one()
+    return ApiResponse(data=_connector_to_response(forked).model_dump())
 
 
 # ---------------------------------------------------------------------------
@@ -840,6 +918,126 @@ async def import_openapi_actions(
     )
     connector = result.scalar_one()
     return ApiResponse(data=_connector_to_response(connector).model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Export / Import
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{connector_id}/export", response_model=ApiResponse)
+async def export_connector(
+    connector_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Export a connector configuration as a portable JSON structure.
+
+    Sensitive data (credentials, user_id, org_id) is stripped. The exported
+    JSON can be shared and re-imported into any FIM One instance.
+    """
+    from datetime import UTC, datetime
+
+    connector = await _get_visible_connector(connector_id, current_user.id, db)
+
+    actions_data = [
+        ActionExportData(
+            name=a.name,
+            description=a.description,
+            method=a.method,
+            path=a.path,
+            parameters_schema=a.parameters_schema,
+            request_body_template=a.request_body_template,
+            response_extract=a.response_extract,
+            requires_confirmation=a.requires_confirmation,
+        )
+        for a in (connector.actions or [])
+    ]
+
+    # Strip sensitive fields from auth_config for export
+    clean_auth_config = _strip_sensitive_auth_config(connector.auth_type, connector.auth_config)
+
+    export_data = ConnectorExportData.model_construct(
+        name=connector.name,
+        description=connector.description,
+        icon=connector.icon,
+        connector_type=connector.type,
+        base_url=connector.base_url,
+        auth_type=connector.auth_type,
+        auth_config=clean_auth_config,
+        actions=actions_data,
+        _meta=ConnectorExportMeta(
+            exported_at=datetime.now(UTC).isoformat(),
+        ),
+    )
+    return ApiResponse(data=export_data.model_dump())
+
+
+@router.post("/import", response_model=ApiResponse)
+async def import_connector(
+    body: ConnectorImportRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Import a connector from exported JSON.
+
+    Creates a new connector assigned to the current user with ``status='draft'``
+    and empty credentials. The ``warnings`` list in the response tells the user
+    which fields need manual configuration (e.g. credentials, base_url).
+    """
+    connector = Connector(
+        user_id=current_user.id,
+        name=body.name,
+        description=body.description,
+        icon=body.icon,
+        type=body.connector_type,
+        base_url=body.base_url,
+        auth_type=body.auth_type,
+        auth_config=body.auth_config,
+        status="draft",
+    )
+    db.add(connector)
+    await db.flush()  # get connector.id
+
+    # Create actions from the import payload
+    for action_data in body.actions:
+        action = ConnectorAction(
+            connector_id=connector.id,
+            name=action_data.name,
+            description=action_data.description,
+            method=action_data.method,
+            path=action_data.path,
+            parameters_schema=action_data.parameters_schema,
+            request_body_template=action_data.request_body_template,
+            response_extract=action_data.response_extract,
+            requires_confirmation=action_data.requires_confirmation,
+        )
+        db.add(action)
+
+    await db.commit()
+
+    # Reload with actions relationship for response serialization
+    result = await db.execute(
+        select(Connector)
+        .options(selectinload(Connector.actions))
+        .where(Connector.id == connector.id)
+    )
+    connector = result.scalar_one()
+
+    # Build warnings for fields that need user attention
+    warnings: list[str] = []
+    if body.auth_type and body.auth_type != "none":
+        warnings.append("credentials")
+    if body.connector_type == "api" and not body.base_url:
+        warnings.append("base_url")
+    if body.connector_type == "database":
+        warnings.append("db_config")
+
+    import_result = ConnectorImportResult(
+        connector=_connector_to_response(connector),
+        warnings=warnings,
+    )
+    return ApiResponse(data=import_result.model_dump())
 
 
 # ---------------------------------------------------------------------------

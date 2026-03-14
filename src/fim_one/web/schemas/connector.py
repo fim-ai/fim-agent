@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # --- Action Schemas ---
@@ -164,6 +164,12 @@ class AICreateConnectorResult(BaseModel):
     message_args: dict = {}
 
 
+class ConnectorForkRequest(BaseModel):
+    """Optional overrides when forking (cloning) a connector."""
+
+    name: str | None = None  # Custom name; defaults to "{original} (Copy)"
+
+
 class CredentialUpsertRequest(BaseModel):
     token: str | None = None
     api_key: str | None = None
@@ -175,3 +181,68 @@ class MyCredentialStatus(BaseModel):
     has_credentials: bool
     auth_type: str
     allow_fallback: bool
+
+
+# --- Export / Import ---
+
+
+class ActionExportData(BaseModel):
+    """Portable action representation for export (no IDs or timestamps)."""
+
+    name: str
+    description: str | None = None
+    method: str = "GET"
+    path: str
+    parameters_schema: dict[str, Any] | None = None
+    request_body_template: dict[str, Any] | None = None
+    response_extract: str | None = None
+    requires_confirmation: bool = False
+
+
+class ConnectorExportMeta(BaseModel):
+    """Metadata envelope for exported connector JSON."""
+
+    exported_at: str
+    version: str = "1.0"
+    source: str = "fim-one"
+
+
+class ConnectorExportData(BaseModel):
+    """Portable connector representation for export.
+
+    Includes configuration but excludes ownership, credentials, and
+    internal identifiers so the file can be safely shared.
+    """
+
+    name: str
+    description: str | None = None
+    icon: str | None = None
+    connector_type: str
+    base_url: str | None = None
+    auth_type: str = "none"
+    auth_config: dict[str, Any] | None = None
+    actions: list[ActionExportData] = []
+    _meta: ConnectorExportMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ConnectorImportRequest(BaseModel):
+    """Request body for importing a connector from exported JSON."""
+
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = None
+    icon: str | None = None
+    connector_type: str = Field(pattern=r"^(api|database)$")
+    base_url: str | None = None
+    auth_type: str = "none"
+    auth_config: dict[str, Any] | None = None
+    actions: list[ActionExportData] = Field(default_factory=list)
+    _meta: dict[str, Any] | None = None
+
+
+class ConnectorImportResult(BaseModel):
+    """Response from a connector import operation."""
+
+    connector: ConnectorResponse
+    warnings: list[str] = Field(default_factory=list)
