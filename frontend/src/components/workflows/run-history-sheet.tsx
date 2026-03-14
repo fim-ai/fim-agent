@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Ban,
   RotateCw,
+  GitCompareArrows,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -34,9 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { fmtDuration } from "@/lib/utils"
 import { workflowApi } from "@/lib/api"
+import { RunComparisonDialog } from "@/components/workflows/run-comparison-dialog"
 import type {
   WorkflowRunResponse,
   NodeRunResult,
@@ -163,6 +166,52 @@ export function RunHistorySheet({
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("__all__")
 
+  // --- Comparison state ---
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false)
+  const [compareRunA, setCompareRunA] = useState<WorkflowRunResponse | null>(null)
+  const [compareRunB, setCompareRunB] = useState<WorkflowRunResponse | null>(null)
+  const [isLoadingCompare, setIsLoadingCompare] = useState(false)
+
+  // Reset comparison selection when sheet closes or filter changes
+  useEffect(() => {
+    if (!open) {
+      setSelectedForCompare(new Set())
+    }
+  }, [open])
+
+  const handleToggleCompare = useCallback((runId: string, checked: boolean) => {
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        if (next.size >= 2) return prev // max 2
+        next.add(runId)
+      } else {
+        next.delete(runId)
+      }
+      return next
+    })
+  }, [])
+
+  const handleCompare = useCallback(async () => {
+    const ids = Array.from(selectedForCompare)
+    if (ids.length !== 2) return
+    setIsLoadingCompare(true)
+    try {
+      const [detailA, detailB] = await Promise.all([
+        workflowApi.getRun(workflowId, ids[0]),
+        workflowApi.getRun(workflowId, ids[1]),
+      ])
+      setCompareRunA(detailA)
+      setCompareRunB(detailB)
+      setCompareDialogOpen(true)
+    } catch {
+      toast.error(t("compareLoadFailed"))
+    } finally {
+      setIsLoadingCompare(false)
+    }
+  }, [selectedForCompare, workflowId, t])
+
   const statusOptions = useMemo(
     () =>
       [
@@ -225,6 +274,7 @@ export function RunHistorySheet({
   )
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-md p-0 flex flex-col">
         <SheetHeader className="px-6 pt-6 pb-3 border-b border-border/40 shrink-0">
@@ -258,9 +308,9 @@ export function RunHistorySheet({
           )}
         </SheetHeader>
 
-        {/* Status filter — only visible in list view */}
+        {/* Status filter + Compare button — only visible in list view */}
         {!selectedRun && (
-          <div className="px-4 py-2 border-b border-border/40 shrink-0">
+          <div className="px-4 py-2 border-b border-border/40 shrink-0 flex items-center gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger size="sm" className="w-full">
                 <SelectValue />
@@ -273,6 +323,20 @@ export function RunHistorySheet({
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selectedForCompare.size !== 2 || isLoadingCompare}
+              onClick={handleCompare}
+              className="shrink-0"
+            >
+              {isLoadingCompare ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <GitCompareArrows className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {t("compareButton")}
+            </Button>
           </div>
         )}
 
@@ -395,55 +459,80 @@ export function RunHistorySheet({
             /* Run list */
             <div className="p-2 space-y-1">
               {runs.map((run) => (
-                <button
+                <div
                   key={run.id}
-                  type="button"
-                  onClick={() => handleSelectRun(run)}
-                  className="w-full text-left rounded-md border border-border p-3 hover:bg-accent/50 transition-colors"
+                  className="flex items-center gap-2 rounded-md border border-border p-3 hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    {runStatusIcons[run.status]}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-[10px] px-1.5 py-0 h-5 shrink-0",
-                            statusBadgeClass[run.status],
+                  <Checkbox
+                    checked={selectedForCompare.has(run.id)}
+                    disabled={
+                      !selectedForCompare.has(run.id) &&
+                      selectedForCompare.size >= 2
+                    }
+                    onCheckedChange={(checked) =>
+                      handleToggleCompare(run.id, !!checked)
+                    }
+                    aria-label={t("compareButton")}
+                    className="shrink-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSelectRun(run)}
+                    className="flex-1 min-w-0 text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      {runStatusIcons[run.status]}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              "text-[10px] px-1.5 py-0 h-5 shrink-0",
+                              statusBadgeClass[run.status],
+                            )}
+                          >
+                            {t(`runStatus_${run.status}` as Parameters<typeof t>[0])}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {relativeTime(run.created_at, locale)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {run.duration_ms != null && (
+                            <span className="text-[10px] text-muted-foreground tabular-nums flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {fmtDuration(run.duration_ms / 1000)}
+                            </span>
                           )}
-                        >
-                          {t(`runStatus_${run.status}` as Parameters<typeof t>[0])}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">
-                          {relativeTime(run.created_at, locale)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        {run.duration_ms != null && (
-                          <span className="text-[10px] text-muted-foreground tabular-nums flex items-center gap-0.5">
-                            <Clock className="h-2.5 w-2.5" />
-                            {fmtDuration(run.duration_ms / 1000)}
-                          </span>
-                        )}
-                        {run.inputs && Object.keys(run.inputs).length > 0 && (
-                          <span className="text-[10px] text-muted-foreground truncate">
-                            {inputSummary(run.inputs)}
-                          </span>
-                        )}
-                        {(!run.inputs || Object.keys(run.inputs).length === 0) && (
-                          <span className="text-[10px] text-muted-foreground italic">
-                            {t("historyNoInputs")}
-                          </span>
-                        )}
+                          {run.inputs && Object.keys(run.inputs).length > 0 && (
+                            <span className="text-[10px] text-muted-foreground truncate">
+                              {inputSummary(run.inputs)}
+                            </span>
+                          )}
+                          {(!run.inputs || Object.keys(run.inputs).length === 0) && (
+                            <span className="text-[10px] text-muted-foreground italic">
+                              {t("historyNoInputs")}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
           )}
         </ScrollArea>
       </SheetContent>
     </Sheet>
+
+    <RunComparisonDialog
+      open={compareDialogOpen}
+      onOpenChange={setCompareDialogOpen}
+      runA={compareRunA}
+      runB={compareRunB}
+      nodeTypeMap={nodeTypeMap}
+    />
+    </>
   )
 }
