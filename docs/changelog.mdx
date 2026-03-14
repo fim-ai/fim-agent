@@ -11,6 +11,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Semantic schema annotations** — 16 predefined semantic tags (`customer_id`, `email`, `phone`, `amount`, `date`, etc.) for connector schema fields. Each field can carry `semantic_tag`, `description`, and `pii` flags, surfaced in LLM tool descriptions so the agent understands field intent without guessing from column names.
+- **Connector import/export/fork UI** — Frontend card actions for exporting connectors as JSON, importing from file picker, and forking (clone + customize) existing connectors.
+- **Connector import/export and fork endpoints** — Backend API: `GET /api/connectors/{id}/export`, `POST /api/connectors/import`, `POST /api/connectors/{id}/fork` with sanitized credential handling to prevent secret leakage.
 - **Workflow templates system** — `WorkflowTemplate` ORM model with admin CRUD and public listing/clone endpoints. 5 seed templates auto-inserted on first startup for quick workflow bootstrapping.
 - **Workflow inline validation badges** — Real-time `ValidationBadge` on canvas nodes displaying per-node errors and warnings with descriptive tooltips, providing immediate visual feedback during blueprint editing.
 - **Workflow execution trace viewer** — Timeline-based trace viewer Sheet for inspecting completed runs. Engine `trace_level` parameter controls detail granularity; variable snapshots captured at each node for step-through debugging.
@@ -184,6 +187,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Fixed
 
+- **Template API client endpoint paths** — Updated workflow template API client to use new `/api/workflow-templates` paths, fixing broken template CRUD operations.
 - **Workflow eval namespace flattening**: Fixed ConditionBranch and VariableAssign failing to resolve short variable names (e.g. `score` when the store had `input.score`). Added `_flatten_eval_names()` helper that creates short aliases in the eval namespace, enabling dotted key resolution without full-path references.
 - **Workflow `run_started` SSE event**: The `run_started` event was documented in the SSE protocol but never actually emitted. Now yielded before the orchestrator loop begins, so frontend consumers receive the execution-start signal.
 - **Workflow SSE event name mismatch**: Fixed SSE event names — `node_status` renamed to `node_started`/`node_completed`/`node_failed`/`node_skipped` to match the frontend SSE handler expectations.
