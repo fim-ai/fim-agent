@@ -132,6 +132,7 @@
   "reviewWorkflowsLabel": "Workflow Review",
   "reviewSkillsLabel": "Skill Review",
   "reviewManagement": "Review Management",
+  "reviewBypassExplanation": "Organization members and admins bypass review when publishing to this organization. All other users require admin approval before their resources become visible.",
   "pendingReviews": "Pending Reviews",
   "noReviewsPending": "No resources pending review",
   "approveResource": "Approve",

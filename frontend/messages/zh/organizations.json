@@ -192,5 +192,6 @@
   "cannotDeleteMarketOrg": "应用市场组织无法删除",
   "cannotLeaveMarketOrg": "无法离开应用市场组织",
   "cannotAddMemberToMarketOrg": "无法将成员添加到市场",
-  "marketplaceReviewLocked": "市场始终需要审查"
+  "marketplaceReviewLocked": "市场始终需要审查",
+  "reviewBypassExplanation": "组织成员和管理员在发布到此组织时可以绕过审查。所有其他用户需要管理员批准才能使其资源可见。"
 }

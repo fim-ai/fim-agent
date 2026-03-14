@@ -192,5 +192,6 @@
   "cannotDeleteMarketOrg": "Die Marketplace-Organisation kann nicht gelöscht werden",
   "cannotLeaveMarketOrg": "Die Marketplace-Organisation kann nicht verlassen werden",
   "cannotAddMemberToMarketOrg": "Mitglieder können nicht zum Marketplace hinzugefügt werden",
-  "marketplaceReviewLocked": "Marketplace erfordert immer eine Überprüfung"
+  "marketplaceReviewLocked": "Marketplace erfordert immer eine Überprüfung",
+  "reviewBypassExplanation": "Organisationsmitglieder und Administratoren umgehen die Überprüfung beim Veröffentlichen in dieser Organisation. Alle anderen Benutzer benötigen die Genehmigung eines Administrators, bevor ihre Ressourcen sichtbar werden."
 }

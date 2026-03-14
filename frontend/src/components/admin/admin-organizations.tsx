@@ -179,6 +179,11 @@ function AdminReviewsSheet({ open, onOpenChange, org }: AdminReviewsSheetProps) 
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4 mt-4">
+            {/* Explanation note */}
+            <div className="rounded-md border border-blue-400/30 bg-blue-500/5 p-3">
+              <p className="text-xs text-muted-foreground">{t("reviewBypassExplanation")}</p>
+            </div>
+
             {/* Filters */}
             <div className="flex gap-2">
               <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>
@@ -1094,17 +1099,23 @@ export function AdminOrganizations() {
           </SheetHeader>
 
           <div className="mt-6 space-y-4">
-            {/* Add member button */}
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setAddMemberOpen(true)}
-              >
-                <UserPlus className="h-4 w-4" />
-                {t("addMember")}
-              </Button>
-            </div>
+            {/* Add member button (disabled for Market org) */}
+            {membersOrg?.id === MARKET_ORG_ID ? (
+              <div className="rounded-md border border-amber-400/40 bg-amber-500/5 p-3">
+                <p className="text-sm text-amber-600 dark:text-amber-400">{t("cannotAddMemberToMarketOrg")}</p>
+              </div>
+            ) : (
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setAddMemberOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  {t("addMember")}
+                </Button>
+              </div>
+            )}
 
             {/* Members list */}
             {membersLoading ? (

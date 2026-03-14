@@ -23,6 +23,7 @@ from fim_one.web.exceptions import AppError
 from fim_one.web.platform import is_market_org
 from fim_one.web.deps import get_embedding, get_kb_manager
 from fim_one.web.models import KBDocument, KnowledgeBase, User
+from fim_one.web.models.resource_subscription import ResourceSubscription
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRequest
 from fim_one.web.schemas.knowledge_base import (
     ChunkResponse,
@@ -146,8 +147,18 @@ async def list_kbs(
 ) -> PaginatedResponse:
     from fim_one.web.visibility import build_visibility_filter
     user_org_ids = await get_user_org_ids(current_user.id, db)
+
+    # Get subscribed knowledge base IDs
+    sub_result = await db.execute(
+        select(ResourceSubscription.resource_id).where(
+            ResourceSubscription.user_id == current_user.id,
+            ResourceSubscription.resource_type == "knowledge_base",
+        )
+    )
+    subscribed_kb_ids = sub_result.scalars().all()
+
     base = select(KnowledgeBase).where(
-        build_visibility_filter(KnowledgeBase, current_user.id, user_org_ids)
+        build_visibility_filter(KnowledgeBase, current_user.id, user_org_ids, subscribed_ids=subscribed_kb_ids)
     )
 
     count_result = await db.execute(

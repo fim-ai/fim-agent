@@ -1,6 +1,6 @@
 {
   "title": "Marketplace",
-  "description": "Durchsuchen Sie gemeinsam genutzte Ressourcen aus dem Marketplace und abonnieren Sie diese",
+  "description": "Durchsuchen und installieren Sie freigegebene Ressourcen aus dem Marketplace",
   "empty": "Keine Ressourcen im Marketplace verfügbar",
   "subscribed": "Abonniert",
   "subscribe": "Abonnieren",
@@ -19,5 +19,10 @@
   "publishTarget": "Veröffentlichungsziel",
   "publishTargetOrg": "Meine Organisation",
   "publishTargetMarketplace": "Marketplace",
-  "marketplaceReviewLocked": "Marketplace erfordert immer eine Überprüfung"
+  "marketplaceReviewLocked": "Marketplace erfordert immer eine Überprüfung",
+  "installed": "Installiert",
+  "install": "Installieren",
+  "uninstall": "Deinstallieren",
+  "installSuccess": "Erfolgreich installiert",
+  "uninstallSuccess": "Erfolgreich deinstalliert"
 }

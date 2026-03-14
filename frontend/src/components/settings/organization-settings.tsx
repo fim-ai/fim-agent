@@ -374,6 +374,7 @@ function MembersSheet({ open, onOpenChange, org, currentUserId }: MembersSheetPr
   const [adding, setAdding] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<OrgMember | null>(null)
 
+  const isMarketOrg = org.id === MARKET_ORG_ID
   const myRole = org.role
   const canManage = myRole === "owner" || myRole === "admin"
 
@@ -474,7 +475,12 @@ function MembersSheet({ open, onOpenChange, org, currentUserId }: MembersSheetPr
 
           <div className="flex-1 overflow-y-auto space-y-4 mt-4">
             {/* Add member form */}
-            {canManage && (
+            {canManage && isMarketOrg && (
+              <div className="rounded-md border border-amber-400/40 bg-amber-500/5 p-3">
+                <p className="text-sm text-amber-600 dark:text-amber-400">{t("cannotAddMemberToMarketOrg")}</p>
+              </div>
+            )}
+            {canManage && !isMarketOrg && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">{t("addMemberTitle")}</p>
                 <div className="flex gap-2">
@@ -705,6 +711,11 @@ function ReviewsSheet({ open, onOpenChange, org }: ReviewsSheetProps) {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4 mt-4">
+            {/* Explanation note */}
+            <div className="rounded-md border border-blue-400/30 bg-blue-500/5 p-3">
+              <p className="text-xs text-muted-foreground">{t("reviewBypassExplanation")}</p>
+            </div>
+
             {/* Filters */}
             <div className="flex gap-2">
               <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>

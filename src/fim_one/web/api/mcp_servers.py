@@ -17,6 +17,7 @@ from fim_one.web.exceptions import AppError
 from fim_one.web.auth import get_current_user, get_user_org_ids
 from fim_one.web.platform import is_market_org
 from fim_one.web.models.mcp_server import MCPServer
+from fim_one.web.models.resource_subscription import ResourceSubscription
 from fim_one.web.models.user import User
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRequest
 from fim_one.web.schemas.mcp_server import (
@@ -162,8 +163,18 @@ async def list_mcp_servers(
     from fim_one.web.models.mcp_server_credential import MCPServerCredential
     from fim_one.web.visibility import build_visibility_filter
     user_org_ids = await get_user_org_ids(current_user.id, db)
+
+    # Get subscribed MCP server IDs
+    sub_result = await db.execute(
+        select(ResourceSubscription.resource_id).where(
+            ResourceSubscription.user_id == current_user.id,
+            ResourceSubscription.resource_type == "mcp_server",
+        )
+    )
+    subscribed_mcp_ids = sub_result.scalars().all()
+
     base = select(MCPServer).where(
-        build_visibility_filter(MCPServer, current_user.id, user_org_ids)
+        build_visibility_filter(MCPServer, current_user.id, user_org_ids, subscribed_ids=subscribed_mcp_ids)
     )
 
     count_result = await db.execute(
