@@ -1,6 +1,6 @@
 import { getApiBaseUrl, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "./constants"
 import type { UserInfo, TokenResponse, LoginRequest, LoginWithCodeRequest, RegisterRequest, ChangePasswordRequest, SetPasswordRequest, SetupRequest } from "@/types/auth"
-import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate, NodeStatsResponse, WorkflowValidateResponse, WorkflowVersionResponse, WorkflowAnalyticsResponse, WorkflowScheduleResponse, WorkflowScheduleUpdate } from "@/types/workflow"
+import type { WorkflowResponse, WorkflowCreate, WorkflowUpdate, WorkflowRunResponse, WorkflowStats, WorkflowTemplate, NodeStatsResponse, WorkflowValidateResponse, WorkflowVersionResponse, WorkflowAnalyticsResponse, WorkflowScheduleResponse, WorkflowScheduleUpdate, WorkflowBatchRunResponse } from "@/types/workflow"
 import type {
   ConversationResponse,
   ConversationDetail,
@@ -956,6 +956,15 @@ export const workflowApi = {
     apiFetch<ApiResponse<WorkflowRunResponse>>(
       `/api/workflows/${workflowId}/runs/${runId}/cancel`,
       { method: "POST" },
+    ).then((r) => r.data),
+
+  batchRun: (id: string, inputs: Record<string, unknown>[], maxParallel = 3) =>
+    apiFetch<ApiResponse<WorkflowBatchRunResponse>>(
+      `/api/workflows/${id}/batch-run`,
+      {
+        method: "POST",
+        body: JSON.stringify({ inputs, max_parallel: maxParallel }),
+      },
     ).then((r) => r.data),
 
   export: (id: string) =>

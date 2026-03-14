@@ -20,6 +20,7 @@ import {
   History,
   Key,
   KeyRound,
+  Layers,
   LayoutGrid,
   Loader2,
   MoreHorizontal,
@@ -104,6 +105,7 @@ interface WorkflowToolbarProps {
   apiKeyConfigured?: boolean
   onSchedule?: () => void
   scheduleActive?: boolean
+  onBatchRun?: () => void
 }
 
 export function WorkflowToolbar({
@@ -149,6 +151,7 @@ export function WorkflowToolbar({
   apiKeyConfigured = false,
   onSchedule,
   scheduleActive = false,
+  onBatchRun,
 }: WorkflowToolbarProps) {
   const t = useTranslations("workflows")
   const to = useTranslations("organizations")
@@ -585,6 +588,12 @@ export function WorkflowToolbar({
               <DropdownMenuItem onClick={onNodeStats}>
                 <Activity className="h-4 w-4" />
                 {t("nodeStatsButton")}
+              </DropdownMenuItem>
+            )}
+            {onBatchRun && (
+              <DropdownMenuItem onClick={onBatchRun}>
+                <Layers className="h-4 w-4" />
+                {t("batchRunMenuItem")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={onDuplicate} disabled={isDuplicating}>
