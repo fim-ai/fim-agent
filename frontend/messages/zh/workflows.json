@@ -691,5 +691,18 @@
   "testNodeNotTestable": "此节点类型无法单独测试",
   "testNodeSuccess": "节点测试完成",
   "testNodeFailed": "节点测试失败",
-  "contextMenuTestNode": "测试节点"
+  "contextMenuTestNode": "测试节点",
+  "versionDiffTitle": "比较 v{versionA} → v{versionB}",
+  "versionDiffSummary": "摘要",
+  "versionDiffNodesAdded": "添加了 {count} 个节点",
+  "versionDiffNodesRemoved": "移除了 {count} 个节点",
+  "versionDiffNodesModified": "修改了 {count} 个节点",
+  "versionDiffNodesUnchanged": "{count} 个节点未变更",
+  "versionDiffEdgesAdded": "添加了 {count} 条边",
+  "versionDiffEdgesRemoved": "移除了 {count} 条边",
+  "versionDiffNodeChanges": "节点变更",
+  "versionDiffEdgeChanges": "边变更",
+  "versionDiffFieldChanged": "{field} 已变更",
+  "versionDiffNoChanges": "这些版本之间没有变更",
+  "versionDiffCompare": "比较"
 }

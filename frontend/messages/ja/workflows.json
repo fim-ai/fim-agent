@@ -691,5 +691,18 @@
   "testNodeNotTestable": "このノードタイプは単独でテストできません",
   "testNodeSuccess": "ノードテストが完了しました",
   "testNodeFailed": "ノードテストが失敗しました",
-  "contextMenuTestNode": "ノードをテスト"
+  "contextMenuTestNode": "ノードをテスト",
+  "versionDiffTitle": "v{versionA} → v{versionB} を比較",
+  "versionDiffSummary": "概要",
+  "versionDiffNodesAdded": "{count} 個のノードが追加されました",
+  "versionDiffNodesRemoved": "{count} 個のノードが削除されました",
+  "versionDiffNodesModified": "{count} 個のノードが変更されました",
+  "versionDiffNodesUnchanged": "{count} 個のノードは変更されていません",
+  "versionDiffEdgesAdded": "{count} 個のエッジが追加されました",
+  "versionDiffEdgesRemoved": "{count} 個のエッジが削除されました",
+  "versionDiffNodeChanges": "ノードの変更",
+  "versionDiffEdgeChanges": "エッジの変更",
+  "versionDiffFieldChanged": "{field} が変更されました",
+  "versionDiffNoChanges": "これらのバージョン間に変更はありません",
+  "versionDiffCompare": "比較"
 }

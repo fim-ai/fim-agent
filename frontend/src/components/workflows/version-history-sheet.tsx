@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { formatDistanceToNow } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import {
+  ArrowLeftRight,
   Clock,
   History,
   Loader2,
@@ -32,6 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { workflowApi } from "@/lib/api"
+import { VersionDiffDialog } from "@/components/workflows/version-diff-dialog"
 import type { WorkflowVersionResponse } from "@/types/workflow"
 
 interface VersionHistorySheetProps {
@@ -68,6 +70,7 @@ export function VersionHistorySheet({
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
   const [restoreTarget, setRestoreTarget] = useState<WorkflowVersionResponse | null>(null)
+  const [diffTarget, setDiffTarget] = useState<WorkflowVersionResponse | null>(null)
 
   // Load versions when sheet opens
   useEffect(() => {
@@ -179,16 +182,27 @@ export function VersionHistorySheet({
                         </p>
                       </div>
                       {index !== 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="shrink-0 gap-1.5 text-xs"
-                          onClick={() => setRestoreTarget(version)}
-                          disabled={isRestoring}
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          {t("versionHistoryRestore")}
-                        </Button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setDiffTarget(version)}
+                            title={t("versionDiffCompare")}
+                          >
+                            <ArrowLeftRight className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-xs"
+                            onClick={() => setRestoreTarget(version)}
+                            disabled={isRestoring}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            {t("versionHistoryRestore")}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -217,6 +231,16 @@ export function VersionHistorySheet({
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      {/* Version Diff - sibling of Sheet per project convention */}
+      <VersionDiffDialog
+        open={diffTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDiffTarget(null)
+        }}
+        versionA={diffTarget}
+        versionB={versions.length > 0 ? versions[0] : null}
+      />
 
       {/* Restore Confirmation - sibling of Sheet per project convention */}
       <AlertDialog

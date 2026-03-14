@@ -691,5 +691,18 @@
   "testNodeNotTestable": "Ce type de nœud ne peut pas être testé isolément",
   "testNodeSuccess": "Test du nœud terminé",
   "testNodeFailed": "Échec du test du nœud",
-  "contextMenuTestNode": "Tester le nœud"
+  "contextMenuTestNode": "Tester le nœud",
+  "versionDiffTitle": "Comparer v{versionA} → v{versionB}",
+  "versionDiffSummary": "Résumé",
+  "versionDiffNodesAdded": "{count} nœud(s) ajouté(s)",
+  "versionDiffNodesRemoved": "{count} nœud(s) supprimé(s)",
+  "versionDiffNodesModified": "{count} nœud(s) modifié(s)",
+  "versionDiffNodesUnchanged": "{count} nœud(s) inchangé(s)",
+  "versionDiffEdgesAdded": "{count} lien(s) ajouté(s)",
+  "versionDiffEdgesRemoved": "{count} lien(s) supprimé(s)",
+  "versionDiffNodeChanges": "Modifications des nœuds",
+  "versionDiffEdgeChanges": "Modifications des liens",
+  "versionDiffFieldChanged": "{field} modifié",
+  "versionDiffNoChanges": "Aucune modification entre ces versions",
+  "versionDiffCompare": "Comparer"
 }

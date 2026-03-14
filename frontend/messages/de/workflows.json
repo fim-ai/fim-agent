@@ -691,5 +691,18 @@
   "testNodeNotTestable": "Dieser Knotentyp kann nicht isoliert getestet werden",
   "testNodeSuccess": "Knotentests abgeschlossen",
   "testNodeFailed": "Knotentest fehlgeschlagen",
-  "contextMenuTestNode": "Knoten testen"
+  "contextMenuTestNode": "Knoten testen",
+  "versionDiffTitle": "Vergleiche v{versionA} → v{versionB}",
+  "versionDiffSummary": "Zusammenfassung",
+  "versionDiffNodesAdded": "{count} Knoten hinzugefügt",
+  "versionDiffNodesRemoved": "{count} Knoten entfernt",
+  "versionDiffNodesModified": "{count} Knoten geändert",
+  "versionDiffNodesUnchanged": "{count} Knoten unverändert",
+  "versionDiffEdgesAdded": "{count} Kante(n) hinzugefügt",
+  "versionDiffEdgesRemoved": "{count} Kante(n) entfernt",
+  "versionDiffNodeChanges": "Knotenänderungen",
+  "versionDiffEdgeChanges": "Kantenänderungen",
+  "versionDiffFieldChanged": "{field} geändert",
+  "versionDiffNoChanges": "Keine Änderungen zwischen diesen Versionen",
+  "versionDiffCompare": "Vergleichen"
 }
