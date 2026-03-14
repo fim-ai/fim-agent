@@ -19,6 +19,10 @@ export interface WorkflowResponse {
   reviewed_at: string | null
   review_note: string | null
   webhook_url: string | null
+  schedule_cron?: string | null
+  schedule_enabled?: boolean
+  schedule_inputs?: Record<string, unknown> | null
+  schedule_timezone?: string
   has_api_key: boolean
   total_runs: number
   last_run_at: string | null
@@ -343,6 +347,8 @@ export interface WorkflowRunResponse {
 }
 
 export interface NodeRunResult {
+  node_id?: string
+  node_type?: string
   status: "pending" | "running" | "completed" | "failed" | "skipped" | "retrying"
   output: unknown
   error: string | null
@@ -352,7 +358,6 @@ export interface NodeRunResult {
   input_preview?: unknown
   retryAttempt?: number
   maxRetries?: number
-  node_type?: string
   trace?: {
     variable_snapshot?: Record<string, unknown> | null
     input_snapshot?: Record<string, unknown> | null
