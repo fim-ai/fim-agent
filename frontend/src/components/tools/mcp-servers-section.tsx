@@ -105,7 +105,8 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all" }: MCP
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
       const updated = await mcpServerApi.toggleActive(id, isActive)
-      setServers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setServers((prev) => prev.map((s) => (s.id === id ? { ...updated, source: (s as any).source } : s)))
     } catch (err) {
       console.error("Failed to toggle MCP server:", err)
     }
@@ -124,7 +125,8 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all" }: MCP
     setServers((prev) => {
       const exists = prev.find((s) => s.id === server.id)
       if (exists) {
-        return prev.map((s) => (s.id === server.id ? server : s))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return prev.map((s) => (s.id === server.id ? { ...server, source: (s as any).source } : s))
       }
       return [server, ...prev]
     })
@@ -149,7 +151,8 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all" }: MCP
   const handleResubmit = async (id: string) => {
     try {
       const updated = await mcpServerApi.resubmit(id)
-      setServers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setServers((prev) => prev.map((s) => (s.id === id ? { ...updated, source: (s as any).source } : s)))
       toast.success(t("resubmitSuccess"))
     } catch {
       toast.error(t("resubmitError"))
@@ -166,7 +169,8 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all" }: MCP
         org_id: publishOrgId,
         allow_fallback: allowFallback,
       })
-      setServers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setServers((prev) => prev.map((s) => (s.id === id ? { ...updated, source: (s as any).source } : s)))
       toast.success(t("mcpServerPublished"))
     } catch {
       toast.error(t("mcpServerPublishFailed"))
@@ -179,7 +183,8 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all" }: MCP
     setPendingUnpublishId(null)
     try {
       const updated = await mcpServerApi.unpublish(id)
-      setServers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setServers((prev) => prev.map((s) => (s.id === id ? { ...updated, source: (s as any).source } : s)))
       toast.success(t("mcpServerUnpublished"))
     } catch {
       toast.error(t("mcpServerUnpublishFailed"))
@@ -193,6 +198,7 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all" }: MCP
     () => {
       if (!currentUserId || scope === "all") return servers
       if (scope === "mine") return servers.filter((s) => s.user_id === currentUserId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (scope === "installed") return servers.filter((s) => (s as any).source === "installed")
       return servers.filter((s) => s.user_id !== currentUserId)

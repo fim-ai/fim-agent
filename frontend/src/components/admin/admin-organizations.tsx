@@ -179,10 +179,12 @@ function AdminReviewsSheet({ open, onOpenChange, org }: AdminReviewsSheetProps) 
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4 mt-4">
-            {/* Explanation note */}
-            <div className="rounded-md border border-blue-400/30 bg-blue-500/5 p-3">
-              <p className="text-xs text-muted-foreground">{t("reviewBypassExplanation")}</p>
-            </div>
+            {/* Explanation note — only for Market org */}
+            {org && org.id === MARKET_ORG_ID && (
+              <div className="rounded-md border border-blue-400/30 bg-blue-500/5 p-3">
+                <p className="text-xs text-muted-foreground">{t("reviewBypassExplanation")}</p>
+              </div>
+            )}
 
             {/* Filters */}
             <div className="flex gap-2">
