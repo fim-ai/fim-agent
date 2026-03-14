@@ -56,6 +56,7 @@ class WorkflowScheduler:
         self._semaphore = asyncio.Semaphore(max_concurrent_runs)
         self._stop_event = asyncio.Event()
         self._running_tasks: set[asyncio.Task] = set()
+        self._webhook_tasks: set[asyncio.Task] = set()
 
     async def run(self) -> None:
         """Main scheduler loop.  Runs until ``stop()`` is called or cancelled."""
@@ -198,14 +199,6 @@ class WorkflowScheduler:
 
     async def _dispatch_run(self, wf: Any) -> None:
         """Create a WorkflowRun record and launch execution in the background."""
-        # Acquire semaphore slot (non-blocking check)
-        if self._semaphore.locked():
-            logger.warning(
-                "Max concurrent scheduled runs reached — deferring workflow %s",
-                wf.id,
-            )
-            return
-
         logger.info(
             "Scheduler triggering workflow '%s' (id=%s, cron=%s, tz=%s)",
             wf.name,
@@ -373,7 +366,7 @@ class WorkflowScheduler:
 
             # Fire webhook if configured
             if webhook_url and final_status in ("completed", "failed"):
-                asyncio.create_task(
+                wh_task = asyncio.create_task(
                     self._deliver_webhook(
                         webhook_url,
                         {
@@ -393,6 +386,8 @@ class WorkflowScheduler:
                         },
                     )
                 )
+                self._webhook_tasks.add(wh_task)
+                wh_task.add_done_callback(self._webhook_tasks.discard)
 
             logger.info(
                 "Scheduled run %s for workflow %s finished: %s (%dms)",
