@@ -46,5 +46,25 @@
   "unsavedChangesDescription": "保存されていない変更があります。このページを離れると破棄されます。",
   "stay": "留まる",
   "discardAndLeave": "破棄して離れる",
-  "backToList": "スキル一覧に戻る"
+  "backToList": "スキル一覧に戻る",
+  "scriptComingSoonTitle": "スクリプト実行 — 近日公開予定",
+  "scriptComingSoonDescription": "実行可能なPythonまたはShellスクリプトをスキルに添付します。起動時に、エージェントはスキルコンテンツを返すと同時に、スクリプトを自動的に呼び出すことができます。",
+  "scriptComingSoonFeatures": [
+    "サンドボックス化されたPython 3エグゼキューター",
+    "Shellスクリプトサポート",
+    "タイムアウトとリソース制限",
+    "エージェントコンテキストへのStdin/stdoutパイピング"
+  ],
+  "settingActiveHint": "非アクティブなスキルはエージェントから隠され、呼び出すことができません。",
+  "settingSectionInfo": "スキル情報",
+  "settingSkillId": "スキルID",
+  "settingVisibility": "表示設定",
+  "settingStatus": "ステータス",
+  "settingCreatedAt": "作成日",
+  "settingUpdatedAt": "最終更新日",
+  "settingSectionUsage": "エージェント統合",
+  "settingUsageHint": "エージェントはシステムプロンプトにコンパクトなスタブを表示します。フルコンテンツはread_skill()を呼び出すときにオンデマンドで読み込まれます。",
+  "settingStubPreview": "スタブプレビュー（システムプロンプトに注入）",
+  "settingReadSkillCall": "ツール呼び出し",
+  "settingReadSkillCallHint": "エージェントはこの正確な呼び出しを使用して、会話中にフルスキルコンテンツを読み込みます。"
 }

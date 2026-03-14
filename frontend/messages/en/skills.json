@@ -48,6 +48,27 @@
   "scriptTypeShell": "Shell",
   "scriptTypeNone": "None",
 
+  "scriptComingSoonTitle": "Script Execution — Coming Soon",
+  "scriptComingSoonDescription": "Attach executable Python or Shell scripts to skills. When launched, the agent can invoke the script automatically alongside returning skill content.",
+  "scriptComingSoonFeatures": [
+    "Sandboxed Python 3 executor",
+    "Shell script support",
+    "Timeout & resource limits",
+    "Stdin/stdout piping to agent context"
+  ],
+  "settingActiveHint": "Inactive skills are hidden from agents and cannot be called.",
+  "settingSectionInfo": "Skill Information",
+  "settingSkillId": "Skill ID",
+  "settingVisibility": "Visibility",
+  "settingStatus": "Status",
+  "settingCreatedAt": "Created",
+  "settingUpdatedAt": "Last Updated",
+  "settingSectionUsage": "Agent Integration",
+  "settingUsageHint": "The agent sees a compact stub in its system prompt. Full content is loaded on demand when it calls read_skill().",
+  "settingStubPreview": "Stub preview (injected into system prompt)",
+  "settingReadSkillCall": "Tool call",
+  "settingReadSkillCallHint": "The agent uses this exact call to load full skill content during a conversation.",
+
   "unsavedChangesTitle": "Unsaved changes",
   "unsavedChangesDescription": "You have unsaved changes. Leaving this page will discard them.",
   "stay": "Stay",

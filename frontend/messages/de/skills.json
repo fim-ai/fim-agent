@@ -46,5 +46,25 @@
   "unsavedChangesDescription": "Sie haben nicht gespeicherte Änderungen. Wenn Sie diese Seite verlassen, werden sie verworfen.",
   "stay": "Bleiben",
   "discardAndLeave": "Verwerfen & Verlassen",
-  "backToList": "Zurück zu Fähigkeiten"
+  "backToList": "Zurück zu Fähigkeiten",
+  "scriptComingSoonTitle": "Skriptausführung — Demnächst verfügbar",
+  "scriptComingSoonDescription": "Fügen Sie ausführbare Python- oder Shell-Skripte an Fähigkeiten an. Bei der Ausführung kann der Agent das Skript automatisch aufrufen und gleichzeitig Fähigkeitsinhalte zurückgeben.",
+  "scriptComingSoonFeatures": [
+    "Sandbox-Python-3-Executor",
+    "Shell-Skript-Unterstützung",
+    "Timeout- und Ressourcenlimits",
+    "Stdin/stdout-Piping zum Agent-Kontext"
+  ],
+  "settingActiveHint": "Inaktive Fähigkeiten sind für Agenten verborgen und können nicht aufgerufen werden.",
+  "settingSectionInfo": "Fähigkeitsinformationen",
+  "settingSkillId": "Fähigkeits-ID",
+  "settingVisibility": "Sichtbarkeit",
+  "settingStatus": "Status",
+  "settingCreatedAt": "Erstellt",
+  "settingUpdatedAt": "Zuletzt aktualisiert",
+  "settingSectionUsage": "Agent-Integration",
+  "settingUsageHint": "Der Agent sieht einen kompakten Stub in seinem Systemprompt. Vollständiger Inhalt wird bei Bedarf geladen, wenn er read_skill() aufruft.",
+  "settingStubPreview": "Stub-Vorschau (in Systemprompt eingefügt)",
+  "settingReadSkillCall": "Tool-Aufruf",
+  "settingReadSkillCallHint": "Der Agent verwendet diesen genauen Aufruf, um vollständige Fähigkeitsinhalte während eines Gesprächs zu laden."
 }

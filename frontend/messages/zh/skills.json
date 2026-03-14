@@ -46,5 +46,25 @@
   "unsavedChangesDescription": "您有未保存的更改。离开此页面将丢弃这些更改。",
   "stay": "留下",
   "discardAndLeave": "丢弃并离开",
-  "backToList": "返回技能"
+  "backToList": "返回技能",
+  "scriptComingSoonTitle": "脚本执行 — 即将推出",
+  "scriptComingSoonDescription": "将可执行的 Python 或 Shell 脚本附加到技能。启动时，智能体可以自动调用脚本并返回技能内容。",
+  "scriptComingSoonFeatures": [
+    "沙箱化 Python 3 执行器",
+    "Shell 脚本支持",
+    "超时和资源限制",
+    "标准输入/输出管道到智能体上下文"
+  ],
+  "settingActiveHint": "非活跃的技能对智能体隐藏，无法被调用。",
+  "settingSectionInfo": "技能信息",
+  "settingSkillId": "技能 ID",
+  "settingVisibility": "可见性",
+  "settingStatus": "状态",
+  "settingCreatedAt": "创建时间",
+  "settingUpdatedAt": "最后更新",
+  "settingSectionUsage": "智能体集成",
+  "settingUsageHint": "智能体在其系统提示中看到一个紧凑的存根。当它调用 read_skill() 时，完整内容按需加载。",
+  "settingStubPreview": "存根预览（注入到系统提示中）",
+  "settingReadSkillCall": "工具调用",
+  "settingReadSkillCallHint": "智能体使用此确切调用在对话期间加载完整技能内容。"
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { ArrowLeft, BookOpen, Loader2 } from "lucide-react"
+import { ArrowLeft, BookOpen, Loader2, Code2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,7 +63,6 @@ function SkillEditorContent() {
   const [script, setScript] = useState("")
   const [scriptType, setScriptType] = useState<"python" | "shell" | "__none__">("__none__")
   const [isActive, setIsActive] = useState(true)
-
   // Compute dirty state
   const isDirty = skill
     ? name !== skill.name ||
@@ -200,20 +199,40 @@ function SkillEditorContent() {
 
       {/* Tab navigation */}
       <div className="flex items-center gap-1 px-4 pt-2 border-b border-border/40 shrink-0">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.key}
-            href={tab.key === "content" ? `/skills/${id}` : `/skills/${id}?tab=${tab.key}`}
-            className={cn(
-              "px-3 py-1.5 text-sm font-medium transition-colors rounded-t-md border-b-2 -mb-px",
-              activeTab === tab.key
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
+        {tabs.map((tab) => {
+          if (tab.key === "script") {
+            // Script tab is coming-soon: still navigable but visually de-emphasized
+            return (
+              <Link
+                key="script"
+                href={`/skills/${id}?tab=script`}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium transition-colors rounded-t-md border-b-2 -mb-px flex items-center gap-1.5",
+                  activeTab === "script"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+                )}
+              >
+                {t("tabScript")}
+                <span className="text-[10px] font-normal px-1 py-0.5 rounded bg-muted text-muted-foreground leading-none">soon</span>
+              </Link>
+            )
+          }
+          return (
+            <Link
+              key={tab.key}
+              href={tab.key === "content" ? `/skills/${id}` : `/skills/${id}?tab=${tab.key}`}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium transition-colors rounded-t-md border-b-2 -mb-px",
+                activeTab === tab.key
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+              )}
+            >
+              {tab.label}
+            </Link>
+          )
+        })}
       </div>
 
       {/* Tab content */}
@@ -263,48 +282,33 @@ function SkillEditorContent() {
           )}
 
           {activeTab === "script" && (
-            <>
-              {/* Script Type */}
-              <div className="space-y-2">
-                <Label>{t("fieldScriptType")}</Label>
-                <Select
-                  value={scriptType}
-                  onValueChange={(v) => setScriptType(v as "python" | "shell" | "__none__")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">{t("scriptTypeNone")}</SelectItem>
-                    <SelectItem value="python">{t("scriptTypePython")}</SelectItem>
-                    <SelectItem value="shell">{t("scriptTypeShell")}</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+              <div className="rounded-full bg-muted p-4">
+                <Code2 className="h-8 w-8 text-muted-foreground" />
               </div>
-
-              {/* Script */}
-              <div className="space-y-2">
-                <Label htmlFor="skill-script">{t("fieldScript")}</Label>
-                <p className="text-xs text-muted-foreground">{t("fieldScriptHint")}</p>
-                <Textarea
-                  id="skill-script"
-                  value={script}
-                  onChange={(e) => setScript(e.target.value)}
-                  className="min-h-[200px] resize-y font-mono text-sm"
-                  disabled={scriptType === "__none__"}
-                />
+              <div className="space-y-1.5 max-w-sm">
+                <h3 className="text-sm font-semibold">{t("scriptComingSoonTitle")}</h3>
+                <p className="text-sm text-muted-foreground">{t("scriptComingSoonDescription")}</p>
               </div>
-            </>
+              <div className="flex flex-col gap-1.5 text-sm text-muted-foreground text-left w-full max-w-xs mt-2">
+                {(t.raw("scriptComingSoonFeatures") as string[]).map((f: string, i: number) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {activeTab === "settings" && (
             <>
-              {/* Active toggle */}
               <div className="flex items-center justify-between rounded-md border border-border px-3 py-2.5">
                 <div>
                   <Label htmlFor="skill-active" className="text-sm font-medium cursor-pointer">
                     {tc("active")}
                   </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t("settingActiveHint")}</p>
                 </div>
                 <Switch
                   id="skill-active"

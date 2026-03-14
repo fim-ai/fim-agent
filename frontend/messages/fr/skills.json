@@ -46,5 +46,25 @@
   "unsavedChangesDescription": "Vous avez des modifications non enregistrées. Quitter cette page les supprimera.",
   "stay": "Rester",
   "discardAndLeave": "Abandonner et quitter",
-  "backToList": "Retour aux compétences"
+  "backToList": "Retour aux compétences",
+  "scriptComingSoonTitle": "Exécution de script — À venir",
+  "scriptComingSoonDescription": "Joignez des scripts Python ou Shell exécutables aux compétences. Lors du lancement, l'agent peut invoquer le script automatiquement en parallèle du retour du contenu de la compétence.",
+  "scriptComingSoonFeatures": [
+    "Exécuteur Python 3 en bac à sable",
+    "Support des scripts Shell",
+    "Limites de délai d'attente et de ressources",
+    "Redirection Stdin/stdout vers le contexte de l'agent"
+  ],
+  "settingActiveHint": "Les compétences inactives sont masquées aux agents et ne peuvent pas être appelées.",
+  "settingSectionInfo": "Informations sur la compétence",
+  "settingSkillId": "ID de compétence",
+  "settingVisibility": "Visibilité",
+  "settingStatus": "Statut",
+  "settingCreatedAt": "Créé",
+  "settingUpdatedAt": "Dernière mise à jour",
+  "settingSectionUsage": "Intégration d'agent",
+  "settingUsageHint": "L'agent voit un stub compact dans son invite système. Le contenu complet est chargé à la demande lorsqu'il appelle read_skill().",
+  "settingStubPreview": "Aperçu du stub (injecté dans l'invite système)",
+  "settingReadSkillCall": "Appel d'outil",
+  "settingReadSkillCallHint": "L'agent utilise cet appel exact pour charger le contenu complet de la compétence lors d'une conversation."
 }

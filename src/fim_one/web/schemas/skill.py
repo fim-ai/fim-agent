@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 class SkillCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = None
-    content: str = Field(min_length=1)
+    content: str = Field(default="")
     script: str | None = None
     script_type: Literal["python", "shell"] | None = None
     is_active: bool = True
