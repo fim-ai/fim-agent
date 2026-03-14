@@ -6,7 +6,6 @@ import {
   Building2, Clock, Download, MoreHorizontal, PackageMinus, Pencil, Trash2, Terminal, Globe, GlobeLock, FlaskConical,
   Loader2, CheckCircle2, XCircle, Key, AlertTriangle, RotateCw, Power, ShoppingBag,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -332,23 +331,15 @@ export function MCPServerCard({
         </div>
       )}
 
-      {/* Owner visibility badge — shows where the resource is published */}
-      {isOwner && isOrgResource && (
+      {/* Owner visibility badge — Market only */}
+      {isOwner && isOrgResource && server.org_id === MARKET_ORG_ID && (
         <div className="flex items-center gap-1.5 mb-2">
           <Badge
             variant="secondary"
-            className={cn(
-              "text-[10px] px-1.5 py-0 h-5",
-              server.org_id === MARKET_ORG_ID
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                : "bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
-            )}
+            className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
-            {server.org_id === MARKET_ORG_ID ? (
-              <><ShoppingBag className="h-2.5 w-2.5 mr-0.5" />{tc("published")}</>
-            ) : (
-              <><Building2 className="h-2.5 w-2.5 mr-0.5" />{tc("published")}</>
-            )}
+            <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
+            {tc("published")}
           </Badge>
         </div>
       )}
