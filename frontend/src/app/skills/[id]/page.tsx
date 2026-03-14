@@ -92,6 +92,11 @@ function SkillEditorContent() {
     try {
       setIsLoading(true)
       const data = await skillApi.get(id)
+      // Non-owners cannot access skill detail (black box model)
+      if (user && data.user_id !== null && data.user_id !== user.id) {
+        router.replace("/skills")
+        return
+      }
       setSkill(data)
       setName(data.name)
       setDescription(data.description || "")
@@ -105,7 +110,7 @@ function SkillEditorContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [id, router])
+  }, [id, router, user])
 
   useEffect(() => {
     if (user) loadSkill()

@@ -86,12 +86,17 @@ export default function KBDetailPage() {
   const loadKB = useCallback(async () => {
     try {
       const data = await kbApi.get(kbId)
+      // Non-owners cannot access KB detail (black box model)
+      if (user && data.user_id !== user.id) {
+        router.replace("/kb")
+        return
+      }
       setKb(data)
     } catch (err) {
       console.error("Failed to load KB:", err)
       router.replace("/kb")
     }
-  }, [kbId, router])
+  }, [kbId, router, user])
 
   const loadDocuments = useCallback(async () => {
     try {

@@ -104,6 +104,9 @@
   "subscribed": "Abonné",
   "unsubscribed": "Désabonné",
   "you": "Vous",
-  "view": "Affichage",
-  "createdAt": "Créé"
+  "view": "Afficher",
+  "createdAt": "Créé",
+  "install": "Installer",
+  "uninstall": "Désinstaller",
+  "installed": "Installé"
 }

@@ -104,6 +104,9 @@
   "subscribed": "Subscribed",
   "unsubscribed": "Unsubscribed",
   "view": "View",
+  "install": "Install",
+  "uninstall": "Uninstall",
+  "installed": "Installed",
   "createdAt": "Created",
   "you": "You"
 }

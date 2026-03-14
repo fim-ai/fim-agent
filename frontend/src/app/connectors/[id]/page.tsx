@@ -65,6 +65,11 @@ function ConnectorEditorPageInner() {
     try {
       setIsLoading(true)
       const data = await connectorApi.get(id)
+      // Non-owners cannot access connector detail (black box model)
+      if (user && data.user_id !== user.id) {
+        router.replace("/connectors")
+        return
+      }
       setConnector(data)
       setIsNew(false)
     } catch (err) {
@@ -73,7 +78,7 @@ function ConnectorEditorPageInner() {
     } finally {
       setIsLoading(false)
     }
-  }, [id, router])
+  }, [id, router, user])
 
   useEffect(() => {
     if (user && id !== "new") loadConnector()

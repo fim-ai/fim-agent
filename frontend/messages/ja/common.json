@@ -105,5 +105,8 @@
   "unsubscribed": "購読解除",
   "you": "あなた",
   "view": "表示",
-  "createdAt": "作成日時"
+  "createdAt": "作成日時",
+  "install": "インストール",
+  "uninstall": "アンインストール",
+  "installed": "インストール済み"
 }

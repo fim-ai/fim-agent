@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, MoreHorizontal, Pencil, Trash2, Globe, GlobeLock, MessageSquare, Radar, RotateCw } from "lucide-react"
+import { Bot, MoreHorizontal, Pencil, Trash2, Globe, GlobeLock, MessageSquare, Radar, RotateCw, PackageMinus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ interface AgentCardProps {
   onPublish: (id: string) => void
   onUnpublish: (id: string) => void
   onResubmit?: (id: string) => void
+  onUninstall?: (id: string) => void
 }
 
 export function AgentCard({
@@ -37,6 +38,7 @@ export function AgentCard({
   onPublish,
   onUnpublish,
   onResubmit,
+  onUninstall,
 }: AgentCardProps) {
   const t = useTranslations("agents")
   const to = useTranslations("organizations")
@@ -44,6 +46,7 @@ export function AgentCard({
   const isPublished = agent.status === "published"
   const isDiscoverable = agent.discoverable === true
   const isOwner = !currentUserId || agent.user_id === currentUserId
+  // Non-owner actions: chat (always), uninstall (only for subscribed/installed resources)
 
   return (
     <div className="group flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-ring/40 hover:bg-accent/10">
@@ -57,7 +60,7 @@ export function AgentCard({
           )}
           {agent.name}
         </h3>
-        {isOwner && (
+        {isOwner ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -83,16 +86,41 @@ export function AgentCard({
                 <DropdownMenuItem onClick={() => onResubmit(agent.id)}>
                   <RotateCw className="h-4 w-4" />
                   {to("resubmit")}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(agent.id)}>
+                <Trash2 className="h-4 w-4" />
+                {tc("delete")}
               </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onDelete(agent.id)}>
-              <Trash2 className="h-4 w-4" />
-              {tc("delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+            </DropdownMenuContent>
           </DropdownMenu>
-        )}
+        ) : !isOwner && onUninstall ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/new?agent=${agent.id}`}>
+                  <MessageSquare className="h-4 w-4" />
+                  {t("startChat")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onUninstall(agent.id)}>
+                <PackageMinus className="h-4 w-4" />
+                {tc("uninstall")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </div>
 
       {/* Status badges */}
@@ -118,8 +146,8 @@ export function AgentCard({
           </Badge>
         )}
 
-        {/* Publish review status badges */}
-        {agent.publish_status === "pending_review" && (
+        {/* Publish review status badges — owner only */}
+        {isOwner && agent.publish_status === "pending_review" && (
           <Badge
             variant="outline"
             className="text-[10px] px-1.5 py-0 h-5 border-amber-400 text-amber-600 dark:text-amber-400"
@@ -127,7 +155,7 @@ export function AgentCard({
             {to("publishStatusPending")}
           </Badge>
         )}
-        {agent.publish_status === "approved" && (
+        {isOwner && agent.publish_status === "approved" && (
           <Badge
             variant="outline"
             className="text-[10px] px-1.5 py-0 h-5 border-emerald-400 text-emerald-600 dark:text-emerald-400"
@@ -135,7 +163,7 @@ export function AgentCard({
             {to("publishStatusApproved")}
           </Badge>
         )}
-        {agent.publish_status === "rejected" && (
+        {isOwner && agent.publish_status === "rejected" && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -161,8 +189,8 @@ export function AgentCard({
         {agent.description || t("noDescription")}
       </p>
 
-      {/* Start Chat CTA — when published */}
-      {isPublished && (
+      {/* Start Chat CTA — published owner agents or any non-owner shared agent */}
+      {(isPublished || !isOwner) && (
         <Button
           variant="outline"
           size="sm"

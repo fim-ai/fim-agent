@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Eye, MoreHorizontal, Pencil, Trash2, PackageMinus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ interface KBCardProps {
   currentUserId?: string
   onEdit: (kb: KBResponse) => void
   onDelete: (id: string) => void
+  onUninstall?: (id: string) => void
 }
 
 export function KBCard({
@@ -27,6 +28,7 @@ export function KBCard({
   currentUserId,
   onEdit,
   onDelete,
+  onUninstall,
 }: KBCardProps) {
   const t = useTranslations("kb")
   const tc = useTranslations("common")
@@ -67,7 +69,7 @@ export function KBCard({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : (
+        ) : !isOwner && onUninstall ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -79,15 +81,13 @@ export function KBCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/kb/${kb.id}`}>
-                  <Eye className="h-4 w-4" />
-                  {t("view")}
-                </Link>
+              <DropdownMenuItem variant="destructive" onClick={() => onUninstall(kb.id)}>
+                <PackageMinus className="h-4 w-4" />
+                {tc("uninstall")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+        ) : null}
       </div>
 
       {/* Badges */}

@@ -105,5 +105,8 @@
   "unsubscribed": "未订阅",
   "you": "您",
   "view": "查看",
-  "createdAt": "创建于"
+  "createdAt": "创建于",
+  "install": "安装",
+  "uninstall": "卸载",
+  "installed": "已安装"
 }

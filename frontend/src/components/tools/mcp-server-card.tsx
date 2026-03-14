@@ -332,12 +332,12 @@ export function MCPServerCard({
         </div>
       )}
 
-      {/* Transport badge + Endpoint */}
+      {/* Transport badge + Endpoint (endpoint visible to owner only — black box for non-owners) */}
       <div className="flex items-center gap-1.5 mb-1">
         <span className="shrink-0 text-[10px] font-mono uppercase tracking-wide text-muted-foreground/70 border border-border rounded px-1 py-0.5 leading-none">
           {server.transport === "streamable_http" ? "HTTP" : server.transport.toUpperCase()}
         </span>
-        {endpoint && (
+        {isOwner && endpoint && (
           <Tooltip>
             <TooltipTrigger asChild>
               <p className="text-xs text-muted-foreground truncate">

@@ -158,18 +158,20 @@ export function SkillCard({
         {skill.description || t("noDescription")}
       </p>
 
-      {/* Edit CTA */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-auto w-full gap-1.5 text-xs h-7"
-        asChild
-      >
-        <Link href={`/skills/${skill.id}`}>
-          <Pencil className="h-3 w-3" />
-          {tc("edit")}
-        </Link>
-      </Button>
+      {/* Edit CTA — owner only */}
+      {isOwner && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-auto w-full gap-1.5 text-xs h-7"
+          asChild
+        >
+          <Link href={`/skills/${skill.id}`}>
+            <Pencil className="h-3 w-3" />
+            {tc("edit")}
+          </Link>
+        </Button>
+      )}
     </div>
   )
 }

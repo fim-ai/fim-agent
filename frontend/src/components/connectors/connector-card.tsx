@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { MoreHorizontal, Pencil, Plug, Trash2, Globe, GlobeLock, RotateCw, Database, Download, Copy } from "lucide-react"
+import { MoreHorizontal, Pencil, Plug, Trash2, Globe, GlobeLock, RotateCw, Database, Download, Copy, PackageMinus } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +24,7 @@ interface ConnectorCardProps {
   onResubmit?: (id: string) => void
   onExport?: (id: string) => void
   onFork?: (id: string) => void
+  onUninstall?: (id: string) => void
 }
 
 const AUTH_LABELS: Record<string, string> = {
@@ -43,6 +44,7 @@ export function ConnectorCard({
   onResubmit,
   onExport,
   onFork,
+  onUninstall,
 }: ConnectorCardProps) {
   const t = useTranslations("connectors")
   const tc = useTranslations("common")
@@ -53,6 +55,7 @@ export function ConnectorCard({
   const authDisplay = authLabel === "noAuth" ? t("noAuth") : (authLabel || connector.auth_type)
   const isOwner = currentUserId ? connector.user_id === currentUserId : true
   const isOrgResource = connector.visibility === "org" || connector.visibility === "global"
+  // Non-owner actions: fork (always available), uninstall (only for subscribed/installed resources)
 
   // For database connectors, show host:port/database
   const dbConfig = connector.db_config
@@ -71,62 +74,93 @@ export function ConnectorCard({
           )}
           {connector.name}
         </h3>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href={`/connectors/${connector.id}`}>
-                <Pencil className="h-4 w-4" />
-                {tc("edit")}
-              </Link>
-            </DropdownMenuItem>
-            {onExport && (
-              <DropdownMenuItem onClick={() => onExport(connector.id)}>
-                <Download className="h-4 w-4" />
-                {t("exportConnector")}
-              </DropdownMenuItem>
-            )}
-            {onFork && (
-              <DropdownMenuItem onClick={() => onFork(connector.id)}>
-                <Copy className="h-4 w-4" />
-                {t("forkConnector")}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            {/* Publish / Unpublish */}
-            {onPublish && onUnpublish && (
-              <DropdownMenuItem
-                onClick={() => isOrgResource ? onUnpublish(connector.id) : onPublish(connector.id)}
+        {isOwner ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
               >
-                {isOrgResource
-                  ? <GlobeLock className="h-4 w-4" />
-                  : <Globe className="h-4 w-4" />
-                }
-                {isOrgResource ? tc("unpublish") : tc("publish")}
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/connectors/${connector.id}`}>
+                  <Pencil className="h-4 w-4" />
+                  {tc("edit")}
+                </Link>
               </DropdownMenuItem>
-            )}
-            {/* Resubmit -- only when rejected */}
-            {onResubmit && connector.publish_status === "rejected" && (
-              <DropdownMenuItem onClick={() => onResubmit(connector.id)}>
-                <RotateCw className="h-4 w-4" />
-                {t("resubmit")}
+              {onExport && (
+                <DropdownMenuItem onClick={() => onExport(connector.id)}>
+                  <Download className="h-4 w-4" />
+                  {t("exportConnector")}
+                </DropdownMenuItem>
+              )}
+              {onFork && (
+                <DropdownMenuItem onClick={() => onFork(connector.id)}>
+                  <Copy className="h-4 w-4" />
+                  {t("forkConnector")}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {/* Publish / Unpublish */}
+              {onPublish && onUnpublish && (
+                <DropdownMenuItem
+                  onClick={() => isOrgResource ? onUnpublish(connector.id) : onPublish(connector.id)}
+                >
+                  {isOrgResource
+                    ? <GlobeLock className="h-4 w-4" />
+                    : <Globe className="h-4 w-4" />
+                  }
+                  {isOrgResource ? tc("unpublish") : tc("publish")}
+                </DropdownMenuItem>
+              )}
+              {/* Resubmit -- only when rejected */}
+              {onResubmit && connector.publish_status === "rejected" && (
+                <DropdownMenuItem onClick={() => onResubmit(connector.id)}>
+                  <RotateCw className="h-4 w-4" />
+                  {t("resubmit")}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(connector.id)}>
+                <Trash2 className="h-4 w-4" />
+                {tc("delete")}
               </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onDelete(connector.id)}>
-              <Trash2 className="h-4 w-4" />
-              {tc("delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (!isOwner && onUninstall) || onFork ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onFork && (
+                <DropdownMenuItem onClick={() => onFork(connector.id)}>
+                  <Copy className="h-4 w-4" />
+                  {t("forkConnector")}
+                </DropdownMenuItem>
+              )}
+              {!isOwner && onUninstall && (
+                <>
+                  {onFork && <DropdownMenuSeparator />}
+                  <DropdownMenuItem variant="destructive" onClick={() => onUninstall(connector.id)}>
+                    <PackageMinus className="h-4 w-4" />
+                    {tc("uninstall")}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </div>
 
       {/* Publish review status badges -- owner only */}
@@ -186,41 +220,45 @@ export function ConnectorCard({
         )}
       </div>
 
-      {/* Info line: auth/actions for API, driver info for DB */}
-      {isDatabase ? (
-        <p className="text-xs text-muted-foreground mb-1">
-          {dbConfig?.driver ?? "database"}
-          {dbConfig?.read_only && " \u00B7 read-only"}
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground mb-1">
-          {authDisplay}
-          {" \u00B7 "}
-          {t("actionCount", { count: connector.actions.length })}
-        </p>
+      {/* Info line: auth/actions for API, driver info for DB — owner only */}
+      {isOwner && (
+        isDatabase ? (
+          <p className="text-xs text-muted-foreground mb-1">
+            {dbConfig?.driver ?? "database"}
+            {dbConfig?.read_only && " \u00B7 read-only"}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground mb-1">
+            {authDisplay}
+            {" \u00B7 "}
+            {t("actionCount", { count: connector.actions.length })}
+          </p>
+        )
       )}
 
-      {/* Endpoint */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <p className="text-xs text-muted-foreground truncate mb-1">
-            {isDatabase ? (
-              <>
-                <Database className="inline h-3 w-3 mr-1 -mt-0.5" />
-                {dbEndpoint}
-              </>
-            ) : (
-              <>
-                <Globe className="inline h-3 w-3 mr-1 -mt-0.5" />
-                {connector.base_url}
-              </>
-            )}
-          </p>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={5}>
-          {isDatabase ? dbEndpoint : connector.base_url}
-        </TooltipContent>
-      </Tooltip>
+      {/* Endpoint — owner only (black box for non-owners) */}
+      {isOwner && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p className="text-xs text-muted-foreground truncate mb-1">
+              {isDatabase ? (
+                <>
+                  <Database className="inline h-3 w-3 mr-1 -mt-0.5" />
+                  {dbEndpoint}
+                </>
+              ) : (
+                <>
+                  <Globe className="inline h-3 w-3 mr-1 -mt-0.5" />
+                  {connector.base_url}
+                </>
+              )}
+            </p>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5}>
+            {isDatabase ? dbEndpoint : connector.base_url}
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Description */}
       <p className="flex-1 text-xs text-muted-foreground line-clamp-2">

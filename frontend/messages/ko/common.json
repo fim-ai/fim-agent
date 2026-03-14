@@ -105,5 +105,8 @@
   "unsubscribed": "구독 취소함",
   "you": "당신",
   "view": "보기",
-  "createdAt": "생성됨"
+  "createdAt": "생성됨",
+  "install": "설치",
+  "uninstall": "제거",
+  "installed": "설치됨"
 }

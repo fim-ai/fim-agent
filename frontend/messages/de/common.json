@@ -105,5 +105,8 @@
   "unsubscribed": "Abmeldung aufgehoben",
   "you": "Sie",
   "view": "Ansicht",
-  "createdAt": "Erstellt"
+  "createdAt": "Erstellt",
+  "install": "Installieren",
+  "uninstall": "Deinstallieren",
+  "installed": "Installiert"
 }
