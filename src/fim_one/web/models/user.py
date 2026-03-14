@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlalchemy as sa
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from .knowledge_base import KnowledgeBase
     from .mcp_server import MCPServer
     from .model_config import ModelConfig
+    from .notification_preference import NotificationPreference
     from .oauth_binding import UserOAuthBinding
     from .skill import Skill
     from .workflow import Workflow
@@ -49,6 +51,19 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     username_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     privacy_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Personal settings
+    timezone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    default_agent_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    default_exec_mode: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    default_reasoning: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+    # Two-factor authentication
+    totp_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default=sa.text("FALSE")
+    )
+    totp_backup_codes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     conversations: Mapped[list[Conversation]] = relationship(
         back_populates="user", lazy="raise", cascade="all, delete-orphan"
     )
@@ -74,5 +89,8 @@ class User(UUIDPKMixin, TimestampMixin, Base):
         back_populates="user", lazy="raise", cascade="all, delete-orphan"
     )
     skills: Mapped[list[Skill]] = relationship(
+        back_populates="user", lazy="raise", cascade="all, delete-orphan"
+    )
+    notification_preferences: Mapped[list[NotificationPreference]] = relationship(
         back_populates="user", lazy="raise", cascade="all, delete-orphan"
     )

@@ -33,6 +33,7 @@ dependencies = [
     "jinja2>=3.0",
     "simpleeval>=0.9",
     "croniter>=6.0.0",
+    "pyotp>=2.9.0",
 ]
 
 [project.optional-dependencies]

@@ -77,6 +77,7 @@ from .api.workflow_templates import (
 from .api.hooks import router as hooks_router
 from .api.metrics import router as metrics_router
 from .api.notifications import router as notifications_router
+from .api.user_settings import router as user_settings_router
 
 logger = logging.getLogger(__name__)
 
@@ -328,6 +329,7 @@ def create_app() -> FastAPI:
     app.include_router(metrics_router)
     app.include_router(hooks_router)
     app.include_router(notifications_router)
+    app.include_router(user_settings_router)
 
     # NOTE: /uploads is intentionally NOT mounted as a public StaticFiles route.
     # File downloads are served through the authenticated API endpoint at

@@ -18,6 +18,7 @@ from .ip_rule import IpRule
 from .login_history import LoginHistory
 from .mcp_server import MCPServer
 from .mcp_server_credential import MCPServerCredential
+from .notification_preference import NotificationPreference
 from .knowledge_base import KBDocument, KnowledgeBase
 from .message import Message
 from .resource_subscription import ResourceSubscription
@@ -54,6 +55,7 @@ __all__ = [
     "MCPServer",
     "MCPServerCredential",
     "Message",
+    "NotificationPreference",
     "ResourceSubscription",
     "ModelConfig",
     "Organization",

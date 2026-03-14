@@ -112,6 +112,11 @@ def _build_user_info(
         has_agent=has_agent,
         has_conversation=has_conversation,
         privacy_accepted_at=getattr(user, "privacy_accepted_at", None),
+        timezone=user.timezone,
+        default_agent_id=user.default_agent_id,
+        default_exec_mode=user.default_exec_mode,
+        default_reasoning=user.default_reasoning,
+        totp_enabled=user.totp_enabled,
     )
 
 
@@ -346,12 +351,12 @@ async def register(
     return _build_token_response(user, access, refresh)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(
     body: LoginRequest,
     request: Request,
     db: AsyncSession = Depends(get_session),  # noqa: B008
-) -> TokenResponse:
+) -> TokenResponse | JSONResponse:
     user = await db.scalar(
         select(User).options(selectinload(User.oauth_bindings)).where(User.email == body.email)
     )
@@ -366,6 +371,12 @@ async def login(
     if not user.is_active:
         await _record_login(db, request, user, success=False, failure_reason="account_disabled")
         raise AppError("account_disabled", status_code=403)
+
+    # 2FA check: if TOTP is enabled, return a temp token instead of full auth
+    if user.totp_enabled:
+        temp_token = _create_2fa_temp_token(user.id)
+        await _record_login(db, request, user, success=True, failure_reason="2fa_pending")
+        return JSONResponse(content={"requires_2fa": True, "temp_token": temp_token})
 
     access = create_access_token(user.id, user.email)
     refresh = create_refresh_token(user.id, user.email)
@@ -900,6 +911,14 @@ async def update_profile(
         user.onboarding_completed = body.onboarding_completed
     if body.avatar is not None:
         user.avatar = body.avatar or None
+    if body.timezone is not None:
+        user.timezone = body.timezone or None
+    if body.default_agent_id is not None:
+        user.default_agent_id = body.default_agent_id or None
+    if body.default_exec_mode is not None:
+        user.default_exec_mode = body.default_exec_mode or None
+    if body.default_reasoning is not None:
+        user.default_reasoning = body.default_reasoning
     if body.username is not None:
         if not body.username or not body.username.strip():
             raise AppError("username_empty")
@@ -1535,3 +1554,352 @@ async def delete_own_account(
     await db.commit()
 
     return {"deleted": True}
+
+
+# ---------------------------------------------------------------------------
+# Two-Factor Authentication (TOTP)
+# ---------------------------------------------------------------------------
+
+import hashlib
+import json
+
+import jwt as _jwt
+import pyotp
+
+from fim_one.web.schemas.user_settings import (
+    ChangeEmailConfirmBody,
+    ChangeEmailRequestBody,
+    TwoFactorBackupCodesRequest,
+    TwoFactorBackupCodesResponse,
+    TwoFactorDisableRequest,
+    TwoFactorEnableRequest,
+    TwoFactorEnableResponse,
+    TwoFactorSetupResponse,
+    TwoFactorVerifyRequest,
+)
+
+_2FA_TEMP_TOKEN_EXPIRE_MINUTES = 5
+
+
+def _create_2fa_temp_token(user_id: str) -> str:
+    """Create a short-lived JWT for 2FA verification step."""
+    from fim_one.web.auth import ALGORITHM, SECRET_KEY
+
+    now = datetime.now(UTC)
+    payload = {
+        "sub": user_id,
+        "purpose": "2fa_verify",
+        "exp": now + timedelta(minutes=_2FA_TEMP_TOKEN_EXPIRE_MINUTES),
+        "iat": now,
+    }
+    return _jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def _decode_2fa_temp_token(token: str) -> str:
+    """Decode a 2FA temp token. Returns user_id or raises."""
+    from fim_one.web.auth import ALGORITHM, SECRET_KEY
+
+    try:
+        payload = _jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except _jwt.ExpiredSignatureError:
+        raise AppError("2fa_token_expired", status_code=401) from None
+    except _jwt.InvalidTokenError:
+        raise AppError("2fa_token_invalid", status_code=401) from None
+
+    if payload.get("purpose") != "2fa_verify":
+        raise AppError("2fa_token_invalid", status_code=401)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise AppError("2fa_token_invalid", status_code=401)
+    return user_id
+
+
+def _generate_backup_codes(count: int = 10) -> list[str]:
+    """Generate random 8-character alphanumeric backup codes."""
+    return [secrets.token_hex(4) for _ in range(count)]
+
+
+def _hash_backup_code(code: str) -> str:
+    return hashlib.sha256(code.encode()).hexdigest()
+
+
+@router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
+async def setup_2fa(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> TwoFactorSetupResponse:
+    """Generate a TOTP secret for 2FA setup. Does NOT enable 2FA yet."""
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+
+    if user.totp_enabled:
+        raise AppError("2fa_already_enabled")
+
+    secret = pyotp.random_base32()
+    user.totp_secret = secret
+    await db.commit()
+
+    totp = pyotp.TOTP(secret)
+    otpauth_uri = totp.provisioning_uri(
+        name=user.email,
+        issuer_name="FIM One",
+    )
+
+    return TwoFactorSetupResponse(secret=secret, otpauth_uri=otpauth_uri)
+
+
+@router.post("/2fa/enable", response_model=TwoFactorEnableResponse)
+async def enable_2fa(
+    body: TwoFactorEnableRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> TwoFactorEnableResponse:
+    """Verify TOTP code and enable 2FA. Returns backup codes."""
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+
+    if user.totp_enabled:
+        raise AppError("2fa_already_enabled")
+
+    if not user.totp_secret:
+        raise AppError("2fa_not_setup", detail="Call POST /api/auth/2fa/setup first")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(body.code):
+        raise AppError("2fa_code_invalid")
+
+    # Generate backup codes
+    plain_codes = _generate_backup_codes(10)
+    hashed_codes = [_hash_backup_code(c) for c in plain_codes]
+
+    user.totp_enabled = True
+    user.totp_backup_codes = json.dumps(hashed_codes)
+    await db.commit()
+
+    return TwoFactorEnableResponse(backup_codes=plain_codes)
+
+
+@router.post("/2fa/disable", response_model=ApiResponse)
+async def disable_2fa(
+    body: TwoFactorDisableRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Disable 2FA. Requires password verification."""
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+
+    if not user.totp_enabled:
+        raise AppError("2fa_not_enabled")
+
+    if user.password_hash is None or not verify_password(body.password, user.password_hash):
+        raise AppError("current_password_incorrect")
+
+    user.totp_secret = None
+    user.totp_enabled = False
+    user.totp_backup_codes = None
+    await db.commit()
+
+    return ApiResponse(data={"message": "2FA disabled successfully"})
+
+
+@router.post("/2fa/backup-codes", response_model=TwoFactorBackupCodesResponse)
+async def regenerate_backup_codes(
+    body: TwoFactorBackupCodesRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> TwoFactorBackupCodesResponse:
+    """Regenerate backup codes. Requires password verification."""
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+
+    if not user.totp_enabled:
+        raise AppError("2fa_not_enabled")
+
+    if user.password_hash is None or not verify_password(body.password, user.password_hash):
+        raise AppError("current_password_incorrect")
+
+    plain_codes = _generate_backup_codes(10)
+    hashed_codes = [_hash_backup_code(c) for c in plain_codes]
+    user.totp_backup_codes = json.dumps(hashed_codes)
+    await db.commit()
+
+    return TwoFactorBackupCodesResponse(backup_codes=plain_codes)
+
+
+@router.post("/login/verify-2fa", response_model=TokenResponse)
+async def verify_2fa_login(
+    body: TwoFactorVerifyRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> TokenResponse:
+    """Complete login with 2FA verification using TOTP code or backup code."""
+    user_id = _decode_2fa_temp_token(body.temp_token)
+
+    result = await db.execute(
+        select(User).options(selectinload(User.oauth_bindings)).where(User.id == user_id)
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise AppError("user_not_found", status_code=401)
+
+    if not user.is_active:
+        raise AppError("account_disabled", status_code=403)
+
+    if not user.totp_enabled or not user.totp_secret:
+        raise AppError("2fa_not_enabled")
+
+    # Try TOTP code first
+    totp = pyotp.TOTP(user.totp_secret)
+    code_valid = totp.verify(body.code)
+
+    # If TOTP didn't match, try backup codes
+    if not code_valid and user.totp_backup_codes:
+        code_hash = _hash_backup_code(body.code)
+        try:
+            stored_codes: list[str] = json.loads(user.totp_backup_codes)
+        except (json.JSONDecodeError, TypeError):
+            stored_codes = []
+
+        if code_hash in stored_codes:
+            code_valid = True
+            # Remove used backup code
+            stored_codes.remove(code_hash)
+            user.totp_backup_codes = json.dumps(stored_codes)
+
+    if not code_valid:
+        await _record_login(db, request, user, success=False, failure_reason="2fa_code_invalid")
+        raise AppError("2fa_code_invalid", status_code=401)
+
+    # Issue tokens (same as normal login)
+    access = create_access_token(user.id, user.email)
+    refresh = create_refresh_token(user.id, user.email)
+
+    user.refresh_token = refresh
+    user.refresh_token_expires_at = datetime.now(UTC) + timedelta(
+        days=REFRESH_TOKEN_EXPIRE_DAYS
+    )
+    await db.commit()
+
+    await _record_login(db, request, user, success=True)
+
+    # Reload with oauth_bindings (commit expires loaded attributes)
+    result = await db.execute(
+        select(User).options(selectinload(User.oauth_bindings)).where(User.id == user_id)
+    )
+    user = result.scalar_one()
+
+    return _build_token_response(user, access, refresh)
+
+
+# ---------------------------------------------------------------------------
+# Email Change
+# ---------------------------------------------------------------------------
+
+
+@router.post("/change-email/request", response_model=ApiResponse)
+async def request_email_change(
+    body: ChangeEmailRequestBody,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Request an email change. Sends OTP to the new email address."""
+    if not _smtp_configured():
+        raise AppError("smtp_not_configured", status_code=503)
+
+    # Verify password
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+
+    if user.password_hash is None or not verify_password(body.password, user.password_hash):
+        raise AppError("current_password_incorrect")
+
+    # Check new_email not already taken
+    existing = await db.execute(select(User).where(User.email == body.new_email))
+    if existing.scalar_one_or_none() is not None:
+        raise AppError("email_already_registered", status_code=409)
+
+    # Rate limit
+    recent = await db.execute(
+        select(EmailVerification)
+        .where(
+            EmailVerification.email == body.new_email,
+            EmailVerification.purpose == "change_email",
+            EmailVerification.created_at > datetime.now(UTC) - timedelta(seconds=VERIFICATION_CODE_RATE_LIMIT_SECONDS),
+        )
+        .order_by(EmailVerification.created_at.desc())
+        .limit(1)
+    )
+    if recent.scalar_one_or_none() is not None:
+        raise AppError("verification_rate_limited", status_code=429)
+
+    code = f"{secrets.randbelow(1000000):06d}"
+    verification = EmailVerification(
+        email=body.new_email,
+        code=code,
+        purpose="change_email",
+        expires_at=datetime.now(UTC) + timedelta(minutes=VERIFICATION_CODE_EXPIRY_MINUTES),
+    )
+    db.add(verification)
+    await db.commit()
+
+    await send_verification_email(body.new_email, code, purpose="change_email")
+
+    return ApiResponse(data={
+        "message": "Verification code sent to new email",
+        "expires_in": VERIFICATION_CODE_EXPIRY_MINUTES * 60,
+    })
+
+
+@router.post("/change-email/confirm", response_model=ApiResponse)
+async def confirm_email_change(
+    body: ChangeEmailConfirmBody,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Confirm email change with the OTP code sent to the new email."""
+    # Find the latest unexpired, unverified code for the new email
+    verif_result = await db.execute(
+        select(EmailVerification)
+        .where(
+            EmailVerification.email == body.new_email,
+            EmailVerification.purpose == "change_email",
+            EmailVerification.verified_at == None,  # noqa: E711
+        )
+        .order_by(EmailVerification.created_at.desc())
+        .limit(1)
+    )
+    verif = verif_result.scalar_one_or_none()
+
+    if verif is None:
+        raise AppError("verification_code_expired")
+
+    if verif.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+        raise AppError("verification_code_expired")
+
+    if verif.attempts >= VERIFICATION_MAX_ATTEMPTS:
+        raise AppError("verification_code_too_many_attempts")
+
+    if verif.code != body.code:
+        verif.attempts += 1
+        await db.commit()
+        raise AppError("verification_code_invalid")
+
+    # Mark as verified
+    verif.verified_at = datetime.now(UTC)
+
+    # Check the new email is still available (race condition guard)
+    existing = await db.execute(
+        select(User).where(User.email == body.new_email, User.id != current_user.id)
+    )
+    if existing.scalar_one_or_none() is not None:
+        await db.commit()
+        raise AppError("email_already_registered", status_code=409)
+
+    # Update the user's email
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalar_one()
+    user.email = body.new_email
+    await db.commit()
+
+    return ApiResponse(data={"message": "Email changed successfully"})
