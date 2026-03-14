@@ -227,6 +227,24 @@ class WorkflowEngine:
                 node_status[nid] = NodeStatus.FAILED
                 downstream = _collect_downstream(nid)
                 fail_branch_skipped.update(downstream)
+
+                # M3: Cancel any already-running tasks that are in the
+                # downstream skip set so they don't continue executing.
+                tasks_to_cancel: list[asyncio.Task] = []
+                for task, task_nid in list(running_tasks.items()):
+                    if task_nid in downstream:
+                        tasks_to_cancel.append(task)
+                        node_status[task_nid] = NodeStatus.SKIPPED
+                        completed.add(task_nid)
+                        del running_tasks[task]
+
+                for task in tasks_to_cancel:
+                    task.cancel()
+                if tasks_to_cancel:
+                    await asyncio.gather(
+                        *tasks_to_cancel, return_exceptions=True
+                    )
+
                 await event_queue.put((
                     "node_failed",
                     {
@@ -460,6 +478,23 @@ class WorkflowEngine:
                             )
                         running_tasks.clear()
                         break
+
+                    # M4: Check STOP_WORKFLOW BEFORE launching new nodes to
+                    # prevent a race where new tasks start in the same
+                    # iteration before the failure is detected.
+                    if _has_stop_workflow_failure() and pending:
+                        for remaining_nid in sorted(pending):
+                            node_status[remaining_nid] = NodeStatus.SKIPPED
+                            completed.add(remaining_nid)
+                            await event_queue.put((
+                                "node_skipped",
+                                {
+                                    "node_id": remaining_nid,
+                                    "reason": "Stopped by upstream node failure (stop_workflow)",
+                                },
+                            ))
+                        pending.clear()
+                        continue
 
                     # Find ready nodes
                     ready: list[str] = []
