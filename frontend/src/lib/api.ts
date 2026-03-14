@@ -970,6 +970,20 @@ export const workflowApi = {
       { method: "DELETE" },
     ),
 
+  exportRuns: (workflowId: string, status?: string, limit?: number) => {
+    const params = new URLSearchParams()
+    if (status) params.set("status", status)
+    if (limit != null) params.set("limit", String(limit))
+    const qs = params.toString()
+    return apiFetch<{
+      workflow_id: string
+      workflow_name: string
+      exported_at: string
+      total_runs: number
+      runs: Array<Record<string, unknown>>
+    }>(`/api/workflows/${workflowId}/runs/export${qs ? `?${qs}` : ""}`)
+  },
+
   batchRun: (id: string, inputs: Record<string, unknown>[], maxParallel = 3) =>
     apiFetch<ApiResponse<WorkflowBatchRunResponse>>(
       `/api/workflows/${id}/batch-run`,
@@ -1220,6 +1234,13 @@ export interface AdminKBDoc {
 }
 export interface AdminKBDetail extends AdminKBInfo {
   documents: AdminKBDoc[]
+}
+export interface AdminWorkflowInfo {
+  id: string; name: string; icon: string | null; description: string | null
+  status: string; is_active: boolean; node_count: number
+  total_runs: number; success_rate: number | null; last_run_at: string | null
+  user_id: string; username: string | null; email: string | null
+  created_at: string; updated_at: string
 }
 export interface AdminSensitiveWord {
   id: string; word: string; category: string
@@ -1472,6 +1493,20 @@ export const adminApi = {
     apiFetch<AdminKBDetail>(`/api/admin/knowledge-bases/${kbId}`),
   adminDeleteKB: (kbId: string) =>
     apiFetch(`/api/admin/knowledge-bases/${kbId}`, { method: 'DELETE' }),
+
+  // --- Workflows ---
+  listAllWorkflows: (params?: { page?: number; size?: number; search?: string; status?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.size) sp.set('size', String(params.size))
+    if (params?.search) sp.set('search', params.search)
+    if (params?.status) sp.set('status', params.status)
+    return apiFetch<{ items: AdminWorkflowInfo[]; total: number; page: number; size: number; pages: number }>(`/api/admin/workflows?${sp}`)
+  },
+  toggleWorkflowActive: (workflowId: string) =>
+    apiFetch<{ ok: boolean; is_active: boolean }>(`/api/admin/workflows/${workflowId}/toggle`, { method: 'POST' }),
+  adminDeleteWorkflow: (workflowId: string) =>
+    apiFetch(`/api/admin/workflows/${workflowId}`, { method: 'DELETE' }),
 
   // --- Content Moderation ---
   listSensitiveWords: (params?: { category?: string }) => {

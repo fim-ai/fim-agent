@@ -2332,6 +2332,60 @@ async def get_workflow_analytics(
     return ApiResponse(data=analytics.model_dump())
 
 
+@router.get("/{workflow_id}/runs/export")
+async def export_workflow_runs(
+    workflow_id: str,
+    status: str | None = Query(None, pattern="^(pending|running|completed|failed|cancelled)$"),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> Response:
+    """Export workflow run history as a JSON file.
+
+    Useful for analytics, debugging, and compliance.  Returns up to
+    ``limit`` runs ordered by most recent first, optionally filtered by
+    ``status``.
+    """
+    wf = await _get_accessible_workflow(workflow_id, current_user.id, db)
+
+    base = select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
+    if status:
+        base = base.where(WorkflowRun.status == status)
+
+    result = await db.execute(
+        base.order_by(WorkflowRun.created_at.desc()).limit(limit)
+    )
+    runs = result.scalars().all()
+
+    export_runs = []
+    for r in runs:
+        resp = _run_to_response(r)
+        export_runs.append({
+            "id": resp.id,
+            "status": resp.status,
+            "inputs": resp.inputs,
+            "outputs": resp.outputs,
+            "error": resp.error,
+            "started_at": resp.started_at,
+            "completed_at": resp.completed_at,
+            "duration_ms": resp.duration_ms,
+            "node_results": resp.node_results,
+        })
+
+    payload = {
+        "workflow_id": wf.id,
+        "workflow_name": wf.name,
+        "exported_at": datetime.now(UTC).isoformat(),
+        "total_runs": len(export_runs),
+        "runs": export_runs,
+    }
+
+    return Response(
+        content=json.dumps(payload, ensure_ascii=False, indent=2),
+        media_type="application/json",
+    )
+
+
 @router.get("/{workflow_id}/runs/{run_id}", response_model=ApiResponse)
 async def get_workflow_run(
     workflow_id: str,

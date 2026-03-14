@@ -17,6 +17,7 @@ import {
   RotateCw,
   GitCompareArrows,
   Trash2,
+  Download,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -255,6 +256,32 @@ export function RunHistorySheet({
     }
   }, [workflowId, t])
 
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportRuns = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const data = await workflowApi.exportRuns(workflowId)
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      })
+      const url = URL.createObjectURL(blob)
+      const dateStr = new Date().toISOString().slice(0, 10)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `workflow-runs-${workflowId}-${dateStr}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(t("exportRunsSuccess"))
+    } catch {
+      toast.error(t("historyLoadFailed"))
+    } finally {
+      setIsExporting(false)
+    }
+  }, [workflowId, t])
+
   const statusOptions = useMemo(
     () =>
       [
@@ -379,6 +406,20 @@ export function RunHistorySheet({
                 <GitCompareArrows className="h-3.5 w-3.5 mr-1.5" />
               )}
               {t("compareButton")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={runs.length === 0 || isExporting}
+              onClick={handleExportRuns}
+              className="shrink-0"
+            >
+              {isExporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {t("exportRuns")}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
