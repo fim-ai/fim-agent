@@ -47,6 +47,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         is_builder=agent.is_builder,
         discoverable=agent.discoverable,
         sub_agent_ids=agent.sub_agent_ids,
+        allow_as_sub_agent=getattr(agent, "allow_as_sub_agent", True),
         skill_ids=agent.skill_ids,
         compact_instructions=agent.compact_instructions,
         visibility=getattr(agent, "visibility", "personal"),
@@ -168,6 +169,7 @@ async def create_agent(
         execution_mode=body.execution_mode,
         skill_ids=body.skill_ids,
         compact_instructions=body.compact_instructions,
+        allow_as_sub_agent=body.allow_as_sub_agent,
         status="draft",
     )
     db.add(agent)
