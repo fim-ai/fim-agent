@@ -694,7 +694,7 @@ async def publish_connector(
         connector.visibility = "org"
         connector.org_id = body.org_id
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(connector, body.org_id, db, resource_type="connector")
+        await apply_publish_status(connector, body.org_id, db, resource_type="connector", publisher_id=current_user.id)
 
         from fim_one.web.api.reviews import log_review_event
         await log_review_event(

@@ -1582,9 +1582,9 @@ export const adminApi = {
     apiFetch(`/api/admin/organizations/${orgId}`, { method: 'DELETE' }),
 
   // --- Organizations (regular CRUD) ---
-  createOrganization: (data: { name: string; description?: string; icon?: string; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean }) =>
+  createOrganization: (data: { name: string; description?: string; icon?: string; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean; review_skills?: boolean }) =>
     apiFetch<AdminOrganization>('/api/orgs', { method: 'POST', body: JSON.stringify(data) }),
-  updateOrganization: (orgId: string, data: { name?: string; description?: string; icon?: string; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean }) =>
+  updateOrganization: (orgId: string, data: { name?: string; description?: string; icon?: string; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean; review_skills?: boolean }) =>
     apiFetch<AdminOrganization>(`/api/admin/organizations/${orgId}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteOrganization: (orgId: string) =>
     apiFetch(`/api/orgs/${orgId}`, { method: 'DELETE' }),
@@ -1735,6 +1735,7 @@ export interface UserOrg {
   review_kbs: boolean
   review_mcp_servers: boolean
   review_workflows: boolean
+  review_skills: boolean
 }
 
 export interface ReviewItem {
@@ -1762,13 +1763,13 @@ export const orgApi = {
   list: () =>
     apiFetch<{ data: UserOrg[] }>("/api/orgs").then(r => r.data ?? []),
 
-  create: (body: { name: string; slug?: string; description?: string | null; icon?: string | null; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean }) =>
+  create: (body: { name: string; slug?: string; description?: string | null; icon?: string | null; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean; review_skills?: boolean }) =>
     apiFetch<{ data: UserOrg }>("/api/orgs", {
       method: "POST",
       body: JSON.stringify(body),
     }).then(r => r.data),
 
-  update: (orgId: string, body: { name?: string; description?: string | null; icon?: string | null; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean }) =>
+  update: (orgId: string, body: { name?: string; description?: string | null; icon?: string | null; review_agents?: boolean; review_connectors?: boolean; review_kbs?: boolean; review_mcp_servers?: boolean; review_workflows?: boolean; review_skills?: boolean }) =>
     apiFetch<{ data: UserOrg }>(`/api/orgs/${orgId}`, {
       method: "PUT",
       body: JSON.stringify(body),

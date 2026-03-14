@@ -355,7 +355,7 @@ async def publish_mcp_server(
         server.org_id = body.org_id
         server.allow_fallback = body.allow_fallback
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(server, body.org_id, db, resource_type="mcp_server")
+        await apply_publish_status(server, body.org_id, db, resource_type="mcp_server", publisher_id=current_user.id)
 
         from fim_one.web.api.reviews import log_review_event
         await log_review_event(

@@ -48,6 +48,9 @@ class Organization(UUIDPKMixin, TimestampMixin, Base):
     review_workflows: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default=sa.text("FALSE")
     )
+    review_skills: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default=sa.text("FALSE")
+    )
 
     owner: Mapped[User] = relationship(foreign_keys=[owner_id], lazy="raise")
     memberships: Mapped[list[OrgMembership]] = relationship(

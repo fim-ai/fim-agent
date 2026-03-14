@@ -183,5 +183,8 @@
   "reviewHistoryActionResubmitted": "已重新提交",
   "reviewWorkflowsLabel": "工作流审核",
   "filterWorkflows": "工作流",
-  "resourceTypeWorkflow": "工作流"
+  "resourceTypeWorkflow": "工作流",
+  "reviewSkillsLabel": "技能审查",
+  "filterSkills": "技能",
+  "resourceTypeSkill": "技能"
 }

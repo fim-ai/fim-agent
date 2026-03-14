@@ -183,5 +183,8 @@
   "reviewHistoryActionResubmitted": "Erneut eingereicht",
   "reviewWorkflowsLabel": "Workflow-Überprüfung",
   "filterWorkflows": "Workflows",
-  "resourceTypeWorkflow": "Workflow"
+  "resourceTypeWorkflow": "Workflow",
+  "reviewSkillsLabel": "Fähigkeitsbewertung",
+  "filterSkills": "Fähigkeiten",
+  "resourceTypeSkill": "Fähigkeit"
 }

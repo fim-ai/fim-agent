@@ -183,5 +183,8 @@
   "reviewHistoryActionResubmitted": "Resoumis",
   "reviewWorkflowsLabel": "Examen du flux de travail",
   "filterWorkflows": "Flux de travail",
-  "resourceTypeWorkflow": "Flux de travail"
+  "resourceTypeWorkflow": "Flux de travail",
+  "reviewSkillsLabel": "Examen des compétences",
+  "filterSkills": "Compétences",
+  "resourceTypeSkill": "Compétence"
 }

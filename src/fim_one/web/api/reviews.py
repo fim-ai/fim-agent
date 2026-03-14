@@ -16,6 +16,7 @@ from fim_one.web.models.agent import Agent
 from fim_one.web.models.connector import Connector
 from fim_one.web.models.knowledge_base import KnowledgeBase
 from fim_one.web.models.mcp_server import MCPServer
+from fim_one.web.models.skill import Skill
 from fim_one.web.models.workflow import Workflow
 from fim_one.web.models.user import User
 from fim_one.web.schemas.common import ApiResponse
@@ -31,6 +32,7 @@ RESOURCE_MODELS = {
     "connector": Connector,
     "knowledge_base": KnowledgeBase,
     "mcp_server": MCPServer,
+    "skill": Skill,
     "workflow": Workflow,
 }
 

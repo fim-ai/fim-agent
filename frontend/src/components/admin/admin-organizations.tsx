@@ -85,6 +85,7 @@ function resourceTypeLabel(type: string, t: (key: string) => string): string {
     case "knowledge_base": return t("resourceTypeKb")
     case "mcp_server": return t("resourceTypeMcpServer")
     case "workflow": return t("resourceTypeWorkflow")
+    case "skill": return t("resourceTypeSkill")
     default: return type
   }
 }
@@ -190,6 +191,8 @@ function AdminReviewsSheet({ open, onOpenChange, org }: AdminReviewsSheetProps) 
                   <SelectItem value="connector">{t("filterConnectors")}</SelectItem>
                   <SelectItem value="knowledge_base">{t("filterKBs")}</SelectItem>
                   <SelectItem value="mcp_server">{t("filterMcpServers")}</SelectItem>
+                  <SelectItem value="workflow">{t("filterWorkflows")}</SelectItem>
+                  <SelectItem value="skill">{t("filterSkills")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -379,6 +382,7 @@ export function AdminOrganizations() {
   const [editReviewKbs, setEditReviewKbs] = useState(false)
   const [editReviewMcpServers, setEditReviewMcpServers] = useState(false)
   const [editReviewWorkflows, setEditReviewWorkflows] = useState(false)
+  const [editReviewSkills, setEditReviewSkills] = useState(false)
 
   // --- Create review fields ---
   const [createReviewAgents, setCreateReviewAgents] = useState(false)
@@ -386,6 +390,7 @@ export function AdminOrganizations() {
   const [createReviewKbs, setCreateReviewKbs] = useState(false)
   const [createReviewMcpServers, setCreateReviewMcpServers] = useState(false)
   const [createReviewWorkflows, setCreateReviewWorkflows] = useState(false)
+  const [createReviewSkills, setCreateReviewSkills] = useState(false)
 
   // --- Field errors ---
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -453,6 +458,7 @@ export function AdminOrganizations() {
         review_kbs: createReviewKbs,
         review_mcp_servers: createReviewMcpServers,
         review_workflows: createReviewWorkflows,
+        review_skills: createReviewSkills,
       })
       toast.success(t("createSuccess"))
       setCreateOpen(false)
@@ -464,6 +470,7 @@ export function AdminOrganizations() {
       setCreateReviewKbs(false)
       setCreateReviewMcpServers(false)
       setCreateReviewWorkflows(false)
+      setCreateReviewSkills(false)
       setFieldErrors({})
       await loadOrgs()
     } catch (err: unknown) {
@@ -484,6 +491,7 @@ export function AdminOrganizations() {
     setEditReviewKbs(org.review_kbs ?? false)
     setEditReviewMcpServers(org.review_mcp_servers ?? false)
     setEditReviewWorkflows(org.review_workflows ?? false)
+    setEditReviewSkills(org.review_skills ?? false)
     setFieldErrors({})
   }
 
@@ -508,6 +516,7 @@ export function AdminOrganizations() {
         review_kbs: editReviewKbs,
         review_mcp_servers: editReviewMcpServers,
         review_workflows: editReviewWorkflows,
+        review_skills: editReviewSkills,
       })
       toast.success(t("updateSuccess"))
       setEditTarget(null)
@@ -740,7 +749,7 @@ export function AdminOrganizations() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {(org.review_agents || org.review_connectors || org.review_kbs || org.review_mcp_servers || org.review_workflows) ? (
+                    {(org.review_agents || org.review_connectors || org.review_kbs || org.review_mcp_servers || org.review_workflows || org.review_skills) ? (
                       <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400 gap-1">
                         <ShieldCheck className="h-3 w-3" />
                         {[
@@ -749,6 +758,7 @@ export function AdminOrganizations() {
                           org.review_kbs && t("reviewKbsLabel"),
                           org.review_mcp_servers && t("reviewMcpServersLabel"),
                           org.review_workflows && t("reviewWorkflowsLabel"),
+                          org.review_skills && t("reviewSkillsLabel"),
                         ].filter(Boolean).length}
                       </Badge>
                     ) : (
@@ -774,7 +784,7 @@ export function AdminOrganizations() {
                           <Pencil className="mr-2 h-4 w-4" />
                           {tc("edit")}
                         </DropdownMenuItem>
-                        {(org.review_agents || org.review_connectors || org.review_kbs || org.review_mcp_servers || org.review_workflows) && (
+                        {(org.review_agents || org.review_connectors || org.review_kbs || org.review_mcp_servers || org.review_workflows || org.review_skills) && (
                           <DropdownMenuItem onClick={() => setReviewsTarget(org)}>
                             <ClipboardCheck className="mr-2 h-4 w-4" />
                             {t("reviewManagement")}
@@ -831,7 +841,7 @@ export function AdminOrganizations() {
       )}
 
       {/* --- Create Organization Dialog --- */}
-      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) { setCreateOpen(false); setCreateIcon(null); setCreateReviewAgents(false); setCreateReviewConnectors(false); setCreateReviewKbs(false); setCreateReviewMcpServers(false); setFieldErrors({}) } }}>
+      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) { setCreateOpen(false); setCreateIcon(null); setCreateReviewAgents(false); setCreateReviewConnectors(false); setCreateReviewKbs(false); setCreateReviewMcpServers(false); setCreateReviewWorkflows(false); setCreateReviewSkills(false); setFieldErrors({}) } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("createTitle")}</DialogTitle>
@@ -903,11 +913,15 @@ export function AdminOrganizations() {
                   <label className="text-sm">{t("reviewWorkflowsLabel")}</label>
                   <Switch checked={createReviewWorkflows} onCheckedChange={setCreateReviewWorkflows} />
                 </div>
+                <div className="flex items-center justify-between gap-4">
+                  <label className="text-sm">{t("reviewSkillsLabel")}</label>
+                  <Switch checked={createReviewSkills} onCheckedChange={setCreateReviewSkills} />
+                </div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCreateOpen(false); setCreateIcon(null); setCreateReviewAgents(false); setCreateReviewConnectors(false); setCreateReviewKbs(false); setCreateReviewMcpServers(false); setCreateReviewWorkflows(false); setFieldErrors({}) }}>
+            <Button variant="outline" onClick={() => { setCreateOpen(false); setCreateIcon(null); setCreateReviewAgents(false); setCreateReviewConnectors(false); setCreateReviewKbs(false); setCreateReviewMcpServers(false); setCreateReviewWorkflows(false); setCreateReviewSkills(false); setFieldErrors({}) }}>
               {tc("cancel")}
             </Button>
             <Button
@@ -996,6 +1010,10 @@ export function AdminOrganizations() {
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-sm">{t("reviewWorkflowsLabel")}</label>
                   <Switch checked={editReviewWorkflows} onCheckedChange={setEditReviewWorkflows} />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <label className="text-sm">{t("reviewSkillsLabel")}</label>
+                  <Switch checked={editReviewSkills} onCheckedChange={setEditReviewSkills} />
                 </div>
               </div>
             </div>

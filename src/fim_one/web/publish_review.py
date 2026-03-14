@@ -18,6 +18,7 @@ _REVIEW_COLUMN_MAP = {
     "knowledge_base": "review_kbs",
     "mcp_server": "review_mcp_servers",
     "workflow": "review_workflows",
+    "skill": "review_skills",
 }
 
 _TABLE_TO_RESOURCE_TYPE = {
@@ -26,6 +27,7 @@ _TABLE_TO_RESOURCE_TYPE = {
     "knowledge_bases": "knowledge_base",
     "mcp_servers": "mcp_server",
     "workflows": "workflow",
+    "skills": "skill",
 }
 
 
@@ -47,9 +49,27 @@ async def get_org_requires_review(
 
 
 async def apply_publish_status(
-    resource, org_id: str, db: AsyncSession, resource_type: str
+    resource,
+    org_id: str,
+    db: AsyncSession,
+    resource_type: str,
+    publisher_id: str | None = None,
 ) -> None:
-    """Set publish_status based on org review setting. Call during publish."""
+    """Set publish_status based on org review setting. Call during publish.
+
+    If publisher_id matches the org owner_id (org creator), the review is
+    bypassed and publish_status is set to None immediately.
+    """
+    # Org creator bypass: fetch org to compare owner_id
+    if publisher_id is not None:
+        result = await db.execute(
+            select(Organization).where(Organization.id == org_id)
+        )
+        org = result.scalar_one_or_none()
+        if org is not None and org.owner_id == publisher_id:
+            resource.publish_status = None
+            return
+
     if await get_org_requires_review(org_id, db, resource_type):
         resource.publish_status = "pending_review"
     else:

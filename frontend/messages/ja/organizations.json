@@ -183,5 +183,8 @@
   "reviewHistoryActionResubmitted": "再提出",
   "reviewWorkflowsLabel": "ワークフロー レビュー",
   "filterWorkflows": "ワークフロー",
-  "resourceTypeWorkflow": "ワークフロー"
+  "resourceTypeWorkflow": "ワークフロー",
+  "reviewSkillsLabel": "スキルレビュー",
+  "filterSkills": "スキル",
+  "resourceTypeSkill": "スキル"
 }

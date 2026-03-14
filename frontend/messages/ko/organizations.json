@@ -183,5 +183,8 @@
   "reviewHistoryActionResubmitted": "재제출됨",
   "reviewWorkflowsLabel": "워크플로우 검토",
   "filterWorkflows": "워크플로우",
-  "resourceTypeWorkflow": "워크플로우"
+  "resourceTypeWorkflow": "워크플로우",
+  "reviewSkillsLabel": "스킬 검토",
+  "filterSkills": "스킬",
+  "resourceTypeSkill": "스킬"
 }

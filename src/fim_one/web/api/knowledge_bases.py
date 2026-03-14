@@ -266,7 +266,7 @@ async def publish_kb(
         kb.visibility = "org"
         kb.org_id = body.org_id
         from fim_one.web.publish_review import apply_publish_status
-        await apply_publish_status(kb, body.org_id, db, resource_type="knowledge_base")
+        await apply_publish_status(kb, body.org_id, db, resource_type="knowledge_base", publisher_id=current_user.id)
 
         from fim_one.web.api.reviews import log_review_event
         await log_review_event(

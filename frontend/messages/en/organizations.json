@@ -130,6 +130,7 @@
   "reviewKbsLabel": "Knowledge Base Review",
   "reviewMcpServersLabel": "MCP Server Review",
   "reviewWorkflowsLabel": "Workflow Review",
+  "reviewSkillsLabel": "Skill Review",
   "reviewManagement": "Review Management",
   "pendingReviews": "Pending Reviews",
   "noReviewsPending": "No resources pending review",
@@ -162,6 +163,7 @@
   "filterKBs": "Knowledge Bases",
   "filterMcpServers": "MCP Servers",
   "filterWorkflows": "Workflows",
+  "filterSkills": "Skills",
   "filterPending": "Pending",
   "filterRejected": "Rejected",
   "filterApproved": "Approved",
@@ -172,6 +174,7 @@
   "resourceTypeKb": "Knowledge Base",
   "resourceTypeMcpServer": "MCP Server",
   "resourceTypeWorkflow": "Workflow",
+  "resourceTypeSkill": "Skill",
   "platformOrgName": "Platform",
   "platformOrgDescription": "Default platform-wide organization. All users are automatically enrolled.",
 
