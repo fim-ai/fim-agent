@@ -15,6 +15,11 @@ import httpx
 
 from fim_one.core.security import get_safe_async_client, validate_url
 from fim_one.core.tool.base import BaseTool
+from fim_one.core.tool.connector.circuit_breaker import (
+    CircuitBreakerRegistry,
+    CircuitOpenError,
+    get_circuit_breaker_registry,
+)
 from fim_one.core.tool.connector.semantic_tags import enrich_parameters_schema
 from fim_one.core.tool.truncation import truncate_tool_output
 
@@ -108,7 +113,35 @@ class ConnectorToolAdapter(BaseTool):
         return enrich_parameters_schema(self._parameters_schema_val)
 
     async def run(self, **kwargs: Any) -> str:
-        """Execute the HTTP request to the target system."""
+        """Execute the HTTP request to the target system.
+
+        The call is guarded by a per-connector circuit breaker.  When the
+        external service has accumulated too many consecutive failures the
+        breaker opens and subsequent calls are rejected immediately with
+        a human-readable error instead of hammering the failing service.
+
+        Only server-side failures (5xx, timeouts, connection errors) trip
+        the breaker.  Client errors (4xx) are passed through as-is because
+        they indicate a problem with the request, not the service.
+        """
+        # 0. Circuit breaker gate — reject early if service is known-down
+        registry = await get_circuit_breaker_registry()
+        connector_key = self._connector_id or self._name
+
+        try:
+            await registry.check_and_acquire(connector_key)
+        except CircuitOpenError as exc:
+            logger.warning(
+                "Circuit breaker blocked call to connector %s: %s",
+                connector_key,
+                exc,
+            )
+            return (
+                f"[CircuitBreaker] The connector '{self._connector_name_raw}' "
+                f"is temporarily unavailable due to repeated failures. "
+                f"The system will automatically retry after a cooldown period."
+            )
+
         # 1. Build URL with path parameters
         path = self._path
         path_params = re.findall(r"\{(\w+)\}", path)
@@ -151,6 +184,7 @@ class ConnectorToolAdapter(BaseTool):
         success = False
         error_message: str | None = None
         result = ""
+        is_server_failure = False  # tracks whether to trip the breaker
 
         try:
             async with get_safe_async_client(timeout=30) as client:
@@ -164,7 +198,14 @@ class ConnectorToolAdapter(BaseTool):
 
                 response_status = resp.status_code
                 content = resp.text
+                if resp.status_code >= 500:
+                    # Server error — counts as a circuit-breaker failure
+                    is_server_failure = True
+                    error_message = content[:500]
+                    result = f"[HTTP {resp.status_code}] {content[:2000]}"
+                    return result
                 if resp.status_code >= 400:
+                    # Client error — NOT a service failure
                     error_message = content[:500]
                     result = f"[HTTP {resp.status_code}] {content[:2000]}"
                     return result
@@ -203,14 +244,22 @@ class ConnectorToolAdapter(BaseTool):
                 return result
 
         except httpx.TimeoutException:
+            is_server_failure = True
             error_message = "Request exceeded 30 seconds"
             result = f"[Timeout] {error_message}."
             return result
         except httpx.RequestError as exc:
+            is_server_failure = True
             error_message = f"{type(exc).__name__}: {exc}"
             result = f"[Error] {error_message}"
             return result
         finally:
+            # 5. Update circuit breaker state
+            if is_server_failure:
+                await registry.record_failure(connector_key)
+            elif success:
+                await registry.record_success(connector_key)
+
             elapsed_ms = time.monotonic_ns() // 1_000_000 - start_ms
             if self._on_call_complete:
                 try:

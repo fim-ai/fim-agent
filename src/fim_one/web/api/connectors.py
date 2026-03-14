@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from fim_one.core.security import get_safe_async_client, validate_url
+from fim_one.core.tool.connector.circuit_breaker import get_circuit_breaker_registry
 from fim_one.core.tool.connector.openapi_parser import parse_openapi_spec
 from fim_one.core.tool.connector.semantic_tags import get_all_semantic_tags
 from fim_one.web.exceptions import AppError
@@ -1164,3 +1165,34 @@ async def toggle_connector(
     connector.is_active = not connector.is_active
     await db.commit()
     return ApiResponse(data={"id": connector_id, "is_active": connector.is_active})
+
+
+# ---------------------------------------------------------------------------
+# Circuit breaker status
+# ---------------------------------------------------------------------------
+
+
+@router.get("/circuit-breaker-status", response_model=ApiResponse)
+async def get_circuit_breaker_status(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> ApiResponse:
+    """Return the state of all per-connector circuit breakers.
+
+    Useful for monitoring which external services are experiencing
+    failures and when recovery probes are scheduled.
+    """
+    registry = await get_circuit_breaker_registry()
+    return ApiResponse(data={"breakers": registry.get_status()})
+
+
+@router.post("/{connector_id}/circuit-breaker-reset", response_model=ApiResponse)
+async def reset_circuit_breaker(
+    connector_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> ApiResponse:
+    """Manually reset a circuit breaker for a connector to CLOSED state."""
+    registry = await get_circuit_breaker_registry()
+    existed = await registry.reset(connector_id)
+    return ApiResponse(
+        data={"connector_id": connector_id, "reset": existed},
+    )
