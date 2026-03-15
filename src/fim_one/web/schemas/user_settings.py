@@ -80,14 +80,22 @@ class SessionListResponse(BaseModel):
 
 class ConnectorCredentialInfo(BaseModel):
     id: str
-    connector_id: str
-    created_at: str
+    name: str
+    resource_type: str = "connector"
+    resource_id: str
+    status: str = "configured"
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class McpCredentialInfo(BaseModel):
     id: str
-    server_id: str
-    created_at: str
+    name: str
+    resource_type: str = "mcp"
+    resource_id: str
+    status: str = "configured"
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class CredentialsResponse(BaseModel):

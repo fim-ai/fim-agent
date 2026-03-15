@@ -701,15 +701,13 @@ class WorkflowEngine:
                         completed.add(nid)
                         node_status[nid] = NodeStatus.SKIPPED
 
-                        # When a branching node is skipped, deactivate all its
-                        # outgoing edges so downstream nodes cascade-skip too.
-                        node_def = node_index[nid]
-                        if node_def.type in (
-                            NodeType.CONDITION_BRANCH,
-                            NodeType.QUESTION_CLASSIFIER,
-                        ):
-                            for edge in outgoing_edges.get(nid, []):
-                                active_edges.discard(edge.id)
+                        # Deactivate all outgoing edges from skipped nodes so
+                        # downstream nodes cascade-skip too.  Previously this
+                        # only applied to branching node types, but any skipped
+                        # node must propagate: if an LLM on a dead branch is
+                        # skipped, its downstream End node must also be skipped.
+                        for edge in outgoing_edges.get(nid, []):
+                            active_edges.discard(edge.id)
 
                         await event_queue.put((
                             "node_skipped",

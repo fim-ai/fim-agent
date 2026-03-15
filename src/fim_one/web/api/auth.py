@@ -1797,15 +1797,18 @@ async def verify_2fa_login(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/change-email/request", response_model=ApiResponse)
+@router.post("/change-email/request", response_model=ApiResponse, deprecated=True)
 async def request_email_change(
     body: ChangeEmailRequestBody,
     current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
-    """Request an email change. Sends OTP to the new email address."""
-    if not _smtp_configured():
-        raise AppError("smtp_not_configured", status_code=503)
+    """Request an email change. Sends OTP to the new email address.
+
+    Temporarily disabled due to OAuth binding safety concerns — changing email
+    breaks the email-match constraint for re-binding OAuth providers.
+    """
+    raise AppError("feature_disabled", status_code=501)
 
     # Verify password
     result = await db.execute(select(User).where(User.id == current_user.id))
@@ -1851,13 +1854,17 @@ async def request_email_change(
     })
 
 
-@router.post("/change-email/confirm", response_model=ApiResponse)
+@router.post("/change-email/confirm", response_model=ApiResponse, deprecated=True)
 async def confirm_email_change(
     body: ChangeEmailConfirmBody,
     current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
-    """Confirm email change with the OTP code sent to the new email."""
+    """Confirm email change with the OTP code sent to the new email.
+
+    Temporarily disabled — see request_email_change.
+    """
+    raise AppError("feature_disabled", status_code=501)
     # Find the latest unexpired, unverified code for the new email
     verif_result = await db.execute(
         select(EmailVerification)

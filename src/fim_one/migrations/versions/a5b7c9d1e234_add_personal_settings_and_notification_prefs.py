@@ -1,7 +1,7 @@
 """add personal settings columns and notification_preferences table
 
 Revision ID: a5b7c9d1e234
-Revises: z4a6b8c0d123
+Revises: q7r8s9t0u123
 Create Date: 2026-03-15
 """
 
@@ -15,7 +15,7 @@ from alembic import op
 from fim_one.migrations.helpers import table_exists, table_has_column
 
 revision: str = "a5b7c9d1e234"
-down_revision: Union[str, None] = "z4a6b8c0d123"
+down_revision: Union[str, None] = "q7r8s9t0u123"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

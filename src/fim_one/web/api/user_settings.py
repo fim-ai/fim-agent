@@ -28,7 +28,9 @@ from fim_one.web.models import (
     User,
 )
 from fim_one.web.models.agent import Agent
+from fim_one.web.models.connector import Connector
 from fim_one.web.models.conversation import Conversation
+from fim_one.web.models.mcp_server import MCPServer
 from fim_one.web.schemas.user_settings import (
     AgentUsage,
     ConnectorCredentialInfo,
@@ -254,32 +256,42 @@ async def list_my_credentials(
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> CredentialsResponse:
     """List the user's connector and MCP server credentials (no secrets)."""
+    # Join with Connector to get the connector name
     cc_result = await db.execute(
-        select(ConnectorCredential).where(ConnectorCredential.user_id == current_user.id)
+        select(ConnectorCredential, Connector.name)
+        .outerjoin(Connector, ConnectorCredential.connector_id == Connector.id)
+        .where(ConnectorCredential.user_id == current_user.id)
     )
-    cc_rows = cc_result.scalars().all()
+    cc_rows = cc_result.all()
 
+    # Join with MCPServer to get the server name
     mcp_result = await db.execute(
-        select(MCPServerCredential).where(MCPServerCredential.user_id == current_user.id)
+        select(MCPServerCredential, MCPServer.name)
+        .outerjoin(MCPServer, MCPServerCredential.server_id == MCPServer.id)
+        .where(MCPServerCredential.user_id == current_user.id)
     )
-    mcp_rows = mcp_result.scalars().all()
+    mcp_rows = mcp_result.all()
 
     return CredentialsResponse(
         connector_credentials=[
             ConnectorCredentialInfo(
                 id=c.id,
-                connector_id=c.connector_id,
-                created_at=c.created_at.isoformat() if c.created_at else "",
+                name=name or "Unknown Connector",
+                resource_id=c.connector_id,
+                created_at=c.created_at.isoformat() if c.created_at else None,
+                updated_at=c.updated_at.isoformat() if c.updated_at else None,
             )
-            for c in cc_rows
+            for c, name in cc_rows
         ],
         mcp_credentials=[
             McpCredentialInfo(
                 id=m.id,
-                server_id=m.server_id,
-                created_at=m.created_at.isoformat() if m.created_at else "",
+                name=name or "Unknown MCP Server",
+                resource_id=m.server_id,
+                created_at=m.created_at.isoformat() if m.created_at else None,
+                updated_at=m.updated_at.isoformat() if m.updated_at else None,
             )
-            for m in mcp_rows
+            for m, name in mcp_rows
         ],
     )
 
@@ -326,18 +338,19 @@ async def get_my_usage(
     daily = [DailyUsage(date=str(r.day), tokens=int(r.tokens)) for r in daily_rows]
 
     # By agent breakdown
+    agent_name_expr = case(
+        (Agent.name.isnot(None), Agent.name),
+        else_="Direct Chat",
+    )
     agent_q = (
         select(
             Conversation.agent_id,
-            case(
-                (Agent.name.isnot(None), Agent.name),
-                else_="Direct Chat",
-            ).label("agent_name"),
+            agent_name_expr.label("agent_name"),
             func.coalesce(func.sum(Conversation.total_tokens), 0).label("tokens"),
         )
         .outerjoin(Agent, Conversation.agent_id == Agent.id)
         .where(Conversation.user_id == current_user.id, Conversation.created_at >= since)
-        .group_by(Conversation.agent_id, "agent_name")
+        .group_by(Conversation.agent_id, agent_name_expr)
         .order_by(func.sum(Conversation.total_tokens).desc())
     )
     agent_rows = (await db.execute(agent_q)).all()

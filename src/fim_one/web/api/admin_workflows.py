@@ -132,9 +132,9 @@ async def list_all_workflows(
     for row in rows:
         workflow = row[0]
         user = row[1]
-        total_runs = row[2] or 0
-        success_count = row[3] or 0
-        last_run_at = row[4]
+        total_runs = int(getattr(row, "total_runs", None) or 0)
+        success_count = int(getattr(row, "success_count", None) or 0)
+        last_run_at = getattr(row, "last_run_at", None)
 
         success_rate = None
         if total_runs > 0:
