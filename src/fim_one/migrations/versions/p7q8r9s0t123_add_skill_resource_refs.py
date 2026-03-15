@@ -1,7 +1,7 @@
 """add resource_refs JSON column to skills table
 
 Revision ID: p7q8r9s0t123
-Revises: o5p6q7r8s901
+Revises: r8s9t0u1v234
 Create Date: 2026-03-16
 """
 
@@ -15,7 +15,7 @@ from alembic import op
 from fim_one.migrations.helpers import table_exists, table_has_column
 
 revision: str = "p7q8r9s0t123"
-down_revision: Union[str, None] = "o5p6q7r8s901"
+down_revision: Union[str, None] = "r8s9t0u1v234"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
