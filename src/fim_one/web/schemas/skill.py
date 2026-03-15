@@ -14,6 +14,7 @@ class SkillCreate(BaseModel):
     script: str | None = None
     script_type: Literal["python", "shell"] | None = None
     is_active: bool = True
+    resource_refs: list[dict] | None = None
 
 
 class SkillUpdate(BaseModel):
@@ -23,6 +24,7 @@ class SkillUpdate(BaseModel):
     script: str | None = None
     script_type: Literal["python", "shell"] | None = None
     is_active: bool | None = None
+    resource_refs: list[dict] | None = None
 
 
 class SkillResponse(BaseModel):
@@ -43,5 +45,6 @@ class SkillResponse(BaseModel):
     reviewed_at: str | None = None
     review_note: str | None = None
     source: str | None = None
+    resource_refs: list[dict] | None = None
     created_at: str
     updated_at: str | None

@@ -54,6 +54,7 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
             else None
         ),
         review_note=getattr(skill, "review_note", None),
+        resource_refs=getattr(skill, "resource_refs", None),
         created_at=skill.created_at.isoformat() if skill.created_at else "",
         updated_at=skill.updated_at.isoformat() if skill.updated_at else None,
     )
@@ -110,6 +111,7 @@ async def create_skill(
         script=body.script,
         script_type=body.script_type,
         is_active=body.is_active,
+        resource_refs=body.resource_refs,
         status="draft",
     )
     db.add(skill)

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import sqlalchemy as sa
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON
 
 from fim_one.db.base import Base, TimestampMixin, UUIDPKMixin
 
@@ -49,5 +50,8 @@ class Skill(UUIDPKMixin, TimestampMixin, Base):
         DateTime(timezone=True), nullable=True
     )
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Resource references: [{"type": "connector", "id": "xxx", "name": "...", "alias": "@..."}]
+    resource_refs: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 
     user: Mapped[User | None] = relationship(back_populates="skills", lazy="raise")

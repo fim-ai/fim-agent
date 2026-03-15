@@ -81,6 +81,13 @@ class ReadSkillTool(BaseTool):
                 output = skill.content
                 if skill.script and skill.script_type:
                     output += f"\n\n--- Script ({skill.script_type}) ---\n{skill.script}"
+                if skill.resource_refs:
+                    output += "\n\n--- Resource References ---"
+                    for ref in skill.resource_refs:
+                        alias = ref.get("alias", "")
+                        rtype = ref.get("type", "unknown")
+                        rname = ref.get("name", "")
+                        output += f'\n- {alias}: {rtype} "{rname}"'
                 return output
         except Exception as e:
             return f"[Error] failed to load skill: {e}"
