@@ -166,6 +166,7 @@ def _chunk_answer(text: str, target_size: int = 30) -> list[str]:
 _REPLAN_RECENT_TRUNCATION = int(os.getenv("DAG_REPLAN_RECENT_TRUNCATION", "500"))
 # Chars per step result in older replan rounds.
 _REPLAN_OLDER_TRUNCATION = int(os.getenv("DAG_REPLAN_OLDER_TRUNCATION", "200"))
+_SKILL_STUB_DESC_LEN = int(os.getenv("SKILL_STUB_DESC_LENGTH", "120"))
 
 
 def _format_replan_context(
@@ -876,8 +877,8 @@ async def _resolve_tools(
             logger.warning("Failed to load connector tools", exc_info=True)
 
     # Load read_skill tool when the agent has bound skills.
-    skill_ids = agent_cfg.get("skill_ids") if agent_cfg else None
-    if skill_ids:
+    skill_ids = (agent_cfg or {}).get("skill_ids") or []
+    if skill_ids and get_skill_tool_mode(agent_cfg) != "inline":
         from fim_one.core.tool.builtin.read_skill import ReadSkillTool
 
         tools.register(ReadSkillTool(skill_ids=skill_ids, user_id=user_id))
@@ -1191,9 +1192,66 @@ async def _resolve_skill_stubs(skill_ids: list[str]) -> str:
             "Call read_skill(name) to load full content before executing any of these:",
         ]
         for name, desc in rows:
+            if desc and len(desc) > _SKILL_STUB_DESC_LEN:
+                desc = desc[:_SKILL_STUB_DESC_LEN - 3] + "..."
             stub = f"- **{name}**" + (f": {desc}" if desc else "")
             lines.append(stub)
         return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def get_skill_tool_mode(agent_cfg: dict[str, Any] | None = None) -> str:
+    """Determine skill tool mode from agent config or environment.
+
+    Priority:
+        1. Agent-level ``model_config_json.skill_tool_mode``
+        2. Environment variable ``SKILL_TOOL_MODE``
+        3. Default: ``"progressive"``
+    """
+    if agent_cfg:
+        model_cfg = agent_cfg.get("model_config_json") or {}
+        if isinstance(model_cfg, dict):
+            mode = model_cfg.get("skill_tool_mode")
+            if mode in ("progressive", "inline"):
+                return mode
+    env_mode = os.environ.get("SKILL_TOOL_MODE", "progressive").lower()
+    if env_mode in ("progressive", "inline"):
+        return env_mode
+    return "progressive"
+
+
+async def _resolve_skill_inline(skill_ids: list[str]) -> str:
+    """Return full skill content for inline injection into system prompt."""
+    from fim_one.db import create_session
+    from fim_one.web.models.skill import Skill
+
+    try:
+        async with create_session() as session:
+            result = await session.execute(
+                sa_select(Skill).where(
+                    Skill.id.in_(skill_ids), Skill.is_active == True  # noqa: E712
+                )
+            )
+            skills = result.scalars().all()
+        if not skills:
+            return ""
+        parts = ["\n\n## Skills (inline)"]
+        for skill in skills:
+            parts.append(f"\n### {skill.name}")
+            if skill.description:
+                parts.append(skill.description)
+            parts.append(skill.content or "")
+            if skill.script and skill.script_type:
+                parts.append(f"\n```{skill.script_type}\n{skill.script}\n```")
+            if skill.resource_refs:
+                parts.append("\nResource References:")
+                for ref in skill.resource_refs:
+                    alias = ref.get("alias", "")
+                    rtype = ref.get("type", "unknown")
+                    rname = ref.get("name", "")
+                    parts.append(f'- {alias}: {rtype} "{rname}"')
+        return "\n".join(parts)
     except Exception:
         return ""
 
@@ -1459,9 +1517,13 @@ async def react_endpoint(
     # Inject skill stubs when agent has bound skills
     _react_skill_ids = agent_cfg.get("skill_ids") if agent_cfg else None
     if _react_skill_ids:
-        _skill_stubs = await _resolve_skill_stubs(_react_skill_ids)
-        if _skill_stubs:
-            extra_instructions = (extra_instructions or "") + _skill_stubs
+        _skill_mode = get_skill_tool_mode(agent_cfg)
+        if _skill_mode == "inline":
+            _skill_block = await _resolve_skill_inline(_react_skill_ids)
+        else:
+            _skill_block = await _resolve_skill_stubs(_react_skill_ids)
+        if _skill_block:
+            extra_instructions = (extra_instructions or "") + _skill_block
 
     # Load attached images (async to avoid blocking the event loop)
     image_data: list[tuple[str, str, str]] = []
@@ -2036,9 +2098,13 @@ async def dag_endpoint(
     # Inject skill stubs when agent has bound skills
     _dag_skill_ids = agent_cfg.get("skill_ids") if agent_cfg else None
     if _dag_skill_ids:
-        _skill_stubs = await _resolve_skill_stubs(_dag_skill_ids)
-        if _skill_stubs:
-            extra_instructions = (extra_instructions or "") + _skill_stubs
+        _skill_mode = get_skill_tool_mode(agent_cfg)
+        if _skill_mode == "inline":
+            _skill_block = await _resolve_skill_inline(_dag_skill_ids)
+        else:
+            _skill_block = await _resolve_skill_stubs(_dag_skill_ids)
+        if _skill_block:
+            extra_instructions = (extra_instructions or "") + _skill_block
 
     # DAG uses a fast LLM for step execution; role='fast' -> role='general' -> ENV fallback.
     async with _create_session() as _fast_llm_db:
