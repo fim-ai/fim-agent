@@ -5,19 +5,22 @@ import { useTranslations } from "next-intl"
 import { parseEvidence, parseSimpleEvidence, mergeEvidence, type ParsedEvidence } from "@/lib/evidence-utils"
 import type { ReactStepEvent } from "@/types/api"
 import type { StepItem } from "@/hooks/use-react-steps"
-import { ChevronDown } from "lucide-react"
+import { AlertTriangle, ChevronDown } from "lucide-react"
 
 interface ReferencesSectionProps {
   items: StepItem[]
+  evidence?: ParsedEvidence | null
 }
 
 const COLLAPSED_COUNT = 3
 
-export function ReferencesSection({ items }: ReferencesSectionProps) {
+export function ReferencesSection({ items, evidence: evidenceProp }: ReferencesSectionProps) {
   const t = useTranslations("playground")
   const [expanded, setExpanded] = useState(false)
+  const [showConflicts, setShowConflicts] = useState(false)
 
   const evidence = useMemo<ParsedEvidence | null>(() => {
+    if (evidenceProp !== undefined) return evidenceProp
     const blocks: ParsedEvidence[] = []
     for (const item of items) {
       if (item.event === "step") {
@@ -29,7 +32,7 @@ export function ReferencesSection({ items }: ReferencesSectionProps) {
       }
     }
     return blocks.length > 0 ? mergeEvidence(blocks) : null
-  }, [items])
+  }, [items, evidenceProp])
 
   if (!evidence || evidence.sources.length === 0) return null
 
@@ -56,6 +59,43 @@ export function ReferencesSection({ items }: ReferencesSectionProps) {
           {evidence.sources.length !== 1 ? t("sourceCountPlural", { count: evidence.sources.length }) : t("sourceCount", { count: evidence.sources.length })}
         </span>
       </div>
+
+      {/* Conflict warning */}
+      {evidence && evidence.conflicts.length > 0 && (
+        <div className="mb-2 rounded-md border border-yellow-200 dark:border-yellow-800/50 bg-yellow-50/50 dark:bg-yellow-900/10 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-500 shrink-0" />
+            <span className="text-xs text-yellow-800 dark:text-yellow-400">
+              {evidence.conflicts.length === 1
+                ? t("conflictWarningOne")
+                : t("conflictWarning", { count: evidence.conflicts.length })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowConflicts(v => !v)}
+              className="text-[11px] text-yellow-600 dark:text-yellow-500 hover:underline ml-auto cursor-pointer"
+            >
+              {showConflicts ? t("hideConflicts") : t("viewConflicts")}
+            </button>
+          </div>
+          {showConflicts && (
+            <div className="mt-2 space-y-2">
+              {evidence.conflicts.map((c, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="font-medium text-foreground/80">{c.sourceA}</span>
+                    <p className="italic text-muted-foreground">&ldquo;{c.textA}&rdquo;</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground/80">{c.sourceB}</span>
+                    <p className="italic text-muted-foreground">&ldquo;{c.textB}&rdquo;</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Reference items */}
       <div className="grid gap-1">

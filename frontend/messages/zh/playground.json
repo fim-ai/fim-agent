@@ -201,5 +201,10 @@
   "evidenceInsufficient": "证据不足",
   "evidenceInsufficientDetail": "置信度 {confidence}% 低于所需阈值 {threshold}%。",
   "evidenceInsufficientHint": "检索到的证据不够可靠，无法提供有把握的答案。",
-  "tryRephrase": "尝试重新表述您的问题"
+  "tryRephrase": "尝试重新表述您的问题",
+  "conflictWarning": "{count} 个来源对此主题有相互矛盾的信息",
+  "conflictWarningOne": "1 个来源对此主题有相互矛盾的信息",
+  "viewConflicts": "查看详情",
+  "hideConflicts": "隐藏",
+  "citationRelevance": "相关性：{value}%"
 }

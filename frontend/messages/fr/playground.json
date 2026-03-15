@@ -201,5 +201,10 @@
   "evidenceInsufficient": "Preuves insuffisantes",
   "evidenceInsufficientDetail": "La confiance {confidence}% est inférieure au seuil requis de {threshold}%.",
   "evidenceInsufficientHint": "Les preuves récupérées ne sont pas suffisamment fiables pour fournir une réponse confiante.",
-  "tryRephrase": "Essayez de reformuler votre question"
+  "tryRephrase": "Essayez de reformuler votre question",
+  "conflictWarning": "{count} sources contiennent des informations contradictoires sur ce sujet",
+  "conflictWarningOne": "1 source contient des informations contradictoires sur ce sujet",
+  "viewConflicts": "Afficher les détails",
+  "hideConflicts": "Masquer",
+  "citationRelevance": "Pertinence : {value}%"
 }

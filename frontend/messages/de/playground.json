@@ -200,6 +200,11 @@
   },
   "evidenceInsufficient": "Beweis unzureichend",
   "evidenceInsufficientDetail": "Konfidenz {confidence}% liegt unter dem erforderlichen Schwellenwert von {threshold}%.",
-  "evidenceInsufficientHint": "Die abgerufenen Belege sind nicht zuverlässig genug, um eine sichere Antwort zu geben.",
-  "tryRephrase": "Versuchen Sie, Ihre Frage umzuformulieren"
+  "evidenceInsufficientHint": "Die abgerufenen Beweise sind nicht zuverlässig genug, um eine sichere Antwort zu geben.",
+  "tryRephrase": "Versuchen Sie, Ihre Frage umzuformulieren",
+  "conflictWarning": "{count} Quellen haben widersprüchliche Informationen zu diesem Thema",
+  "conflictWarningOne": "1 Quelle hat widersprüchliche Informationen zu diesem Thema",
+  "viewConflicts": "Details anzeigen",
+  "hideConflicts": "Ausblenden",
+  "citationRelevance": "Relevanz: {value}%"
 }

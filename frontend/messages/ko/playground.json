@@ -199,7 +199,12 @@
     ]
   },
   "evidenceInsufficient": "증거 부족",
-  "evidenceInsufficientDetail": "신뢰도 {confidence}%가 필요한 임계값 {threshold}% 이하입니다.",
-  "evidenceInsufficientHint": "검색된 증거가 확실한 답변을 제공하기에 충분히 신뢰할 수 없습니다.",
-  "tryRephrase": "질문을 다시 표현해 보세요"
+  "evidenceInsufficientDetail": "신뢰도 {confidence}%는 필요한 임계값 {threshold}% 이하입니다.",
+  "evidenceInsufficientHint": "검색된 증거가 신뢰할 수 있는 답변을 제공하기에 충분하지 않습니다.",
+  "tryRephrase": "질문을 다시 표현해 보세요",
+  "conflictWarning": "{count}개의 출처에 이 주제에 대한 상충하는 정보가 있습니다",
+  "conflictWarningOne": "1개의 출처에 이 주제에 대한 상충하는 정보가 있습니다",
+  "viewConflicts": "세부 정보 보기",
+  "hideConflicts": "숨기기",
+  "citationRelevance": "관련성: {value}%"
 }

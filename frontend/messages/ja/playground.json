@@ -199,7 +199,12 @@
     ]
   },
   "evidenceInsufficient": "証拠不足",
-  "evidenceInsufficientDetail": "信頼度 {confidence}% は必要な閾値 {threshold}% を下回っています。",
+  "evidenceInsufficientDetail": "信頼度 {confidence}% は必要なしきい値 {threshold}% を下回っています。",
   "evidenceInsufficientHint": "取得した証拠は、確実な回答を提供するのに十分な信頼性がありません。",
-  "tryRephrase": "質問を言い換えてみてください"
+  "tryRephrase": "質問を言い換えてみてください",
+  "conflictWarning": "{count} 個のソースがこのトピックについて矛盾した情報を持っています",
+  "conflictWarningOne": "1 個のソースがこのトピックについて矛盾した情報を持っています",
+  "viewConflicts": "詳細を表示",
+  "hideConflicts": "非表示",
+  "citationRelevance": "関連性: {value}%"
 }
