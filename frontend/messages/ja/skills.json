@@ -72,5 +72,21 @@
   "editSkill": "スキルを編集",
   "saveChanges": "変更を保存",
   "discardAndClose": "破棄して閉じる",
-  "publishStatusReverted": "コンテンツが変更されました — 公開ステータスは保留中のレビューに戻されました"
+  "publishStatusReverted": "コンテンツが変更されました — 公開ステータスは保留中のレビューに戻されました",
+  "resourceRefs": "リソース参照",
+  "resourceRefsHint": "このスキルが参照するコネクタ、MCPサーバー、ナレッジベース、またはエージェントをアタッチします。コンテンツで@aliasを使用して参照してください。",
+  "addResource": "リソースを追加",
+  "resourcePickerTitle": "リソース参照を追加",
+  "resourcePickerDescription": "このスキルで参照するリソースを選択してください。",
+  "resourceTypeConnector": "コネクタ",
+  "resourceTypeMcpServer": "MCPサーバー",
+  "resourceTypeKnowledgeBase": "ナレッジベース",
+  "resourceTypeAgent": "エージェント",
+  "resourceAlias": "エイリアス",
+  "resourceAliasPlaceholder": "@my_resource",
+  "resourceAliasHint": "@メンション経由でコンテンツで使用される短いエイリアス（例：@crm）",
+  "noResourcesAvailable": "このタイプのリソースは利用できません。",
+  "resourceAlreadyAdded": "このリソースは既に追加されています。",
+  "editAlias": "エイリアスを編集",
+  "mentionHint": "@を入力してリソースをメンションしてください"
 }

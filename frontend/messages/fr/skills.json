@@ -72,5 +72,21 @@
   "editSkill": "Modifier la compétence",
   "saveChanges": "Enregistrer les modifications",
   "discardAndClose": "Abandonner et fermer",
-  "publishStatusReverted": "Contenu modifié — statut de publication rétabli à en attente d'examen"
+  "publishStatusReverted": "Contenu modifié — statut de publication rétabli à en attente d'examen",
+  "resourceRefs": "Références de ressources",
+  "resourceRefsHint": "Attachez des connecteurs, des serveurs MCP, des bases de connaissances ou des agents que cette compétence référence. Utilisez @alias dans le contenu pour les référencer.",
+  "addResource": "Ajouter une ressource",
+  "resourcePickerTitle": "Ajouter une référence de ressource",
+  "resourcePickerDescription": "Sélectionnez une ressource à référencer dans cette compétence.",
+  "resourceTypeConnector": "Connecteur",
+  "resourceTypeMcpServer": "Serveur MCP",
+  "resourceTypeKnowledgeBase": "Base de connaissances",
+  "resourceTypeAgent": "Agent",
+  "resourceAlias": "Alias",
+  "resourceAliasPlaceholder": "@ma_ressource",
+  "resourceAliasHint": "Alias court utilisé dans le contenu via @mention (par ex. @crm)",
+  "noResourcesAvailable": "Aucune ressource de ce type disponible.",
+  "resourceAlreadyAdded": "Cette ressource est déjà ajoutée.",
+  "editAlias": "Modifier l'alias",
+  "mentionHint": "Tapez @ pour mentionner une ressource"
 }

@@ -72,5 +72,21 @@
   "editSkill": "Fähigkeit bearbeiten",
   "saveChanges": "Änderungen speichern",
   "discardAndClose": "Verwerfen und schließen",
-  "publishStatusReverted": "Inhalt geändert — Veröffentlichungsstatus auf ausstehende Überprüfung zurückgesetzt"
+  "publishStatusReverted": "Inhalt geändert — Veröffentlichungsstatus auf ausstehende Überprüfung zurückgesetzt",
+  "resourceRefs": "Ressourcenreferenzen",
+  "resourceRefsHint": "Fügen Sie Konnektoren, MCP-Server, Wissensdatenbanken oder Agenten an, auf die diese Fähigkeit verweist. Verwenden Sie @alias im Inhalt, um darauf zu verweisen.",
+  "addResource": "Ressource hinzufügen",
+  "resourcePickerTitle": "Ressourcenreferenz hinzufügen",
+  "resourcePickerDescription": "Wählen Sie eine Ressource aus, auf die in dieser Fähigkeit verwiesen werden soll.",
+  "resourceTypeConnector": "Konnektor",
+  "resourceTypeMcpServer": "MCP Server",
+  "resourceTypeKnowledgeBase": "Wissensdatenbank",
+  "resourceTypeAgent": "Agent",
+  "resourceAlias": "Alias",
+  "resourceAliasPlaceholder": "@my_resource",
+  "resourceAliasHint": "Kurzer Alias, der im Inhalt über @mention verwendet wird (z. B. @crm)",
+  "noResourcesAvailable": "Keine Ressourcen dieses Typs verfügbar.",
+  "resourceAlreadyAdded": "Diese Ressource wurde bereits hinzugefügt.",
+  "editAlias": "Alias bearbeiten",
+  "mentionHint": "Geben Sie @ ein, um eine Ressource zu erwähnen"
 }

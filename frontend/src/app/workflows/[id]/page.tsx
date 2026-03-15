@@ -267,6 +267,15 @@ export default function WorkflowEditorPage() {
     [workflow],
   )
 
+  const handleIconChange = useCallback(
+    (icon: string | null) => {
+      if (!workflow) return
+      setWorkflow((prev) => prev ? { ...prev, icon } : prev)
+      setIsDirty(true)
+    },
+    [workflow],
+  )
+
   const handleDescriptionChange = useCallback(
     (description: string) => {
       if (!workflow) return
@@ -760,6 +769,7 @@ export default function WorkflowEditorPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <WorkflowToolbar
         name={workflow.name}
+        icon={workflow.icon}
         description={workflow.description}
         status={workflow.status}
         visibility={workflow.visibility}
@@ -776,6 +786,7 @@ export default function WorkflowEditorPage() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         onNameChange={handleNameChange}
+        onIconChange={handleIconChange}
         onDescriptionChange={handleDescriptionChange}
         onSave={handleSave}
         onRun={handleRun}

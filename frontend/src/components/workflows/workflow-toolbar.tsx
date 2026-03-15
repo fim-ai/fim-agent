@@ -34,6 +34,7 @@ import {
   XCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -64,6 +65,7 @@ export interface ValidationResult {
 
 interface WorkflowToolbarProps {
   name: string
+  icon?: string | null
   description?: string | null
   status: "draft" | "active"
   visibility?: string
@@ -80,6 +82,7 @@ interface WorkflowToolbarProps {
   onUndo: () => void
   onRedo: () => void
   onNameChange: (name: string) => void
+  onIconChange?: (icon: string | null) => void
   onDescriptionChange?: (description: string) => void
   onSave: () => void
   onRun: () => void
@@ -110,6 +113,7 @@ interface WorkflowToolbarProps {
 
 export function WorkflowToolbar({
   name,
+  icon,
   description,
   status,
   visibility = "personal",
@@ -126,6 +130,7 @@ export function WorkflowToolbar({
   onUndo,
   onRedo,
   onNameChange,
+  onIconChange,
   onDescriptionChange,
   onSave,
   onRun,
@@ -195,6 +200,13 @@ export function WorkflowToolbar({
 
       {/* Workflow name & description */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
+        {onIconChange && (
+          <EmojiPickerPopover
+            value={icon ?? null}
+            onChange={onIconChange}
+            fallbackIcon={<GitBranch className="h-4 w-4" />}
+          />
+        )}
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
             {isEditing ? (

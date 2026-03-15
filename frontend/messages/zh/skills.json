@@ -72,5 +72,21 @@
   "editSkill": "编辑技能",
   "saveChanges": "保存更改",
   "discardAndClose": "放弃并关闭",
-  "publishStatusReverted": "内容已更改 — 发布状态已恢复为待审核"
+  "publishStatusReverted": "内容已更改 — 发布状态已恢复为待审核",
+  "resourceRefs": "资源引用",
+  "resourceRefsHint": "附加此技能引用的连接器、MCP 服务器、知识库或智能体。在内容中使用 @别名来引用它们。",
+  "addResource": "添加资源",
+  "resourcePickerTitle": "添加资源引用",
+  "resourcePickerDescription": "选择要在此技能中引用的资源。",
+  "resourceTypeConnector": "连接器",
+  "resourceTypeMcpServer": "MCP 服务器",
+  "resourceTypeKnowledgeBase": "知识库",
+  "resourceTypeAgent": "智能体",
+  "resourceAlias": "别名",
+  "resourceAliasPlaceholder": "@my_resource",
+  "resourceAliasHint": "在内容中通过 @提及使用的短别名（例如 @crm）",
+  "noResourcesAvailable": "此类型没有可用的资源。",
+  "resourceAlreadyAdded": "此资源已添加。",
+  "editAlias": "编辑别名",
+  "mentionHint": "输入 @ 来提及资源"
 }

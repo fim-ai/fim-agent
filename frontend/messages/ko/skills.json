@@ -72,5 +72,21 @@
   "editSkill": "스킬 편집",
   "saveChanges": "변경 사항 저장",
   "discardAndClose": "폐기 및 닫기",
-  "publishStatusReverted": "콘텐츠가 변경되었습니다 — 게시 상태가 검토 대기 중으로 되돌려졌습니다"
+  "publishStatusReverted": "콘텐츠가 변경되었습니다 — 게시 상태가 검토 대기 중으로 되돌려졌습니다",
+  "resourceRefs": "리소스 참조",
+  "resourceRefsHint": "이 스킬이 참조하는 커넥터, MCP 서버, 지식 기반 또는 에이전트를 첨부합니다. 콘텐츠에서 @alias를 사용하여 참조합니다.",
+  "addResource": "리소스 추가",
+  "resourcePickerTitle": "리소스 참조 추가",
+  "resourcePickerDescription": "이 스킬에서 참조할 리소스를 선택합니다.",
+  "resourceTypeConnector": "커넥터",
+  "resourceTypeMcpServer": "MCP 서버",
+  "resourceTypeKnowledgeBase": "지식 기반",
+  "resourceTypeAgent": "에이전트",
+  "resourceAlias": "별칭",
+  "resourceAliasPlaceholder": "@my_resource",
+  "resourceAliasHint": "@mention을 통해 콘텐츠에서 사용되는 짧은 별칭 (예: @crm)",
+  "noResourcesAvailable": "이 유형의 리소스를 사용할 수 없습니다.",
+  "resourceAlreadyAdded": "이 리소스는 이미 추가되었습니다.",
+  "editAlias": "별칭 편집",
+  "mentionHint": "@를 입력하여 리소스를 언급합니다"
 }
