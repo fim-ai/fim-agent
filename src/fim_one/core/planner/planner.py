@@ -11,6 +11,7 @@ __fim_license__ = "FIM-SAL-1.1"
 __fim_origin__ = "https://github.com/fim-ai/fim-one"
 
 import logging
+import os
 from collections import deque
 from datetime import datetime, timezone
 from typing import Any
@@ -22,6 +23,8 @@ from fim_one.core.model.usage import UsageSummary
 from .types import ExecutionPlan, PlanStep
 
 logger = logging.getLogger(__name__)
+
+_PLANNER_DESC_LEN = int(os.getenv("DAG_PLANNER_DESC_LENGTH", "120"))
 
 _PLANNING_PROMPT = """\
 You are a task-planning assistant.  Given a high-level goal (and optional \
@@ -210,7 +213,12 @@ class DAGPlanner:
         user_content = f"Goal: {goal}"
         if tools:
             # Rich format: one line per tool with name + description
-            tool_lines = [f"- {t['name']}: {t.get('description', '')}" for t in tools]
+            tool_lines = []
+            for t in tools:
+                desc = t.get('description', '')
+                if len(desc) > _PLANNER_DESC_LEN:
+                    desc = desc[:_PLANNER_DESC_LEN - 3] + "..."
+                tool_lines.append(f"- {t['name']}: {desc}")
             user_content += "\n\nAvailable tools:\n" + "\n".join(tool_lines)
         elif tool_names:
             # Legacy fallback: names only

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -24,6 +25,8 @@ from fim_one.core.tool.base import BaseTool
 from fim_one.core.tool.connector.adapter import ConnectorToolAdapter
 
 logger = logging.getLogger(__name__)
+
+_DISCOVER_INDENT = int(os.getenv("CONNECTOR_DISCOVER_INDENT", "2"))
 
 
 @dataclass(frozen=True)
@@ -195,7 +198,7 @@ class ConnectorMetaTool(BaseTool):
                 lines.append("    requires_confirmation: true")
             if action.parameters_schema:
                 schema_str = json.dumps(
-                    action.parameters_schema, ensure_ascii=False, indent=6
+                    action.parameters_schema, ensure_ascii=False, indent=_DISCOVER_INDENT
                 )
                 lines.append(f"    parameters: {schema_str}")
             else:

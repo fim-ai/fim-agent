@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from .base import Tool
+
+_COMPACT_CATALOG_DESC_LEN = int(os.getenv("COMPACT_CATALOG_DESC_LENGTH", "80"))
+_COMPACT_SCHEMA_DESC_LEN = int(os.getenv("COMPACT_SCHEMA_DESC_LENGTH", "200"))
 
 
 class ToolRegistry:
@@ -142,8 +146,8 @@ class ToolRegistry:
         lines: list[str] = []
         for t in self._tools.values():
             desc = t.description.replace("\n", " ").strip()
-            if len(desc) > 80:
-                desc = desc[:77] + "..."
+            if len(desc) > _COMPACT_CATALOG_DESC_LEN:
+                desc = desc[:_COMPACT_CATALOG_DESC_LEN - 3] + "..."
             lines.append(f"- {t.name}: {desc}")
         return "\n".join(lines)
 
@@ -170,8 +174,8 @@ class ToolRegistry:
         result: list[dict[str, Any]] = []
         for tool in tools:
             desc = tool.description.replace("\n", " ").strip()
-            if len(desc) > 200:
-                desc = desc[:197] + "..."
+            if len(desc) > _COMPACT_SCHEMA_DESC_LEN:
+                desc = desc[:_COMPACT_SCHEMA_DESC_LEN - 3] + "..."
             # Deep-copy schema so we don't mutate the original
             schema = copy.deepcopy(tool.parameters_schema)
             required = set(schema.get("required", []))
