@@ -197,5 +197,10 @@
         "category": "code"
       }
     ]
-  }
+  },
+  "conflictWarning": "{count} Quellen haben widersprüchliche Informationen zu diesem Thema",
+  "conflictWarningOne": "1 Quelle hat widersprüchliche Informationen zu diesem Thema",
+  "viewConflicts": "Details anzeigen",
+  "hideConflicts": "Ausblenden",
+  "citationRelevance": "Relevanz: {value}%"
 }

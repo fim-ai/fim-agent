@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { Loader2, Wrench, Brain, CheckCircle2, Clock, RefreshCw, BarChart3, ChevronDown, ChevronUp } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
@@ -21,6 +21,8 @@ import { IterationCard, ArtifactChips } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import { CollapsibleText } from "@/components/playground/collapsible-text"
 import { SuggestedFollowups } from "./suggested-followups"
+import { parseEvidence, parseSimpleEvidence, mergeEvidence, type ParsedEvidence } from "@/lib/evidence-utils"
+import { EvidenceProvider } from "@/contexts/evidence-context"
 
 interface ReactOutputProps {
   items: StepItem[]
@@ -292,6 +294,21 @@ function DoneCard({ done, items, suggestions, onSuggestionSelect }: { done: Reac
     .filter(i => i.event === "step")
     .flatMap(i => (i.data as ReactStepEvent).artifacts ?? [])
 
+  // Pre-compute evidence for both EvidenceProvider (citations) and ReferencesSection
+  const evidence = useMemo<ParsedEvidence | null>(() => {
+    const blocks: ParsedEvidence[] = []
+    for (const item of (items ?? [])) {
+      if (item.event === "step") {
+        const step = item.data as ReactStepEvent
+        if (step.type === "iteration" && step.observation) {
+          const parsed = parseEvidence(step.observation) ?? parseSimpleEvidence(step.observation)
+          if (parsed) blocks.push(parsed)
+        }
+      }
+    }
+    return blocks.length > 0 ? mergeEvidence(blocks) : null
+  }, [items])
+
   return (
     <Card className="py-4">
       <CardHeader className="pb-0">
@@ -319,10 +336,12 @@ function DoneCard({ done, items, suggestions, onSuggestionSelect }: { done: Reac
         </div>
       </CardHeader>
       <CardContent>
-        <MarkdownContent
-          content={done.answer}
-          className="prose-sm text-sm text-foreground/90"
-        />
+        <EvidenceProvider sources={evidence?.sources ?? []}>
+          <MarkdownContent
+            content={done.answer}
+            className="prose-sm text-sm text-foreground/90"
+          />
+        </EvidenceProvider>
         {allArtifacts.length > 0 && (
           <div className="mt-3 pt-3 border-t border-border/30">
             <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
@@ -331,7 +350,7 @@ function DoneCard({ done, items, suggestions, onSuggestionSelect }: { done: Reac
             <ArtifactChips artifacts={allArtifacts} />
           </div>
         )}
-        {items && <ReferencesSection items={items} />}
+        {items && <ReferencesSection items={items} evidence={evidence} />}
         {/* Use prop suggestions first, fall back to done.suggestions for stored conversations */}
         {(suggestions?.length || done.suggestions?.length) && onSuggestionSelect ? (
           <SuggestedFollowups

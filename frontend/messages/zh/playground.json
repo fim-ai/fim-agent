@@ -197,5 +197,10 @@
         "category": "混合"
       }
     ]
-  }
+  },
+  "conflictWarning": "{count} 个来源对此主题有冲突信息",
+  "conflictWarningOne": "1 个来源对此主题有冲突信息",
+  "viewConflicts": "查看详情",
+  "hideConflicts": "隐藏",
+  "citationRelevance": "相关性: {value}%"
 }

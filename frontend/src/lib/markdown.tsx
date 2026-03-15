@@ -7,6 +7,9 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useEvidenceSources } from "@/contexts/evidence-context"
+import { useTranslations } from "next-intl"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
@@ -14,6 +17,41 @@ import remarkCjkFriendly from "remark-cjk-friendly"
 import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough"
 import rehypeKatex from "rehype-katex"
 import rehypeHighlight from "rehype-highlight"
+
+function CitationBadge({ index }: { index: number }) {
+  const sources = useEvidenceSources()
+  const t = useTranslations("playground")
+  const source = sources.find(s => s.index === index)
+
+  const badgeClassName = "inline-flex items-center justify-center min-w-[1.1em] h-[1.1em] px-0.5 ml-0.5 rounded text-[0.65em] font-medium bg-primary/10 text-primary align-super"
+
+  // No context or no matching source — fallback to plain badge
+  if (!source) {
+    return <sup className={`${badgeClassName} cursor-default`}>{index}</sup>
+  }
+
+  // Source found — Popover with citation details
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <sup className={`${badgeClassName} cursor-pointer hover:bg-primary/20 transition-colors`}>{index}</sup>
+      </PopoverTrigger>
+      <PopoverContent side="top" className="w-72 p-3 space-y-1.5">
+        <div className="text-xs font-medium truncate">{source.displayName}</div>
+        {source.kbName && (
+          <span className="text-[10px] text-muted-foreground">{source.kbName}</span>
+        )}
+        {source.quote && (
+          <p className="text-[11px] italic text-muted-foreground/80 line-clamp-3">&ldquo;{source.quote}&rdquo;</p>
+        )}
+        <div className="text-[10px] text-muted-foreground/60">
+          {t("citationRelevance", { value: (source.relevance * 100).toFixed(0) })}
+          {source.page != null && ` \u00b7 p.${source.page}`}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 /** Replace [N] citation markers in text with styled <sup> badges */
 function processCitations(children: React.ReactNode): React.ReactNode {
@@ -24,14 +62,7 @@ function processCitations(children: React.ReactNode): React.ReactNode {
     return parts.map((part, i) => {
       const m = part.match(/^\[(\d+)\]$/)
       if (m) {
-        return (
-          <sup
-            key={i}
-            className="inline-flex items-center justify-center min-w-[1.1em] h-[1.1em] px-0.5 ml-0.5 rounded text-[0.65em] font-medium bg-primary/10 text-primary align-super cursor-default"
-          >
-            {m[1]}
-          </sup>
-        )
+        return <CitationBadge key={i} index={parseInt(m[1])} />
       }
       return part
     })
