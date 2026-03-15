@@ -42,5 +42,8 @@
   "viewAll": "すべて表示",
   "loading": "ダッシュボードを読み込み中...",
   "error": "ダッシュボードの読み込みに失敗しました",
-  "retry": "再試行"
+  "retry": "再試行",
+  "tokenTrendTitle": "トークン使用量",
+  "tokenTrendSubtitle": "過去14日間に消費されたトークン",
+  "tokenTrendEmpty": "トークン使用量はまだありません"
 }

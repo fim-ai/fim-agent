@@ -2126,6 +2126,7 @@ export interface DashboardConnectorHealth {
 export interface DashboardDayStat {
   date: string
   count: number
+  tokens: number
 }
 
 export interface DashboardStats {

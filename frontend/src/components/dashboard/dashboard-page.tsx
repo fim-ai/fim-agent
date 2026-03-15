@@ -11,6 +11,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -80,6 +82,29 @@ function ActivityTooltip({
       {payload.map((p, i) => (
         <p key={i} className="text-muted-foreground">
           {p.name}: <span className="font-medium text-popover-foreground">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
+// ---- Area chart tooltip (token usage) ----
+function TokenTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: { name: string; value: number }[]
+  label?: string
+}) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-md border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-md">
+      <p className="mb-0.5 font-medium">{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} className="text-muted-foreground">
+          {p.name}: <span className="font-medium text-popover-foreground">{formatTokens(p.value)}</span>
         </p>
       ))}
     </div>
@@ -180,6 +205,7 @@ export function DashboardPage() {
       label: formatDateLabel(d.date, locale),
     })) ?? []
   const allZero = activityData.every((d) => d.count === 0)
+  const allTokensZero = activityData.every((d) => d.tokens === 0)
 
   // ---- Render: error state ----
   if (error) {
@@ -312,78 +338,162 @@ export function DashboardPage() {
           </div>
         )}
 
-        {/* ---- 3. Activity Trend Chart ---- */}
+        {/* ---- 3. Activity + Token Trend Charts ---- */}
         {loading ? (
-          <Card className="gap-1 py-3">
-            <CardHeader className="px-5">
-              <Skeleton className="h-5 w-36" />
-              <Skeleton className="h-4 w-52 mt-1" />
-            </CardHeader>
-            <CardContent className="px-5 pb-1 pt-4">
-              <Skeleton.ChartBars height={200} />
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-5">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-52 mt-1" />
+              </CardHeader>
+              <CardContent className="px-5 pb-1 pt-4">
+                <Skeleton.ChartBars height={200} />
+              </CardContent>
+            </Card>
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-5">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-56 mt-1" />
+              </CardHeader>
+              <CardContent className="px-5 pb-1 pt-4">
+                <Skeleton.ChartBars height={200} />
+              </CardContent>
+            </Card>
+          </div>
         ) : (
-          <Card className="gap-1 py-3">
-            <CardHeader className="px-5">
-              <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <Activity className="h-4 w-4 text-muted-foreground" />
-                {t("activityTitle")}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">{t("activitySubtitle")}</p>
-            </CardHeader>
-            <CardContent className="px-5 pb-1">
-              {allZero || activityData.length === 0 ? (
-                <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-                  {t("activityEmpty")}
-                </div>
-              ) : (
-                <div className="h-[200px] text-muted-foreground">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={activityData}
-                      margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
-                    >
-                      <defs>
-                        <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#c89a3d" stopOpacity={0.9} />
-                          <stop offset="95%" stopColor="#8b6520" stopOpacity={0.75} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-border"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tick={TICK_STYLE}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        width={28}
-                        tick={TICK_STYLE}
-                        tickLine={false}
-                        axisLine={false}
-                        allowDecimals={false}
-                      />
-                      <Tooltip
-                        content={<ActivityTooltip />}
-                        cursor={{ fill: "rgba(128,128,128,0.1)" }}
-                      />
-                      <Bar
-                        dataKey="count"
-                        name={t("statsConversations")}
-                        fill="url(#barGold)"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Left: Activity Trend (bar chart) */}
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-5">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  {t("activityTitle")}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">{t("activitySubtitle")}</p>
+              </CardHeader>
+              <CardContent className="px-5 pb-1">
+                {allZero || activityData.length === 0 ? (
+                  <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+                    {t("activityEmpty")}
+                  </div>
+                ) : (
+                  <div className="h-[200px] text-muted-foreground">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={activityData}
+                        margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
+                      >
+                        <defs>
+                          <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#c89a3d" stopOpacity={0.9} />
+                            <stop offset="95%" stopColor="#8b6520" stopOpacity={0.75} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-border"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={TICK_STYLE}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          width={28}
+                          tick={TICK_STYLE}
+                          tickLine={false}
+                          axisLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          content={<ActivityTooltip />}
+                          cursor={{ fill: "rgba(128,128,128,0.1)" }}
+                        />
+                        <Bar
+                          dataKey="count"
+                          name={t("statsConversations")}
+                          fill="url(#barGold)"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Right: Token Usage Trend (area chart) */}
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-5">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                  {t("tokenTrendTitle")}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">{t("tokenTrendSubtitle")}</p>
+              </CardHeader>
+              <CardContent className="px-5 pb-1">
+                {allTokensZero || activityData.length === 0 ? (
+                  <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+                    {t("tokenTrendEmpty")}
+                  </div>
+                ) : (
+                  <div className="h-[200px] text-muted-foreground">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={activityData}
+                        margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
+                      >
+                        <defs>
+                          <linearGradient id="areaIndigo" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#4338ca" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-border"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={TICK_STYLE}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          width={36}
+                          tick={TICK_STYLE}
+                          tickLine={false}
+                          axisLine={false}
+                          allowDecimals={false}
+                          tickFormatter={(v: number) => {
+                            if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+                            if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`
+                            return String(v)
+                          }}
+                        />
+                        <Tooltip
+                          content={<TokenTooltip />}
+                          cursor={{ stroke: "rgba(128,128,128,0.3)", strokeDasharray: "3 3" }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="tokens"
+                          name={t("tokenTrendTitle")}
+                          stroke="#6366f1"
+                          strokeWidth={2}
+                          fill="url(#areaIndigo)"
+                          fillOpacity={0.3}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* ---- 4 + 5. Two two-column grids ---- */}

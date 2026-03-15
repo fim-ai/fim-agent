@@ -58,6 +58,7 @@ class DashboardConnectorHealth(BaseModel):
 class DashboardDayStat(BaseModel):
     date: str  # "YYYY-MM-DD"
     count: int
+    tokens: int  # total tokens consumed that day
 
 
 class DashboardStatsResponse(BaseModel):
@@ -388,6 +389,7 @@ async def get_dashboard_stats(
         select(
             func.date(Conversation.created_at).label("day"),
             func.count().label("cnt"),
+            func.coalesce(func.sum(Conversation.total_tokens), 0).label("tok"),
         )
         .where(
             Conversation.user_id == current_user.id,
@@ -399,16 +401,19 @@ async def get_dashboard_stats(
 
     today_date = date.today()
     # Build ordered map from oldest to newest (13 days ago → today)
-    date_map: dict[str, int] = {
-        str(today_date - timedelta(days=i)): 0 for i in range(13, -1, -1)
+    date_map: dict[str, dict] = {
+        str(today_date - timedelta(days=i)): {"count": 0, "tokens": 0}
+        for i in range(13, -1, -1)
     }
     for row in trend_rows.all():
         key = str(row.day)
         if key in date_map:
-            date_map[key] = row.cnt
+            date_map[key]["count"] = row.cnt
+            date_map[key]["tokens"] = row.tok
 
     activity_trend = [
-        DashboardDayStat(date=d, count=c) for d, c in date_map.items()
+        DashboardDayStat(date=d, count=v["count"], tokens=v["tokens"])
+        for d, v in date_map.items()
     ]
 
     # ------------------------------------------------------------------

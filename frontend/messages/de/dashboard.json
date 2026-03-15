@@ -42,5 +42,8 @@
   "viewAll": "Alle anzeigen",
   "loading": "Dashboard wird geladen...",
   "error": "Dashboard konnte nicht geladen werden",
-  "retry": "Erneut versuchen"
+  "retry": "Erneut versuchen",
+  "tokenTrendTitle": "Token-Nutzung",
+  "tokenTrendSubtitle": "In den letzten 14 Tagen verbrauchte Token",
+  "tokenTrendEmpty": "Noch keine Token-Nutzung"
 }

@@ -42,5 +42,8 @@
   "viewAll": "모두 보기",
   "loading": "대시보드 로드 중...",
   "error": "대시보드 로드 실패",
-  "retry": "다시 시도"
+  "retry": "다시 시도",
+  "tokenTrendTitle": "토큰 사용량",
+  "tokenTrendSubtitle": "지난 14일간 소비된 토큰",
+  "tokenTrendEmpty": "아직 토큰 사용량이 없습니다"
 }

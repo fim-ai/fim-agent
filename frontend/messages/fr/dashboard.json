@@ -42,5 +42,8 @@
   "viewAll": "Voir tout",
   "loading": "Chargement du tableau de bord...",
   "error": "Échec du chargement du tableau de bord",
-  "retry": "Réessayer"
+  "retry": "Réessayer",
+  "tokenTrendTitle": "Utilisation des jetons",
+  "tokenTrendSubtitle": "Jetons consommés au cours des 14 derniers jours",
+  "tokenTrendEmpty": "Aucune utilisation de jetons pour le moment"
 }

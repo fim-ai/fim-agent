@@ -42,5 +42,8 @@
   "viewAll": "查看全部",
   "loading": "正在加载仪表板...",
   "error": "加载仪表板失败",
-  "retry": "重试"
+  "retry": "重试",
+  "tokenTrendTitle": "令牌使用情况",
+  "tokenTrendSubtitle": "过去14天消耗的令牌",
+  "tokenTrendEmpty": "暂无令牌使用记录"
 }
