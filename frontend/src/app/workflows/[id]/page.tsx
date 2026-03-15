@@ -69,6 +69,7 @@ export default function WorkflowEditorPage() {
   const [isDirty, setIsDirty] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isAutoSavingRef = useRef(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
@@ -287,7 +288,9 @@ export default function WorkflowEditorPage() {
 
   const handleSave = useCallback(async () => {
     if (!workflow) return
-    setIsSaving(true)
+    const isAutoSave = isAutoSavingRef.current
+    // Only show saving indicator for manual saves
+    if (!isAutoSave) setIsSaving(true)
     try {
       // Extract input_schema from start node
       const startNode = blueprintRef.current.nodes.find((n) => n.type === "start")
@@ -318,9 +321,11 @@ export default function WorkflowEditorPage() {
       setIsDirty(false)
       setLastSavedAt(new Date())
     } catch {
-      toast.error(t("workflowUpdateFailed"))
+      // Only show error toast for manual saves; auto-save failures are silent
+      if (!isAutoSave) toast.error(t("workflowUpdateFailed"))
     } finally {
-      setIsSaving(false)
+      if (!isAutoSave) setIsSaving(false)
+      isAutoSavingRef.current = false
     }
   }, [workflow, t])
 
@@ -329,11 +334,12 @@ export default function WorkflowEditorPage() {
     setIsDirty(true)
     triggerValidation()
 
-    // Auto-save after 5 seconds of inactivity
+    // Auto-save after 5 seconds of inactivity (silent — no "Saving..." indicator)
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current)
     }
     autoSaveTimerRef.current = setTimeout(() => {
+      isAutoSavingRef.current = true
       handleSave()
     }, 5000)
   }, [triggerValidation, handleSave])
