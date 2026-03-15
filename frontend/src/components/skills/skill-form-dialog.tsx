@@ -113,16 +113,15 @@ export function SkillFormDialog({
     <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+        className="sm:max-w-lg max-h-[90vh] flex flex-col !overflow-visible"
         onInteractOutside={(e) => {
-          // Don't dismiss when clicking mention dropdown (Portal'd outside Dialog)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const target = (e as any)?.detail?.originalEvent?.target as HTMLElement | undefined
-          if (target?.closest?.("[data-mention-dropdown]")) { e.preventDefault(); return }
           if (showResourcePicker) { e.preventDefault(); return }
           if (isDirty) { e.preventDefault(); setShowCloseConfirm(true) }
         }}
       >
+        {/* Mention dropdown portal target — inside Dialog DOM but outside scroll */}
+        <div ref={mentionPortalRef} />
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -130,6 +129,7 @@ export function SkillFormDialog({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="overflow-y-auto flex-1 min-h-0">
         <form onSubmit={handleSubmit} className="space-y-5">
           <fieldset className="space-y-3">
             {/* Name */}
@@ -175,6 +175,7 @@ export function SkillFormDialog({
                 placeholder={t("fieldContentPlaceholder")}
                 className="min-h-[200px] resize-y font-mono text-sm"
                 resourceRefs={resourceRefs}
+                portalContainer={mentionPortalRef}
               />
             </div>
 
@@ -250,6 +251,7 @@ export function SkillFormDialog({
             </Button>
           </DialogFooter>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
 
