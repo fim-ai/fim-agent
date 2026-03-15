@@ -120,17 +120,15 @@ def wf1_customer_router():
             "nodes": [
                 _node("start_1", "START", {
                     "label": "接收问题",
-                    "input_schema": {
-                        "variables": [
-                            {
-                                "name": "query",
-                                "type": "string",
-                                "required": True,
-                                "description": "用户问题",
-                                "default": "我的服务器CPU占用率一直很高，怎么排查？"
-                            }
-                        ]
-                    },
+                    "variables": [
+                        {
+                            "name": "query",
+                            "type": "string",
+                            "required": True,
+                            "description": "用户问题",
+                            "default_value": "我的服务器CPU占用率一直很高，怎么排查？"
+                        }
+                    ],
                 }, x=100, y=300),
                 _node("classifier_1", "QUESTION_CLASSIFIER", {
                     "label": "问题分类",
@@ -227,24 +225,22 @@ def wf2_batch_translator():
             "nodes": [
                 _node("start_1", "START", {
                     "label": "输入文本列表",
-                    "input_schema": {
-                        "variables": [
-                            {
-                                "name": "texts",
-                                "type": "array",
-                                "required": True,
-                                "description": "要翻译的文本数组",
-                                "default": ["Hello, how are you?", "The weather is beautiful today.", "I love programming."]
-                            },
-                            {
-                                "name": "target_lang",
-                                "type": "string",
-                                "required": False,
-                                "description": "目标语言",
-                                "default": "Chinese"
-                            }
-                        ]
-                    },
+                    "variables": [
+                        {
+                            "name": "texts",
+                            "type": "array",
+                            "required": True,
+                            "description": "要翻译的文本数组",
+                            "default_value": ["Hello, how are you?", "The weather is beautiful today.", "I love programming."]
+                        },
+                        {
+                            "name": "target_lang",
+                            "type": "string",
+                            "required": False,
+                            "description": "目标语言",
+                            "default_value": "Chinese"
+                        }
+                    ],
                 }, x=100, y=200),
                 _node("iterator_1", "ITERATOR", {
                     "label": "遍历文本",
@@ -302,17 +298,15 @@ def wf3_iterative_improver():
             "nodes": [
                 _node("start_1", "START", {
                     "label": "输入草稿",
-                    "input_schema": {
-                        "variables": [
-                            {
-                                "name": "draft",
-                                "type": "string",
-                                "required": True,
-                                "description": "待优化的文案",
-                                "default": "We make good software. Our product is fast. Buy it now."
-                            }
-                        ]
-                    },
+                    "variables": [
+                        {
+                            "name": "draft",
+                            "type": "string",
+                            "required": True,
+                            "description": "待优化的文案",
+                            "default_value": "We make good software. Our product is fast. Buy it now."
+                        }
+                    ],
                 }, x=100, y=200),
                 _node("loop_1", "LOOP", {
                     "label": "循环优化",
@@ -367,17 +361,15 @@ def wf4_data_pipeline():
             "nodes": [
                 _node("start_1", "START", {
                     "label": "配置参数",
-                    "input_schema": {
-                        "variables": [
-                            {
-                                "name": "user_id",
-                                "type": "number",
-                                "required": False,
-                                "description": "JSONPlaceholder user ID (1-10)",
-                                "default": 1
-                            }
-                        ]
-                    },
+                    "variables": [
+                        {
+                            "name": "user_id",
+                            "type": "number",
+                            "required": False,
+                            "description": "JSONPlaceholder user ID (1-10)",
+                            "default_value": 1
+                        }
+                    ],
                 }, x=100, y=300),
                 _node("http_user", "HTTP_REQUEST", {
                     "label": "获取用户信息",
@@ -501,17 +493,15 @@ def wf5_agent_chain():
             "nodes": [
                 _node("start_1", "START", {
                     "label": "输入主题",
-                    "input_schema": {
-                        "variables": [
-                            {
-                                "name": "topic",
-                                "type": "string",
-                                "required": True,
-                                "description": "要分析的主题",
-                                "default": "The impact of AI on software development productivity"
-                            }
-                        ]
-                    },
+                    "variables": [
+                        {
+                            "name": "topic",
+                            "type": "string",
+                            "required": True,
+                            "description": "要分析的主题",
+                            "default_value": "The impact of AI on software development productivity"
+                        }
+                    ],
                 }, x=100, y=200),
                 _node("llm_analyze", "LLM", {
                     "label": "主题分析",
@@ -577,17 +567,15 @@ def wf6_full_pipeline():
             "nodes": [
                 _node("start_1", "START", {
                     "label": "Start",
-                    "input_schema": {
-                        "variables": [
-                            {
-                                "name": "post_id",
-                                "type": "number",
-                                "required": False,
-                                "description": "JSONPlaceholder post ID",
-                                "default": 1
-                            }
-                        ]
-                    },
+                    "variables": [
+                        {
+                            "name": "post_id",
+                            "type": "number",
+                            "required": False,
+                            "description": "JSONPlaceholder post ID",
+                            "default_value": 1
+                        }
+                    ],
                 }, x=50, y=300),
                 # Step 1: Fetch a post
                 _node("http_post", "HTTP_REQUEST", {
