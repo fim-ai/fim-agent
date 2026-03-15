@@ -185,6 +185,15 @@ export function AdminNotifications() {
         </button>
       </div>
 
+      {/* ===================== COMING SOON BANNER ===================== */}
+      <div className="rounded-md border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 flex items-start gap-3">
+        <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t("comingSoonTitle")}</p>
+          <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">{t("comingSoonBody")}</p>
+        </div>
+      </div>
+
       {/* ===================== EVENTS ===================== */}
       {view === "events" && (
         <>
@@ -244,15 +253,6 @@ export function AdminNotifications() {
           )}
         </>
       )}
-
-      {/* ===================== COMING SOON BANNER ===================== */}
-      <div className="rounded-md border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 flex items-start gap-3">
-        <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t("comingSoonTitle")}</p>
-          <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">{t("comingSoonBody")}</p>
-        </div>
-      </div>
 
       {/* ===================== CONFIGURATION ===================== */}
       {view === "config" && (
