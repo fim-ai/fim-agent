@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { Plus, GitBranch, Upload, Loader2, Clock, Search, LayoutTemplate } from "lucide-react"
-import { useWorkflowFavorites } from "@/hooks/use-workflow-favorites"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -28,7 +27,6 @@ import { workflowApi, marketApi, orgApi } from "@/lib/api"
 import type { UserOrg } from "@/lib/api"
 import { EmptyState } from "@/components/shared/empty-state"
 import { WorkflowCard } from "@/components/workflows/workflow-card"
-import { TemplatePicker } from "@/components/workflows/template-picker"
 import { TemplateGalleryDialog } from "@/components/workflows/template-gallery-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useScopeFilter } from "@/hooks/use-scope-filter"
@@ -52,13 +50,11 @@ function WorkflowsPageInner() {
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
   const [orgsLoading, setOrgsLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showTemplateGallery, setShowTemplateGallery] = useState(false)
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active">("all")
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name_asc" | "name_desc" | "updated">("newest")
-  const { isFavorite, toggleFavorite } = useWorkflowFavorites()
 
   // Auth guard
   useEffect(() => {
@@ -171,24 +167,9 @@ function WorkflowsPageInner() {
           viewport: { x: 0, y: 0, zoom: 1 },
         },
       })
-      setShowTemplatePicker(false)
       router.push(`/workflows/${workflow.id}`)
     } catch {
       toast.error(t("workflowCreateFailed"))
-    } finally {
-      setIsCreatingFromTemplate(false)
-    }
-  }
-
-  const handleCreateFromTemplate = async (templateId: string) => {
-    setIsCreatingFromTemplate(true)
-    try {
-      const workflow = await workflowApi.createFromTemplate(templateId)
-      setShowTemplatePicker(false)
-      toast.success(t("templateCreateSuccess"))
-      router.push(`/workflows/${workflow.id}`)
-    } catch {
-      toast.error(t("templateCreateFailed"))
     } finally {
       setIsCreatingFromTemplate(false)
     }
@@ -274,12 +255,8 @@ function WorkflowsPageInner() {
           (w.description ?? "").toLowerCase().includes(q),
       )
     }
-    // Sort — favorites pinned to top, then by selected criteria
+    // Sort by selected criteria
     result = [...result].sort((a, b) => {
-      const aFav = isFavorite(a.id) ? 1 : 0
-      const bFav = isFavorite(b.id) ? 1 : 0
-      if (aFav !== bFav) return bFav - aFav
-
       switch (sortBy) {
         case "newest":
           return b.created_at.localeCompare(a.created_at)
@@ -296,7 +273,7 @@ function WorkflowsPageInner() {
       }
     })
     return result
-  }, [workflows, searchQuery, statusFilter, sortBy, isFavorite, scope, user, filterByScope])
+  }, [workflows, searchQuery, statusFilter, sortBy, scope, user, filterByScope])
 
   if (authLoading || !user) return null
 
@@ -322,8 +299,8 @@ function WorkflowsPageInner() {
             <LayoutTemplate className="h-3.5 w-3.5" />
             {t("fromTemplate")}
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={() => setShowTemplatePicker(true)}>
-            <Plus className="h-4 w-4" />
+          <Button size="sm" className="gap-1.5" onClick={handleCreateBlank} disabled={isCreatingFromTemplate}>
+            {isCreatingFromTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             {t("newWorkflow")}
           </Button>
         </div>
@@ -399,8 +376,8 @@ function WorkflowsPageInner() {
             title={t("emptyTitle")}
             description={t("emptyDescription")}
             action={
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowTemplatePicker(true)}>
-                <Plus className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCreateBlank} disabled={isCreatingFromTemplate}>
+                {isCreatingFromTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 {t("createWorkflow")}
               </Button>
             }
@@ -418,8 +395,6 @@ function WorkflowsPageInner() {
                 key={workflow.id}
                 workflow={workflow}
                 currentUserId={user.id}
-                isFavorite={isFavorite(workflow.id)}
-                onToggleFavorite={() => toggleFavorite(workflow.id)}
                 onDelete={handleDelete}
                 onExport={handleExport}
                 onDuplicate={handleDuplicate}
@@ -521,15 +496,6 @@ function WorkflowsPageInner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Template Picker */}
-      <TemplatePicker
-        open={showTemplatePicker}
-        onOpenChange={setShowTemplatePicker}
-        onSelectTemplate={handleCreateFromTemplate}
-        onCreateBlank={handleCreateBlank}
-        isCreating={isCreatingFromTemplate}
-      />
 
       {/* Template Gallery */}
       <TemplateGalleryDialog

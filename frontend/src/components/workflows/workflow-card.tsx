@@ -19,7 +19,6 @@ import {
   Play,
   RotateCw,
   ShoppingBag,
-  Star,
   Trash2,
   XCircle,
 } from "lucide-react"
@@ -45,8 +44,6 @@ import type { WorkflowResponse } from "@/types/workflow"
 interface WorkflowCardProps {
   workflow: WorkflowResponse
   currentUserId?: string
-  isFavorite?: boolean
-  onToggleFavorite?: () => void
   onDelete: (id: string) => void
   onExport: (id: string) => void
   onDuplicate: (id: string) => void
@@ -59,8 +56,6 @@ interface WorkflowCardProps {
 export function WorkflowCard({
   workflow,
   currentUserId,
-  isFavorite = false,
-  onToggleFavorite,
   onDelete,
   onExport,
   onDuplicate,
@@ -93,30 +88,6 @@ export function WorkflowCard({
           )}
           {workflow.name}
         </h3>
-        {onToggleFavorite && (
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className={cn(
-              "shrink-0 h-7 w-7 transition-colors",
-              isFavorite
-                ? "text-amber-400"
-                : "text-muted-foreground opacity-0 group-hover:opacity-100",
-            )}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onToggleFavorite()
-            }}
-          >
-            <Star
-              className={cn(
-                "h-4 w-4",
-                isFavorite && "fill-amber-400",
-              )}
-            />
-          </Button>
-        )}
         {isOwner ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -157,12 +128,6 @@ export function WorkflowCard({
                 <DropdownMenuItem onClick={() => onResubmit(workflow.id)}>
                   <RotateCw className="h-4 w-4" />
                   {to("resubmit")}
-                </DropdownMenuItem>
-              )}
-              {onToggleFavorite && (
-                <DropdownMenuItem onClick={onToggleFavorite}>
-                  <Star className={cn("h-4 w-4", isFavorite && "fill-amber-400 text-amber-400")} />
-                  {isFavorite ? t("unfavorite") : t("favorite")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
