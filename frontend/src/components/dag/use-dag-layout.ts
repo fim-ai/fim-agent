@@ -47,7 +47,7 @@ export function useDagLayout(
           id: edgeId,
           source: dep,
           target: step.id,
-          type: "smoothstep",
+          type: "default",
           style: { stroke: "var(--border)", strokeWidth: 1.5 },
           markerEnd: {
             type: MarkerType.ArrowClosed,
