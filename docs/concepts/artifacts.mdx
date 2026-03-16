@@ -1,0 +1,68 @@
+---
+title: "Artifacts"
+description: "Browse, preview, and download all AI-generated files across your conversations."
+---
+
+Artifacts are the files that AI agents produce during conversations — images, HTML pages, code files, documents, and other outputs. The Artifacts page is a cross-conversation gallery that lets you find, preview, and download everything your agents have created.
+
+## How Artifacts Are Created
+
+Any tool that returns a `ToolResult` with an `artifacts` list generates downloadable files. The agent doesn't need special instructions — artifact creation is a natural side effect of tool execution.
+
+Common producers:
+
+| Tool | Artifact Type | Example |
+|------|--------------|---------|
+| `python_exec` | Images, HTML, CSV, JSON | A matplotlib chart saved as PNG |
+| `template_render` | HTML | A formatted report |
+| Code execution tools | Any file | Generated code, exported data |
+| Image generation | Images | AI-generated illustrations |
+
+When a tool produces an artifact, it appears inline in the conversation as a downloadable attachment. All artifacts are also collected in the Artifacts gallery for cross-conversation browsing.
+
+## The Gallery
+
+The Artifacts page (`/artifacts`) provides a unified view of all files you've generated across all conversations.
+
+### Filtering
+
+Four type filters narrow the view:
+
+| Filter | File Types |
+|--------|-----------|
+| **All** | Everything |
+| **Images** | PNG, JPG, GIF, SVG, WebP |
+| **HTML** | HTML pages and reports |
+| **Code** | Python, JavaScript, TypeScript, JSON, YAML, XML, CSS, SQL, Markdown, shell scripts |
+| **Files** | Everything else — CSV, PDF, plain text, binary files |
+
+### Preview
+
+Click any artifact to open an inline preview:
+
+- **Images** — rendered at full resolution
+- **HTML** — displayed in a sandboxed iframe (scripts isolated)
+- **Code** — syntax-highlighted with language detection
+- **Markdown** — rendered as formatted text
+- **Other** — shown as plain text or download prompt
+
+Use arrow keys to navigate between artifacts; press Escape to close the preview.
+
+### Metadata
+
+Each artifact shows:
+- File name and size
+- Creation timestamp
+- Source conversation (click to navigate back to the conversation where it was generated)
+
+## Storage
+
+Artifacts are stored on the server filesystem under `uploads/conversations/{conversation_id}/artifacts/`. Each artifact gets a UUID-based filename, making URLs unguessable. Files are served directly — no database records for individual artifacts, keeping the storage layer simple and fast.
+
+## API
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/artifacts` | List all artifacts for the current user. Supports `?page=`, `?size=`, `?type=` filters |
+| `GET /api/conversations/{id}/artifacts` | List artifacts for a specific conversation |
+| `GET /api/conversations/{id}/artifacts/{artifact_id}` | Download a specific artifact |

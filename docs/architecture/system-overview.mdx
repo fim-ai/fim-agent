@@ -1,6 +1,6 @@
 ---
 title: "System Overview"
-description: "How Agent, Knowledge Base, Connector, Built-in Tools, and MCP compose into a unified architecture."
+description: "How Agent, Knowledge Base, Connector, Built-in Tools, MCP, and Skills compose into a unified architecture."
 ---
 
 ## The unified tool abstraction
@@ -19,11 +19,12 @@ flowchart TD
     TR --- KB["<b>Knowledge Base</b><br/>KBRetrieve or<br/>GroundedRetrieve"]
     TR --- CT["<b>Connectors</b><br/>HTTP API, Database,<br/>auth injection, audit"]
     TR --- MCP["<b>MCP Servers</b><br/>user + global,<br/>process-isolated"]
+    TR --- SK["<b>Skills</b><br/>global SOPs,<br/>progressive or inline"]
 ```
 
-Four capability sources converge into one registry. The agent draws from all of them equally.
+Five capability sources converge into one registry. The agent draws from all of them equally.
 
-## Four capability sources
+## Five capability sources
 
 ### Built-in Tools
 
@@ -41,6 +42,14 @@ Conditional. When an agent has bound `kb_ids`, the generic `kb_retrieve` tool is
 
 External MCP servers provide third-party tools via the standard protocol. Each server runs in its own process (stdio or HTTP transport), fully isolated from the platform. Tools are adapted into the `Tool` protocol and registered under category `mcp`. Admins can provision **global MCP servers** that load for all users automatically. MCP is the ecosystem play -- any MCP-compatible server works without custom integration.
 
+### Skills
+
+Skills are reusable Standard Operating Procedures (SOPs) -- company policies, handling procedures, step-by-step workflows -- that apply globally regardless of which Agent is selected. Unlike Connectors and Knowledge Bases (which can be scoped to specific Agents), Skills are always loaded for every user based on visibility (personal, org-shared, or Market-subscribed).
+
+Skills support two injection modes. In **progressive mode** (default), the system prompt contains compact stubs (name + description), and the LLM calls `read_skill(name)` on demand to load the full content -- saving context tokens when many Skills are available. In **inline mode**, the full Skill content is embedded directly in the system prompt -- suitable when few, small Skills are in use.
+
+For a deeper look at why Skills are global (not Agent-bound) and how they interact with the dual-mode resource discovery, see [Agent & Resource Discovery](/architecture/agent-discovery).
+
 ## Per-request tool assembly
 
 Every chat request assembles a fresh tool set through a filtering pipeline in `_resolve_tools()`. This is not a static configuration -- it is computed per request based on the agent's settings, the user's identity, and the available connectors and MCP servers.
@@ -51,21 +60,25 @@ flowchart LR
     B --> C["KB injection"]
     C --> D["Connector loading"]
     D --> E["MCP loading"]
-    E --> F{"Tools > 12?"}
+    E --> SK["Skills injection"]
+    SK --> CA["CallAgent registration"]
+    CA --> F{"Tools > 12?"}
     F -->|Yes| G["LLM tool selection"]
     F -->|No| H["Use full set"]
     G --> I["<b>Final ToolRegistry</b>"]
     H --> I
 ```
 
-The six steps:
+The eight steps:
 
 1. **Base discovery.** `discover_builtin_tools()` loads all built-in tools, scoped to the conversation's sandbox.
 2. **Agent category filter.** `filter_by_category(*agent.tool_categories)` restricts to only the categories the agent is allowed to use.
 3. **KB injection.** If the agent has `kb_ids`, the generic retrieval tool is replaced with `KBRetrieveTool` or `GroundedRetrieveTool` based on retrieval mode.
-4. **Connector loading.** The agent's bound connectors are queried from the database. Each connector's actions (or database schemas) are instantiated as tool adapters and registered.
+4. **Connector loading.** In agent-constrained mode, only the agent's bound connectors are loaded. In auto-discovery mode (no agent selected), all connectors visible to the user are loaded -- using `ConnectorMetaTool` for API connectors (progressive discovery) and individual tools for database connectors.
 5. **MCP loading.** The user's personal MCP servers plus admin-provisioned global MCP servers are loaded, connected, and their tools registered.
-6. **Runtime selection.** If the total tool count exceeds 12, a lightweight LLM call picks the most relevant subset (up to 6) for this specific query. Selection failure is non-fatal -- the agent falls back to the full set.
+6. **Skills injection.** All active Skills visible to the user are loaded -- regardless of agent selection. In progressive mode, `ReadSkillTool` is registered with compact stubs in the system prompt. In inline mode, full Skill content is embedded directly.
+7. **CallAgent registration.** All active, visible Agents are assembled into a catalog and exposed via `CallAgentTool`, enabling the LLM to delegate tasks to specialist sub-agents. Sub-agents receive a full `ToolRegistry` built from their own configuration but exclude `call_agent` to prevent infinite recursion.
+8. **Runtime selection.** If the total tool count exceeds 12, a lightweight LLM call picks the most relevant subset (up to 6) for this specific query. Selection failure is non-fatal -- the agent falls back to the full set.
 
 The result: the agent sees exactly the tools it needs, no more. A simple agent with no connectors and no KB might see 5 tools. A Hub agent connected to 3 enterprise systems with a grounded knowledge base and 2 MCP servers might see 30 -- but after selection, only the 6 most relevant make it into the context.
 
@@ -77,14 +90,16 @@ The result: the agent sees exactly the tools it needs, no more. A simple agent w
 | Enterprise system integration (ERP, CRM, OA) | Connector | Auth governance, audit trail, operation-level access control |
 | Knowledge retrieval with citations and evidence | Knowledge Base | RAG pipeline, grounded generation, conflict detection |
 | Third-party tool ecosystem | MCP | Standard protocol, process isolation, community servers |
+| Organizational policies, SOPs, handling procedures | Skill | Global by default, progressive loading, visibility-scoped |
+| Delegating tasks to specialist agents | CallAgent | Semantic agent routing, full tool inheritance, parallel execution |
 | Direct database access | Database Connector | Schema-aware SQL, optional read-only enforcement |
 | Custom internal tooling | MCP or Built-in | MCP for process isolation; built-in for tight integration |
 
-The categories are not mutually exclusive. A single agent can use all four capability sources in one conversation -- querying a knowledge base for policy documents, calling a connector to check the ERP, and using a built-in tool to format the results.
+The categories are not mutually exclusive. A single agent can use all five capability sources in one conversation -- loading a Skill for the complaint handling SOP, querying a knowledge base for policy documents, calling a connector to check the ERP, delegating analysis to a specialist sub-agent, and using a built-in tool to format the results.
 
 ## Execution engines are orthogonal
 
-The tool system and execution engines are independent concerns. Both engines consume tools from the same `ToolRegistry`. The choice of engine affects how tools are orchestrated, not which tools are available.
+The tool system and execution engines are independent concerns. The LLM-driven engines (ReAct and DAG) consume tools from the same `ToolRegistry`. The choice of engine affects how tools are orchestrated, not which tools are available.
 
 **ReAct** is an iterative tool loop. The agent reasons, picks a tool, observes the result, and repeats until done. It excels at exploratory, conversational tasks where the next step depends on the previous result. The loop runs up to 50 iterations with per-iteration context management via ContextGuard. See [ReAct Engine](/architecture/react-engine) for implementation details.
 
@@ -92,11 +107,17 @@ The tool system and execution engines are independent concerns. Both engines con
 
 The two engines share infrastructure: `structured_llm_call` for reliable structured output, `ContextGuard` for token budget enforcement, and the `ToolRegistry` for tool resolution. Adding a new tool requires zero changes to either engine. Adding a new engine (should one ever be needed) requires zero changes to the tool system.
 
+Both engines also support **multi-agent delegation** via `CallAgentTool`. In native function-calling mode, the LLM can invoke multiple `call_agent` calls in a single turn, which execute concurrently via `asyncio.gather`. Each sub-agent receives its own `ToolRegistry` and runs as a full execution unit. For the detailed design of agent discovery, Skills as global SOPs, and multi-agent orchestration, see [Agent & Resource Discovery](/architecture/agent-discovery).
+
+### Workflow Engine — the third paradigm
+
+Alongside the LLM-driven ReAct and DAG engines, FIM One includes a **Workflow Engine** — a visual DAG editor with 26 node types for fixed-process automation (approval chains, scheduled ETL, multi-step pipelines). Workflows can invoke Agents, Connectors, Knowledge Bases, MCP Servers, LLM calls, HTTP requests, Python code, and human approval gates. The relationship is asymmetric: Workflows can orchestrate Agents (via the AGENT node), but Agents cannot directly invoke Workflows. Use Agents for flexible, exploratory tasks; use Workflows for deterministic, repeatable processes. See [Execution Modes](/concepts/execution-modes) for details.
+
 ## Lifecycle overview
 
 **Startup.** `start.sh` runs Alembic migrations, launches the FastAPI server, discovers built-in tools, and establishes MCP server connections for any pre-configured global servers.
 
-**Per-request.** JWT authentication, agent configuration lookup, tool assembly (the 6-step pipeline above), engine selection (ReAct or DAG based on agent config), execution with SSE streaming, and result persistence.
+**Per-request.** JWT authentication, agent configuration lookup, tool assembly (the 8-step pipeline above), engine selection (ReAct or DAG based on agent config), execution with SSE streaming, and result persistence.
 
 **Cross-cutting concerns.** [Context management](/architecture/context-management) (5-layer token budget) protects every LLM call from overflow. Audit logging tracks every connector tool invocation. Sandbox isolation contains code execution tools. The two-LLM architecture (smart + fast) optimizes cost across planning, execution, and synthesis.
 

@@ -1,0 +1,86 @@
+---
+title: "市场"
+description: "在您的组织和全球社区中发现、订阅和发布共享资源。"
+---
+
+市场是 FIM One 的内置资源市场——用户可以在此浏览和订阅由他人发布的智能体、连接器、知识库、MCP 服务器、技能和工作流。
+
+<Info>
+市场采用**拉取模型**：资源通过浏览发现并显式订阅。没有自动加入或推送机制——用户选择要安装的内容。
+</Info>
+
+## 工作原理
+
+### 发布
+
+任何资源所有者都可以发布他们的资源以使其可被发现：
+
+```mermaid
+flowchart LR
+    P["Personal<br/>(only you)"] -->|"Publish to org"| O["Organization<br/>(all org members)"]
+    O -->|"Publish to Market"| M["Market<br/>(all users)"]
+    M -.->|"Review gate"| R["Admin Review<br/>(approve / reject)"]
+    R -->|"Approved"| V["Visible in Market"]
+```
+
+| 可见性 | 谁可以看到 | 需要审核？ |
+|---|---|---|
+| **个人** | 仅创建者 | 否 |
+| **组织** | 创建者所在组织的所有成员 | 否（组织级信任） |
+| **市场（全局）** | 所有已认证用户 | 是 — 需要管理员批准 |
+
+发布到市场始终需要经过审核门槛。管理员可以批准、拒绝（附注释）或将资源保留为待审核状态。被拒绝的资源可以修改后重新提交。
+
+### 订阅
+
+当您在市场中找到资源时，订阅会使其在您的工作区中可用：
+
+- **已订阅的连接器**出现在您的工具集中（自动发现模式）和智能体绑定下拉菜单中
+- **已订阅的智能体**出现在您的智能体选择器和 `call_agent` 目录中
+- **已订阅的技能**被注入到您的系统提示中（遵循相同的渐进式/内联模式）
+- **已订阅的知识库**可用于检索
+- **已订阅的 MCP 服务器**将其工具加载到您的会话中
+- **已订阅的工作流**出现在您的工作流列表中以供执行
+
+订阅是即时的 — 无需发布者批准。随时取消订阅以从您的工作区中移除资源。
+
+### 影子组织
+
+在幕后，市场是作为一个**影子组织**实现的——一个不持有任何成员的隐形系统组织（`MARKET_ORG_ID`）。发布到市场的资源在这个影子组织内被设置为 `visibility: "org"`，这允许现有的 `resolve_visibility()` 查询自然地包含它们。
+
+这意味着市场在工具组装管道中**不需要任何特殊情况代码**。加载个人和组织资源的相同三层可见性过滤器也加载市场资源：
+
+```python
+conditions = [
+    model.user_id == user_id,           # own resources
+    and_(model.visibility == "org",     # org-shared (includes Market shadow org)
+         model.org_id.in_(user_org_ids)),
+    model.id.in_(subscribed_ids),       # Market-subscribed
+]
+```
+
+`subscribed_ids` 子句是使市场工作的原因——当你订阅时，会创建一个 `ResourceSubscription` 行，资源通过第三个条件出现在你的可见性过滤器中。
+
+## 资源类型
+
+所有六种资源类型都支持完整的市场生命周期：
+
+| 资源 | 发布 | 订阅 | 您获得的内容 |
+|---|---|---|---|
+| **智能体** | ✅ | ✅ | 选择器中的专家智能体和 `call_agent` 目录 |
+| **连接器** | ✅ | ✅ | 作为工具可用的 API/数据库桥接 |
+| **知识库** | ✅ | ✅ | RAG 查询的检索源 |
+| **MCP Server** | ✅ | ✅ | 加载到会话中的第三方工具 |
+| **技能** | ✅ | ✅ | 注入系统提示的全局 SOP |
+| **工作流** | ✅ | ✅ | 工作流列表中的固定流程自动化 |
+
+## API
+
+| 端点 | 描述 |
+|----------|-------------|
+| `GET /api/market` | 浏览已发布的资源。支持 `?resource_type=`、`?page=`、`?size=` |
+| `POST /api/market/subscribe` | 订阅资源（按类型 + ID） |
+| `DELETE /api/market/unsubscribe` | 取消订阅资源 |
+| `GET /api/market/subscriptions` | 列出您当前的订阅 |
+
+每种资源类型还有自己的 `POST /api/{type}/{id}/publish` 和 `POST /api/{type}/{id}/unpublish` 端点用于发布控制。

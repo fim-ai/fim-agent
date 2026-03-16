@@ -40,6 +40,8 @@
                 "pages": [
                   "concepts/execution-modes",
                   "concepts/ai-builder",
+                  "concepts/artifacts",
+                  "concepts/market",
                   "concepts/eval-center"
                 ]
               },
@@ -60,6 +62,7 @@
                 "icon": "sitemap",
                 "pages": [
                   "architecture/system-overview",
+                  "architecture/agent-discovery",
                   "architecture/philosophy",
                   "architecture/organization",
                   "architecture/context-management",
@@ -138,6 +141,8 @@
                 "pages": [
                   "zh/concepts/execution-modes",
                   "zh/concepts/ai-builder",
+                  "zh/concepts/artifacts",
+                  "zh/concepts/market",
                   "zh/concepts/eval-center"
                 ]
               },
@@ -158,6 +163,7 @@
                 "icon": "sitemap",
                 "pages": [
                   "zh/architecture/system-overview",
+                  "zh/architecture/agent-discovery",
                   "zh/architecture/philosophy",
                   "zh/architecture/organization",
                   "zh/architecture/context-management",
@@ -236,6 +242,8 @@
                 "pages": [
                   "ja/concepts/execution-modes",
                   "ja/concepts/ai-builder",
+                  "ja/concepts/artifacts",
+                  "ja/concepts/market",
                   "ja/concepts/eval-center"
                 ]
               },
@@ -256,6 +264,7 @@
                 "icon": "sitemap",
                 "pages": [
                   "ja/architecture/system-overview",
+                  "ja/architecture/agent-discovery",
                   "ja/architecture/philosophy",
                   "ja/architecture/organization",
                   "ja/architecture/context-management",
@@ -334,6 +343,8 @@
                 "pages": [
                   "ko/concepts/execution-modes",
                   "ko/concepts/ai-builder",
+                  "ko/concepts/artifacts",
+                  "ko/concepts/market",
                   "ko/concepts/eval-center"
                 ]
               },
@@ -354,6 +365,7 @@
                 "icon": "sitemap",
                 "pages": [
                   "ko/architecture/system-overview",
+                  "ko/architecture/agent-discovery",
                   "ko/architecture/philosophy",
                   "ko/architecture/organization",
                   "ko/architecture/context-management",
@@ -432,6 +444,8 @@
                 "pages": [
                   "de/concepts/execution-modes",
                   "de/concepts/ai-builder",
+                  "de/concepts/artifacts",
+                  "de/concepts/market",
                   "de/concepts/eval-center"
                 ]
               },
@@ -452,6 +466,7 @@
                 "icon": "sitemap",
                 "pages": [
                   "de/architecture/system-overview",
+                  "de/architecture/agent-discovery",
                   "de/architecture/philosophy",
                   "de/architecture/organization",
                   "de/architecture/context-management",
@@ -530,6 +545,8 @@
                 "pages": [
                   "fr/concepts/execution-modes",
                   "fr/concepts/ai-builder",
+                  "fr/concepts/artifacts",
+                  "fr/concepts/market",
                   "fr/concepts/eval-center"
                 ]
               },
@@ -550,6 +567,7 @@
                 "icon": "sitemap",
                 "pages": [
                   "fr/architecture/system-overview",
+                  "fr/architecture/agent-discovery",
                   "fr/architecture/philosophy",
                   "fr/architecture/organization",
                   "fr/architecture/context-management",

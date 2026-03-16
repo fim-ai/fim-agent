@@ -1,0 +1,282 @@
+---
+title: "Agent & Resource Discovery"
+description: "How FIM One discovers and assembles resources — the dual-mode architecture of agent-constrained and global auto-discovery."
+---
+
+## The two modes
+
+Every chat request in FIM One starts with a question: **is an Agent selected?** The answer determines how resources — Connectors, Knowledge Bases, Skills, and MCP servers — are discovered and assembled into the tool set the LLM can use.
+
+**Agent-Constrained Mode** activates when the user picks a specific Agent. The system loads only the resources that Agent has been explicitly configured with:
+
+- **Connectors**: only the Agent's bound `connector_ids` are loaded as tools.
+- **Knowledge Bases**: only the Agent's bound `kb_ids` are injected as retrieval tools.
+- **Skills**: globally available — all active Skills visible to the user are injected, because Skills are organizational SOPs, not Agent-specific knowledge. (See [Skills as Global SOPs](#skills-as-global-sops) below.)
+- **MCP Servers**: always user-scoped — all active MCP servers visible to the user are loaded in both modes.
+- **Instructions**: the Agent's `instructions` field defines the persona and behavioral guidelines injected into the system prompt.
+
+**Global Auto-Discovery Mode** activates when no Agent is selected (e.g., a new chat). The system auto-discovers everything accessible to the user:
+
+- **Connectors**: all Connectors visible to the user (own + org-shared + Market-subscribed) are loaded.
+- **Knowledge Bases**: all accessible KBs are available for retrieval via `kb_retrieve`.
+- **Skills**: all active Skills visible to the user are injected as SOP stubs.
+- **MCP Servers**: same as agent-constrained — all active servers visible to the user.
+- **Instructions**: a generic assistant persona is used.
+
+The branching happens inside `_resolve_tools()`, which is called on every chat request:
+
+```mermaid
+flowchart TD
+    U["User Request"] --> R["_resolve_agent_config()"]
+    R -->|Agent selected| AC["<b>Agent-Constrained</b><br/>Load agent's bound<br/>Connectors + KB"]
+    R -->|No agent| AD["<b>Auto-Discovery</b><br/>Load ALL visible<br/>Connectors + KB"]
+
+    AC --> SK["Inject Global Skills<br/>(both modes)"]
+    AD --> SK
+
+    SK --> MCP["Load User MCP Servers<br/>(both modes)"]
+    MCP --> TR["<b>ToolRegistry</b>"]
+    TR --> EE["Execution Engine<br/>(ReAct or DAG)"]
+```
+
+The practical effect: users can start chatting immediately without configuring an Agent. The system discovers available resources and exposes them as tools. Selecting an Agent narrows the scope — it does not unlock new capabilities, it focuses existing ones.
+
+### What each mode discovers
+
+The two modes differ in **scope**, not in kind. Both produce a `ToolRegistry` — they just fill it differently.
+
+**Auto-Discovery Mode (no Agent selected):**
+
+| Resource | Discovery | Tool Form |
+|---|---|---|
+| Connectors (API) | `resolve_visibility()` — all visible to user | `ConnectorMetaTool` (progressive) |
+| Connectors (DB) | `resolve_visibility()` — all visible to user | Individual DB tools per schema |
+| Knowledge Bases | All accessible KBs | `kb_retrieve` |
+| Skills | `resolve_visibility()` — all active | `read_skill` (progressive stubs) |
+| MCP Servers | `resolve_visibility()` — all user-visible | `{server}__{tool}` |
+| Agents | `resolve_visibility()` — all active, non-builder | `call_agent` (catalog) |
+| Built-in Tools | `discover_builtin_tools()` — full set | No category filter applied |
+
+**Agent-Constrained Mode (Agent selected):**
+
+| Resource | Discovery | Tool Form |
+|---|---|---|
+| Connectors | Only `agent.connector_ids` | `ConnectorMetaTool` or legacy per-action |
+| Knowledge Bases | Only `agent.kb_ids` | `GroundedRetrieveTool` / `KBRetrieveTool` |
+| Skills | Global — **not constrained by Agent** | `read_skill` |
+| MCP Servers | User-scoped — **not constrained by Agent** | `{server}__{tool}` |
+| Agents | Global — `call_agent` always available | `call_agent` |
+| Built-in Tools | `agent.tool_categories` filter | Subset by category |
+
+The key asymmetry: Connectors and Knowledge Bases are scoped by the Agent, but Skills, MCP Servers, and CallAgent are always global. This reflects the design intent — Skills are organizational rules (everyone follows the same SOPs), while Connectors and KBs are capability bindings (different agents connect to different systems).
+
+## Everything is a tool
+
+At the LLM level, all resource types converge into a flat list of callable tools. The LLM has no structural awareness of whether it is calling a Connector, an MCP server, or a Knowledge Base. It sees a `ToolRegistry` — a set of functions with names, descriptions, and parameter schemas.
+
+| Resource Type | Becomes at LLM Level | Tool Name Pattern |
+|---|---|---|
+| Connector (progressive) | Single meta-tool | `connector` |
+| Connector (legacy) | N tools per action | `{connector}__{action}` |
+| MCP Server | N tools per server | `{server}__{tool}` |
+| Knowledge Base | Retrieval tool | `kb_retrieve` or `grounded_retrieve` |
+| Skill (progressive) | Read tool + system prompt stubs | `read_skill` |
+| Skill (inline) | System prompt text only | _(no tool)_ |
+| Agent itself | Not visible as a tool | _(instructions + tool assembly)_ |
+
+The key insight: **an Agent is not a tool — it is the entity that uses tools.** The Agent contributes its instructions to the system prompt and determines which tools are available. But from the LLM's perspective, there is no "agent" concept — only a system prompt and a set of callable functions.
+
+This uniformity is what makes the system extensible. Adding a new resource type means implementing the `Tool` protocol (`name`, `description`, `parameters_schema`, `run()`). The execution engines, context management, and LLM interaction layer remain unchanged.
+
+## Skills as global SOPs
+
+Skills occupy a layer above Agents. They are organizational policies and procedures that every Agent must follow, regardless of which Agent is selected.
+
+### Why Skills are not bound to Agents
+
+A Skill like "Customer Complaint Handling SOP" applies to every agent that interacts with customers. Binding Skills to Agents creates a bidirectional ownership problem: if a Skill orchestrates Agents, and Agents own Skills, who controls whom?
+
+Skills are global by design — they are company rules, not agent-specific knowledge. The `_resolve_tools()` function loads all active Skills visible to the user regardless of Agent selection, using the same `resolve_visibility()` filter used for other resources.
+
+### Two injection modes
+
+Skills support two injection strategies, controlled by `SKILL_TOOL_MODE` (environment) or the Agent's `model_config_json.skill_tool_mode`:
+
+| Mode | System Prompt | Tool | When to Use |
+|---|---|---|---|
+| **Progressive** (default) | Name + description stubs only | `read_skill(name)` loads full content on demand | Many Skills, or Skills with large content — saves context tokens |
+| **Inline** | Full Skill content embedded | None | Few, small Skills — no tool call overhead |
+
+In progressive mode, the system prompt contains compact stubs like:
+
+```
+## Available Skills
+Call read_skill(name) to load full content before executing any of these:
+- **Customer Complaint SOP**: Handle escalations per company policy...
+- **Refund Processing**: Step-by-step refund workflow...
+```
+
+The LLM calls `read_skill("Customer Complaint SOP")` only when it needs the full procedure, keeping the context lean during unrelated turns.
+
+## Agent as persona, not container
+
+FIM One's architecture reflects a deliberate shift from an Agent-centric model to a Resource-centric model.
+
+**Previous model:** the Agent was a container that gated access to all resources. No Agent selected meant no Connectors, no Skills, no specialized KB. The Agent was the mandatory entry point for any capability.
+
+**Current model:** the Agent is a persona — a set of instructions and behavioral guidelines — combined with an optional resource constraint. Resources exist independently of Agents. Selecting an Agent narrows the scope; not selecting one opens it fully.
+
+```mermaid
+flowchart LR
+    subgraph OLD["Previous: Agent-Centric"]
+        direction TB
+        A1["Agent"] --> C1["Connectors"]
+        A1 --> K1["KB"]
+        A1 --> S1["Skills"]
+        A1 --> M1["MCP"]
+        N1["No Agent = No Tools"]
+    end
+
+    subgraph NEW["Current: Resource-Centric"]
+        direction TB
+        R2["Resources<br/>(Connectors, KB,<br/>Skills, MCP)"]
+        A2["Agent = Persona<br/>+ scope filter"]
+        R2 -.->|"constrains"| A2
+        N2["No Agent =<br/>All Resources"]
+    end
+```
+
+This means:
+
+- **Users can start chatting immediately** without configuring an Agent.
+- **The system auto-discovers available resources** and exposes them as tools.
+- **Agents become lightweight personas** that can be created quickly — just write instructions and optionally bind specific Connectors and KBs.
+- **Resource management is decoupled** from Agent management. Publishing a Connector to an organization makes it available everywhere — in auto-discovery mode, in Agent binding dropdowns, and in sub-agent tool resolution.
+
+## Multi-agent orchestration
+
+FIM One supports delegating tasks to specialist agents via `CallAgentTool`. This enables a parent agent (or auto-discovery mode) to invoke sub-agents for focused tasks.
+
+### Agent catalog
+
+At runtime, all active, non-builder Agents visible to the user are assembled into a catalog. Each Agent's name and description are listed in the `call_agent` tool's parameter schema, allowing the LLM to choose the right specialist semantically — no hardcoded routing.
+
+### Full tool inheritance
+
+When a sub-agent is invoked via `call_agent(agent_id, task)`, it receives a complete `ToolRegistry` built from its own configuration — including its bound Connectors, KB, and built-in tools. Sub-agents are full execution units, not text-only advisors.
+
+### One-level delegation
+
+To prevent infinite recursion, sub-agents do not receive the `call_agent` tool. Delegation is always one level deep: parent calls child, child executes and returns a result. The parent synthesizes results from multiple sub-agents.
+
+### Parallel execution
+
+In native function-calling mode, the LLM can invoke multiple `call_agent` calls in a single turn. These execute concurrently via `asyncio.gather`, enabling patterns like "search three sources simultaneously."
+
+```mermaid
+flowchart TD
+    U["User Query"] --> MA["Main Agent<br/>(or auto-discovery)"]
+    MA -->|"call_agent('Contract Expert',<br/>'find this week's contracts')"| SA1["Sub-Agent:<br/>Contract Expert"]
+    MA -->|"call_agent('Data Analyst',<br/>'analyze refund trends')"| SA2["Sub-Agent:<br/>Data Analyst"]
+
+    SA1 --> T1["Contract Connector<br/>tools"]
+    T1 --> R1["Result"]
+
+    SA2 --> T2["Analytics KB +<br/>Python tools"]
+    T2 --> R2["Result"]
+
+    R1 --> SYN["Main Agent<br/>synthesizes both results"]
+    R2 --> SYN
+
+    SYN --> ANS["Final Answer"]
+```
+
+## Visibility model
+
+All resource discovery — in both modes — is governed by a unified visibility model with three tiers:
+
+| Tier | Description | Example |
+|---|---|---|
+| **Own** | Created by the user. Always visible. | A Connector you built for your team's API |
+| **Organization-shared** | Resources with `visibility: "org"` from the user's organization(s). Visible to all approved org members. | A company-wide ERP Connector published by IT |
+| **Market-subscribed** | Resources installed from the FIM One Market. Visible to the subscriber. | A community-built Slack Connector you installed |
+
+The `resolve_visibility()` function in `web/visibility.py` builds a SQL filter that includes all three tiers in a single query:
+
+```python
+conditions = [
+    model.user_id == user_id,                    # own resources
+    and_(model.visibility == "org",              # org-shared
+         model.org_id.in_(user_org_ids),
+         or_(model.publish_status == None,
+             model.publish_status == "approved")),
+    model.id.in_(subscribed_ids),                # Market-subscribed
+]
+```
+
+This same filter is used everywhere:
+
+- Auto-discovering Connectors in no-agent mode
+- Building the Agent catalog for `CallAgentTool`
+- Loading visible Skills for system prompt injection
+- MCP server resolution
+- Agent configuration lookup (ensuring a user can only select Agents visible to them)
+
+The uniformity means that **publishing a Connector to an organization automatically makes it available** in auto-discovery mode, in Agent binding dropdowns, and in sub-agent tool resolution — no special wiring required. The visibility model is the single source of truth for "what can this user access."
+
+## Relationship map
+
+FIM One has two parallel execution paradigms — **Chat (Agent-driven)** and **Workflow (DAG-driven)** — that share the same underlying resources but orchestrate them differently.
+
+```mermaid
+flowchart TD
+    subgraph CHAT["Chat Execution (Agent-driven)"]
+        USER["User"] --> AGENT["Agent<br/>(ReAct / DAG)"]
+        AGENT --> TR["ToolRegistry"]
+        TR --> CONN["Connectors"]
+        TR --> KB["Knowledge Bases"]
+        TR --> MCP_T["MCP Servers"]
+        TR --> BUILT["Built-in Tools"]
+        TR --> CALL["call_agent<br/>→ Sub-Agent"]
+        TR --> READ["read_skill<br/>→ SOP text"]
+    end
+
+    subgraph WF_EXEC["Workflow Execution (fixed DAG)"]
+        TRIGGER["Trigger<br/>(Manual / Cron / API)"] --> WF["Workflow Engine"]
+        WF --> WF_AGENT["AGENT Node"]
+        WF --> WF_LLM["LLM Node"]
+        WF --> WF_CONN["CONNECTOR Node"]
+        WF --> WF_KB["KB_RETRIEVAL Node"]
+        WF --> WF_MCP["MCP Node"]
+        WF --> WF_HTTP["HTTP Node"]
+        WF --> WF_CODE["CODE Node"]
+        WF --> WF_HUMAN["HUMAN Node"]
+        WF --> WF_SUB["SUB_WORKFLOW Node"]
+    end
+
+    SKILLS["Skills<br/>(Global SOPs)"] -.->|"injected into<br/>system prompt"| AGENT
+    WF_AGENT -->|"invokes"| AGENT
+```
+
+Key takeaways from the diagram:
+
+- **Agent and Workflow are parallel paradigms.** Both can use Connectors, Knowledge Bases, and MCP Servers — but through different mechanisms. Agents use them as tools in a `ToolRegistry`; Workflows use them as typed DAG nodes.
+- **Workflow can orchestrate Agents** via the `AGENT` node — a Workflow step can invoke a full Agent with its own ReAct/DAG loop. The reverse is not true: Agents cannot directly invoke Workflows (only indirectly via API/webhook triggers).
+- **Skills are injected into Agents only.** Skills are system prompt text — they guide Agent behavior. Workflows don't consume Skills because Workflow nodes execute deterministic logic, not LLM-guided reasoning.
+- **Shared resources, different access patterns.** A Connector can be called by an Agent (via `ConnectorToolAdapter`), by a Workflow (via `CONNECTOR` node), or by both in the same business process — e.g., a Workflow triggers an Agent that queries the same Connector the Workflow also uses in a later step.
+
+## Workflow Engine — the other execution paradigm
+
+While this document focuses on Agent-driven chat execution, FIM One includes a full **Workflow Engine** — a visual DAG editor with 26 node types for fixed-process automation.
+
+| Aspect | Agent (Chat) | Workflow |
+|---|---|---|
+| Orchestration | LLM decides next step dynamically | Fixed DAG defined at design time |
+| Best for | Exploratory tasks, conversations, flexible reasoning | Approval chains, scheduled ETL, multi-step automations |
+| Can call | Connectors, KB, MCP, Built-in Tools, Sub-Agents, Skills | Agents, Connectors, KB, MCP, LLM, HTTP, Code, Human approval, Sub-Workflows |
+| Trigger | User message in chat | Manual, cron schedule, or API/webhook |
+| Nesting | One-level delegation (parent → child Agent) | Arbitrary DAG depth via SUB_WORKFLOW nodes |
+
+The two paradigms are complementary. Use Agents when the task is open-ended ("analyze this quarter's sales data and recommend actions"). Use Workflows when the process is known ("every Monday, pull new invoices from ERP, run compliance checks, and route exceptions to a human reviewer"). A Workflow can invoke an Agent for any step that needs flexible reasoning within an otherwise fixed pipeline.
+
+For details on Agent execution modes and Workflow node types, see [Execution Modes](/concepts/execution-modes).

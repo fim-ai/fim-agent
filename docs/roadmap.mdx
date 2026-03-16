@@ -223,7 +223,7 @@ flowchart LR
 - [ ] **Resource Fork (Package Phase 1 — prerequisite for v1.0 Package System)**: Per-resource clone/fork endpoints as atomic building blocks for Package fork. Each `POST /api/{type}/{id}/fork` creates a user-owned deep copy of the resource config, decoupled from the original (no update link). **Testing matrix**: each resource must be tested for both Market subscribe (install) and org-level publish (two distinct code paths). Implementation order by complexity:
   1. **MCP Server fork** — simplest; copy config (command, args, env template). MCP credential per-user override (`mcp_server_credentials`) already provides atomic credential isolation — extend this pattern
   2. **Skill fork** — copy name, content/SOP, scripts
-  3. **Agent fork** — copy config + re-map `skill_ids`, `connector_ids`, `kb_ids`, `sub_agent_ids`, `mcp_server_ids` to forked copies (requires leaf resources forked first)
+  3. **Agent fork** — copy config + re-map `connector_ids`, `kb_ids`, `sub_agent_ids`, `mcp_server_ids` to forked copies (requires leaf resources forked first). Note: Skills are global and no longer bound to Agents — Skill fork is independent
   4. **Connector fork** — already shipped (v0.8); verify it handles credential stripping on fork (user must provide own credentials)
   5. **Workflow fork** — duplicate already exists; verify it handles node references to agents/connectors/KBs
   6. **KB fork** — most complex; **shallow copy only** (metadata + document references, embeddings regenerated). Deep-copying vector indices is prohibitively expensive and wasteful since fork users typically modify documents. Reference npm's approach: don't over-design, shallow is good enough

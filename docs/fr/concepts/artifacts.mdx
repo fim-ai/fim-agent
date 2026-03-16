@@ -1,0 +1,68 @@
+---
+title: "Artefacts"
+description: "Parcourez, prévisualisez et téléchargez tous les fichiers générés par l'IA dans vos conversations."
+---
+
+Les artefacts sont les fichiers que les agents IA produisent lors des conversations — images, pages HTML, fichiers de code, documents et autres résultats. La page Artefacts est une galerie multi-conversations qui vous permet de trouver, prévisualiser et télécharger tout ce que vos agents ont créé.
+
+## Comment les artefacts sont créés
+
+Tout outil qui retourne un `ToolResult` avec une liste `artifacts` génère des fichiers téléchargeables. L'agent n'a pas besoin d'instructions spéciales — la création d'artefacts est un effet secondaire naturel de l'exécution d'outils.
+
+Producteurs courants :
+
+| Outil | Type d'artefact | Exemple |
+|------|--------------|---------|
+| `python_exec` | Images, HTML, CSV, JSON | Un graphique matplotlib enregistré en PNG |
+| `template_render` | HTML | Un rapport formaté |
+| Outils d'exécution de code | Tout fichier | Code généré, données exportées |
+| Génération d'images | Images | Illustrations générées par IA |
+
+Quand un outil produit un artefact, il apparaît en ligne dans la conversation en tant que pièce jointe téléchargeable. Tous les artefacts sont également collectés dans la galerie d'artefacts pour une navigation entre conversations.
+
+## La Galerie
+
+La page Artefacts (`/artifacts`) fournit une vue unifiée de tous les fichiers que vous avez générés dans toutes les conversations.
+
+### Filtrage
+
+Quatre filtres de type réduisent la vue :
+
+| Filtre | Types de fichiers |
+|--------|-----------|
+| **Tous** | Tout |
+| **Images** | PNG, JPG, GIF, SVG, WebP |
+| **HTML** | Pages HTML et rapports |
+| **Code** | Python, JavaScript, TypeScript, JSON, YAML, XML, CSS, SQL, Markdown, scripts shell |
+| **Fichiers** | Tout le reste — CSV, PDF, texte brut, fichiers binaires |
+
+### Aperçu
+
+Cliquez sur n'importe quel artefact pour ouvrir un aperçu en ligne :
+
+- **Images** — affichées à la résolution complète
+- **HTML** — affichées dans une iframe en bac à sable (scripts isolés)
+- **Code** — mise en évidence syntaxique avec détection du langage
+- **Markdown** — rendu sous forme de texte formaté
+- **Autres** — affichés sous forme de texte brut ou invite de téléchargement
+
+Utilisez les touches fléchées pour naviguer entre les artefacts ; appuyez sur Échap pour fermer l'aperçu.
+
+### Métadonnées
+
+Chaque artefact affiche :
+- Nom du fichier et taille
+- Horodatage de création
+- Conversation source (cliquez pour revenir à la conversation où il a été généré)
+
+## Stockage
+
+Les artefacts sont stockés sur le système de fichiers du serveur sous `uploads/conversations/{conversation_id}/artifacts/`. Chaque artefact reçoit un nom de fichier basé sur un UUID, rendant les URL imprévisibles. Les fichiers sont servis directement — aucun enregistrement de base de données pour les artefacts individuels, ce qui maintient la couche de stockage simple et rapide.
+
+## API
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/artifacts` | Lister tous les artefacts de l'utilisateur actuel. Supporte les filtres `?page=`, `?size=`, `?type=` |
+| `GET /api/conversations/{id}/artifacts` | Lister les artefacts d'une conversation spécifique |
+| `GET /api/conversations/{id}/artifacts/{artifact_id}` | Télécharger un artefact spécifique |
