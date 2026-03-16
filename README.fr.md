@@ -3,6 +3,7 @@
 ![FIM One Banner](./assets/banner.jpg)
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+[![CI](https://github.com/fim-ai/fim-one/actions/workflows/test.yml/badge.svg)](https://github.com/fim-ai/fim-one/actions/workflows/test.yml)
 ![License](https://img.shields.io/badge/license-Source%20Available-orange)
 [![GitHub stars](https://img.shields.io/github/stars/fim-ai/fim-one?style=social)](https://github.com/fim-ai/fim-one/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-one?style=social)](https://github.com/fim-ai/fim-one/network)
@@ -13,9 +14,9 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**Vos systèmes ne communiquent pas entre eux. FIM One les connecte tous à l'IA — sans modification de code, sans migration de données.**
+**Vos systèmes ne communiquent pas entre eux. FIM One les connecte tous à l'IA — zéro modification de code, zéro migration de données.**
 
-*Hub de connecteurs alimenté par l'IA — intégrez-le dans un système en tant que Copilot, ou connectez-les tous en tant que Hub.*
+*Hub de connecteurs alimenté par l'IA — intégrez-le dans un système en tant que Copilote, ou connectez-les tous en tant que Hub.*
 
 🌐 [Site web](https://one.fim.ai/) · 📖 [Documentation](https://docs.fim.ai) · 📋 [Journal des modifications](https://docs.fim.ai/changelog) · 🐛 [Signaler un bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
@@ -23,7 +24,7 @@
 
 > [!TIP]
 > **☁️ Ignorez la configuration — essayez FIM One sur le Cloud.**
-> Une version gérée est disponible sur **[cloud.fim.ai](https://cloud.fim.ai/)** : pas de Docker, pas de clés API, pas de configuration. Connectez-vous et commencez à connecter vos systèmes en quelques secondes. _Accès anticipé, les retours sont les bienvenus._
+> Une version gérée est disponible à **[cloud.fim.ai](https://cloud.fim.ai/)** : pas de Docker, pas de clés API, pas de configuration. Connectez-vous et commencez à connecter vos systèmes en quelques secondes. _Accès anticipé, les commentaires sont les bienvenus._
 
 ---
 

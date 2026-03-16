@@ -3,6 +3,7 @@
 ![FIM One Banner](./assets/banner.jpg)
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+[![CI](https://github.com/fim-ai/fim-one/actions/workflows/test.yml/badge.svg)](https://github.com/fim-ai/fim-one/actions/workflows/test.yml)
 ![License](https://img.shields.io/badge/license-Source%20Available-orange)
 [![GitHub stars](https://img.shields.io/github/stars/fim-ai/fim-one?style=social)](https://github.com/fim-ai/fim-one/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/fim-ai/fim-one?style=social)](https://github.com/fim-ai/fim-one/network)
@@ -22,8 +23,8 @@
 </div>
 
 > [!TIP]
-> **☁️ 跳过设置 — 在云上尝试 FIM One。**
-> 托管版本现已在 **[cloud.fim.ai](https://cloud.fim.ai/)** 上线：无需 Docker，无需 API 密钥，无需配置。登录并在几秒内开始连接您的系统。_早期访问，欢迎反馈。_
+> **☁️ 跳过设置 — 在云端尝试 FIM One。**
+> 托管版本已在 **[cloud.fim.ai](https://cloud.fim.ai/)** 上线：无需 Docker、无需 API 密钥、无需配置。登录即可在几秒内开始连接您的系统。_早期访问，欢迎反馈。_
 
 ---
 
