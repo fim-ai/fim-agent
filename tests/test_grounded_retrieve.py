@@ -304,7 +304,7 @@ async def test_parallel_safety_non_overlapping():
 
     call_count = 0
 
-    async def mock_ground(query, kb_ids, user_id):
+    async def mock_ground(query, kb_ids, user_id, **kwargs):
         nonlocal call_count
         call_count += 1
         # Simulate some async delay to interleave

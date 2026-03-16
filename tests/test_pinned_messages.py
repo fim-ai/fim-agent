@@ -247,11 +247,13 @@ class TestPinnedBudgetWarning:
         fake_llm = _make_fake_llm("Summary.")
         guard = ContextGuard(compact_llm=fake_llm, default_budget=50)
 
-        # Create a very large pinned message
+        # Create two large pinned messages so len(pinned_msgs) > 1
         huge_pinned = _msg("user", "X" * 2000, pinned=True)
+        huge_pinned2 = _msg("user", "Y" * 2000, pinned=True)
         messages = [
             _msg("system", "S"),
             huge_pinned,
+            huge_pinned2,
             _msg("assistant", "A1"),
             _msg("user", "Q1"),
             _msg("assistant", "A2"),

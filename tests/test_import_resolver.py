@@ -205,7 +205,7 @@ class TestResolveReferences:
             edges=[WorkflowEdgeDef(id="e1", source="start_1", target="end_1")],
         )
         mock_db = AsyncMock()
-        result = await resolve_blueprint_references(bp, mock_db, "user-1")
+        result = await resolve_blueprint_references(bp, mock_db, "user-1", subscribed_ids=[])
         assert result.resolved == []
         assert result.unresolved == []
         assert result.warnings == []
@@ -294,7 +294,7 @@ class TestResolveReferences:
             return_value=True,
         ):
             result = await resolve_blueprint_references(
-                bp, mock_db, "user-1", ["org-1"]
+                bp, mock_db, "user-1", ["org-1"], subscribed_ids=[]
             )
 
         assert len(result.resolved) == 1
