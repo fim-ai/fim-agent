@@ -14,7 +14,7 @@ from fim_one.core.model.usage import UsageSummary, UsageTracker
 from fim_one.core.planner.analyzer import PlanAnalyzer
 from fim_one.core.planner.executor import DAGExecutor
 from fim_one.core.planner.planner import DAGPlanner
-from fim_one.core.planner.types import ExecutionPlan, PlanStep
+from fim_one.core.planner.types import ExecutionPlan, PlanStep, StepOutput
 from fim_one.core.tool import ToolRegistry
 
 from .conftest import EchoTool, FakeLLM
@@ -476,7 +476,7 @@ class TestPlanAnalyzerUsage:
         analyzer = PlanAnalyzer(llm=llm)
         plan = ExecutionPlan(
             goal="test",
-            steps=[PlanStep(id="s1", task="t", status="completed", result="ok")],
+            steps=[PlanStep(id="s1", task="t", status="completed", result=StepOutput(summary="ok"))],
         )
         analysis = await analyzer.analyze("test", plan)
 
