@@ -1201,7 +1201,7 @@ function PlaygroundContent({
               )}
               {mode === "auto" && routingEvent && (
                 <span className="ml-3 text-xs text-muted-foreground">
-                  {t("autoRoutedTo", { mode: routingEvent.mode })}
+                  {t("autoRoutedTo", { mode: routingEvent.mode === "dag" ? t("modePlanner") : t("modeStandard") })}
                 </span>
               )}
               {retryQuery && (
