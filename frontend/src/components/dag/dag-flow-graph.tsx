@@ -119,6 +119,15 @@ export function DagFlowGraph({ planSteps, stepStates, mode = "inline", expanded,
     return m
   }, [stepStates])
 
+  // When layout changes (new plan), reset nodes and edges entirely.
+  // MUST run before the stateMap merge effect so that the merge is not
+  // overwritten on the same mount cycle.
+  useEffect(() => {
+    initialFitDone.current = false
+    setNodes(layoutNodes)
+    setEdges(layoutEdges)
+  }, [layoutNodes, layoutEdges, setNodes, setEdges])
+
   // Merge live stepStates into nodes without changing positions
   useEffect(() => {
     setNodes((currentNodes) =>
@@ -156,13 +165,6 @@ export function DagFlowGraph({ planSteps, stepStates, mode = "inline", expanded,
       })
     )
   }, [stateMap, setNodes])
-
-  // When layout changes (new plan), reset nodes and edges entirely
-  useEffect(() => {
-    initialFitDone.current = false
-    setNodes(layoutNodes)
-    setEdges(layoutEdges)
-  }, [layoutNodes, layoutEdges, setNodes, setEdges])
 
   const selectedState = selectedStepId
     ? stateMap.get(selectedStepId) ?? null
