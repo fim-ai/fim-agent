@@ -735,5 +735,18 @@
   "validationIssues": "検証の問題",
   "emptyTitle": "ワークフローがまだありません",
   "emptyDescription": "複雑なタスクを自動化するために最初のワークフローを作成してください。",
-  "noSearchResultsDescription": "検索またはフィルターを調整してみてください。"
+  "noSearchResultsDescription": "検索またはフィルターを調整してみてください。",
+  "runPanelLogShowDetails": "詳細",
+  "runPanelLogHideDetails": "非表示",
+  "runPanelLogInput": "入力",
+  "runPanelLogOutput": "出力",
+  "runPanelExecuting": "ワークフローを実行中...",
+  "addNodePickerSearch": "フィルター...",
+  "runHistoryMenuItem": "実行履歴",
+  "versionHistoryMenuItem": "バージョン履歴",
+  "autoLayoutMenuItem": "自動レイアウト",
+  "variablesMenuItem": "変数",
+  "statusDropdownDraft": "ドラフト",
+  "statusDropdownActive": "アクティブ",
+  "statusChanged": "ワークフローステータスが更新されました"
 }

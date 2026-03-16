@@ -182,6 +182,11 @@
   "runPanelLogEvent_node_retrying": "retrying",
   "runPanelLogEvent_run_completed": "run done",
   "runPanelLogEvent_run_failed": "run failed",
+  "runPanelLogShowDetails": "Details",
+  "runPanelLogHideDetails": "Hide",
+  "runPanelLogInput": "Input",
+  "runPanelLogOutput": "Output",
+  "runPanelExecuting": "Executing workflow...",
 
   "historyTitle": "Run History",
   "historyDescription": "Past runs for this workflow",
@@ -289,6 +294,7 @@
   "errorDuplicateEnd": "Only one End node is allowed per workflow",
 
   "addNodePickerTitle": "Add Node",
+  "addNodePickerSearch": "Filter...",
   "edgeDefaultLabel": "Else",
 
   "variableCount": "{count} variables",
@@ -805,5 +811,13 @@
   "noTraceData": "No trace data available. Run with debug mode for detailed traces.",
   "enableDebugTrace": "Enable Debug Trace",
   "debugTraceEnabled": "Debug trace enabled - captures detailed execution data",
-  "debugTraceDisabled": "Normal mode - run with debug for full trace"
+  "debugTraceDisabled": "Normal mode - run with debug for full trace",
+
+  "runHistoryMenuItem": "Run History",
+  "versionHistoryMenuItem": "Version History",
+  "autoLayoutMenuItem": "Auto Layout",
+  "variablesMenuItem": "Variables",
+  "statusDropdownDraft": "Draft",
+  "statusDropdownActive": "Active",
+  "statusChanged": "Workflow status updated"
 }

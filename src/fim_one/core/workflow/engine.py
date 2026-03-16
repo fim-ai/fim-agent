@@ -144,6 +144,11 @@ class WorkflowEngine:
         # Event queue for streaming
         event_queue: asyncio.Queue[tuple[str, dict[str, Any]]] = asyncio.Queue()
 
+        async def _emit(event_type: str, data: dict[str, Any]) -> None:
+            """Put an event with an auto-injected wall-clock timestamp (ms)."""
+            data.setdefault("ts", int(time.time() * 1000))
+            await event_queue.put((event_type, data))
+
         def _can_execute(nid: str) -> bool:
             """Check if a node is ready to execute."""
             # Force-skipped by FAIL_BRANCH?
@@ -210,7 +215,7 @@ class WorkflowEngine:
                 # nodes will still run (they can inspect the failure via the
                 # variable store if they choose to).
                 node_status[nid] = NodeStatus.FAILED
-                await event_queue.put((
+                await _emit(
                     "node_failed",
                     {
                         "node_id": nid,
@@ -220,7 +225,7 @@ class WorkflowEngine:
                         "duration_ms": result.duration_ms,
                         "error_strategy": "continue",
                     },
-                ))
+                )
 
             elif strategy == ErrorStrategy.FAIL_BRANCH:
                 # Mark all downstream nodes as skipped so they never run.
@@ -245,7 +250,7 @@ class WorkflowEngine:
                         *tasks_to_cancel, return_exceptions=True
                     )
 
-                await event_queue.put((
+                await _emit(
                     "node_failed",
                     {
                         "node_id": nid,
@@ -256,13 +261,13 @@ class WorkflowEngine:
                         "error_strategy": "fail_branch",
                         "skipped_downstream": sorted(downstream),
                     },
-                ))
+                )
 
             else:
                 # STOP_WORKFLOW (default) — just mark failed; the orchestrator
                 # will detect it and skip all remaining pending nodes.
                 node_status[nid] = NodeStatus.FAILED
-                await event_queue.put((
+                await _emit(
                     "node_failed",
                     {
                         "node_id": nid,
@@ -272,7 +277,7 @@ class WorkflowEngine:
                         "duration_ms": result.duration_ms,
                         "error_strategy": "stop_workflow",
                     },
-                ))
+                )
 
         async def _execute_once(
             node: "WorkflowNodeDef",
@@ -347,14 +352,14 @@ class WorkflowEngine:
             pred_ids = predecessors.get(nid, set())
             input_preview = await _capture_input_preview(store, pred_ids)
 
-            await event_queue.put((
+            await _emit(
                 "node_started",
                 {
                     "node_id": nid,
                     "node_type": node.type.value,
                     "input_preview": input_preview,
                 },
-            ))
+            )
 
             try:
                 result = await _execute_once(node, executor, ctx)
@@ -371,7 +376,7 @@ class WorkflowEngine:
                     # Cap at 60 seconds
                     delay_sec = min(delay_sec, 60.0)
 
-                    await event_queue.put((
+                    await _emit(
                         "node_retrying",
                         {
                             "node_id": nid,
@@ -381,7 +386,7 @@ class WorkflowEngine:
                             "delay_ms": int(delay_sec * 1000),
                             "previous_error": result.error,
                         },
-                    ))
+                    )
 
                     # Check for cancellation before waiting
                     if self._cancel_event and self._cancel_event.is_set():
@@ -419,7 +424,7 @@ class WorkflowEngine:
                             if edge.source_handle not in result.active_handles:
                                 active_edges.discard(edge.id)
 
-                    await event_queue.put((
+                    await _emit(
                         "node_completed",
                         {
                             "node_id": nid,
@@ -430,20 +435,20 @@ class WorkflowEngine:
                             "duration_ms": result.duration_ms,
                             "retries_used": attempt if retry_count > 0 else 0,
                         },
-                    ))
+                    )
                 else:
                     await _handle_node_failure(nid, result)
 
             except asyncio.CancelledError:
                 node_status[nid] = NodeStatus.FAILED
-                await event_queue.put((
+                await _emit(
                     "node_failed",
                     {
                         "node_id": nid,
                         "error": "Cancelled",
                         "input_preview": input_preview,
                     },
-                ))
+                )
                 raise
             except Exception as exc:
                 node_status[nid] = NodeStatus.FAILED
@@ -518,14 +523,14 @@ class WorkflowEngine:
                 await store.set(f"{nid}.{iter_var}", item)
                 await store.set(f"{nid}.{idx_var}", idx)
 
-                await event_queue.put((
+                await _emit(
                     "iterator_iteration",
                     {
                         "node_id": nid,
                         "index": idx,
                         "total": len(items),
                     },
-                ))
+                )
 
                 # Re-execute body nodes sequentially (in topo order)
                 body_ordered = [n for n in topo_order if n in body_nids]
@@ -575,13 +580,13 @@ class WorkflowEngine:
                 for body_nid in body_ordered:
                     node_status[body_nid] = NodeStatus.PENDING
 
-                await event_queue.put((
+                await _emit(
                     "loop_iteration",
                     {
                         "node_id": nid,
                         "iteration": await store.get(f"{nid}.iterations", 0),
                     },
-                ))
+                )
 
                 for body_nid in body_ordered:
                     node_status[body_nid] = NodeStatus.RUNNING
@@ -636,10 +641,10 @@ class WorkflowEngine:
                             )
                             for nid in sorted(pending):
                                 node_status[nid] = NodeStatus.SKIPPED
-                                await event_queue.put((
+                                await _emit(
                                     "node_skipped",
                                     {"node_id": nid, "reason": "Workflow timeout exceeded"},
-                                ))
+                                )
                             pending.clear()
                             for task in running_tasks:
                                 task.cancel()
@@ -648,14 +653,14 @@ class WorkflowEngine:
                                     *running_tasks, return_exceptions=True
                                 )
                             running_tasks.clear()
-                            await event_queue.put((
+                            await _emit(
                                 "run_failed",
                                 {
                                     "status": "failed",
                                     "error": f"Workflow execution timed out after {self._workflow_timeout_ms}ms",
                                     "duration_ms": elapsed_ms,
                                 },
-                            ))
+                            )
                             _workflow_timed_out = True
                             break
 
@@ -663,10 +668,10 @@ class WorkflowEngine:
                     if self._cancel_event and self._cancel_event.is_set():
                         for nid in sorted(pending):
                             node_status[nid] = NodeStatus.SKIPPED
-                            await event_queue.put((
+                            await _emit(
                                 "node_skipped",
                                 {"node_id": nid, "reason": "Execution cancelled"},
-                            ))
+                            )
                         pending.clear()
                         # Cancel running tasks
                         for task in running_tasks:
@@ -685,13 +690,13 @@ class WorkflowEngine:
                         for remaining_nid in sorted(pending):
                             node_status[remaining_nid] = NodeStatus.SKIPPED
                             completed.add(remaining_nid)
-                            await event_queue.put((
+                            await _emit(
                                 "node_skipped",
                                 {
                                     "node_id": remaining_nid,
                                     "reason": "Stopped by upstream node failure (stop_workflow)",
                                 },
-                            ))
+                            )
                         pending.clear()
                         continue
 
@@ -718,10 +723,10 @@ class WorkflowEngine:
                         for edge in outgoing_edges.get(nid, []):
                             active_edges.discard(edge.id)
 
-                        await event_queue.put((
+                        await _emit(
                             "node_skipped",
                             {"node_id": nid, "reason": "Branch not active"},
-                        ))
+                        )
 
                     # Launch ready nodes
                     for nid in ready:
@@ -741,13 +746,13 @@ class WorkflowEngine:
                             # Deadlock — nodes waiting for predecessors that can't finish
                             for nid in sorted(pending):
                                 node_status[nid] = NodeStatus.FAILED
-                                await event_queue.put((
+                                await _emit(
                                     "node_failed",
                                     {
                                         "node_id": nid,
                                         "error": "Deadlock: dependencies cannot complete",
                                     },
-                                ))
+                                )
                             pending.clear()
                         break
 
@@ -822,13 +827,13 @@ class WorkflowEngine:
                         for remaining_nid in sorted(pending):
                             node_status[remaining_nid] = NodeStatus.SKIPPED
                             completed.add(remaining_nid)
-                            await event_queue.put((
+                            await _emit(
                                 "node_skipped",
                                 {
                                     "node_id": remaining_nid,
                                     "reason": "Stopped by upstream node failure (stop_workflow)",
                                 },
-                            ))
+                            )
                         pending.clear()
 
                 # Determine final status (skip if already handled by timeout)
@@ -855,45 +860,45 @@ class WorkflowEngine:
                                 outputs[node.id] = nr.output
 
                 if failed_nodes:
-                    await event_queue.put((
+                    await _emit(
                         "run_failed",
                         {
                             "status": "failed",
                             "error": f"Nodes failed: {failed_nodes}",
                             "duration_ms": elapsed_ms,
                         },
-                    ))
+                    )
                 else:
-                    await event_queue.put((
+                    await _emit(
                         "run_completed",
                         {
                             "status": "completed",
                             "outputs": outputs,
                             "duration_ms": elapsed_ms,
                         },
-                    ))
+                    )
 
             except asyncio.CancelledError:
                 elapsed_ms = int((time.time() - start_time) * 1000)
-                await event_queue.put((
+                await _emit(
                     "run_completed",
                     {
                         "status": "cancelled",
                         "error": "Execution cancelled",
                         "duration_ms": elapsed_ms,
                     },
-                ))
+                )
             except Exception as exc:
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 logger.exception("Workflow orchestrator failed")
-                await event_queue.put((
+                await _emit(
                     "run_failed",
                     {
                         "status": "failed",
                         "error": str(exc),
                         "duration_ms": elapsed_ms,
                     },
-                ))
+                )
             finally:
                 # Signal end of events
                 await event_queue.put(("__done__", {}))

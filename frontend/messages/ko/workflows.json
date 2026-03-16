@@ -735,5 +735,18 @@
   "validationIssues": "유효성 검사 문제",
   "emptyTitle": "아직 워크플로우가 없습니다",
   "emptyDescription": "첫 번째 워크플로우를 만들어 복잡한 작업을 자동화하세요.",
-  "noSearchResultsDescription": "검색 또는 필터를 조정해보세요."
+  "noSearchResultsDescription": "검색 또는 필터를 조정해보세요.",
+  "runPanelLogShowDetails": "세부 정보",
+  "runPanelLogHideDetails": "숨기기",
+  "runPanelLogInput": "입력",
+  "runPanelLogOutput": "출력",
+  "runPanelExecuting": "워크플로우 실행 중...",
+  "addNodePickerSearch": "필터링...",
+  "runHistoryMenuItem": "실행 기록",
+  "versionHistoryMenuItem": "버전 기록",
+  "autoLayoutMenuItem": "자동 레이아웃",
+  "variablesMenuItem": "변수",
+  "statusDropdownDraft": "초안",
+  "statusDropdownActive": "활성",
+  "statusChanged": "워크플로우 상태가 업데이트되었습니다"
 }

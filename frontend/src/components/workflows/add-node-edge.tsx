@@ -13,6 +13,7 @@ import { Plus, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { resolveEdgeLabel } from "./edges/labeled-edge"
+import { categories, itemByType } from "./node-palette"
 import type { WorkflowNodeType } from "@/types/workflow"
 
 const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
@@ -43,32 +44,6 @@ const defaultNodeData: Record<WorkflowNodeType, Record<string, unknown>> = {
   env: { env_keys: [], output_variable: "env_result" },
 }
 
-const nodeTypeOptions: { type: WorkflowNodeType; color: string }[] = [
-  { type: "llm", color: "text-blue-500" },
-  { type: "conditionBranch", color: "text-orange-500" },
-  { type: "questionClassifier", color: "text-teal-500" },
-  { type: "agent", color: "text-indigo-500" },
-  { type: "knowledgeRetrieval", color: "text-teal-500" },
-  { type: "connector", color: "text-purple-500" },
-  { type: "httpRequest", color: "text-slate-500" },
-  { type: "variableAssign", color: "text-gray-500" },
-  { type: "templateTransform", color: "text-amber-500" },
-  { type: "codeExecution", color: "text-emerald-500" },
-  { type: "iterator", color: "text-cyan-500" },
-  { type: "loop", color: "text-orange-500" },
-  { type: "variableAggregator", color: "text-sky-500" },
-  { type: "parameterExtractor", color: "text-violet-500" },
-  { type: "listOperation", color: "text-lime-500" },
-  { type: "transform", color: "text-rose-500" },
-  { type: "documentExtractor", color: "text-amber-600" },
-  { type: "questionUnderstanding", color: "text-pink-500" },
-  { type: "humanIntervention", color: "text-sky-500" },
-  { type: "mcp", color: "text-violet-500" },
-  { type: "builtinTool", color: "text-zinc-500" },
-  { type: "subWorkflow", color: "text-indigo-500" },
-  { type: "env", color: "text-amber-600" },
-]
-
 export function AddNodeEdge({
   id,
   source,
@@ -88,7 +63,9 @@ export function AddNodeEdge({
   const { setEdges, setNodes, getNodes } = useReactFlow()
   const [isHovered, setIsHovered] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
+  const [search, setSearch] = useState("")
   const pickerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Subscribe reactively to source node data so edge labels update when
   // conditions/classes are edited in the config panel
@@ -119,21 +96,48 @@ export function AddNodeEdge({
   const edgeLabelX = sourceX + (labelX - sourceX) * 0.45
   const edgeLabelY = sourceY + (labelY - sourceY) * 0.45
 
-  // Close picker when clicking outside
+  const closePicker = useCallback(() => {
+    setShowPicker(false)
+    setSearch("")
+  }, [])
+
+  // Close picker when clicking outside or pressing Escape
   useEffect(() => {
     if (!showPicker) return
-    const handleClickOutside = (e: MouseEvent) => {
+
+    const handlePointerDown = (e: PointerEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target as HTMLElement)) {
-        setShowPicker(false)
+        closePicker()
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closePicker()
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [showPicker, closePicker])
+
+  // Auto-focus search input when picker opens
+  useEffect(() => {
+    if (showPicker) {
+      // Small delay to ensure the DOM is rendered
+      requestAnimationFrame(() => {
+        searchInputRef.current?.focus()
+      })
+    }
   }, [showPicker])
 
   const handleAddNode = useCallback(
     (nodeType: WorkflowNodeType) => {
-      setShowPicker(false)
+      closePicker()
 
       const newNodeId = `${nodeType}_${Date.now()}`
       const midX = (sourceX + targetX) / 2
@@ -169,7 +173,7 @@ export function AddNodeEdge({
         ]
       })
     },
-    [id, source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY, setEdges, setNodes],
+    [id, source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY, setEdges, setNodes, closePicker],
   )
 
   const handleDeleteEdge = useCallback(() => {
@@ -180,6 +184,28 @@ export function AddNodeEdge({
   const existingNodes = getNodes()
   const hasStart = existingNodes.some((n) => n.type === "start")
   const hasEnd = existingNodes.some((n) => n.type === "end")
+
+  const searchLower = search.toLowerCase()
+
+  /** Check if a node type matches the search query */
+  const matchesSearch = useCallback(
+    (type: WorkflowNodeType): boolean => {
+      if (!searchLower) return true
+      const name = t(`nodeType_${type}` as Parameters<typeof t>[0]).toLowerCase()
+      return name.includes(searchLower) || type.toLowerCase().includes(searchLower)
+    },
+    [searchLower, t],
+  )
+
+  /** Filter out singleton types and apply search */
+  const isSingletonBlocked = useCallback(
+    (type: WorkflowNodeType): boolean => {
+      if (type === "start" && hasStart) return true
+      if (type === "end" && hasEnd) return true
+      return false
+    },
+    [hasStart, hasEnd],
+  )
 
   return (
     <>
@@ -237,7 +263,13 @@ export function AddNodeEdge({
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
                 (isHovered || showPicker) ? "opacity-100 scale-100" : "opacity-0 scale-75",
               )}
-              onClick={() => setShowPicker(!showPicker)}
+              onClick={() => {
+                if (showPicker) {
+                  closePicker()
+                } else {
+                  setShowPicker(true)
+                }
+              }}
             >
               <Plus className="h-3 w-3" />
             </button>
@@ -247,33 +279,88 @@ export function AddNodeEdge({
           {showPicker && (
             <div
               ref={pickerRef}
-              className="absolute top-7 left-1/2 -translate-x-1/2 z-50 w-[180px] rounded-md border border-border bg-popover p-1 shadow-md"
+              className="absolute top-7 left-1/2 -translate-x-1/2 z-50 w-[200px] rounded-lg border border-border bg-popover shadow-lg"
+              onPointerDown={(e) => e.stopPropagation()}
             >
-              <p className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                {t("addNodePickerTitle")}
-              </p>
-              <div className="max-h-[240px] overflow-y-auto">
-                {nodeTypeOptions
-                  .filter((opt) => {
-                    if (opt.type === "start" && hasStart) return false
-                    if (opt.type === "end" && hasEnd) return false
-                    return true
-                  })
-                  .map((opt) => (
-                    <button
-                      key={opt.type}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-foreground transition-colors",
-                        "hover:bg-accent/50",
-                        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
-                      )}
-                      onClick={() => handleAddNode(opt.type)}
-                    >
-                      <span className={cn("text-[10px]", opt.color)}>
-                        {t(`nodeType_${opt.type}` as Parameters<typeof t>[0])}
-                      </span>
-                    </button>
-                  ))}
+              {/* Header */}
+              <div className="flex items-center justify-between px-2.5 pt-2 pb-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t("addNodePickerTitle")}
+                </p>
+                <button
+                  className={cn(
+                    "flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground transition-colors",
+                    "hover:bg-accent hover:text-foreground",
+                    "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+                  )}
+                  onClick={closePicker}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+
+              {/* Search input */}
+              <div className="px-2 pb-1.5">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("addNodePickerSearch")}
+                  className={cn(
+                    "w-full h-6 rounded-md border border-border bg-background px-2 text-[11px] text-foreground placeholder:text-muted-foreground/50",
+                    "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
+                  )}
+                />
+              </div>
+
+              {/* Category list */}
+              <div className="max-h-[260px] overflow-y-auto px-1 pb-1.5">
+                {categories.map((cat) => {
+                  const filtered = cat.items.filter(
+                    (item) => !isSingletonBlocked(item.type) && matchesSearch(item.type),
+                  )
+                  if (filtered.length === 0) return null
+                  return (
+                    <div key={cat.key} className="mt-1 first:mt-0">
+                      <p className="px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                        {t(cat.key as Parameters<typeof t>[0])}
+                      </p>
+                      {filtered.map((item) => {
+                        const paletteItem = itemByType[item.type]
+                        return (
+                          <button
+                            key={item.type}
+                            className={cn(
+                              "flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-foreground transition-colors",
+                              "hover:bg-accent/50",
+                              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+                            )}
+                            onClick={() => handleAddNode(item.type)}
+                          >
+                            <span className={cn("shrink-0", paletteItem?.color ?? item.color)}>
+                              {paletteItem?.icon}
+                            </span>
+                            <span className="truncate text-[11px]">
+                              {t(`nodeType_${item.type}` as Parameters<typeof t>[0])}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+
+                {/* No results */}
+                {categories.every((cat) =>
+                  cat.items.every(
+                    (item) => isSingletonBlocked(item.type) || !matchesSearch(item.type),
+                  ),
+                ) && (
+                  <p className="text-[10px] text-muted-foreground text-center py-3">
+                    {t("noNodeSearchResults")}
+                  </p>
+                )}
               </div>
             </div>
           )}

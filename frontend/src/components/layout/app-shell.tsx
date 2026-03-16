@@ -437,25 +437,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return false
   })
 
+  // Track whether sidebar is temporarily collapsed by builder mode (workflow editor, etc.)
+  // so we don't persist the temporary state to localStorage.
+  const builderModeRef = useRef(false)
+
   useEffect(() => {
-    localStorage.setItem("sidebar-collapsed", String(collapsed))
+    if (!builderModeRef.current) {
+      localStorage.setItem("sidebar-collapsed", String(collapsed))
+    }
   }, [collapsed])
 
   const prevCollapsedRef = useRef(false)
+  const collapsedRef = useRef(collapsed)
+  collapsedRef.current = collapsed
 
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ active: boolean }>).detail
       if (detail.active) {
-        prevCollapsedRef.current = collapsed
+        prevCollapsedRef.current = collapsedRef.current
+        builderModeRef.current = true
         setCollapsed(true)
       } else {
+        builderModeRef.current = false
         setCollapsed(prevCollapsedRef.current)
       }
     }
     window.addEventListener("builder-mode-change", handler)
     return () => window.removeEventListener("builder-mode-change", handler)
-  }, [collapsed])
+  }, [])
 
   const pathname = usePathname()
   const { user, isLoading } = useAuth()

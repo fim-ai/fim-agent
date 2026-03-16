@@ -39,18 +39,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import type { WorkflowNodeType } from "@/types/workflow"
 
-interface NodePaletteItem {
+export interface NodePaletteItem {
   type: WorkflowNodeType
   icon: React.ReactNode
   color: string
 }
 
-interface NodePaletteCategory {
+export interface NodePaletteCategory {
   key: string
   items: NodePaletteItem[]
 }
 
-const categories: NodePaletteCategory[] = [
+export const categories: NodePaletteCategory[] = [
   {
     key: "categoryFlow",
     items: [
@@ -104,7 +104,7 @@ const categories: NodePaletteCategory[] = [
 ]
 
 /** Flat lookup from node type to its palette item (icon + color) */
-const itemByType: Record<WorkflowNodeType, NodePaletteItem> = Object.fromEntries(
+export const itemByType: Record<WorkflowNodeType, NodePaletteItem> = Object.fromEntries(
   categories.flatMap((cat) => cat.items.map((item) => [item.type, item])),
 ) as Record<WorkflowNodeType, NodePaletteItem>
 

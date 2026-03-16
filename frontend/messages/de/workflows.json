@@ -735,5 +735,18 @@
   "validationIssues": "Validierungsprobleme",
   "emptyTitle": "Noch keine Workflows",
   "emptyDescription": "Erstellen Sie Ihren ersten Workflow, um komplexe Aufgaben zu automatisieren.",
-  "noSearchResultsDescription": "Versuchen Sie, Ihre Suche oder Filter anzupassen."
+  "noSearchResultsDescription": "Versuchen Sie, Ihre Suche oder Filter anzupassen.",
+  "runPanelLogShowDetails": "Details",
+  "runPanelLogHideDetails": "Ausblenden",
+  "runPanelLogInput": "Eingabe",
+  "runPanelLogOutput": "Ausgabe",
+  "runPanelExecuting": "Workflow wird ausgeführt...",
+  "addNodePickerSearch": "Filtern...",
+  "runHistoryMenuItem": "Ausführungsverlauf",
+  "versionHistoryMenuItem": "Versionsverlauf",
+  "autoLayoutMenuItem": "Automatisches Layout",
+  "variablesMenuItem": "Variablen",
+  "statusDropdownDraft": "Entwurf",
+  "statusDropdownActive": "Aktiv",
+  "statusChanged": "Workflow-Status aktualisiert"
 }

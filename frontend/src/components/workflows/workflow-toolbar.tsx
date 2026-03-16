@@ -109,6 +109,8 @@ interface WorkflowToolbarProps {
   onSchedule?: () => void
   scheduleActive?: boolean
   onBatchRun?: () => void
+  onStatusChange?: (status: "draft" | "active") => void
+  envVarsConfigured?: boolean
 }
 
 export function WorkflowToolbar({
@@ -157,6 +159,8 @@ export function WorkflowToolbar({
   onSchedule,
   scheduleActive = false,
   onBatchRun,
+  onStatusChange,
+  envVarsConfigured = false,
 }: WorkflowToolbarProps) {
   const t = useTranslations("workflows")
   const to = useTranslations("organizations")
@@ -257,17 +261,46 @@ export function WorkflowToolbar({
             </Popover>
           )}
         </div>
-        <Badge
-          variant="secondary"
-          className={cn(
-            "text-[10px] px-1.5 py-0 h-5 shrink-0",
-            isPublished
-              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-              : ""
-          )}
-        >
-          {isPublished ? tc("published") : status === "active" ? t("statusActive") : t("statusDraft")}
-        </Badge>
+
+        {/* Status badge — clickable dropdown to toggle draft/active */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded-sm">
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-[10px] px-1.5 py-0 h-5 cursor-pointer hover:opacity-80 transition-opacity",
+                  isPublished
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : status === "active"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      : ""
+                )}
+              >
+                {isPublished ? tc("published") : status === "active" ? t("statusActive") : t("statusDraft")}
+              </Badge>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[140px]">
+            <DropdownMenuItem
+              onClick={() => onStatusChange?.("draft")}
+              className="gap-2"
+            >
+              <span className="h-2 w-2 rounded-full bg-muted-foreground/50 shrink-0" />
+              {t("statusDropdownDraft")}
+              {status === "draft" && <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onStatusChange?.("active")}
+              className="gap-2"
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+              {t("statusDropdownActive")}
+              {status === "active" && <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-emerald-500" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {publishStatus === "pending_review" && (
           <Badge
             variant="outline"
@@ -290,6 +323,7 @@ export function WorkflowToolbar({
 
       {/* Action buttons */}
       <div className="flex items-center gap-1.5 shrink-0">
+        {/* Undo / Redo */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -320,13 +354,16 @@ export function WorkflowToolbar({
           <TooltipContent side="bottom">{t("editorRedo")}</TooltipContent>
         </Tooltip>
 
-        {/* Validation indicator — hide spinner during auto-validation to avoid distracting flashing */}
+        {/* Divider */}
+        <div className="h-4 w-px bg-border/60" />
+
+        {/* Validation indicator */}
         {validationResult ? (
           validationResult.valid && validationResult.warnings.length === 0 ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
-                  <CheckCircle2 className="h-3 w-3" />
+                <span className="inline-flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
                 </span>
               </TooltipTrigger>
               <TooltipContent side="bottom">{t("validationValid")}</TooltipContent>
@@ -406,27 +443,10 @@ export function WorkflowToolbar({
           )
         ) : null}
 
-        {onValidate && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={onValidate}
-                disabled={isValidating}
-                aria-label={t("validateButton")}
-              >
-                {isValidating ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t("validateButton")}</TooltipContent>
-          </Tooltip>
-        )}
+        {/* Divider */}
+        <div className="h-4 w-px bg-border/60" />
 
+        {/* Save */}
         <Button
           variant="outline"
           size="sm"
@@ -442,6 +462,7 @@ export function WorkflowToolbar({
           {isSaving ? t("editorSaving") : t("editorSave")}
         </Button>
 
+        {/* Run */}
         <Button
           size="sm"
           className="gap-1.5"
@@ -456,94 +477,49 @@ export function WorkflowToolbar({
           {isRunning ? t("editorRunning") : t("editorRun")}
         </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5"
-          onClick={onHistory}
-        >
-          <History className="h-3.5 w-3.5" />
-          {t("historyButton")}
-        </Button>
-
-        {onVersionHistory && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={onVersionHistory}
-                aria-label={t("versionHistoryButton")}
-              >
-                <GitBranch className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t("versionHistoryButton")}</TooltipContent>
-          </Tooltip>
-        )}
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onStats}
-              aria-label={t("statsButton")}
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{t("statsButton")}</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onAutoLayout}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="sr-only">{t("editorAutoLayout")}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("editorAutoLayout")}</TooltipContent>
-        </Tooltip>
-
-        {onVariables && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={onVariables}
-                aria-label={t("variablesButton")}
-              >
-                <Braces className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t("variablesButton")}</TooltipContent>
-          </Tooltip>
-        )}
-
+        {/* More menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onImport}>
-              <Upload className="h-4 w-4" />
-              {tc("import")}
+          <DropdownMenuContent align="end" className="w-52">
+            {/* Section 1 — View */}
+            <DropdownMenuItem onClick={onHistory}>
+              <History className="h-4 w-4" />
+              {t("runHistoryMenuItem")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onExport}>
-              <Download className="h-4 w-4" />
-              {tc("export")}
+            {onVersionHistory && (
+              <DropdownMenuItem onClick={onVersionHistory}>
+                <GitBranch className="h-4 w-4" />
+                {t("versionHistoryMenuItem")}
+              </DropdownMenuItem>
+            )}
+
+            {/* Section 2 — Canvas */}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onAutoLayout}>
+              <LayoutGrid className="h-4 w-4" />
+              {t("autoLayoutMenuItem")}
             </DropdownMenuItem>
+            {onVariables && (
+              <DropdownMenuItem onClick={onVariables}>
+                <Braces className="h-4 w-4" />
+                {t("variablesMenuItem")}
+              </DropdownMenuItem>
+            )}
+
+            {/* Section 3 — Triggers & Integration */}
+            <DropdownMenuSeparator />
             {onEnvVars && (
               <DropdownMenuItem onClick={onEnvVars}>
-                <Key className="h-4 w-4" />
+                <span className="relative">
+                  <Key className="h-4 w-4" />
+                  {envVarsConfigured && (
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  )}
+                </span>
                 {t("envVarsMenuItem")}
               </DropdownMenuItem>
             )}
@@ -580,6 +556,9 @@ export function WorkflowToolbar({
                 {t("apiKeyMenuItem")}
               </DropdownMenuItem>
             )}
+
+            {/* Section 4 — Analytics */}
+            <DropdownMenuSeparator />
             {onAnalytics && (
               <DropdownMenuItem onClick={onAnalytics}>
                 <BarChart3 className="h-4 w-4" />
@@ -592,12 +571,27 @@ export function WorkflowToolbar({
                 {t("nodeStatsButton")}
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onClick={onStats}>
+              <BarChart3 className="h-4 w-4" />
+              {t("statsButton")}
+            </DropdownMenuItem>
             {onBatchRun && (
               <DropdownMenuItem onClick={onBatchRun}>
                 <Layers className="h-4 w-4" />
                 {t("batchRunMenuItem")}
               </DropdownMenuItem>
             )}
+
+            {/* Section 5 — Transfer */}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onImport}>
+              <Upload className="h-4 w-4" />
+              {tc("import")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onExport}>
+              <Download className="h-4 w-4" />
+              {tc("export")}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onDuplicate} disabled={isDuplicating}>
               {isDuplicating ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -606,6 +600,8 @@ export function WorkflowToolbar({
               )}
               {t("editorDuplicate")}
             </DropdownMenuItem>
+
+            {/* Section 6 — Publish */}
             {(onPublish || onUnpublish) && (
               <>
                 <DropdownMenuSeparator />
@@ -621,6 +617,8 @@ export function WorkflowToolbar({
                 {to("resubmit")}
               </DropdownMenuItem>
             )}
+
+            {/* Section 7 — Destructive */}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               <Trash2 className="h-4 w-4" />

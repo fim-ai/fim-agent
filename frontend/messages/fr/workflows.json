@@ -735,5 +735,18 @@
   "validationIssues": "Problèmes de validation",
   "emptyTitle": "Aucun flux de travail pour le moment",
   "emptyDescription": "Créez votre premier flux de travail pour automatiser des tâches complexes.",
-  "noSearchResultsDescription": "Essayez d'ajuster votre recherche ou vos filtres."
+  "noSearchResultsDescription": "Essayez d'ajuster votre recherche ou vos filtres.",
+  "runPanelLogShowDetails": "Détails",
+  "runPanelLogHideDetails": "Masquer",
+  "runPanelLogInput": "Entrée",
+  "runPanelLogOutput": "Sortie",
+  "runPanelExecuting": "Exécution du flux de travail...",
+  "addNodePickerSearch": "Filtrer...",
+  "runHistoryMenuItem": "Historique des exécutions",
+  "versionHistoryMenuItem": "Historique des versions",
+  "autoLayoutMenuItem": "Disposition automatique",
+  "variablesMenuItem": "Variables",
+  "statusDropdownDraft": "Brouillon",
+  "statusDropdownActive": "Actif",
+  "statusChanged": "Statut du flux de travail mis à jour"
 }

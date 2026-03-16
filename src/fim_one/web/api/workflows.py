@@ -3009,6 +3009,28 @@ async def import_workflow(
 # ---------------------------------------------------------------------------
 
 
+@router.get("/{workflow_id}/env", response_model=ApiResponse)
+async def get_workflow_env(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Return the env-var key names (not values) for a workflow."""
+    wf = await _get_owned_workflow(workflow_id, current_user.id, db)
+
+    keys: list[str] = []
+    if wf.env_vars_blob:
+        try:
+            from fim_one.core.security.encryption import decrypt_credential
+
+            env_vars = decrypt_credential(wf.env_vars_blob)
+            keys = list(env_vars.keys())
+        except Exception:
+            logger.warning("Failed to decrypt workflow env vars for %s", wf.id)
+
+    return ApiResponse(data={"keys": keys})
+
+
 @router.put("/{workflow_id}/env", response_model=ApiResponse)
 async def update_workflow_env(
     workflow_id: str,

@@ -862,11 +862,17 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   }, [edges, nodeResults, runPanelOpen, isRunning])
 
   // Sync blueprint out when nodes/edges change (debounced)
+  // Use a ref for the callback so that callback identity changes (caused by
+  // parent re-renders after save) don't re-trigger the sync effect and
+  // spuriously mark the form dirty again.
+  const onBlueprintChangeRef = useRef(onBlueprintChange)
+  onBlueprintChangeRef.current = onBlueprintChange
+
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (syncTimer.current) clearTimeout(syncTimer.current)
     syncTimer.current = setTimeout(() => {
-      onBlueprintChange({
+      onBlueprintChangeRef.current({
         nodes: nodes.map((n) => {
           // Strip transient overlay fields before persisting
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -891,9 +897,9 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current)
     }
-    // Only sync when nodes/edges change, not blueprint ref
+    // Only sync when nodes/edges actually change — NOT on callback identity change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges, onBlueprintChange])
+  }, [nodes, edges])
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -1262,7 +1268,10 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
           </div>
         )}
 
-        {/* Run Panel (overlay at bottom) */}
+      </div>
+
+      {/* Right sidebar: Run Panel takes priority over Node Config */}
+      {runPanelOpen ? (
         <RunPanel
           isOpen={runPanelOpen}
           isRunning={isRunning}
@@ -1279,10 +1288,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
           onCancel={onCancelRun}
           onClose={onCloseRunPanel}
         />
-      </div>
-
-      {/* Right config panel */}
-      {selectedNodeId && (
+      ) : selectedNodeId ? (
         <NodeConfigPanel
           workflowId={workflowId}
           node={selectedNode}
@@ -1291,7 +1297,7 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
           onDelete={handleDeleteNode}
           onClose={() => setSelectedNodeId(null)}
         />
-      )}
+      ) : null}
 
       {/* Keyboard shortcuts help dialog */}
       <KeyboardShortcutsDialog

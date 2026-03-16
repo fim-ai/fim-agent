@@ -155,6 +155,10 @@ export default function WorkflowEditorPage() {
     edges: [],
     viewport: { x: 0, y: 0, zoom: 1 },
   })
+  // Snapshot of the blueprint at last save/load — used to detect real changes
+  // vs. overlay-only updates (validation badges, run overlays) that shouldn't
+  // mark the form dirty.
+  const savedBlueprintRef = useRef<string>("")
 
   // Auth guard
   useEffect(() => {
@@ -162,6 +166,18 @@ export default function WorkflowEditorPage() {
       router.replace("/login")
     }
   }, [authLoading, user, router])
+
+  // Auto-collapse sidebar when entering workflow editor
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("builder-mode-change", { detail: { active: true } }),
+    )
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("builder-mode-change", { detail: { active: false } }),
+      )
+    }
+  }, [])
 
   // Debounced blueprint validation
   const triggerValidation = useCallback(() => {
@@ -213,11 +229,13 @@ export default function WorkflowEditorPage() {
       .then((data) => {
         if (cancelled) return
         setWorkflow(data)
-        blueprintRef.current = data.blueprint ?? {
+        const bp = data.blueprint ?? {
           nodes: [],
           edges: [],
           viewport: { x: 0, y: 0, zoom: 1 },
         }
+        blueprintRef.current = bp
+        savedBlueprintRef.current = JSON.stringify(bp)
         // Trigger initial validation after load
         triggerValidation()
       })
@@ -286,6 +304,20 @@ export default function WorkflowEditorPage() {
     [workflow],
   )
 
+  const handleStatusChange = useCallback(
+    async (status: "draft" | "active") => {
+      if (!workflow || workflow.status === status) return
+      try {
+        const updated = await workflowApi.update(workflow.id, { status })
+        setWorkflow(updated)
+        toast.success(t("statusChanged"))
+      } catch {
+        toast.error(t("workflowUpdateFailed"))
+      }
+    },
+    [workflow, t],
+  )
+
   const handleSave = useCallback(async () => {
     if (!workflow) return
     const isAutoSave = isAutoSavingRef.current
@@ -318,6 +350,7 @@ export default function WorkflowEditorPage() {
         output_schema: outputSchema,
       })
       setWorkflow(updated)
+      savedBlueprintRef.current = JSON.stringify(blueprintRef.current)
       setIsDirty(false)
       setLastSavedAt(new Date())
     } catch {
@@ -331,6 +364,14 @@ export default function WorkflowEditorPage() {
 
   const handleBlueprintChange = useCallback((bp: WorkflowBlueprint) => {
     blueprintRef.current = bp
+
+    // Compare against last-saved snapshot to avoid false dirty flags from
+    // overlay-only updates (validation badges, run status overlays).
+    const bpStr = JSON.stringify(bp)
+    if (bpStr === savedBlueprintRef.current) {
+      return // No real change — skip dirty flag and auto-save
+    }
+
     setIsDirty(true)
     triggerValidation()
 
@@ -455,7 +496,7 @@ export default function WorkflowEditorPage() {
               setLogEvents((prev) => [
                 ...prev,
                 {
-                  timestamp: Date.now(),
+                  timestamp: (data.ts as number) ?? Date.now(),
                   eventType: eventType as WorkflowLogEventType,
                   nodeId: (data.node_id as string) ?? null,
                   details: data,
@@ -705,11 +746,13 @@ export default function WorkflowEditorPage() {
       .get(workflowId)
       .then((data) => {
         setWorkflow(data)
-        blueprintRef.current = data.blueprint ?? {
+        const bp = data.blueprint ?? {
           nodes: [],
           edges: [],
           viewport: { x: 0, y: 0, zoom: 1 },
         }
+        blueprintRef.current = bp
+        savedBlueprintRef.current = JSON.stringify(bp)
         setIsDirty(false)
         setLastSavedAt(new Date())
         triggerValidation()
@@ -818,6 +861,7 @@ export default function WorkflowEditorPage() {
         apiKeyConfigured={!!workflow.has_api_key}
         onSchedule={() => setShowScheduleDialog(true)}
         scheduleActive={scheduleActive}
+        onStatusChange={handleStatusChange}
         onBatchRun={() => setShowBatchRunDialog(true)}
       />
 

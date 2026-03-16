@@ -237,7 +237,7 @@ function BaseWorkflowNodeComponent({
             <TooltipContent
               side="bottom"
               sideOffset={8}
-              className="max-w-[280px] space-y-1 text-left"
+              className="max-w-[340px] space-y-1.5 text-left"
             >
               <RunTooltipContent
                 status={runStatus}
@@ -331,6 +331,18 @@ function RunTooltipContent({
 }) {
   const statusLabel = t(`runStatus_${status === "retrying" ? "running" : status}` as Parameters<typeof t>[0])
 
+  /** Try to pretty-print a JSON-ish string, truncated for tooltip display */
+  const fmt = (raw: string) => {
+    try {
+      const parsed = JSON.parse(raw)
+      const pretty = JSON.stringify(parsed, null, 2)
+      // Truncate at ~300 chars for the tooltip
+      return pretty.length > 300 ? pretty.slice(0, 300) + "\u2026" : pretty
+    } catch {
+      return raw
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-1.5">
@@ -342,27 +354,33 @@ function RunTooltipContent({
         />
         <span className="font-medium">{statusLabel}</span>
         {overlay.durationMs != null && (
-          <span className="text-background/70 ml-auto">
+          <span className="text-background/70 ml-auto tabular-nums">
             {formatDuration(overlay.durationMs)}
           </span>
         )}
       </div>
       {overlay.inputPreview && (
-        <div>
-          <span className="text-background/60">{t("runOverlayInput")}:</span>{" "}
-          <span className="break-all">{overlay.inputPreview}</span>
+        <div className="space-y-0.5">
+          <span className="text-[10px] font-medium text-background/50 uppercase tracking-wide">{t("runOverlayInput")}</span>
+          <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-background/10 rounded px-1.5 py-1 max-h-[100px] overflow-auto leading-relaxed">
+            {fmt(overlay.inputPreview)}
+          </pre>
         </div>
       )}
       {overlay.outputPreview && (
-        <div>
-          <span className="text-background/60">{t("runOverlayOutput")}:</span>{" "}
-          <span className="break-all">{overlay.outputPreview}</span>
+        <div className="space-y-0.5">
+          <span className="text-[10px] font-medium text-background/50 uppercase tracking-wide">{t("runOverlayOutput")}</span>
+          <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-background/10 rounded px-1.5 py-1 max-h-[100px] overflow-auto leading-relaxed">
+            {fmt(overlay.outputPreview)}
+          </pre>
         </div>
       )}
       {overlay.runError && (
-        <div className="text-red-300">
-          <span className="text-red-400">{t("runOverlayError")}:</span>{" "}
-          <span className="break-all">{overlay.runError}</span>
+        <div className="space-y-0.5">
+          <span className="text-[10px] font-medium text-red-400 uppercase tracking-wide">{t("runOverlayError")}</span>
+          <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-red-500/10 rounded px-1.5 py-1 text-red-300">
+            {overlay.runError}
+          </pre>
         </div>
       )}
     </>

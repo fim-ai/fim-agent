@@ -735,5 +735,18 @@
   "validationIssues": "验证问题",
   "emptyTitle": "还没有工作流",
   "emptyDescription": "创建您的第一个工作流来自动化复杂任务。",
-  "noSearchResultsDescription": "尝试调整您的搜索或筛选条件。"
+  "noSearchResultsDescription": "尝试调整您的搜索或筛选条件。",
+  "runPanelLogShowDetails": "详情",
+  "runPanelLogHideDetails": "隐藏",
+  "runPanelLogInput": "输入",
+  "runPanelLogOutput": "输出",
+  "runPanelExecuting": "正在执行工作流...",
+  "addNodePickerSearch": "筛选...",
+  "runHistoryMenuItem": "运行历史",
+  "versionHistoryMenuItem": "版本历史",
+  "autoLayoutMenuItem": "自动布局",
+  "variablesMenuItem": "变量",
+  "statusDropdownDraft": "草稿",
+  "statusDropdownActive": "活跃",
+  "statusChanged": "工作流状态已更新"
 }
