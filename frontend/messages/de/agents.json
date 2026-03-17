@@ -143,5 +143,9 @@
   "templateCategory_basic": "Grundlagen",
   "templateCategory_advanced": "Erweitert",
   "templateCategory_ai": "KI",
-  "templateCategory_data": "Daten"
+  "templateCategory_data": "Daten",
+  "builtInTools": "Integrierte Tools",
+  "builtInToolsHint": "Wählen Sie, welche Kategorien integrierter Tools dieser Agent verwenden kann.",
+  "mcpServers": "MCP Server",
+  "mcpServersDescription": "Wählen Sie, auf welche MCP Server dieser Agent zugreifen kann."
 }

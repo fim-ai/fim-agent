@@ -16,6 +16,7 @@ export interface AgentResponse {
   suggested_prompts: string[] | null
   kb_ids: string[] | null
   connector_ids: string[] | null
+  mcp_server_ids: string[] | null
   grounding_config: Record<string, unknown> | null
   sandbox_config: SandboxConfig | null
   execution_mode: "react" | "dag" | "auto"
@@ -44,6 +45,7 @@ export interface AgentCreate {
   suggested_prompts?: string[]
   kb_ids?: string[]
   connector_ids?: string[]
+  mcp_server_ids?: string[]
   grounding_config?: Record<string, unknown>
   sandbox_config?: SandboxConfig
   execution_mode?: "react" | "dag" | "auto"
@@ -60,6 +62,7 @@ export interface AgentUpdate {
   suggested_prompts?: string[]
   kb_ids?: string[]
   connector_ids?: string[]
+  mcp_server_ids?: string[]
   grounding_config?: Record<string, unknown>
   sandbox_config?: SandboxConfig
   execution_mode?: "react" | "dag" | "auto"

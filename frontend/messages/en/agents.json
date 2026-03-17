@@ -69,6 +69,8 @@
 
   "toolCategories": "Tool Categories",
   "toolCategoriesHint": "Hover over a category to see what tools it includes.",
+  "builtInTools": "Built-in Tools",
+  "builtInToolsHint": "Select which built-in tool categories this agent can use.",
 
   "toolCategoryConnector": "Connector",
   "toolCategoryConnectorDesc": "Access external API actions bound to this agent",
@@ -103,6 +105,8 @@
 
   "connectors": "Connectors",
   "connectorsDescription": "Bind connectors to give the agent access to external API actions",
+  "mcpServers": "MCP Servers",
+  "mcpServersDescription": "Select which MCP servers this agent can access.",
   "connectorActionCount": "{count} actions",
   "connectorTypeDatabase": "Database",
   "connectorTypeApi": "API",

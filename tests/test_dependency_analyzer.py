@@ -316,6 +316,7 @@ class TestResolveAgentDependencies:
             name="Test Agent",
             kb_ids=["kb-1"],
             connector_ids=["conn-1"],
+            mcp_server_ids=None,
         )
         kb = SimpleNamespace(id="kb-1", name="My KB")
         conn = _fake_connector(id="conn-1", name="My Connector", auth_type="bearer")
@@ -341,7 +342,7 @@ class TestResolveAgentDependencies:
     @pytest.mark.asyncio
     async def test_agent_with_empty_ids(self) -> None:
         agent = SimpleNamespace(
-            id="agt-1", name="Agent", kb_ids=None, connector_ids=None
+            id="agt-1", name="Agent", kb_ids=None, connector_ids=None, mcp_server_ids=None
         )
         db = _mock_db_fetch({"agt-1": agent})
         manifest = await resolve_solution_dependencies("agent", "agt-1", db)
@@ -364,6 +365,100 @@ class TestResolveSkillDependencies:
         db = _mock_db_fetch({"sk-1": skill, "conn-1": conn})
 
         manifest = await resolve_solution_dependencies("skill", "sk-1", db)
+        assert len(manifest.connection_deps) == 1
+        assert manifest.connection_deps[0].resource_id == "conn-1"
+
+    @pytest.mark.asyncio
+    async def test_skill_with_kb_ref(self) -> None:
+        """KB refs should appear as content_deps (auto-included for subscribers)."""
+        skill = SimpleNamespace(
+            id="sk-1",
+            name="Test Skill",
+            resource_refs=[
+                {"type": "knowledge_base", "id": "kb-1", "name": "KB"},
+            ],
+        )
+        kb = SimpleNamespace(id="kb-1", name="KB")
+        db = _mock_db_fetch({"sk-1": skill, "kb-1": kb})
+
+        manifest = await resolve_solution_dependencies("skill", "sk-1", db)
+        assert len(manifest.content_deps) == 1
+        assert manifest.content_deps[0].resource_type == "knowledge_base"
+        assert manifest.content_deps[0].resource_id == "kb-1"
+        assert len(manifest.connection_deps) == 0
+
+    @pytest.mark.asyncio
+    async def test_skill_with_mcp_server_ref(self) -> None:
+        """MCP server refs should appear as connection_deps (requires credentials)."""
+        skill = SimpleNamespace(
+            id="sk-1",
+            name="Test Skill",
+            resource_refs=[
+                {"type": "mcp_server", "id": "srv-1", "name": "MCP"},
+            ],
+        )
+        srv = _fake_mcp_server(id="srv-1", name="MCP", env={"API_KEY": "xxx"})
+        db = _mock_db_fetch({"sk-1": skill, "srv-1": srv})
+
+        manifest = await resolve_solution_dependencies("skill", "sk-1", db)
+        assert len(manifest.connection_deps) == 1
+        assert manifest.connection_deps[0].resource_type == "mcp_server"
+        assert manifest.connection_deps[0].resource_id == "srv-1"
+        assert "API_KEY" in manifest.connection_deps[0].credential_schema
+
+    @pytest.mark.asyncio
+    async def test_skill_with_mixed_refs(self) -> None:
+        """Skills with KB + Connector + MCP should classify deps correctly."""
+        skill = SimpleNamespace(
+            id="sk-1",
+            name="Test Skill",
+            resource_refs=[
+                {"type": "knowledge_base", "id": "kb-1", "name": "KB"},
+                {"type": "connector", "id": "conn-1", "name": "C1"},
+                {"type": "mcp_server", "id": "srv-1", "name": "MCP"},
+                {"type": "other", "id": "x-1"},
+            ],
+        )
+        kb = SimpleNamespace(id="kb-1", name="KB")
+        conn = _fake_connector(id="conn-1", name="C1", auth_type="api_key")
+        srv = _fake_mcp_server(id="srv-1", name="MCP", env={"TOKEN": "t"})
+        db = _mock_db_fetch({"sk-1": skill, "kb-1": kb, "conn-1": conn, "srv-1": srv})
+
+        manifest = await resolve_solution_dependencies("skill", "sk-1", db)
+        assert len(manifest.content_deps) == 1
+        assert manifest.content_deps[0].resource_id == "kb-1"
+        assert len(manifest.connection_deps) == 2
+        conn_ids = {d.resource_id for d in manifest.connection_deps}
+        assert conn_ids == {"conn-1", "srv-1"}
+
+    @pytest.mark.asyncio
+    async def test_skill_with_agent_ref(self) -> None:
+        """Agent refs should appear as content_deps and recursively resolve the agent's own deps."""
+        skill = SimpleNamespace(
+            id="sk-1",
+            name="Test Skill",
+            resource_refs=[
+                {"type": "agent", "id": "agt-1", "name": "My Agent"},
+            ],
+        )
+        agent = SimpleNamespace(
+            id="agt-1",
+            name="My Agent",
+            kb_ids=["kb-1"],
+            connector_ids=["conn-1"],
+            mcp_server_ids=None,
+        )
+        kb = SimpleNamespace(id="kb-1", name="Agent KB")
+        conn = _fake_connector(id="conn-1", name="Agent Conn", auth_type="bearer")
+        db = _mock_db_fetch({"sk-1": skill, "agt-1": agent, "kb-1": kb, "conn-1": conn})
+
+        manifest = await resolve_solution_dependencies("skill", "sk-1", db)
+        # Agent itself + Agent's KB = 2 content deps
+        assert len(manifest.content_deps) == 2
+        content_types = {(d.resource_type, d.resource_id) for d in manifest.content_deps}
+        assert ("agent", "agt-1") in content_types
+        assert ("knowledge_base", "kb-1") in content_types
+        # Agent's Connector = 1 connection dep
         assert len(manifest.connection_deps) == 1
         assert manifest.connection_deps[0].resource_id == "conn-1"
 

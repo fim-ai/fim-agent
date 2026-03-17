@@ -379,7 +379,7 @@ async def publish_mcp_server(
             await require_org_member(body.org_id, current_user, db)
         server.visibility = "org"
         server.org_id = body.org_id
-        server.allow_fallback = body.allow_fallback
+        # allow_fallback is now managed via server settings (update endpoint), not at publish time
         from fim_one.web.publish_review import apply_publish_status
         await apply_publish_status(server, body.org_id, db, resource_type="mcp_server", publisher_id=current_user.id)
 

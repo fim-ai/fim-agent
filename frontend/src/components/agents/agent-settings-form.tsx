@@ -11,9 +11,10 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover"
 import { SuggestedPromptsEditor } from "@/components/agents/suggested-prompts-editor"
-import { agentApi, kbApi, connectorApi, modelApi } from "@/lib/api"
+import { agentApi, kbApi, connectorApi, mcpServerApi, modelApi } from "@/lib/api"
 import type { AgentCreate, AgentResponse, SandboxConfig } from "@/types/agent"
 import type { ConnectorResponse } from "@/types/connector"
+import type { MCPServerResponse } from "@/types/mcp-server"
 import type { ModelConfigResponse } from "@/types/model_config"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -21,16 +22,14 @@ import { cn } from "@/lib/utils"
 import { useToolCatalog } from "@/hooks/use-tool-catalog"
 
 // Ordered: general first → common tools → advanced/specialized
-const TOOL_CATEGORIES = ["general", "web", "computation", "filesystem", "knowledge", "connector", "mcp"] as const
+const TOOL_CATEGORIES = ["general", "web", "computation", "filesystem", "knowledge"] as const
 
 // Tool category i18n key mapping
 const TOOL_CATEGORY_KEYS: Record<string, { label: string; description: string; tools: string }> = {
-  connector: { label: "toolCategoryConnector", description: "toolCategoryConnectorDesc", tools: "toolCategoryConnectorTools" },
   knowledge: { label: "toolCategoryKnowledge", description: "toolCategoryKnowledgeDesc", tools: "toolCategoryKnowledgeTools" },
   web: { label: "toolCategoryWeb", description: "toolCategoryWebDesc", tools: "toolCategoryWebTools" },
   computation: { label: "toolCategoryComputation", description: "toolCategoryComputationDesc", tools: "toolCategoryComputationTools" },
   filesystem: { label: "toolCategoryFilesystem", description: "toolCategoryFilesystemDesc", tools: "toolCategoryFilesystemTools" },
-  mcp: { label: "toolCategoryMcp", description: "toolCategoryMcpDesc", tools: "toolCategoryMcpTools" },
   general: { label: "toolCategoryGeneral", description: "toolCategoryGeneralDesc", tools: "toolCategoryGeneralTools" },
 }
 
@@ -55,6 +54,7 @@ export function AgentSettingsForm({
   const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([])
   const [selectedKBs, setSelectedKBs] = useState<string[]>([])
   const [selectedConnectors, setSelectedConnectors] = useState<string[]>([])
+  const [selectedMCPServers, setSelectedMCPServers] = useState<string[]>([])
   const [executionMode, setExecutionMode] = useState<"react" | "dag" | "auto">("auto")
   const [confidenceThreshold, setConfidenceThreshold] = useState<number | null>(null)
   const [temperature, setTemperature] = useState<number | null>(null)
@@ -68,6 +68,7 @@ export function AgentSettingsForm({
 
   const [availableKBs, setAvailableKBs] = useState<{ id: string; name: string; document_count: number }[]>([])
   const [availableConnectors, setAvailableConnectors] = useState<ConnectorResponse[]>([])
+  const [availableMCPServers, setAvailableMCPServers] = useState<MCPServerResponse[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: catalog } = useToolCatalog()
 
@@ -82,6 +83,7 @@ export function AgentSettingsForm({
       setSuggestedPrompts(agent.suggested_prompts || [])
       setSelectedKBs(agent.kb_ids || [])
       setSelectedConnectors(agent.connector_ids || [])
+      setSelectedMCPServers(agent.mcp_server_ids || [])
       setExecutionMode(agent.execution_mode || "auto")
       const ct = agent.grounding_config?.confidence_threshold
       setConfidenceThreshold(typeof ct === "number" ? ct : null)
@@ -103,6 +105,7 @@ export function AgentSettingsForm({
       setSuggestedPrompts([])
       setSelectedKBs([])
       setSelectedConnectors([])
+      setSelectedMCPServers([])
       setConfidenceThreshold(null)
       setTemperature(null)
       setSandboxMemory("")
@@ -124,6 +127,10 @@ export function AgentSettingsForm({
       .list(1, 100)
       .then((d) => setAvailableConnectors(d.items || []))
       .catch(() => setAvailableConnectors([]))
+    mcpServerApi
+      .list(1, 100)
+      .then((d) => setAvailableMCPServers(d.items || []))
+      .catch(() => setAvailableMCPServers([]))
     modelApi.list("llm").then(setSystemModels).catch(() => {})
   }, [])
 
@@ -144,6 +151,7 @@ export function AgentSettingsForm({
       JSON.stringify(suggestedPrompts) !== JSON.stringify(agent.suggested_prompts || []) ||
       JSON.stringify(selectedKBs) !== JSON.stringify(agent.kb_ids || []) ||
       JSON.stringify(selectedConnectors) !== JSON.stringify(agent.connector_ids || []) ||
+      JSON.stringify(selectedMCPServers) !== JSON.stringify(agent.mcp_server_ids || []) ||
       executionMode !== (agent.execution_mode || "auto") ||
       (() => {
         const ct = agent.grounding_config?.confidence_threshold
@@ -158,7 +166,7 @@ export function AgentSettingsForm({
       selectedFastModelConfigId !== ((agent.model_config_json?.fast_model_config_id as string) ?? "") ||
       compactInstructions !== (agent.compact_instructions || "")
     onDirtyChange(dirty)
-  }, [agent, name, icon, description, instructions, executionMode, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, confidenceThreshold, temperature, sandboxMemory, sandboxCpu, sandboxTimeout, selectedModelConfigId, selectedFastModelConfigId, compactInstructions, onDirtyChange])
+  }, [agent, name, icon, description, instructions, executionMode, toolCategories, suggestedPrompts, selectedKBs, selectedConnectors, selectedMCPServers, confidenceThreshold, temperature, sandboxMemory, sandboxCpu, sandboxTimeout, selectedModelConfigId, selectedFastModelConfigId, compactInstructions, onDirtyChange])
 
   const toggleCategory = (cat: string) => {
     setToolCategories((prev) =>
@@ -215,6 +223,7 @@ export function AgentSettingsForm({
         ...(prompts.length > 0 && { suggested_prompts: prompts }),
         kb_ids: selectedKBs,
         connector_ids: selectedConnectors,
+        mcp_server_ids: selectedMCPServers,
         ...(selectedKBs.length > 0 && confidenceThreshold != null && {
           grounding_config: { confidence_threshold: confidenceThreshold },
         }),
@@ -514,9 +523,9 @@ export function AgentSettingsForm({
 
           {/* Tool Categories */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">{t("toolCategories")}</label>
+            <label className="text-sm font-medium">{t("builtInTools")}</label>
             <p className="text-xs text-muted-foreground">
-              {t("toolCategoriesHint")}
+              {t("builtInToolsHint")}
             </p>
             <TooltipProvider>
               <div className="flex flex-wrap gap-2">
@@ -692,6 +701,73 @@ export function AgentSettingsForm({
                   .map((orphanId) => {
                     const toggleOrphan = () =>
                       setSelectedConnectors((prev) => prev.filter((id) => id !== orphanId))
+                    return (
+                      <div
+                        key={orphanId}
+                        role="checkbox"
+                        aria-checked={true}
+                        tabIndex={0}
+                        onClick={toggleOrphan}
+                        onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggleOrphan() } }}
+                        className="flex items-center gap-1.5 text-sm cursor-pointer select-none rounded px-1 py-0.5 bg-destructive/10"
+                      >
+                        <div className="h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors bg-primary border-primary">
+                          <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                        </div>
+                        <span className="text-destructive/80 truncate max-w-[200px]" title={orphanId}>
+                          {orphanId.length > 12 ? `${orphanId.slice(0, 12)}...` : orphanId}
+                        </span>
+                        <span className="text-destructive/60 text-xs">({t("deleted")})</span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* MCP Servers */}
+          {(availableMCPServers.length > 0 || selectedMCPServers.some((id) => !availableMCPServers.some((s) => s.id === id))) && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">{t("mcpServers")}</label>
+              <p className="text-xs text-muted-foreground">
+                {t("mcpServersDescription")}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {availableMCPServers.map((server) => {
+                  const isChecked = selectedMCPServers.includes(server.id)
+                  const toggleServer = () =>
+                    setSelectedMCPServers((prev) =>
+                      prev.includes(server.id)
+                        ? prev.filter((id) => id !== server.id)
+                        : [...prev, server.id]
+                    )
+                  return (
+                    <div
+                      key={server.id}
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      tabIndex={0}
+                      onClick={toggleServer}
+                      onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggleServer() } }}
+                      className="flex items-center gap-1.5 text-sm cursor-pointer select-none"
+                    >
+                      <div className={`h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors ${isChecked ? "bg-primary border-primary" : "border-input"}`}>
+                        {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                      </div>
+                      <span className="text-muted-foreground">
+                        {server.name}
+                        {server.description && (
+                          <span className="text-xs ml-1 opacity-60">&mdash; {server.description}</span>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
+                {selectedMCPServers
+                  .filter((id) => !availableMCPServers.some((s) => s.id === id))
+                  .map((orphanId) => {
+                    const toggleOrphan = () =>
+                      setSelectedMCPServers((prev) => prev.filter((id) => id !== orphanId))
                     return (
                       <div
                         key={orphanId}

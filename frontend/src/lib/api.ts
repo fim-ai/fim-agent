@@ -2217,7 +2217,7 @@ export interface MarketSubscription {
 
 export interface DependencyManifest {
   content_deps: Array<{ resource_type: string; resource_id: string; resource_name: string }>
-  connection_deps: Array<{ resource_type: string; resource_id: string; resource_name: string; credential_schema: Record<string, unknown> }>
+  connection_deps: Array<{ resource_type: string; resource_id: string; resource_name: string; credential_schema: Record<string, unknown>; allow_fallback: boolean }>
 }
 
 // --- Market API ---

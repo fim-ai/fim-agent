@@ -143,5 +143,9 @@
   "templateCategory_basic": "기본",
   "templateCategory_advanced": "고급",
   "templateCategory_ai": "AI",
-  "templateCategory_data": "데이터"
+  "templateCategory_data": "데이터",
+  "builtInTools": "기본 제공 도구",
+  "builtInToolsHint": "이 에이전트가 사용할 수 있는 기본 제공 도구 카테고리를 선택하세요.",
+  "mcpServers": "MCP 서버",
+  "mcpServersDescription": "이 에이전트가 액세스할 수 있는 MCP 서버를 선택하세요."
 }

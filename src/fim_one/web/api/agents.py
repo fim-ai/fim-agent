@@ -16,6 +16,7 @@ from fim_one.web.platform import MARKET_ORG_ID, is_market_org
 from fim_one.web.models import Agent, User
 from fim_one.web.models.connector import Connector
 from fim_one.web.models.knowledge_base import KnowledgeBase
+from fim_one.web.models.mcp_server import MCPServer
 from fim_one.web.models.resource_subscription import ResourceSubscription
 from fim_one.web.schemas.agent import AgentCreate, AgentResponse, AgentUpdate
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRequest
@@ -37,6 +38,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         suggested_prompts=agent.suggested_prompts,
         kb_ids=agent.kb_ids,
         connector_ids=agent.connector_ids,
+        mcp_server_ids=agent.mcp_server_ids,
         grounding_config=agent.grounding_config,
         sandbox_config=agent.sandbox_config,
         execution_mode=agent.execution_mode,
@@ -97,8 +99,9 @@ async def _validate_binding_ownership(
     db: AsyncSession,
     connector_ids: list[str] | None = None,
     kb_ids: list[str] | None = None,
+    mcp_server_ids: list[str] | None = None,
 ) -> None:
-    """Verify that all referenced connector_ids and kb_ids belong to the user.
+    """Verify that all referenced connector_ids, kb_ids, and mcp_server_ids belong to the user.
 
     Raises HTTP 403 if any referenced resource is not owned by the user.
     """
@@ -122,6 +125,16 @@ async def _validate_binding_ownership(
         if owned_count != len(kb_ids):
             raise AppError("kb_ownership_denied", status_code=403)
 
+    if mcp_server_ids:
+        result = await db.execute(
+            select(func.count())
+            .select_from(MCPServer)
+            .where(MCPServer.id.in_(mcp_server_ids), MCPServer.user_id == user_id)
+        )
+        owned_count = result.scalar_one()
+        if owned_count != len(mcp_server_ids):
+            raise AppError("mcp_server_ownership_denied", status_code=403)
+
 
 @router.post("", response_model=ApiResponse)
 async def create_agent(
@@ -133,6 +146,7 @@ async def create_agent(
         current_user.id, db,
         connector_ids=body.connector_ids,
         kb_ids=body.kb_ids,
+        mcp_server_ids=body.mcp_server_ids,
     )
     agent = Agent(
         user_id=current_user.id,
@@ -145,6 +159,7 @@ async def create_agent(
         suggested_prompts=body.suggested_prompts,
         kb_ids=body.kb_ids,
         connector_ids=body.connector_ids,
+        mcp_server_ids=body.mcp_server_ids,
         grounding_config=body.grounding_config,
         sandbox_config=body.sandbox_config,
         execution_mode=body.execution_mode,
@@ -244,6 +259,7 @@ async def update_agent(
         current_user.id, db,
         connector_ids=update_data.get("connector_ids"),
         kb_ids=update_data.get("kb_ids"),
+        mcp_server_ids=update_data.get("mcp_server_ids"),
     )
     for field, value in update_data.items():
         setattr(agent, field, value)

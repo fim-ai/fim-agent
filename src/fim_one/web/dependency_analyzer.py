@@ -43,6 +43,7 @@ class ConnectionDep:
     resource_id: str
     resource_name: str
     credential_schema: dict  # field definitions for the onboarding form
+    allow_fallback: bool = False  # if True, owner's credentials are shared as fallback
 
 
 @dataclass
@@ -94,6 +95,7 @@ class DependencyManifest:
                     "resource_id": d.resource_id,
                     "resource_name": d.resource_name,
                     "credential_schema": d.credential_schema,
+                    "allow_fallback": d.allow_fallback,
                 }
                 for d in self.connection_deps
             ],
@@ -223,6 +225,7 @@ async def _resolve_agent(agent_id: str, db: AsyncSession) -> DependencyManifest:
     from fim_one.web.models.agent import Agent
     from fim_one.web.models.connector import Connector
     from fim_one.web.models.knowledge_base import KnowledgeBase
+    from fim_one.web.models.mcp_server import MCPServer
 
     manifest = DependencyManifest()
 
@@ -258,6 +261,24 @@ async def _resolve_agent(agent_id: str, db: AsyncSession) -> DependencyManifest:
                     resource_id=connector.id,
                     resource_name=connector.name,
                     credential_schema=extract_connector_credential_schema(connector),
+                    allow_fallback=getattr(connector, "allow_fallback", False),
+                )
+            )
+
+    # MCP servers
+    mcp_server_ids: list[str] = agent.mcp_server_ids or []
+    for server_id in mcp_server_ids:
+        if not server_id or not isinstance(server_id, str):
+            continue
+        server = await _fetch_by_id(MCPServer, server_id, db)
+        if server is not None:
+            manifest.connection_deps.append(
+                ConnectionDep(
+                    resource_type="mcp_server",
+                    resource_id=server.id,
+                    resource_name=server.name,
+                    credential_schema=extract_mcp_credential_schema(server),
+                    allow_fallback=getattr(server, "allow_fallback", False),
                 )
             )
 
@@ -265,8 +286,19 @@ async def _resolve_agent(agent_id: str, db: AsyncSession) -> DependencyManifest:
 
 
 async def _resolve_skill(skill_id: str, db: AsyncSession) -> DependencyManifest:
-    """Resolve dependencies for a single Skill."""
+    """Resolve dependencies for a single Skill.
+
+    Skills store all external references in a unified ``resource_refs`` JSON
+    array.  Each entry has ``{"type": "<resource_type>", "id": "<uuid>", ...}``.
+    We classify them the same way Agents/Workflows do:
+    - ``knowledge_base`` → content dep (auto-included for subscribers)
+    - ``agent`` → content dep + recursively resolve the agent's own deps
+    - ``connector`` / ``mcp_server`` → connection dep (requires credentials)
+    """
+    from fim_one.web.models.agent import Agent
     from fim_one.web.models.connector import Connector
+    from fim_one.web.models.knowledge_base import KnowledgeBase
+    from fim_one.web.models.mcp_server import MCPServer
     from fim_one.web.models.skill import Skill
 
     manifest = DependencyManifest()
@@ -279,11 +311,13 @@ async def _resolve_skill(skill_id: str, db: AsyncSession) -> DependencyManifest:
     for ref in resource_refs:
         if not isinstance(ref, dict):
             continue
-        if ref.get("type") == "connector":
-            conn_id = ref.get("id")
-            if not conn_id or not isinstance(conn_id, str):
-                continue
-            connector = await _fetch_by_id(Connector, conn_id, db)
+        ref_type = ref.get("type")
+        ref_id = ref.get("id")
+        if not ref_id or not isinstance(ref_id, str):
+            continue
+
+        if ref_type == "connector":
+            connector = await _fetch_by_id(Connector, ref_id, db)
             if connector is not None:
                 manifest.connection_deps.append(
                     ConnectionDep(
@@ -293,6 +327,45 @@ async def _resolve_skill(skill_id: str, db: AsyncSession) -> DependencyManifest:
                         credential_schema=extract_connector_credential_schema(connector),
                     )
                 )
+
+        elif ref_type == "knowledge_base":
+            kb = await _fetch_by_id(KnowledgeBase, ref_id, db)
+            if kb is not None:
+                manifest.content_deps.append(
+                    ContentDep(
+                        resource_type="knowledge_base",
+                        resource_id=kb.id,
+                        resource_name=kb.name,
+                    )
+                )
+
+        elif ref_type == "mcp_server":
+            server = await _fetch_by_id(MCPServer, ref_id, db)
+            if server is not None:
+                manifest.connection_deps.append(
+                    ConnectionDep(
+                        resource_type="mcp_server",
+                        resource_id=server.id,
+                        resource_name=server.name,
+                        credential_schema=extract_mcp_credential_schema(server),
+                        allow_fallback=getattr(server, "allow_fallback", False),
+                    )
+                )
+
+        elif ref_type == "agent":
+            agent = await _fetch_by_id(Agent, ref_id, db)
+            if agent is not None:
+                # Agent itself is a content dep
+                manifest.content_deps.append(
+                    ContentDep(
+                        resource_type="agent",
+                        resource_id=agent.id,
+                        resource_name=agent.name,
+                    )
+                )
+                # Recursively resolve the agent's own KB/Connector deps
+                agent_manifest = await _resolve_agent(ref_id, db)
+                manifest.merge(agent_manifest)
 
     return manifest
 

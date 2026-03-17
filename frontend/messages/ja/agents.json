@@ -143,5 +143,9 @@
   "templateCategory_basic": "基本",
   "templateCategory_advanced": "高度",
   "templateCategory_ai": "AI",
-  "templateCategory_data": "データ"
+  "templateCategory_data": "データ",
+  "builtInTools": "組み込みツール",
+  "builtInToolsHint": "このエージェントが使用できる組み込みツールカテゴリを選択します。",
+  "mcpServers": "MCP サーバー",
+  "mcpServersDescription": "このエージェントがアクセスできる MCP サーバーを選択します。"
 }

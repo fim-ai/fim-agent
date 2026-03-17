@@ -43,6 +43,7 @@ class Agent(UUIDPKMixin, TimestampMixin, Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     kb_ids: Any = Column(JSON, nullable=True)
     connector_ids: Any = Column(JSON, nullable=True)
+    mcp_server_ids: Any = Column(JSON, nullable=True)  # list[str]
     skill_ids: Any = Column(JSON, nullable=True)  # list[str]
     compact_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     grounding_config: Any = Column(JSON, nullable=True)

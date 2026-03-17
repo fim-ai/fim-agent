@@ -590,6 +590,7 @@ async def _resolve_agent_config(
             "model_config_json": agent.model_config_json,
             "kb_ids": agent.kb_ids,
             "connector_ids": agent.connector_ids,
+            "mcp_server_ids": agent.mcp_server_ids,
             "grounding_config": agent.grounding_config,
             "sandbox_config": agent.sandbox_config,
             "owner_user_id": agent.user_id,
@@ -1178,23 +1179,40 @@ async def _resolve_tools(
         from fim_one.web.models.mcp_server import MCPServer as _MCPServerModel
         from sqlalchemy import true as _true, false as _sa_false
 
-        async with _create_session() as _mcp_db:
-            from fim_one.web.visibility import resolve_visibility as _resolve_vis
+        # Determine which MCP servers to load based on agent config
+        _agent_mcp_ids = agent_cfg.get("mcp_server_ids") if agent_cfg else None
 
-            if user_id:
-                _vis_filter, _, _ = await _resolve_vis(_MCPServerModel, user_id, "mcp_server", _mcp_db)
-            else:
-                _vis_filter = _sa_false()
-            _stmt = sa_select(_MCPServerModel).where(
-                _vis_filter,
-                _MCPServerModel.is_active == _true(),
-            )
-            _result = await _mcp_db.execute(_stmt)
-            _user_servers = _result.scalars().all()
+        if agent_cfg and not _agent_mcp_ids:
+            # Agent exists but has no MCP servers selected — skip
+            pass
+        else:
+            async with _create_session() as _mcp_db:
+                if _agent_mcp_ids:
+                    # Agent mode: load only the specified MCP servers
+                    _stmt = sa_select(_MCPServerModel).where(
+                        _MCPServerModel.id.in_(_agent_mcp_ids),
+                        _MCPServerModel.is_active == _true(),
+                    )
+                else:
+                    # No-agent mode: load all visible active MCP servers
+                    from fim_one.web.visibility import resolve_visibility as _resolve_vis
 
-        if _user_servers:
-            tools._pending_mcp_servers = list(_user_servers)  # type: ignore[attr-defined]
-            tools._mcp_user_id = user_id  # type: ignore[attr-defined]
+                    if user_id:
+                        _vis_filter, _, _ = await _resolve_vis(
+                            _MCPServerModel, user_id, "mcp_server", _mcp_db
+                        )
+                    else:
+                        _vis_filter = _sa_false()
+                    _stmt = sa_select(_MCPServerModel).where(
+                        _vis_filter,
+                        _MCPServerModel.is_active == _true(),
+                    )
+                _result = await _mcp_db.execute(_stmt)
+                _user_servers = _result.scalars().all()
+
+            if _user_servers:
+                tools._pending_mcp_servers = list(_user_servers)  # type: ignore[attr-defined]
+                tools._mcp_user_id = user_id  # type: ignore[attr-defined]
     except Exception:
         logger.warning("Failed to load MCP server configs", exc_info=True)
 
@@ -1233,6 +1251,7 @@ async def _resolve_tools(
                         "tool_categories": a.tool_categories,
                         "kb_ids": a.kb_ids,
                         "connector_ids": a.connector_ids,
+                        "mcp_server_ids": a.mcp_server_ids,
                         "grounding_config": a.grounding_config,
                         "sandbox_config": a.sandbox_config,
                         "owner_user_id": a.user_id,

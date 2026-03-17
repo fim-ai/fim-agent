@@ -17,6 +17,7 @@ class AgentCreate(BaseModel):
     suggested_prompts: list[str] | None = None
     kb_ids: list[str] | None = None
     connector_ids: list[str] | None = None
+    mcp_server_ids: list[str] | None = None
     grounding_config: dict | None = None
     sandbox_config: dict | None = None
     execution_mode: Literal["react", "dag", "auto"] = "auto"
@@ -34,6 +35,7 @@ class AgentUpdate(BaseModel):
     suggested_prompts: list[str] | None = None
     kb_ids: list[str] | None = None
     connector_ids: list[str] | None = None
+    mcp_server_ids: list[str] | None = None
     grounding_config: dict | None = None
     sandbox_config: dict | None = None
     execution_mode: Literal["react", "dag", "auto"] | None = None
@@ -53,6 +55,7 @@ class AgentResponse(BaseModel):
     suggested_prompts: list[str] | None
     kb_ids: list[str] | None
     connector_ids: list[str] | None
+    mcp_server_ids: list[str] | None
     grounding_config: dict | None
     sandbox_config: dict | None
     execution_mode: str

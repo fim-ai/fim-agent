@@ -57,7 +57,6 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all", searc
   const [pendingPublishId, setPendingPublishId] = useState<string | null>(null)
   const [pendingUnpublishId, setPendingUnpublishId] = useState<string | null>(null)
   const [publishOrgId, setPublishOrgId] = useState<string>("")
-  const [allowFallback, setAllowFallback] = useState(true)
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
   const [orgsLoading, setOrgsLoading] = useState(false)
 
@@ -140,7 +139,6 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all", searc
   const handlePublish = (id: string) => {
     setPendingPublishId(id)
     setPublishOrgId("")
-    setAllowFallback(true)
     setOrgsLoading(true)
     orgApi.list().then((orgs) => {
       setUserOrgs(orgs)
@@ -181,7 +179,6 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all", searc
       const updated = await mcpServerApi.publish(id, {
         scope: "org",
         org_id: publishOrgId,
-        allow_fallback: allowFallback,
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setServers((prev) => prev.map((s) => (s.id === id ? { ...updated, source: (s as any).source } : s)))
@@ -328,10 +325,8 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all", searc
         selectedOrgId={publishOrgId}
         onOrgChange={setPublishOrgId}
         requiresReview={!!selectedOrg?.review_mcp_servers}
-        allowFallback={allowFallback}
-        onAllowFallbackChange={setAllowFallback}
+        allowFallback={pendingPublishId ? servers.find(s => s.id === pendingPublishId)?.allow_fallback : undefined}
         fallbackLabel={t("allowFallback")}
-        fallbackHelp={t("allowFallbackHelp")}
         noOrgsText={t("publishNoOrgs")}
         selectOrgPlaceholder={t("publishSelectOrg")}
         onConfirm={confirmPublish}

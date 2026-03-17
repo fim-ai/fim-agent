@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useTranslations } from "next-intl"
-import { Loader2, Plus, X, ExternalLink } from "lucide-react"
+import { Loader2, Plus, X, ExternalLink, CircleHelp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { mcpServerApi } from "@/lib/api"
 import { toast } from "sonner"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate } from "@/types/mcp-server"
@@ -69,6 +71,7 @@ export function MCPServerDialog({
   const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>([])
   const [headerPairs, setHeaderPairs] = useState<Array<{ key: string; value: string }>>([])
   const [isActive, setIsActive] = useState(false)
+  const [allowFallback, setAllowFallback] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -119,6 +122,7 @@ export function MCPServerDialog({
             : []
         )
         setIsActive(server.is_active)
+        setAllowFallback(server.allow_fallback ?? true)
       } else {
         setName(initialValues?.name ?? "")
         setDescription(initialValues?.description ?? "")
@@ -134,6 +138,7 @@ export function MCPServerDialog({
         )
         setHeaderPairs([])
         setIsActive(true)
+        setAllowFallback(true)
       }
     }
   }, [open, server])
@@ -148,6 +153,7 @@ export function MCPServerDialog({
       url !== (server.url || "") ||
       workingDir !== (server.working_dir || "") ||
       isActive !== server.is_active ||
+      allowFallback !== (server.allow_fallback ?? true) ||
       JSON.stringify(envPairs) !== JSON.stringify(
         server.env ? Object.entries(server.env).map(([key, value]) => ({ key, value })) : []
       ) ||
@@ -248,6 +254,7 @@ export function MCPServerDialog({
           url: (transport === "sse" || transport === "streamable_http") ? url.trim() || null : null,
           headers: headersObj,
           is_active: isActive,
+          allow_fallback: allowFallback,
         }
         const updated = await mcpServerApi.update(server.id, body)
         onSuccess(updated)
@@ -528,6 +535,31 @@ export function MCPServerDialog({
               />
             </button>
           </div>
+
+          {/* Allow Fallback — only shown in edit mode */}
+          {isEdit && (
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium">{t("allowFallback")}</p>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <CircleHelp className="h-3.5 w-3.5 text-muted-foreground cursor-default" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-64">
+                        <p>{t("allowFallbackHelp")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+              <Switch
+                checked={allowFallback}
+                onCheckedChange={setAllowFallback}
+              />
+            </div>
+          )}
         </div>
         </div>
 
