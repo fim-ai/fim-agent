@@ -23,5 +23,23 @@
   "emptyTitle": "リソースはまだありません",
   "emptyDescription": "マーケットプレイスに公開されたリソースがここに表示されます。",
   "subscribeSuccess": "正常に購読しました",
-  "unsubscribeSuccess": "正常に購読を解除しました"
+  "unsubscribeSuccess": "正常に購読を解除しました",
+  "categorySolutions": "ソリューション",
+  "categoryComponents": "コンポーネント",
+  "detailBy": "{author} 作",
+  "detailCreated": "作成日",
+  "detailType": "タイプ",
+  "detailDetails": "詳細",
+  "subscribeSuccessTitle": "登録完了！",
+  "subscribeSuccessDescription": "\"{name}\" がワークスペースに追加されました。",
+  "goToConfigure": "設定に進む",
+  "stayHere": "このままにする",
+  "typeSingular": {
+    "agent": "エージェント",
+    "connector": "コネクター",
+    "knowledge_base": "ナレッジベース",
+    "mcp_server": "MCP サーバー",
+    "skill": "スキル",
+    "workflow": "ワークフロー"
+  }
 }

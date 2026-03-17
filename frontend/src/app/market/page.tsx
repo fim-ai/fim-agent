@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { ShoppingBag } from 'lucide-react'
 import { EmptyState } from '@/components/shared/empty-state'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ResourceDetailModal } from '@/components/market/resource-detail-modal'
 import { api, type MarketItem } from '@/lib/api'
 import { toast } from 'sonner'
 
@@ -20,7 +20,7 @@ function MarketContent() {
   const router = useRouter()
   const [items, setItems] = useState<MarketItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [subscribing, setSubscribing] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null)
 
   const activeType = searchParams.get('type') || 'all'
 
@@ -39,24 +39,6 @@ function MarketContent() {
   }
 
   useEffect(() => { fetchMarket() }, [activeType]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSubscribe = async (item: MarketItem) => {
-    setSubscribing(item.id)
-    try {
-      if (item.is_subscribed) {
-        await api.unsubscribeResource({ resource_type: item.resource_type, resource_id: item.id, org_id: item.org_id })
-        toast.success(t('unsubscribeSuccess'))
-      } else {
-        await api.subscribeResource({ resource_type: item.resource_type, resource_id: item.id, org_id: item.org_id })
-        toast.success(t('subscribeSuccess'))
-      }
-      fetchMarket()
-    } catch {
-      toast.error(tc('error'))
-    } finally {
-      setSubscribing(null)
-    }
-  }
 
   const handleTypeChange = (type: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -104,7 +86,11 @@ function MarketContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((item) => (
-              <div key={item.id} className="border rounded-lg p-4 space-y-3 bg-card">
+              <div
+                key={item.id}
+                className="border rounded-lg p-4 space-y-3 bg-card cursor-pointer hover:border-foreground/20 transition-colors"
+                onClick={() => setSelectedItem(item)}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">{item.name}</h3>
@@ -125,25 +111,28 @@ function MarketContent() {
                   </p>
                 )}
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {['agent', 'skill', 'workflow'].includes(item.resource_type)
+                      ? t('categorySolutions')
+                      : t('categoryComponents')}
+                  </Badge>
                   {item.is_subscribed && (
                     <Badge variant="outline" className="text-xs">{t('subscribed')}</Badge>
                   )}
-                  <Button
-                    size="sm"
-                    variant={item.is_subscribed ? 'outline' : 'default'}
-                    disabled={subscribing === item.id}
-                    onClick={() => handleSubscribe(item)}
-                    className="ml-auto"
-                  >
-                    {item.is_subscribed ? t('unsubscribe') : t('subscribe')}
-                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <ResourceDetailModal
+        item={selectedItem}
+        open={selectedItem !== null}
+        onOpenChange={(open) => { if (!open) setSelectedItem(null) }}
+        onSubscribeSuccess={() => { setSelectedItem(null); fetchMarket() }}
+      />
     </div>
   )
 }

@@ -23,5 +23,23 @@
   "emptyTitle": "아직 리소스가 없습니다",
   "emptyDescription": "마켓플레이스에 게시된 리소스가 여기에 표시됩니다.",
   "subscribeSuccess": "구독되었습니다",
-  "unsubscribeSuccess": "구독 취소되었습니다"
+  "unsubscribeSuccess": "구독 취소되었습니다",
+  "categorySolutions": "솔루션",
+  "categoryComponents": "구성 요소",
+  "detailBy": "{author} 작성",
+  "detailCreated": "생성됨",
+  "detailType": "유형",
+  "detailDetails": "세부 정보",
+  "subscribeSuccessTitle": "구독 완료!",
+  "subscribeSuccessDescription": "\"{name}\"이(가) 워크스페이스에 추가되었습니다.",
+  "goToConfigure": "구성하러 가기",
+  "stayHere": "여기에 머물기",
+  "typeSingular": {
+    "agent": "에이전트",
+    "connector": "커넥터",
+    "knowledge_base": "지식 베이스",
+    "mcp_server": "MCP 서버",
+    "skill": "스킬",
+    "workflow": "워크플로"
+  }
 }

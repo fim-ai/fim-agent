@@ -15,6 +15,16 @@
   "publishTargetOrg": "My Organization",
   "publishTargetMarketplace": "Marketplace",
   "marketplaceReviewLocked": "Marketplace always requires review",
+  "categorySolutions": "Solution",
+  "categoryComponents": "Component",
+  "detailBy": "by {author}",
+  "detailCreated": "Created",
+  "detailType": "Type",
+  "detailDetails": "Details",
+  "subscribeSuccessTitle": "Subscribed!",
+  "subscribeSuccessDescription": "\"{name}\" has been added to your workspace.",
+  "goToConfigure": "Go configure",
+  "stayHere": "Stay here",
   "types": {
     "all": "All",
     "agent": "Agents",
@@ -23,5 +33,13 @@
     "mcp_server": "MCP Servers",
     "skill": "Skills",
     "workflow": "Workflows"
+  },
+  "typeSingular": {
+    "agent": "Agent",
+    "connector": "Connector",
+    "knowledge_base": "Knowledge Base",
+    "mcp_server": "MCP Server",
+    "skill": "Skill",
+    "workflow": "Workflow"
   }
 }

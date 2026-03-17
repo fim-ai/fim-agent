@@ -23,5 +23,23 @@
   "emptyTitle": "Aucune ressource pour le moment",
   "emptyDescription": "Les ressources publiées sur la marketplace apparaîtront ici.",
   "subscribeSuccess": "Abonnement réussi",
-  "unsubscribeSuccess": "Désabonnement réussi"
+  "unsubscribeSuccess": "Désabonnement réussi",
+  "categorySolutions": "Solution",
+  "categoryComponents": "Composant",
+  "detailBy": "par {author}",
+  "detailCreated": "Créé",
+  "detailType": "Type",
+  "detailDetails": "Détails",
+  "subscribeSuccessTitle": "Abonnement réussi !",
+  "subscribeSuccessDescription": "\"{name}\" a été ajouté à votre espace de travail.",
+  "goToConfigure": "Aller à la configuration",
+  "stayHere": "Rester ici",
+  "typeSingular": {
+    "agent": "Agent",
+    "connector": "Connecteur",
+    "knowledge_base": "Base de connaissances",
+    "mcp_server": "Serveur MCP",
+    "skill": "Compétence",
+    "workflow": "Workflow"
+  }
 }
