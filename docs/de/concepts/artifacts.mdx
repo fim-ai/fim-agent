@@ -57,12 +57,4 @@ Jedes Artefakt zeigt:
 
 ## Speicher
 
-Artefakte werden im Server-Dateisystem unter `uploads/conversations/{conversation_id}/artifacts/` gespeichert. Jedes Artefakt erhält einen UUID-basierten Dateinamen, wodurch URLs nicht zu erraten sind. Dateien werden direkt bereitgestellt – es gibt keine Datenbankeinträge für einzelne Artefakte, was die Speicherschicht einfach und schnell hält.
-
-## API
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/artifacts` | Listet alle Artefakte für den aktuellen Benutzer auf. Unterstützt `?page=`, `?size=`, `?type=` Filter |
-| `GET /api/conversations/{id}/artifacts` | Listet Artefakte für ein bestimmtes Gespräch auf |
-| `GET /api/conversations/{id}/artifacts/{artifact_id}` | Lädt ein bestimmtes Artefakt herunter |
+Artefakte werden im Server-Dateisystem gespeichert, ein Verzeichnis pro Unterhaltung. Jedes Artefakt erhält einen UUID-basierten Dateinamen, wodurch URLs ohne Zugriff auf die Unterhaltung nicht zu erraten sind. Dateien werden direkt bereitgestellt – es gibt keine Datenbankdatensätze für einzelne Artefakte, was die Speicherschicht einfach und schnell hält.

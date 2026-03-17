@@ -57,12 +57,4 @@ Artifacts 페이지(`/artifacts`)는 모든 대화에서 생성한 모든 파일
 
 ## 저장소
 
-아티팩트는 서버 파일시스템의 `uploads/conversations/{conversation_id}/artifacts/` 디렉토리에 저장됩니다. 각 아티팩트는 UUID 기반 파일명을 받으므로 URL을 예측할 수 없습니다. 파일은 직접 제공되며, 개별 아티팩트에 대한 데이터베이스 레코드가 없어 저장소 계층이 단순하고 빠릅니다.
-
-## API
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/artifacts` | 현재 사용자의 모든 아티팩트를 나열합니다. `?page=`, `?size=`, `?type=` 필터를 지원합니다 |
-| `GET /api/conversations/{id}/artifacts` | 특정 대화의 아티팩트를 나열합니다 |
-| `GET /api/conversations/{id}/artifacts/{artifact_id}` | 특정 아티팩트를 다운로드합니다 |
+아티팩트는 서버 파일시스템에 저장되며, 각 대화마다 하나의 디렉토리를 사용합니다. 각 아티팩트는 UUID 기반 파일명을 가지므로, 대화에 접근하지 않고는 URL을 추측할 수 없습니다. 파일은 직접 제공되므로 개별 아티팩트에 대한 데이터베이스 레코드가 없어 저장소 계층이 단순하고 빠릅니다.

@@ -126,5 +126,7 @@
   "discord": "Discord",
   "orgShared": "조직",
   "publishedMarket": "게시됨 · 마켓",
-  "publishedOrg": "게시됨 · 조직"
+  "publishedOrg": "게시됨 · 조직",
+  "subscribedMarket": "구독됨 · 마켓",
+  "subscribedOrg": "구독됨 · 조직"
 }

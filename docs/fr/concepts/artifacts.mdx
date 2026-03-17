@@ -57,12 +57,4 @@ Chaque artefact affiche :
 
 ## Stockage
 
-Les artefacts sont stockés sur le système de fichiers du serveur sous `uploads/conversations/{conversation_id}/artifacts/`. Chaque artefact reçoit un nom de fichier basé sur un UUID, rendant les URL imprévisibles. Les fichiers sont servis directement — aucun enregistrement de base de données pour les artefacts individuels, ce qui maintient la couche de stockage simple et rapide.
-
-## API
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/artifacts` | Lister tous les artefacts de l'utilisateur actuel. Supporte les filtres `?page=`, `?size=`, `?type=` |
-| `GET /api/conversations/{id}/artifacts` | Lister les artefacts d'une conversation spécifique |
-| `GET /api/conversations/{id}/artifacts/{artifact_id}` | Télécharger un artefact spécifique |
+Les artefacts sont stockés sur le système de fichiers du serveur, un répertoire par conversation. Chaque artefact reçoit un nom de fichier basé sur UUID, rendant les URL impossibles à deviner sans accès à la conversation. Les fichiers sont servis directement — aucun enregistrement de base de données pour les artefacts individuels, ce qui maintient la couche de stockage simple et rapide.

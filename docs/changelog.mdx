@@ -11,6 +11,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Marketplace redesign Phase 1 — Solutions + Components two-tier model** — Replaced the flat 6-type Market tab with a structured two-level navigation: top-level category toggle (Solutions: Agent/Skill/Workflow; Components: Connector/MCP Server) and type sub-tabs. Added scope selector dropdown to switch between Global Market and user's organizations. KB removed from Market scope (org-only). Unified org and market sharing: both now require explicit subscription (no more org auto-appear).
+
+### Changed
+
+- **Subscription-based visibility model** — `build_visibility_filter()` simplified from 3-tier (own → org-member → subscribed) to 2-tier (own → subscribed). Data migration auto-creates `ResourceSubscription` rows for all existing org members to preserve access. Dashboard connector count and KB stats now include subscribed resources.
+- **Market API scope and category params** — `browse_market()` accepts `scope` (market or org:{id}) and `category` (solutions or components) query params. `subscribe_resource()` now validates org membership for non-market org subscriptions.
+
 - **Tool cache whitelist refactor** — Replaced hardcoded blacklist in `ToolCache` with a whitelist approach. Added `cacheable` property to `Tool` protocol (default `False`); only tools explicitly marked `cacheable=True` are cached. 11 read-only tools (web_search, kb_retrieve, calculator, etc.) marked cacheable; all side-effect tools (code exec, email, connectors) remain uncached by default. New connector tools are safe without any additional configuration.
 - **DAG executor cascade failure** — Failed or timed-out steps now cascade-block their dependents. Added `failed_ids` tracking with transitive propagation (A→B→C chains). Dependent steps are automatically marked as failed with a descriptive message instead of running with poisoned context.
 - **DAG step verifier status fix** — Step verification retry failures now correctly mark the step as `"failed"` instead of leaving it as `"completed"`. Failed verifications cascade to downstream steps via the new cascade failure mechanism.

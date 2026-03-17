@@ -126,5 +126,7 @@
   "discord": "Discord",
   "orgShared": "Organisation",
   "publishedMarket": "Veröffentlicht · Marktplatz",
-  "publishedOrg": "Veröffentlicht · Organisation"
+  "publishedOrg": "Veröffentlicht · Organisation",
+  "subscribedMarket": "Abonniert · Markt",
+  "subscribedOrg": "Abonniert · Organisation"
 }

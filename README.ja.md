@@ -10,17 +10,15 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**あなたのシステムは相互に通信していません。FIM Oneはそれらすべてを AI に接続します — コード変更なし、データ移行なし。**
-
-*AI搭載コネクタハブ — 1つのシステムにコパイロットとして組み込むか、すべてをハブとして接続します。*
+**あなたのシステムは相互に通信していません。FIM Oneは、AI搭載のブリッジです — Copilotとして組み込むか、すべてをハブとして接続します。**
 
 🌐 [ウェブサイト](https://one.fim.ai/) · 📖 [ドキュメント](https://docs.fim.ai) · 📋 [変更履歴](https://docs.fim.ai/changelog) · 🐛 [バグ報告](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ セットアップをスキップ — FIM One をクラウドで試してください。**
-> マネージド版は **[cloud.fim.ai](https://cloud.fim.ai/)** で利用可能です: Docker なし、API キーなし、設定なし。サインインして数秒でシステムの接続を開始できます。 _アーリーアクセス、フィードバック歓迎。_
+> **☁️ セットアップをスキップ — FIM Oneをクラウドで試してください。**
+> マネージド版は **[cloud.fim.ai](https://cloud.fim.ai/)** で利用可能です: Docker不要、APIキー不要、設定不要。サインインして、数秒でシステムの接続を開始できます。_アーリーアクセス、フィードバック歓迎。_
 
 ---
 

@@ -1,89 +1,96 @@
 ---
-title: "Organisation et Marché"
-description: "Comment FIM One structure le partage des ressources — des organisations au niveau de l'équipe au Marché mondial."
+title: "Organisations"
+description: "Partage de ressources au niveau de l'équipe avec accès basé sur les rôles, révision optionnelle et secours aux identifiants."
 ---
 
 ## Aperçu
 
-FIM One utilise les **Organisations** comme unité principale de collaboration et de distribution des ressources. Chaque ressource (Agent, Connecteur, Base de connaissances, Serveur MCP, Flux de travail, Compétence) commence comme **personnelle** et peut être publiée dans une Organisation pour être partagée.
+Les organisations sont l'unité de collaboration d'équipe de FIM One. Elles permettent aux groupes d'utilisateurs de partager des ressources — Agents, Connecteurs, Bases de connaissances, Serveurs MCP, Workflows et Compétences — dans un périmètre de confiance.
 
-Il existe deux canaux de distribution distincts :
+Chaque ressource dans FIM One commence comme **personnelle** (visible uniquement pour son créateur). Lorsque vous publiez une ressource dans une organisation, elle devient **découvrable** par les autres membres de l'organisation via le périmètre organisation du Marché. Les membres parcourent les ressources partagées de l'organisation et s'abonnent à celles dont ils ont besoin.
 
 ```mermaid
 flowchart TD
     R["Personal Resource"]
 
-    subgraph OrgPublish["Org-Internal Publishing"]
-        O["Organization"]
-        M1["Member A"]
-        M2["Member B"]
-        M3["Member C"]
-    end
-
-    subgraph MarketPublish["Global Publishing"]
-        MK["Market (System Org)"]
-        S1["Subscriber X"]
-        S2["Subscriber Y"]
-        S3["Any User"]
+    subgraph OrgPublish["Organization"]
+        O["Org Scope in Market"]
+        M1["Member A<br/>(subscribes)"]
+        M2["Member B<br/>(subscribes)"]
+        M3["Member C<br/>(browses only)"]
     end
 
     R -->|"publish to org"| O
-    O --> M1
-    O --> M2
-    O --> M3
-
-    R -->|"publish to market"| MK
-    MK -->|"subscribe"| S1
-    MK -->|"subscribe"| S2
-    MK -->|"subscribe"| S3
+    O -->|"subscribe"| M1
+    O -->|"subscribe"| M2
+    O -.->|"visible but not subscribed"| M3
 ```
 
-| Canal | Modèle de confiance | Révision | Accès | Gestion des identifiants |
-|---|---|---|---|---|
-| **Organisation** | Confiance élevée (équipe/entreprise) | Optionnelle (par type de ressource) | Automatique pour tous les membres | Recours aux identifiants du propriétaire |
-| **Marché** | Aucune confiance (communauté mondiale) | Toujours requise | Abonnement préalable obligatoire | Recours ou apportez votre propre clé |
+Les organisations et le Marché mondial partagent le même modèle d'accès basé sur l'abonnement. La différence clé est la confiance : les organisations représentent une équipe ou une entreprise où les membres se connaissent et se font confiance, donc l'examen est facultatif et le partage des identifiants est simple.
 
-## Organisations
+## Création et gestion des organisations
 
-### Création et adhésion
+Chaque utilisateur peut créer des organisations **illimitées** et rejoindre un nombre quelconque d'entre elles. Une organisation a trois rôles :
 
-Chaque utilisateur peut créer des organisations **illimitées** et en rejoindre autant qu'il le souhaite. Une organisation comprend :
+| Rôle | Permissions |
+|---|---|
+| **Propriétaire** | Contrôle total — gérer les membres, configurer les paramètres, contourner l'examen |
+| **Admin** | Gérer les membres et examiner les ressources publiées |
+| **Membre** | Parcourir et s'abonner aux ressources partagées |
 
-- **Propriétaire** : le créateur, avec contrôle total
-- **Administrateurs** : peuvent gérer les membres et examiner les ressources publiées
-- **Membres** : peuvent afficher et utiliser les ressources partagées
+Le propriétaire est toujours l'utilisateur qui a créé l'organisation. La propriété peut être transférée mais non partagée.
 
-### Publication des ressources
+## Publication de ressources
 
-Lorsqu'un utilisateur publie une ressource dans son organisation, elle apparaît dans la liste de ressources correspondante pour tous les membres — les Agents apparaissent dans la liste des Agents, les Connecteurs dans la liste des Connecteurs, et ainsi de suite.
+Lorsque vous publiez une ressource dans votre organisation, elle n'apparaît **pas** automatiquement dans l'espace de travail de chaque membre. Au lieu de cela, la ressource devient découvrable dans la portée organisation du Marché, où les membres peuvent la parcourir et s'y abonner.
+
+Ce modèle basé sur l'abonnement donne à chaque membre le contrôle sur son espace de travail. Une grande organisation peut partager des dizaines de connecteurs, mais un membre individuel ne s'abonne qu'à ceux pertinents pour son travail.
 
 ```mermaid
 sequenceDiagram
-    participant U as User
+    participant U as Publisher
     participant P as Platform
     participant O as Org Settings
+    participant M as Other Members
 
     U->>P: Publish Agent to Org
     P->>O: Check review_agents flag
     alt Review disabled
         P->>P: publish_status = NULL (auto-approved)
-        P-->>U: Immediately visible to all members
+        P-->>U: Resource discoverable by org members
     else Review enabled
         P->>P: publish_status = "pending_review"
         P-->>U: Pending admin approval
-        Note over P: Org admin approves/rejects
+        Note over P: Org admin approves or rejects
+        P->>P: publish_status = "approved"
     end
+    M->>P: Browse org resources in Market
+    M->>P: Subscribe to Agent
+    P-->>M: Agent appears in workspace
 ```
 
-**L'examen est facultatif.** Chaque organisation dispose de commutateurs d'examen indépendants pour chaque type de ressource (`review_agents`, `review_connectors`, `review_kbs`, `review_mcp_servers`, `review_workflows`, `review_skills`). Lorsque l'examen est désactivé, les ressources publiées sont immédiatement disponibles pour tous les membres — similaire à un lecteur d'équipe partagé.
+### Système d'examen
+
+L'examen est **optionnel** et configuré par type de ressource. Chaque organisation dispose de drapeaux de basculement indépendants :
+
+- `review_agents`
+- `review_connectors`
+- `review_kbs`
+- `review_mcp_servers`
+- `review_workflows`
+- `review_skills`
+
+Lorsque l'examen est désactivé pour un type de ressource, les ressources publiées sont immédiatement découvrables par les membres — aucune action d'administrateur n'est nécessaire. Lorsque l'examen est activé, les ressources entrent dans un état `pending_review` et nécessitent l'approbation d'un administrateur avant de devenir visibles.
 
 <Tip>
-Les propriétaires d'organisation contournent automatiquement l'examen. Leurs ressources publiées sont toujours immédiatement disponibles.
+Les propriétaires d'organisation contournent automatiquement l'examen. Leurs ressources publiées sont toujours immédiatement découvrables.
 </Tip>
 
-### Secours des identifiants
+Cette flexibilité permet aux organisations de correspondre à leurs besoins de gouvernance. Une petite startup pourrait désactiver tous les drapeaux d'examen pour un partage sans friction, tandis qu'une entreprise axée sur la conformité active l'examen sur les agents et les connecteurs pour maintenir une surveillance.
 
-Pour les connecteurs et les serveurs MCP qui nécessitent des identifiants (clés API, mots de passe de base de données, etc.), FIM One fournit un **mécanisme de secours** :
+## Secours des Identifiants
+
+Les connecteurs et les serveurs MCP nécessitent souvent des identifiants (clés API, mots de passe de base de données, jetons OAuth). FIM One fournit un **mécanisme de secours** afin que les membres n'aient pas à configurer chaque identifiant eux-mêmes.
 
 ```mermaid
 flowchart TD
@@ -101,150 +108,65 @@ flowchart TD
     C2 -->|No| ERR2["Error: credential required"]
 ```
 
-- **Secours activé** (`allow_fallback=true`, par défaut) : les membres qui ne fournissent pas leurs propres identifiants utilisent automatiquement les identifiants par défaut du propriétaire. Ceci est idéal pour les clés API partagées en équipe ou les services internes.
-- **Secours désactivé** (`allow_fallback=false`) : chaque membre doit configurer ses propres identifiants. Ceci est approprié lorsque chaque utilisateur a besoin de sa propre clé API (par exemple, les licences SaaS par siège).
+Il existe deux modes :
 
-Les ressources qui ne nécessitent pas d'identifiants (par exemple, un connecteur API public en lecture seule, ou un agent sans authentification) fonctionnent immédiatement pour tous les membres — aucune configuration nécessaire.
+- **Secours activé** (`allow_fallback=true`, par défaut) : Les membres qui ne fournissent pas leurs propres identifiants utilisent automatiquement les identifiants par défaut du propriétaire. Cela fonctionne bien pour les clés API partagées en équipe ou les services internes où une seule clé couvre toute l'équipe.
+- **Secours désactivé** (`allow_fallback=false`) : Chaque membre doit configurer ses propres identifiants. Cela est approprié lorsque chaque utilisateur a besoin d'une clé API personnelle (par exemple, les licences SaaS par siège).
 
-## Market (Publication mondiale)
+Les ressources qui ne nécessitent pas d'identifiants — comme un connecteur API public en lecture seule ou un Agent sans authentification — fonctionnent immédiatement après l'abonnement. Aucune configuration nécessaire.
 
-Le **Market** est une organisation spéciale gérée par le système qui sert de marché mondial de ressources pour FIM One.
+<Info>
+Le secours des identifiants s'applique uniquement après qu'un membre s'abonne à la ressource. Le mécanisme de secours détermine la façon dont les identifiants sont résolus à l'exécution, et non si la ressource est accessible.
+</Info>
 
-### Comment fonctionne le Marché
+## Visibilité des ressources
 
-```mermaid
-flowchart LR
-    subgraph MarketOrg["Market Organization (System-Managed)"]
-        direction TB
-        R1["Published Agent"]
-        R2["Published Connector"]
-        R3["Published Workflow"]
-        Admin["System Admin<br/>(Market Owner)"]
-    end
+Chaque ressource dans FIM One a une `visibility` qui détermine sa portée d'accès :
 
-    U1["User A"] -->|"publish"| MarketOrg
-    Admin -->|"review & approve"| MarketOrg
-
-    MarketOrg -->|"browse & subscribe"| U2["User B"]
-    MarketOrg -->|"browse & subscribe"| U3["User C"]
-```
-
-Caractéristiques clés :
-
-1. **Une seule instance globale.** Il existe exactement une organisation Marché dans le système. Elle est créée automatiquement lors de l'initialisation de la plateforme.
-2. **Tous les utilisateurs sont des participants.** Tous les utilisateurs peuvent parcourir et s'abonner aux ressources du Marché. Le Marché est toujours accessible — c'est le canal de découverte par défaut.
-3. **Examen obligatoire.** Contrairement aux organisations régulières, le Marché **exige toujours** un examen. Chaque ressource publiée doit être approuvée par un administrateur système avant de devenir visible. Cette exigence d'examen est verrouillée et ne peut pas être modifiée.
-4. **S'abonner pour utiliser.** Les utilisateurs doivent explicitement s'abonner à une ressource du Marché avant qu'elle n'apparaisse dans leurs listes de ressources. Ceci est différent du partage interne à l'organisation, où les ressources sont automatiquement disponibles pour tous les membres.
-
-### Publication sur le Marché
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant P as Platform
-    participant A as System Admin
-
-    U->>P: Publish resource to Market
-    P->>P: publish_status = "pending_review"
-    P-->>U: Awaiting admin review
-
-    A->>P: Review & Approve
-    P->>P: publish_status = "approved"
-    P-->>A: Resource now visible in Market
-
-    Note over U,A: Other users can now discover and subscribe
-```
-
-### S'abonner et utiliser
-
-Une fois qu'une ressource est approuvée et listée sur le Marché, tout utilisateur peut :
-
-1. **Parcourir** le Marché pour découvrir les ressources disponibles
-2. **S'abonner** à une ressource qu'il souhaite utiliser
-3. **Utiliser** la ressource — si elle nécessite des identifiants et ne supporte pas le fallback, configurer d'abord sa propre clé
-
-## Limite de confiance
-
-La distinction entre Organisation et Marché reflète une **limite de confiance** fondamentale :
-
-```mermaid
-flowchart TB
-    subgraph Trusted["Organization (Trust Zone)"]
-        direction LR
-        T1["Shared by default"]
-        T2["Review optional"]
-        T3["Credential fallback OK"]
-    end
-
-    subgraph Untrusted["Market (No Trust Assumed)"]
-        direction LR
-        U1["Subscribe to access"]
-        U2["Review mandatory"]
-        U3["Bring your own key<br/>(or use fallback if allowed)"]
-    end
-
-    Trusted ---|"trust boundary"| Untrusted
-```
-
-### Au sein d'une organisation
-
-Les membres de la même organisation partagent une **relation de confiance implicite**. Le propriétaire de l'organisation a décidé de réunir ces personnes, donc :
-
-- Les ressources publiées sont **immédiatement disponibles** (sauf si l'examen est explicitement activé)
-- La solution de secours pour les identifiants signifie que les membres peuvent utiliser les clés API partagées du propriétaire
-- Aucune étape d'abonnement requise — si vous êtes dans l'organisation, vous voyez tout ce qui a été partagé
-
-Cela reflète le fonctionnement des équipes en pratique : vous faites confiance à vos coéquipiers avec l'infrastructure partagée.
-
-### À travers le Marché
-
-Le Marché est **mondial** — n'importe qui peut publier, et n'importe qui peut s'abonner. Il n'y a pas de relation de confiance préexistante, donc :
-
-- **L'examen est obligatoire** pour empêcher les ressources de faible qualité ou malveillantes d'entrer dans l'écosystème
-- **L'abonnement est requis** afin que les utilisateurs acceptent explicitement les ressources (pas d'ajouts surprises à leur espace de travail)
-- **La gestion des identifiants** suit le même mécanisme de secours, mais les utilisateurs doivent être conscients que l'utilisation d'une ressource du Marché avec secours signifie que leurs demandes transitent par les identifiants de l'éditeur
-
-## Résumé de la Visibilité des Ressources
-
-Chaque ressource dans FIM One possède un champ `visibility` qui détermine sa portée d'accès :
-
-| Visibilité | Portée | Qui Peut Voir |
+| Visibilité | Portée | Qui peut la découvrir |
 |---|---|---|
 | `personal` | Propriétaire uniquement | L'utilisateur qui l'a créée |
-| `org` | Organisation | Tous les membres de l'org cible (si approuvé) |
-| `org` + Market | Global | Quiconque s'abonne (si approuvé par l'administrateur) |
+| `org` | Organisation | Les membres de l'organisation peuvent parcourir et s'abonner (si approuvé) |
 
-La logique du filtre de visibilité est unifiée — la même requête gère les ressources personnelles, organisationnelles et abonnées :
+Le filtre de visibilité suit un modèle de requête unifié :
 
 ```
-Visible si :
-  1. Vous en êtes propriétaire (toute visibilité), OU
-  2. Elle est publiée dans une org à laquelle vous appartenez ET approuvée, OU
-  3. Vous vous y êtes abonné depuis le Market
+A resource is available in your workspace if:
+  1. You own it (any visibility), OR
+  2. It's published to an org you belong to, approved, AND you've subscribed to it
 ```
+
+<Warning>
+Publier une ressource dans une organisation ne garantit pas un accès automatique. Les membres doivent s'abonner via la portée org du Marché pour ajouter la ressource à leur espace de travail.
+</Warning>
 
 ## Scénarios Pratiques
 
-### Scénario 1 : Partage d'un connecteur de base de données en équipe
+### Partage d'un connecteur de base de données en équipe
 
 1. Alice crée un connecteur vers la base de données PostgreSQL de l'équipe
-2. Alice le publie dans l'organisation de son équipe (révision désactivée pour les connecteurs)
-3. Bob et Carol, en tant que membres de l'organisation, le voient immédiatement dans leur liste de connecteurs
-4. Le connecteur utilise les identifiants de base de données d'Alice comme solution de secours — Bob et Carol n'ont rien à configurer
-5. Si Dave (entrepreneur externe) a besoin de ses propres identifiants en lecture seule, il peut les remplacer par les siens
+2. Alice le publie dans l'org de son équipe (l'examen est désactivé pour les connecteurs)
+3. Le connecteur devient découvrable dans la portée org de la Market
+4. Bob parcourt les ressources partagées de l'org, trouve le connecteur et s'y abonne
+5. Le connecteur apparaît dans l'espace de travail de Bob, en utilisant les identifiants de base de données d'Alice comme solution de secours
+6. Carol s'y abonne aussi. Dave (un entrepreneur externe) s'y abonne et configure ses propres identifiants en lecture seule à la place
 
-### Scénario 2 : Publication d'un Agent sur la Marketplace
-
-1. Alice crée un Agent « Contract Analyzer » et le publie sur la Marketplace
-2. L'administrateur système l'examine et l'approuve
-3. L'Agent apparaît sur la page de navigation de la Marketplace
-4. Bob le découvre, clique sur « S'abonner », et il apparaît dans sa liste d'Agents
-5. L'Agent référence un Connecteur qui nécessite une clé API avec `allow_fallback=false` — Bob doit configurer sa propre clé avant de l'utiliser
-
-### Scénario 3 : Organisation avec révision stricte
+### Organisation avec examen strict
 
 1. Une entreprise axée sur la conformité active `review_agents=true` et `review_connectors=true` sur son organisation
-2. Lorsqu'un employé publie un nouvel Agent, il entre dans l'état « pending_review »
+2. Lorsqu'un employé publie un nouvel Agent, il entre dans l'état `pending_review`
 3. Un administrateur de l'organisation examine la configuration de l'Agent et l'approuve
-4. Ce n'est qu'alors qu'il devient disponible pour les autres membres
-5. Si l'éditeur modifie ultérieurement l'Agent approuvé, il revient automatiquement à « pending_review » pour une nouvelle approbation
+4. L'Agent devient découvrable — les autres membres peuvent maintenant le trouver et s'y abonner
+5. Si l'éditeur modifie ultérieurement l'Agent approuvé, il revient automatiquement à `pending_review` pour une nouvelle approbation
+
+### Abonnement sélectif dans une grande organisation
+
+1. Une organisation publie 50+ connecteurs couvrant les API internes, les bases de données et les services tiers
+2. L'équipe données s'abonne uniquement aux connecteurs de bases de données et aux API d'analyse
+3. L'équipe marketing s'abonne uniquement aux connecteurs CRM et plateforme de messagerie
+4. L'espace de travail de chaque membre de l'équipe reste concentré et bien organisé
+
+## Voir aussi
+
+- [Architecture du Marché](/concepts/market) — Pour le Marché mondial et sa relation avec les organisations. Les deux utilisent le même modèle d'abonnement, mais le Marché sert de canal de découverte inter-organisations avec examen obligatoire.
+- [Découverte d'agent et de ressource](/architecture/agent-discovery) — Comment les ressources abonnées sont assemblées en ensembles d'outils lors du chat.

@@ -102,14 +102,21 @@ flowchart TD
 
 ReAct is the atomic unit; DAG is the orchestration layer. Both engines work in all three modes (Standalone, Copilot, Hub). In Hub mode, a single DAG step might call connectors to different systems.
 
-## Why no traditional workflow engine
+## Two execution paradigms
 
-FIM One deliberately does **not** build a drag-and-drop workflow editor. This is a strategic choice:
+FIM One provides two complementary paradigms for getting work done:
 
-1. **Workflows already exist elsewhere.** Enterprise clients' fixed processes (approval chains, audit flows) live in their OA, ERP, and legacy systems. They need AI that connects to those systems, not another workflow editor.
+| Paradigm | Orchestration | Best for |
+|----------|--------------|----------|
+| **Agent (Chat)** | LLM decides next step dynamically (ReAct or DAG) | Exploratory tasks, conversations, flexible reasoning |
+| **Workflow** | Fixed DAG defined at design time (visual editor, 26 node types) | Approval chains, scheduled ETL, multi-step automations |
 
-2. **Dynamic DAG covers the flexible case.** For tasks not pre-defined, LLM-generated DAGs adapt at runtime — no human pre-design required.
+**Agents** excel when the task is open-ended — "analyze this quarter's data and recommend actions." The LLM plans and adapts on the fly.
 
-3. **Existing capabilities compose into fixed pipelines.** Scheduled Jobs (planned) trigger a DAG agent with a fixed prompt; the DAG plans the steps; Connectors bridge to target systems. The combination equals a static pipeline — but more flexible, because the LLM adjusts its plan based on data it encounters.
+**Workflows** excel when the process is known and repeatable — "every Monday, pull invoices from ERP, run compliance checks, route exceptions to a reviewer." The visual editor lets you wire nodes (Agent, Connector, KB, LLM, HTTP, Code, Human Approval, Sub-Workflow) into a fixed DAG.
 
-4. **Connector = API call.** Complex workflow operations (transfer, reject, escalate) are the target system's responsibility. From the connector's perspective, each operation is just an HTTP request with parameters. FIM One calls the API; the target system manages the state machine.
+The two paradigms compose naturally: a Workflow can invoke an Agent at any step that needs flexible reasoning within an otherwise fixed pipeline. Agents cannot directly call Workflows — the relationship is one-directional.
+
+<Tip>
+**When to choose which:** If you find yourself writing very specific, step-by-step instructions for an Agent, that process probably belongs in a Workflow. If the task requires judgment, exploration, or adapting to unexpected data, keep it as an Agent.
+</Tip>

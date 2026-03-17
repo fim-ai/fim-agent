@@ -76,13 +76,16 @@ export function PublishDialog({
 
   // When switching to marketplace, set org_id to MARKET_ORG_ID
   // When switching back, reset to first org or empty
+  // Filter out the Market org — it's the global marketplace, not a user org
+  const filteredOrgs = orgs.filter((o) => o.id !== MARKET_ORG_ID)
+
   useEffect(() => {
     if (publishTarget === "marketplace") {
       onOrgChange(MARKET_ORG_ID)
     } else {
       // Reset to first user org when switching back
-      if (orgs.length > 0 && selectedOrgId === MARKET_ORG_ID) {
-        onOrgChange(orgs[0].id)
+      if (filteredOrgs.length > 0 && selectedOrgId === MARKET_ORG_ID) {
+        onOrgChange(filteredOrgs[0].id)
       }
     }
   }, [publishTarget]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -93,12 +96,11 @@ export function PublishDialog({
       setPublishTarget("organization")
     }
   }, [open])
-
   const isMarketplace = publishTarget === "marketplace"
   const effectiveRequiresReview = isMarketplace ? true : requiresReview
   const canConfirm = isMarketplace
     ? true
-    : (!orgsLoading && orgs.length > 0 && !!selectedOrgId)
+    : (!orgsLoading && filteredOrgs.length > 0 && !!selectedOrgId)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -155,7 +157,7 @@ export function PublishDialog({
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   </div>
-                ) : orgs.length === 0 ? (
+                ) : filteredOrgs.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{noOrgsText}</p>
                 ) : (
                   <>
@@ -164,7 +166,7 @@ export function PublishDialog({
                         <SelectValue placeholder={selectOrgPlaceholder} />
                       </SelectTrigger>
                       <SelectContent>
-                        {orgs.map((org) => (
+                        {filteredOrgs.map((org) => (
                           <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                         ))}
                       </SelectContent>

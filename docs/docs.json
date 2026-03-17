@@ -65,9 +65,11 @@
                   "architecture/agent-discovery",
                   "architecture/philosophy",
                   "architecture/organization",
+                  "architecture/market",
                   "architecture/context-management",
                   "architecture/connector-architecture",
-                  "architecture/planning-landscape"
+                  "architecture/planning-landscape",
+                  "architecture/design-philosophy"
                 ]
               },
               {
@@ -166,9 +168,11 @@
                   "zh/architecture/agent-discovery",
                   "zh/architecture/philosophy",
                   "zh/architecture/organization",
+                  "zh/architecture/market",
                   "zh/architecture/context-management",
                   "zh/architecture/connector-architecture",
-                  "zh/architecture/planning-landscape"
+                  "zh/architecture/planning-landscape",
+                  "zh/architecture/design-philosophy"
                 ]
               },
               {
@@ -267,9 +271,11 @@
                   "ja/architecture/agent-discovery",
                   "ja/architecture/philosophy",
                   "ja/architecture/organization",
+                  "ja/architecture/market",
                   "ja/architecture/context-management",
                   "ja/architecture/connector-architecture",
-                  "ja/architecture/planning-landscape"
+                  "ja/architecture/planning-landscape",
+                  "ja/architecture/design-philosophy"
                 ]
               },
               {
@@ -368,9 +374,11 @@
                   "ko/architecture/agent-discovery",
                   "ko/architecture/philosophy",
                   "ko/architecture/organization",
+                  "ko/architecture/market",
                   "ko/architecture/context-management",
                   "ko/architecture/connector-architecture",
-                  "ko/architecture/planning-landscape"
+                  "ko/architecture/planning-landscape",
+                  "ko/architecture/design-philosophy"
                 ]
               },
               {
@@ -469,9 +477,11 @@
                   "de/architecture/agent-discovery",
                   "de/architecture/philosophy",
                   "de/architecture/organization",
+                  "de/architecture/market",
                   "de/architecture/context-management",
                   "de/architecture/connector-architecture",
-                  "de/architecture/planning-landscape"
+                  "de/architecture/planning-landscape",
+                  "de/architecture/design-philosophy"
                 ]
               },
               {
@@ -570,9 +580,11 @@
                   "fr/architecture/agent-discovery",
                   "fr/architecture/philosophy",
                   "fr/architecture/organization",
+                  "fr/architecture/market",
                   "fr/architecture/context-management",
                   "fr/architecture/connector-architecture",
-                  "fr/architecture/planning-landscape"
+                  "fr/architecture/planning-landscape",
+                  "fr/architecture/design-philosophy"
                 ]
               },
               {

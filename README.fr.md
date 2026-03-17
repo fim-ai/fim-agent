@@ -10,9 +10,7 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**Vos systèmes ne communiquent pas entre eux. FIM One les connecte tous à l'IA — sans modification de code, sans migration de données.**
-
-*Hub de connecteurs alimenté par l'IA — intégrez-le dans un système en tant que Copilote, ou connectez-les tous en tant que Hub.*
+**Vos systèmes ne communiquent pas entre eux. FIM One est le pont alimenté par l'IA — intégrez-le en tant que Copilote, ou connectez-les tous en tant que Hub.**
 
 🌐 [Site web](https://one.fim.ai/) · 📖 [Documentation](https://docs.fim.ai) · 📋 [Journal des modifications](https://docs.fim.ai/changelog) · 🐛 [Signaler un bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 

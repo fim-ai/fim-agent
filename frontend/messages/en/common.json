@@ -115,6 +115,8 @@
   "installed": "Market",
   "publishedMarket": "Published \u00B7 Market",
   "publishedOrg": "Published \u00B7 Org",
+  "subscribedMarket": "Subscribed \u00B7 Market",
+  "subscribedOrg": "Subscribed \u00B7 Org",
   "createdAt": "Created",
   "you": "You",
   "fromMarket": "From Market",

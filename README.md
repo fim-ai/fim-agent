@@ -10,9 +10,7 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**Your systems don't talk to each other. FIM One connects them all to AI — zero code changes, zero data migration.**
-
-*AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.*
+**Your systems don't talk to each other. FIM One is the AI-powered bridge — embed as a Copilot, or connect them all as a Hub.**
 
 🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 

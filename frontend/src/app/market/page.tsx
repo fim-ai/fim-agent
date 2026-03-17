@@ -50,7 +50,7 @@ function MarketContent() {
       const params: Parameters<typeof api.browseMarket>[0] = {
         page: 1,
         size: 50,
-        scope,
+        scope: scope === 'market' ? 'market' : `org:${scope}`,
         category,
       }
       if (activeType !== 'all') params.resource_type = activeType
@@ -132,74 +132,56 @@ function MarketContent() {
           </h1>
           <p className="text-sm text-muted-foreground">{t('description')}</p>
         </div>
+        {/* Scope selector — right side of header */}
+        <Select value={scope} onValueChange={handleScopeChange}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="market">
+              <span className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                {t('scopeGlobalMarket')}
+              </span>
+            </SelectItem>
+            {orgs.map((org) => (
+              <SelectItem key={org.id} value={org.id}>
+                <span className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  {org.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {/* Scope selector */}
+        {/* Category + type filters */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">{t('scopeLabel')}:</span>
-          <Select value={scope} onValueChange={handleScopeChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="market">
-                <span className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  {t('scopeGlobalMarket')}
-                </span>
-              </SelectItem>
-              {orgs.map((org) => (
-                <SelectItem key={org.id} value={org.id}>
-                  <span className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    {org.name}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Category toggle */}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleCategoryChange('solutions')}
-            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
-              validCategory === 'solutions'
-                ? 'border-primary bg-primary/5 text-primary'
-                : 'border-border text-muted-foreground hover:bg-muted/50'
-            }`}
-          >
-            <Layers className="h-4 w-4 shrink-0" />
-            {t('categorySolutions')}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleCategoryChange('components')}
-            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
-              validCategory === 'components'
-                ? 'border-primary bg-primary/5 text-primary'
-                : 'border-border text-muted-foreground hover:bg-muted/50'
-            }`}
-          >
-            <Puzzle className="h-4 w-4 shrink-0" />
-            {t('categoryComponents')}
-          </button>
-        </div>
-
-        {/* Sub-tabs for resource types */}
-        <Tabs value={activeType} onValueChange={handleTypeChange}>
-          <TabsList>
-            {typeOptions.map(type => (
-              <TabsTrigger key={type} value={type}>
-                {t(`types.${type}`)}
+          <Tabs value={validCategory} onValueChange={(v) => handleCategoryChange(v as MarketCategory)}>
+            <TabsList>
+              <TabsTrigger value="solutions" className="gap-1.5">
+                <Layers className="h-3.5 w-3.5" />
+                {t('categorySolutions')}
               </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+              <TabsTrigger value="components" className="gap-1.5">
+                <Puzzle className="h-3.5 w-3.5" />
+                {t('categoryComponents')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Tabs value={activeType} onValueChange={handleTypeChange}>
+            <TabsList>
+              {typeOptions.map(type => (
+                <TabsTrigger key={type} value={type}>
+                  {t(`types.${type}`)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">{tc('loading')}</div>

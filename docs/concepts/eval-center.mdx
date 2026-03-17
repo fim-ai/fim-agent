@@ -13,31 +13,21 @@ Designed for enterprise procurement review — every result is auditable, reprod
 
 Each evaluation run executes a **three-stage pipeline** for every test case:
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  Stage 1 — Agent Execution                               │
-│                                                          │
-│  A real ReActAgent runs the test case prompt.             │
-│  Same engine as chat: same model, same tools, same       │
-│  instructions. No mocking, no shortcuts.                 │
-│                                                          │
-│  → Produces: answer, latency, token usage                │
-├──────────────────────────────────────────────────────────┤
-│  Stage 2 — LLM Grading                                   │
-│                                                          │
-│  A separate "grader" LLM (fast model) judges the answer  │
-│  against the expected behavior and assertions.            │
-│                                                          │
-│  Input:  prompt + expected_behavior + assertions + answer │
-│  Output: { verdict: "pass"|"fail", reasoning: "..." }    │
-├──────────────────────────────────────────────────────────┤
-│  Stage 3 — Persist & Aggregate                           │
-│                                                          │
-│  Each case result is saved to the database.               │
-│  After all cases finish: pass rate, avg latency,          │
-│  total tokens are computed and attached to the run.       │
-└──────────────────────────────────────────────────────────┘
-```
+<Steps>
+  <Step title="Agent Execution">
+    A real ReActAgent runs the test case prompt. Same engine as chat: same model, same tools, same instructions. No mocking, no shortcuts.
+
+    Produces: **answer**, **latency**, **token usage**.
+  </Step>
+  <Step title="LLM Grading">
+    A separate "grader" LLM (fast model) judges the answer against the expected behavior and assertions.
+
+    Input: prompt + expected behavior + assertions + answer. Output: `{ verdict: "pass"|"fail", reasoning: "..." }`.
+  </Step>
+  <Step title="Persist & Aggregate">
+    Each case result is saved to the database. After all cases finish: **pass rate**, **avg latency**, **total tokens** are computed and attached to the run.
+  </Step>
+</Steps>
 
 ### Key Design Decisions
 
@@ -162,22 +152,3 @@ The grader uses `structured_llm_call` with function calling to enforce the schem
 - After adding or removing tool categories
 - Before any production deployment (CI/CD integration coming in a future release)
 
-## API Reference
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/eval/datasets` | Create dataset |
-| `GET` | `/api/eval/datasets` | List datasets (paginated) |
-| `GET` | `/api/eval/datasets/{id}` | Get dataset |
-| `PUT` | `/api/eval/datasets/{id}` | Update dataset |
-| `DELETE` | `/api/eval/datasets/{id}` | Delete dataset (cascades cases) |
-| `POST` | `/api/eval/datasets/{id}/cases` | Add test case |
-| `GET` | `/api/eval/datasets/{id}/cases` | List cases (paginated) |
-| `PUT` | `/api/eval/datasets/{id}/cases/{caseId}` | Update case |
-| `DELETE` | `/api/eval/datasets/{id}/cases/{caseId}` | Delete case |
-| `POST` | `/api/eval/runs` | Start evaluation run |
-| `GET` | `/api/eval/runs` | List runs (paginated) |
-| `GET` | `/api/eval/runs/{id}` | Get run + all case results |
-| `DELETE` | `/api/eval/runs/{id}` | Delete run (cascades results) |
-
-All endpoints require JWT authentication (`Authorization: Bearer <token>`).

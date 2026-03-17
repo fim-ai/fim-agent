@@ -1,86 +1,100 @@
 ---
 title: "Marché"
-description: "Découvrez, abonnez-vous et publiez des ressources partagées dans votre organisation et la communauté mondiale."
+description: "Découvrez, abonnez-vous et publiez des Solutions et des Composants dans votre organisation et la communauté mondiale."
 ---
 
-Le Marché est la place de marché de ressources intégrée de FIM One — un endroit où les utilisateurs parcourent et s'abonnent à des Agents, Connecteurs, Bases de connaissances, Serveurs MCP, Compétences et Flux de travail publiés par d'autres.
+Le Marché est la place de marché de ressources intégrée de FIM One. Il organise les ressources partagées en deux niveaux :
+
+- **Solutions** -- ressources de haut niveau qui fournissent des capacités de bout en bout : Agents, Compétences et Workflows.
+- **Composants** -- blocs de construction sur lesquels les Solutions dépendent : Connecteurs et Serveurs MCP.
+
+Vous parcourez par portée (votre Organisation ou le Marché Mondial), trouvez ce dont vous avez besoin, abonnez-vous et commencez à l'utiliser -- tout sans quitter FIM One.
 
 <Info>
-Le Marché utilise un **modèle de tirage** : les ressources sont découvertes par navigation et explicitement abonnées. Il n'y a pas de mécanisme d'auto-adhésion ou de poussée — les utilisateurs choisissent ce qu'ils installent.
+Le Marché utilise un **modèle de tirage** : les ressources sont découvertes par navigation et explicitement abonnées. Il n'y a pas de mécanisme d'adhésion automatique ou de poussée -- vous choisissez ce que vous installez, et vous pouvez filtrer par portée à tout moment.
 </Info>
 
-## Comment ça marche
+## Que puis-je trouver ?
 
-### Publication
+### Solutions
 
-Tout propriétaire de ressource peut publier sa ressource pour la rendre découvrable :
+Les Solutions sont des capacités complètes et prêtes à l'emploi auxquelles vous pouvez vous abonner et commencer à utiliser immédiatement.
+
+| Ressource | Catégorie | Ce que vous obtenez |
+|---|---|---|
+| **Agent** | Solution | Un assistant IA spécialisé avec des outils liés et des connaissances |
+| **Compétence** | Solution | Un SOP global injecté dans les invites système, peut orchestrer des agents |
+| **Workflow** | Solution | Un flux d'automatisation DAG pour une exécution planifiée ou déclenchée |
+
+### Composants
+
+Les composants sont les intégrations et services d'outils à partir desquels les Solutions sont construites.
+
+| Ressource | Catégorie | Ce que vous obtenez |
+|---|---|---|
+| **Connecteur** | Composant | Intégration API/base de données disponible comme outils d'agent |
+| **Serveur MCP** | Composant | Service d'outils tiers chargé dans les sessions |
+
+<Tip>
+Les bases de connaissances ne sont pas listées indépendamment sur le Marché. Elles sont incluses comme dépendances internes lorsque vous vous abonnez à une Solution qui les utilise.
+</Tip>
+
+## Portée
+
+Le Marché dispose d'un sélecteur de portée en haut de la page. L'interface utilisateur et le flux d'abonnement sont identiques dans les deux portées -- seule la visibilité des ressources change.
+
+- **Organisation** -- ressources partagées au sein de votre équipe ou entreprise. La publication ici ne nécessite pas d'examen.
+- **Marché Global** -- ressources de toute la communauté FIM One. La publication ici nécessite l'approbation d'un administrateur.
+
+Basculez entre les portées à tout moment pour explorer ce qui est disponible.
+
+## Comment s'abonner ?
+
+Lorsque vous trouvez une ressource que vous souhaitez utiliser, cliquez sur **S'abonner**. Un assistant d'intégration vous guide à travers toute configuration requise -- par exemple, l'entrée des identifiants API pour un connecteur. Vous pouvez ignorer l'assistant et configurer les identifiants plus tard si vous préférez.
+
+Une fois abonné :
+
+- Les **agents** apparaissent dans votre sélecteur d'agents et dans le catalogue `call_agent`.
+- Les **compétences** sont injectées automatiquement dans vos invites système.
+- Les **workflows** apparaissent dans votre liste de workflows, prêts à être exécutés.
+- Les **connecteurs** apparaissent dans votre ensemble d'outils et dans les menus déroulants de liaison d'agents.
+- Les **serveurs MCP** chargent leurs outils dans vos sessions.
+
+Si une solution dépend de composants (par exemple, un agent qui utilise des connecteurs spécifiques), ces dépendances sont résolues automatiquement lors de l'abonnement. Vous serez invité à fournir les identifiants requis.
+
+Les abonnements sont instantanés -- aucune approbation n'est nécessaire de la part de l'éditeur. Vous pouvez vous désabonner à tout moment pour supprimer la ressource de votre espace de travail.
+
+## Comment publier ?
+
+Tout propriétaire de ressource peut publier pour rendre sa ressource découvrable. La publication peut cibler soit votre Organisation, soit le Marché Global.
 
 ```mermaid
 flowchart LR
-    P["Personnel<br/>(vous uniquement)"] -->|"Publier dans l'org"| O["Organisation<br/>(tous les membres de l'org)"]
-    O -->|"Publier sur le Marché"| M["Marché<br/>(tous les utilisateurs)"]
-    M -.->|"Contrôle de révision"| R["Révision Admin<br/>(approuver / rejeter)"]
-    R -->|"Approuvé"| V["Visible sur le Marché"]
+    P["Personal<br/>(only you)"] -->|"Publish to Org"| O["Organization<br/>(all org members)"]
+    P -->|"Publish to Market"| M["Global Market<br/>(all users)"]
+    M -.->|"Review gate"| R["Admin Review<br/>(approve / reject)"]
+    R -->|"Approved"| V["Visible in Market"]
 ```
 
-| Visibilité | Qui peut le voir | Révision requise ? |
+| Cible | Qui peut la voir | Révision requise ? |
 |---|---|---|
-| **Personnel** | Uniquement le créateur | Non |
-| **Organisation** | Tous les membres de l'organisation du créateur | Non (confiance au niveau de l'org) |
-| **Marché (global)** | Tous les utilisateurs authentifiés | Oui — approbation admin requise |
+| **Organisation** | Tous les membres de votre organisation | Non (confiance au niveau de l'organisation) |
+| **Marché Global** | Tous les utilisateurs authentifiés | Oui -- approbation de l'administrateur requise |
 
-La publication sur le Marché passe toujours par un contrôle de révision. Les administrateurs peuvent approuver, rejeter (avec une note) ou laisser la ressource en attente. Les ressources rejetées peuvent être révisées et soumises à nouveau.
+La publication sur le Marché Global passe toujours par une porte de révision. Les administrateurs peuvent approuver, rejeter (avec une note) ou laisser la ressource en attente. Les ressources rejetées peuvent être révisées et soumises à nouveau.
 
-### S'abonner
+## Qu'en est-il des identifiants ?
 
-Lorsque vous trouvez une ressource sur le Marché, vous abonner la rend disponible dans votre espace de travail :
+Lorsque vous vous abonnez à une ressource qui nécessite des identifiants (clés API, jetons OAuth, mots de passe de base de données), l'assistant d'intégration les collecte lors de l'abonnement. Les identifiants sont stockés de manière sécurisée et limités à votre compte -- personne d'autre ne peut les voir.
 
-- **Les connecteurs auxquels vous êtes abonné** apparaissent dans votre ensemble d'outils (mode de découverte automatique) et dans les listes déroulantes de liaison d'Agent
-- **Les agents auxquels vous êtes abonné** apparaissent dans votre sélecteur d'Agent et dans le catalogue `call_agent`
-- **Les compétences auxquelles vous êtes abonné** sont injectées dans votre invite système (en suivant le même mode progressif/en ligne)
-- **Les bases de connaissances auxquelles vous êtes abonné** sont disponibles pour la récupération
-- **Les serveurs MCP auxquels vous êtes abonné** chargent leurs outils dans vos sessions
-- **Les flux de travail auxquels vous êtes abonné** apparaissent dans votre liste de flux de travail pour exécution
+Vous pouvez mettre à jour ou renouveler les identifiants à tout moment à partir de la page des paramètres de la ressource.
 
-Les abonnements sont instantanés — aucune approbation requise de la part de l'éditeur. Vous pouvez vous désabonner à tout moment pour supprimer la ressource de votre espace de travail.
+## Comment il s'intègre
 
-### L'organisation fantôme
+Sous le capot, le Marché est implémenté comme une **organisation fantôme** -- un système org invisible qui ne contient aucun membre. Les ressources publiées sur le Marché mondial sont définies avec `visibility: "org"` dans cette org fantôme, ce qui permet au système de visibilité existant de les inclure naturellement.
 
-Sous le capot, le Marché est implémenté comme une **organisation fantôme** — une organisation système invisible (`MARKET_ORG_ID`) qui n'a aucun membre. Les ressources publiées sur le Marché sont définies avec `visibility: "org"` au sein de cette organisation fantôme, ce qui permet à la requête `resolve_visibility()` existante de les inclure naturellement.
+Cela signifie que le Marché ne nécessite **aucun code de cas particulier** dans le pipeline d'assemblage des outils. Le même filtre de visibilité à trois niveaux (personnel -> partagé par org -> abonné) qui charge les ressources personnelles et org charge également les ressources du Marché. Lorsque vous vous abonnez, un enregistrement d'abonnement est créé, et la ressource apparaît automatiquement dans votre filtre de visibilité.
 
-Cela signifie que le Marché nécessite **zéro code de cas particulier** dans le pipeline d'assemblage des outils. Le même filtre de visibilité à trois niveaux qui charge les ressources personnelles et organisationnelles charge également les ressources du Marché :
+Pour les Solutions qui regroupent des dépendances (par exemple, un Agent avec des Connecteurs liés et des Bases de connaissances), le processus d'abonnement résout et provisionne ces dépendances pour que tout fonctionne immédiatement.
 
-```python
-conditions = [
-    model.user_id == user_id,           # own resources
-    and_(model.visibility == "org",     # org-shared (includes Market shadow org)
-         model.org_id.in_(user_org_ids)),
-    model.id.in_(subscribed_ids),       # Market-subscribed
-]
-```
-
-La clause `subscribed_ids` est ce qui fait fonctionner le Marché — quand vous vous abonnez, une ligne `ResourceSubscription` est créée, et la ressource apparaît dans votre filtre de visibilité via cette troisième condition.
-
-## Types de ressources
-
-Les six types de ressources supportent l'intégralité du cycle de vie du Marché :
-
-| Ressource | Publier | S'abonner | Ce que vous obtenez |
-|---|---|---|---|
-| **Agent** | ✅ | ✅ | Un agent spécialisé dans votre sélecteur et catalogue `call_agent` |
-| **Connecteur** | ✅ | ✅ | Pont API/base de données disponible en tant qu'outils |
-| **Base de connaissances** | ✅ | ✅ | Source de récupération pour les requêtes RAG |
-| **Serveur MCP** | ✅ | ✅ | Outils tiers chargés dans les sessions |
-| **Compétence** | ✅ | ✅ | SOP global injecté dans l'invite système |
-| **Workflow** | ✅ | ✅ | Automatisation de processus fixe dans votre liste de workflows |
-
-## API
-
-| Point de terminaison | Description |
-|----------|-------------|
-| `GET /api/market` | Parcourir les ressources publiées. Supporte `?resource_type=`, `?page=`, `?size=` |
-| `POST /api/market/subscribe` | S'abonner à une ressource (par type + ID) |
-| `DELETE /api/market/unsubscribe` | Se désabonner d'une ressource |
-| `GET /api/market/subscriptions` | Lister vos abonnements actuels |
-
-Chaque type de ressource dispose également de ses propres points de terminaison `POST /api/{type}/{id}/publish` et `POST /api/{type}/{id}/unpublish` pour le contrôle de la publication.
+Pour les détails techniques sur le fonctionnement du filtre de visibilité sur tous les types de ressources, consultez [Découverte d'Agent et de ressources -- Modèle de visibilité](/architecture/agent-discovery#visibility-model).

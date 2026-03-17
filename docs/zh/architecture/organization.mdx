@@ -1,89 +1,96 @@
 ---
-title: "组织与市场"
-description: "FIM One 如何构建资源共享 — 从团队级组织到全球市场。"
+title: "组织"
+description: "具有基于角色的访问、可选审查和凭证回退的团队级资源共享。"
 ---
 
 ## 概述
 
-FIM One 使用**组织**作为协作和资源分配的主要单位。每个资源（智能体、连接器、知识库、MCP Server、工作流、技能）最初是**个人**的，可以发布到组织以供共享。
+组织是 FIM One 的团队协作单位。它们让用户组能够在受信任的范围内共享资源——智能体、连接器、知识库、MCP 服务器、工作流和技能。
 
-有两个不同的分发渠道：
+FIM One 中的每个资源最初都是**个人的**（仅对其创建者可见）。当你将资源发布到组织时，它会变成**可发现的**，组织内的其他成员可以通过市场的组织范围找到它。成员浏览组织的共享资源，并订阅他们需要的资源。
 
 ```mermaid
 flowchart TD
     R["Personal Resource"]
 
-    subgraph OrgPublish["Org-Internal Publishing"]
-        O["Organization"]
-        M1["Member A"]
-        M2["Member B"]
-        M3["Member C"]
-    end
-
-    subgraph MarketPublish["Global Publishing"]
-        MK["Market (System Org)"]
-        S1["Subscriber X"]
-        S2["Subscriber Y"]
-        S3["Any User"]
+    subgraph OrgPublish["Organization"]
+        O["Org Scope in Market"]
+        M1["Member A<br/>(subscribes)"]
+        M2["Member B<br/>(subscribes)"]
+        M3["Member C<br/>(browses only)"]
     end
 
     R -->|"publish to org"| O
-    O --> M1
-    O --> M2
-    O --> M3
-
-    R -->|"publish to market"| MK
-    MK -->|"subscribe"| S1
-    MK -->|"subscribe"| S2
-    MK -->|"subscribe"| S3
+    O -->|"subscribe"| M1
+    O -->|"subscribe"| M2
+    O -.->|"visible but not subscribed"| M3
 ```
 
-| 渠道 | 信任模型 | 审核 | 访问 | 凭证处理 |
-|---|---|---|---|---|
-| **组织** | 高信任（团队/公司） | 可选（按资源类型） | 自动为所有成员 | 回退到所有者的凭证 |
-| **市场** | 无信任（全球社区） | 始终必需 | 必须先订阅 | 回退或自带密钥 |
+组织和全球市场共享相同的基于订阅的访问模型。关键区别在于信任：组织代表一个团队或公司，其中成员彼此认识和信任，因此审查是可选的，凭证共享是直接的。
 
-## 组织
+## 创建和管理组织
 
-### 创建和加入
+每个用户可以创建**无限个**组织并加入任意数量的组织。一个组织有三个角色：
 
-每个用户都可以创建**无限**个组织并加入任意数量的组织。一个组织包含：
+| 角色 | 权限 |
+|---|---|
+| **所有者** | 完全控制 — 管理成员、配置设置、绕过审查 |
+| **管理员** | 管理成员和审查已发布的资源 |
+| **成员** | 浏览和订阅共享资源 |
 
-- **所有者**：创建者，拥有完全控制权
-- **管理员**：可以管理成员和审查已发布的资源
-- **成员**：可以查看和使用共享资源
+所有者始终是创建组织的用户。所有权可以转移但不能共享。
 
-### 发布资源
+## 发布资源
 
-当用户向其组织发布资源时，该资源会出现在相应的资源列表中供所有成员查看 — 智能体显示在智能体列表中，连接器显示在连接器列表中，以此类推。
+当您将资源发布到您的组织时，它**不会**自动出现在每个成员的工作区中。相反，该资源在 Market 的组织范围内变得可发现，成员可以在其中浏览和订阅它。
+
+这种基于订阅的模型使每个成员能够控制他们的工作区。一个大型组织可能共享数十个连接器，但个别成员只订阅与他们的工作相关的连接器。
 
 ```mermaid
 sequenceDiagram
-    participant U as User
+    participant U as Publisher
     participant P as Platform
     participant O as Org Settings
+    participant M as Other Members
 
     U->>P: Publish Agent to Org
     P->>O: Check review_agents flag
     alt Review disabled
         P->>P: publish_status = NULL (auto-approved)
-        P-->>U: Immediately visible to all members
+        P-->>U: Resource discoverable by org members
     else Review enabled
         P->>P: publish_status = "pending_review"
         P-->>U: Pending admin approval
-        Note over P: Org admin approves/rejects
+        Note over P: Org admin approves or rejects
+        P->>P: publish_status = "approved"
     end
+    M->>P: Browse org resources in Market
+    M->>P: Subscribe to Agent
+    P-->>M: Agent appears in workspace
 ```
 
-**审核是可选的。** 每个组织对每种资源类型都有独立的审核开关（`review_agents`、`review_connectors`、`review_kbs`、`review_mcp_servers`、`review_workflows`、`review_skills`）。禁用审核时，已发布的资源会立即对所有成员可用 — 类似于共享团队驱动。
+### 审核系统
+
+审核是**可选的**，按资源类型配置。每个组织都有独立的切换标志：
+
+- `review_agents`
+- `review_connectors`
+- `review_kbs`
+- `review_mcp_servers`
+- `review_workflows`
+- `review_skills`
+
+当为某个资源类型禁用审核时，已发布的资源会立即被成员发现——无需管理员操作。当启用审核时，资源进入 `pending_review` 状态，需要管理员批准后才能变为可见。
 
 <Tip>
-组织所有者自动绕过审核。他们发布的资源始终立即可用。
+组织所有者自动绕过审核。他们发布的资源始终立即可被发现。
 </Tip>
 
-### 凭证回退
+这种灵活性让组织能够匹配其治理需求。小型初创公司可能会禁用所有审核切换以实现无摩擦共享，而注重合规的企业可能会在智能体和连接器上启用审核以维持监督。
 
-对于需要凭证（API 密钥、数据库密码等）的连接器和 MCP 服务器，FIM One 提供了一个**回退机制**：
+## 凭证回退
+
+连接器和 MCP 服务器通常需要凭证（API 密钥、数据库密码、OAuth 令牌）。FIM One 提供了一个**回退机制**，使成员无需自己配置每个凭证。
 
 ```mermaid
 flowchart TD
@@ -101,150 +108,65 @@ flowchart TD
     C2 -->|No| ERR2["Error: credential required"]
 ```
 
-- **回退已启用**（`allow_fallback=true`，默认值）：未提供自己凭证的成员会自动使用所有者的默认凭证。这适合团队共享的 API 密钥或内部服务。
-- **回退已禁用**（`allow_fallback=false`）：每个成员都必须配置自己的凭证。这适合每个用户需要自己的 API 密钥的情况（例如，按座位计费的 SaaS 许可证）。
+有两种模式：
 
-不需要凭证的资源（例如，只读公共 API 连接器或没有身份验证的智能体）对所有成员立即可用——无需配置。
+- **启用回退** (`allow_fallback=true`，默认值)：未提供自己凭证的成员会自动使用所有者的默认凭证。这适用于团队共享的 API 密钥或内部服务，其中单个密钥覆盖整个团队。
+- **禁用回退** (`allow_fallback=false`)：每个成员必须配置自己的凭证。这适用于每个用户需要个人 API 密钥的情况（例如，按座位计费的 SaaS 许可证）。
 
-## Market（全球发布）
+不需要凭证的资源（例如只读公共 API 连接器或无身份验证的智能体）在订阅后立即可用。无需配置。
 
-**Market** 是一个特殊的系统管理组织，作为 FIM One 的全球资源市场。
+<Info>
+凭证回退仅在成员订阅资源后适用。回退机制决定了凭证在运行时如何解析，而不是资源是否可访问。
+</Info>
 
-### 市场如何运作
+## 资源可见性
 
-```mermaid
-flowchart LR
-    subgraph MarketOrg["Market Organization (System-Managed)"]
-        direction TB
-        R1["Published Agent"]
-        R2["Published Connector"]
-        R3["Published Workflow"]
-        Admin["System Admin<br/>(Market Owner)"]
-    end
+FIM One 中的每个资源都有一个 `visibility`，用于确定其访问范围：
 
-    U1["User A"] -->|"publish"| MarketOrg
-    Admin -->|"review & approve"| MarketOrg
-
-    MarketOrg -->|"browse & subscribe"| U2["User B"]
-    MarketOrg -->|"browse & subscribe"| U3["User C"]
-```
-
-主要特点：
-
-1. **单一全局实例。** 系统中恰好存在一个 Market 组织。它在平台初始化期间自动创建。
-2. **所有人都是参与者。** 所有用户都可以浏览和订阅 Market 资源。Market 始终可访问 — 它是默认的发现渠道。
-3. **强制审查。** 与常规组织不同，Market **始终**需要审查。每个已发布的资源必须经过系统管理员批准后才能显示。此审查要求已锁定，无法更改。
-4. **订阅后使用。** 用户必须明确订阅 Market 资源，然后该资源才会出现在其资源列表中。这与组织内部共享不同，后者会自动对所有成员可用。
-
-### 发布到市场
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant P as Platform
-    participant A as System Admin
-
-    U->>P: Publish resource to Market
-    P->>P: publish_status = "pending_review"
-    P-->>U: Awaiting admin review
-
-    A->>P: Review & Approve
-    P->>P: publish_status = "approved"
-    P-->>A: Resource now visible in Market
-
-    Note over U,A: Other users can now discover and subscribe
-```
-
-### 订阅和使用
-
-资源获得批准并在市场中列出后，任何用户都可以：
-
-1. **浏览**市场以发现可用资源
-2. **订阅**他们想要使用的资源
-3. **使用**资源 — 如果资源需要凭证且不支持回退，请先配置自己的密钥
-
-## 信任边界
-
-Organization 和 Market 之间的区分反映了一个基本的**信任边界**：
-
-```mermaid
-flowchart TB
-    subgraph Trusted["Organization (Trust Zone)"]
-        direction LR
-        T1["Shared by default"]
-        T2["Review optional"]
-        T3["Credential fallback OK"]
-    end
-
-    subgraph Untrusted["Market (No Trust Assumed)"]
-        direction LR
-        U1["Subscribe to access"]
-        U2["Review mandatory"]
-        U3["Bring your own key<br/>(or use fallback if allowed)"]
-    end
-
-    Trusted ---|"trust boundary"| Untrusted
-```
-
-### 在组织内
-
-同一组织的成员之间存在隐含的**信任关系**。组织所有者已决定将这些人聚集在一起，因此：
-
-- 已发布的资源**立即可用**（除非明确启用审查）
-- 凭证回退意味着成员可以使用所有者的共享 API 密钥
-- 无需订阅步骤 — 如果你在组织中，你可以看到所有已共享的内容
-
-这反映了团队在实践中的工作方式：你信任你的队友使用共享基础设施。
-
-### 跨越市场
-
-市场是**全球性的** — 任何人都可以发布，任何人都可以订阅。由于不存在预先存在的信任关系，因此：
-
-- **审查是强制性的**，以防止低质量或恶意资源进入生态系统
-- **订阅是必需的**，以便用户明确选择加入资源（工作区中不会出现意外添加）
-- **凭证处理**遵循相同的回退机制，但用户应该注意，使用带有回退的市场资源意味着他们的请求会通过发布者的凭证流转
-
-## 资源可见性总结
-
-FIM One 中的每个资源都有一个 `visibility` 字段，用于确定其访问范围：
-
-| 可见性 | 范围 | 谁可以看到 |
+| 可见性 | 范围 | 谁可以发现它 |
 |---|---|---|
 | `personal` | 仅所有者 | 创建它的用户 |
-| `org` | 组织 | 目标组织的所有成员（如果获得批准） |
-| `org` + Market | 全局 | 任何订阅者（如果获得管理员批准） |
+| `org` | 组织 | 组织成员可以浏览和订阅（如果获得批准） |
 
-可见性过滤逻辑是统一的——同一个查询处理个人、组织和订阅资源：
+可见性过滤器遵循统一的查询模式：
 
 ```
-可见条件：
-  1. 你拥有它（任何可见性），或
-  2. 它已发布到你所属的组织且已获批准，或
-  3. 你已从 Market 订阅它
+资源在您的工作区中可用，如果：
+  1. 您拥有它（任何可见性），或
+  2. 它已发布到您所属的组织，已获批准，且您已订阅它
 ```
+
+<Warning>
+将资源发布到组织不会自动授予访问权限。成员必须通过 Market 的组织范围订阅才能将资源添加到其工作区。
+</Warning>
 
 ## 实际应用场景
 
-### 场景 1：团队共享数据库连接器
+### 团队共享数据库连接器
 
 1. Alice 创建了一个连接到团队 PostgreSQL 数据库的连接器
-2. Alice 将其发布到她的团队组织（连接器禁用审查）
-3. Bob 和 Carol 作为组织成员，立即在他们的连接器列表中看到它
-4. 连接器使用 Alice 的数据库凭证作为后备 — Bob 和 Carol 无需配置任何内容
-5. 如果 Dave（外部承包商）需要他自己的只读凭证，他可以用自己的凭证覆盖
+2. Alice 将其发布到她的团队组织（连接器禁用审核）
+3. 该连接器在市场的组织范围内可被发现
+4. Bob 浏览组织的共享资源，找到该连接器，并订阅
+5. 该连接器出现在 Bob 的工作区中，使用 Alice 的数据库凭证作为后备
+6. Carol 也订阅了。外部承包商 Dave 订阅并配置了自己的只读凭证
 
-### 场景 2：将智能体发布到市场
+### 严格审查的组织
 
-1. Alice 构建了一个"合同分析器"智能体并将其发布到市场
-2. 系统管理员审查并批准它
-3. 该智能体出现在市场浏览页面中
-4. Bob 发现它，点击"订阅"，它出现在他的智能体列表中
-5. 该智能体引用了一个连接器，该连接器需要一个 API 密钥，且 `allow_fallback=false` — Bob 必须在使用前配置自己的密钥
-
-### 场景 3：严格审查的组织
-
-1. 一家合规性重点的公司在其组织上启用 `review_agents=true` 和 `review_connectors=true`
-2. 当员工发布新的智能体时，它进入"pending_review"状态
+1. 一家合规性公司在其组织上启用 `review_agents=true` 和 `review_connectors=true`
+2. 当员工发布新的智能体时，它进入 `pending_review` 状态
 3. 组织管理员审查智能体配置并批准它
-4. 只有这样，它才能供其他成员使用
-5. 如果发布者稍后编辑已批准的智能体，它会自动恢复为"pending_review"以重新审查
+4. 智能体变为可发现的 — 其他成员现在可以找到并订阅它
+5. 如果发布者稍后编辑已批准的智能体，它会自动恢复到 `pending_review` 状态以供重新批准
+
+### 大型组织中的选择性订阅
+
+1. 一个组织发布 50+ 个连接器，涵盖内部 API、数据库和第三方服务
+2. 数据团队仅订阅数据库连接器和分析 API
+3. 营销团队仅订阅 CRM 和电子邮件平台连接器
+4. 每个团队成员的工作区保持专注和整洁
+
+## 另见
+
+- [市场架构](/concepts/market) — 了解全局市场及其与组织的关系。两者使用相同的订阅模型，但市场充当跨组织发现渠道，需要强制审查。
+- [智能体和资源发现](/architecture/agent-discovery) — 订阅的资源如何在聊天期间组装成工具集。

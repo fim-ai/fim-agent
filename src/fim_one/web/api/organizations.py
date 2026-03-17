@@ -277,9 +277,9 @@ async def list_my_orgs(
         org = orgs_by_id.get(m.org_id)
         if not org:
             continue
-        # Defensive: Market org is a shadow org — hide it from regular users.
-        # The owner (creator) can still see it in their settings page.
-        if org.id == MARKET_ORG_ID and org.owner_id != current_user.id:
+        # Market org is a shadow org (the global marketplace) — never show
+        # it in the user's org list; it is accessed via the Marketplace tab.
+        if org.id == MARKET_ORG_ID:
             continue
         count = counts_by_org.get(m.org_id, 0)
         items.append(_org_with_role(org, m.role, count).model_dump())

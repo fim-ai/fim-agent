@@ -13,31 +13,21 @@ description: "테스트 데이터셋과 자동화된 LLM 채점을 통해 에이
 
 각 평가 실행은 모든 테스트 케이스에 대해 **3단계 파이프라인**을 실행합니다:
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  Stage 1 — Agent Execution                               │
-│                                                          │
-│  A real ReActAgent runs the test case prompt.             │
-│  Same engine as chat: same model, same tools, same       │
-│  instructions. No mocking, no shortcuts.                 │
-│                                                          │
-│  → Produces: answer, latency, token usage                │
-├──────────────────────────────────────────────────────────┤
-│  Stage 2 — LLM Grading                                   │
-│                                                          │
-│  A separate "grader" LLM (fast model) judges the answer  │
-│  against the expected behavior and assertions.            │
-│                                                          │
-│  Input:  prompt + expected_behavior + assertions + answer │
-│  Output: { verdict: "pass"|"fail", reasoning: "..." }    │
-├──────────────────────────────────────────────────────────┤
-│  Stage 3 — Persist & Aggregate                           │
-│                                                          │
-│  Each case result is saved to the database.               │
-│  After all cases finish: pass rate, avg latency,          │
-│  total tokens are computed and attached to the run.       │
-└──────────────────────────────────────────────────────────┘
-```
+<Steps>
+  <Step title="에이전트 실행">
+    실제 ReActAgent가 테스트 케이스 프롬프트를 실행합니다. 채팅과 동일한 엔진: 동일한 모델, 동일한 도구, 동일한 지시사항. 모킹 없음, 지름길 없음.
+
+    생성: **답변**, **지연시간**, **토큰 사용량**.
+  </Step>
+  <Step title="LLM 채점">
+    별도의 "채점자" LLM(빠른 모델)이 예상 동작 및 어설션에 대해 답변을 판단합니다.
+
+    입력: 프롬프트 + 예상 동작 + 어설션 + 답변. 출력: `{ verdict: "pass"|"fail", reasoning: "..." }`.
+  </Step>
+  <Step title="저장 및 집계">
+    각 케이스 결과는 데이터베이스에 저장됩니다. 모든 케이스가 완료된 후: **통과율**, **평균 지연시간**, **총 토큰**이 계산되어 실행에 첨부됩니다.
+  </Step>
+</Steps>
 
 ### 주요 설계 결정
 
@@ -162,22 +152,3 @@ description: "테스트 데이터셋과 자동화된 LLM 채점을 통해 에이
 - 도구 카테고리를 추가하거나 제거한 후
 - 프로덕션 배포 전 (CI/CD 통합은 향후 릴리스에서 제공 예정)
 
-## API 참고자료
-
-| 메서드 | 엔드포인트 | 설명 |
-|--------|----------|-------------|
-| `POST` | `/api/eval/datasets` | 데이터셋 생성 |
-| `GET` | `/api/eval/datasets` | 데이터셋 나열 (페이지 매김) |
-| `GET` | `/api/eval/datasets/{id}` | 데이터셋 조회 |
-| `PUT` | `/api/eval/datasets/{id}` | 데이터셋 업데이트 |
-| `DELETE` | `/api/eval/datasets/{id}` | 데이터셋 삭제 (케이스 연쇄 삭제) |
-| `POST` | `/api/eval/datasets/{id}/cases` | 테스트 케이스 추가 |
-| `GET` | `/api/eval/datasets/{id}/cases` | 케이스 나열 (페이지 매김) |
-| `PUT` | `/api/eval/datasets/{id}/cases/{caseId}` | 케이스 업데이트 |
-| `DELETE` | `/api/eval/datasets/{id}/cases/{caseId}` | 케이스 삭제 |
-| `POST` | `/api/eval/runs` | 평가 실행 시작 |
-| `GET` | `/api/eval/runs` | 실행 나열 (페이지 매김) |
-| `GET` | `/api/eval/runs/{id}` | 실행 + 모든 케이스 결과 조회 |
-| `DELETE` | `/api/eval/runs/{id}` | 실행 삭제 (결과 연쇄 삭제) |
-
-모든 엔드포인트는 JWT 인증이 필요합니다 (`Authorization: Bearer <token>`).

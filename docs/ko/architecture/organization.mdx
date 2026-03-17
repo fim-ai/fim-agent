@@ -1,250 +1,172 @@
 ---
-title: "조직 및 마켓"
-description: "FIM One이 팀 수준의 조직에서 글로벌 마켓까지 리소스 공유를 어떻게 구조화하는지 설명합니다."
+title: "조직"
+description: "역할 기반 액세스, 선택적 검토 및 자격증명 폴백을 포함한 팀 수준의 리소스 공유."
 ---
 
 ## 개요
 
-FIM One은 **조직**을 협업 및 리소스 배포의 주요 단위로 사용합니다. 모든 리소스(에이전트, 커넥터, 지식 베이스, MCP 서버, 워크플로우, 스킬)는 **개인용**으로 시작하며 조직에 게시하여 공유할 수 있습니다.
+조직(Organization)은 FIM One의 팀 협업 단위입니다. 사용자 그룹이 에이전트, 커넥터, 지식 베이스, MCP 서버, 워크플로우 및 스킬과 같은 리소스를 신뢰할 수 있는 범위 내에서 공유할 수 있게 해줍니다.
 
-두 가지 서로 다른 배포 채널이 있습니다:
+FIM One의 모든 리소스는 **개인용**(생성자에게만 표시됨)으로 시작됩니다. 리소스를 조직에 게시하면 **발견 가능**해져서 마켓의 조직 범위를 통해 다른 조직 구성원이 찾을 수 있습니다. 구성원들은 조직의 공유 리소스를 탐색하고 필요한 것을 구독합니다.
 
 ```mermaid
 flowchart TD
     R["Personal Resource"]
 
-    subgraph OrgPublish["Org-Internal Publishing"]
-        O["Organization"]
-        M1["Member A"]
-        M2["Member B"]
-        M3["Member C"]
-    end
-
-    subgraph MarketPublish["Global Publishing"]
-        MK["Market (System Org)"]
-        S1["Subscriber X"]
-        S2["Subscriber Y"]
-        S3["Any User"]
+    subgraph OrgPublish["Organization"]
+        O["Org Scope in Market"]
+        M1["Member A<br/>(subscribes)"]
+        M2["Member B<br/>(subscribes)"]
+        M3["Member C<br/>(browses only)"]
     end
 
     R -->|"publish to org"| O
-    O --> M1
-    O --> M2
-    O --> M3
-
-    R -->|"publish to market"| MK
-    MK -->|"subscribe"| S1
-    MK -->|"subscribe"| S2
-    MK -->|"subscribe"| S3
+    O -->|"subscribe"| M1
+    O -->|"subscribe"| M2
+    O -.->|"visible but not subscribed"| M3
 ```
 
-| 채널 | 신뢰 모델 | 검토 | 접근 | 자격증명 처리 |
-|---|---|---|---|---|
-| **조직** | 높은 신뢰(팀/회사) | 선택사항(리소스 유형별) | 모든 멤버에게 자동 제공 | 소유자의 자격증명으로 폴백 |
-| **마켓** | 신뢰 없음(글로벌 커뮤니티) | 항상 필수 | 먼저 구독해야 함 | 폴백 또는 자신의 키 가져오기 |
+조직과 글로벌 마켓은 동일한 구독 기반 접근 모델을 공유합니다. 주요 차이점은 신뢰입니다. 조직은 구성원들이 서로를 알고 신뢰하는 팀이나 회사를 나타내므로 검토는 선택사항이며 자격증명 공유가 간단합니다.
 
-## 조직
+## 조직 생성 및 관리
 
-### 생성 및 참여
+모든 사용자는 **무제한**의 조직을 생성하고 여러 조직에 참여할 수 있습니다. 조직에는 세 가지 역할이 있습니다:
 
-모든 사용자는 **무제한**의 조직을 생성하고 원하는 수만큼 참여할 수 있습니다. 조직은 다음을 포함합니다:
+| 역할 | 권한 |
+|---|---|
+| **Owner** | 전체 제어 — 멤버 관리, 설정 구성, 검토 우회 |
+| **Admin** | 멤버 관리 및 게시된 리소스 검토 |
+| **Member** | 공유된 리소스 탐색 및 구독 |
 
-- **소유자**: 생성자이며 완전한 제어 권한 보유
-- **관리자**: 멤버를 관리하고 게시된 리소스 검토 가능
-- **멤버**: 공유된 리소스를 보고 사용 가능
+Owner는 항상 조직을 생성한 사용자입니다. 소유권은 이전할 수 있지만 공유할 수 없습니다.
 
-### 리소스 게시
+## 리소스 게시
 
-사용자가 조직에 리소스를 게시하면, 해당 리소스 목록에 모든 멤버가 볼 수 있도록 나타납니다 — 에이전트는 에이전트 목록에, 커넥터는 커넥터 목록에 표시되는 식입니다.
+조직에 리소스를 게시하면 모든 구성원의 작업 공간에 **자동으로** 나타나지 않습니다. 대신 리소스는 Market의 조직 범위에서 검색 가능해지며, 구성원들이 이를 찾아보고 구독할 수 있습니다.
+
+이 구독 기반 모델은 각 구성원에게 자신의 작업 공간을 제어할 수 있는 권한을 제공합니다. 대규모 조직은 수십 개의 커넥터를 공유할 수 있지만, 개별 구성원은 자신의 업무와 관련된 것들만 구독합니다.
 
 ```mermaid
 sequenceDiagram
-    participant U as User
+    participant U as Publisher
     participant P as Platform
     participant O as Org Settings
+    participant M as Other Members
 
     U->>P: Publish Agent to Org
     P->>O: Check review_agents flag
     alt Review disabled
         P->>P: publish_status = NULL (auto-approved)
-        P-->>U: Immediately visible to all members
+        P-->>U: Resource discoverable by org members
     else Review enabled
         P->>P: publish_status = "pending_review"
         P-->>U: Pending admin approval
-        Note over P: Org admin approves/rejects
+        Note over P: Org admin approves or rejects
+        P->>P: publish_status = "approved"
     end
+    M->>P: Browse org resources in Market
+    M->>P: Subscribe to Agent
+    P-->>M: Agent appears in workspace
 ```
 
-**검토는 선택사항입니다.** 각 조직은 모든 리소스 유형에 대해 독립적인 검토 토글을 가지고 있습니다(`review_agents`, `review_connectors`, `review_kbs`, `review_mcp_servers`, `review_workflows`, `review_skills`). 검토가 비활성화되면, 게시된 리소스는 모든 멤버가 즉시 사용할 수 있습니다 — 공유 팀 드라이브와 유사합니다.
+### 검토 시스템
+
+검토는 **선택사항**이며 리소스 유형별로 구성됩니다. 각 조직은 독립적인 토글 플래그를 가집니다:
+
+- `review_agents`
+- `review_connectors`
+- `review_kbs`
+- `review_mcp_servers`
+- `review_workflows`
+- `review_skills`
+
+리소스 유형에 대해 검토가 비활성화되면, 게시된 리소스는 즉시 멤버들이 발견할 수 있습니다 — 관리자 조치가 필요하지 않습니다. 검토가 활성화되면, 리소스는 `pending_review` 상태로 진입하며 관리자 승인이 필요합니다.
 
 <Tip>
-조직 소유자는 자동으로 검토를 우회합니다. 그들이 게시한 리소스는 항상 즉시 사용 가능합니다.
+조직 소유자는 자동으로 검토를 우회합니다. 그들의 게시된 리소스는 항상 즉시 발견 가능합니다.
 </Tip>
 
-### 자격증명 폴백
+이러한 유연성을 통해 조직은 거버넌스 요구사항에 맞출 수 있습니다. 소규모 스타트업은 마찰 없는 공유를 위해 모든 검토 토글을 비활성화할 수 있으며, 규정 준수에 중점을 두는 엔터프라이즈는 에이전트와 커넥터에 대한 검토를 활성화하여 감시를 유지할 수 있습니다.
 
-자격증명(API 키, 데이터베이스 암호 등)이 필요한 커넥터와 MCP 서버의 경우, FIM One은 **폴백 메커니즘**을 제공합니다:
+## 자격증명 폴백
+
+커넥터와 MCP 서버는 종종 자격증명(API 키, 데이터베이스 암호, OAuth 토큰)이 필요합니다. FIM One은 **폴백 메커니즘**을 제공하므로 멤버가 모든 자격증명을 직접 구성할 필요가 없습니다.
 
 ```mermaid
 flowchart TD
-    E["멤버가 공유 커넥터 사용"]
-    C1{"멤버가 자신의 자격증명을 가지고 있는가?"}
-    C2{"allow_fallback이 활성화되어 있는가?"}
-    C3{"소유자가 기본 자격증명을 설정했는가?"}
+    E["Member uses a shared Connector"]
+    C1{"Member has own credential?"}
+    C2{"allow_fallback enabled?"}
+    C3{"Owner set default credential?"}
 
     E --> C1
-    C1 -->|Yes| U["멤버의 자격증명 사용"]
+    C1 -->|Yes| U["Use member's credential"]
     C1 -->|No| C2
     C2 -->|Yes| C3
-    C3 -->|Yes| F["소유자의 기본값으로 폴백"]
-    C3 -->|No| ERR["오류: 자격증명 필요"]
-    C2 -->|No| ERR2["오류: 자격증명 필요"]
+    C3 -->|Yes| F["Fallback to owner's default"]
+    C3 -->|No| ERR["Error: credential required"]
+    C2 -->|No| ERR2["Error: credential required"]
 ```
 
-- **폴백 활성화** (`allow_fallback=true`, 기본값): 자신의 자격증명을 제공하지 않는 멤버는 자동으로 소유자의 기본 자격증명을 사용합니다. 이는 팀 공유 API 키 또는 내부 서비스에 이상적입니다.
-- **폴백 비활성화** (`allow_fallback=false`): 모든 멤버가 자신의 자격증명을 구성해야 합니다. 이는 각 사용자가 자신의 API 키가 필요한 경우(예: 사용자별 SaaS 라이선스)에 적합합니다.
+두 가지 모드가 있습니다:
 
-자격증명이 필요하지 않은 리소스(예: 읽기 전용 공개 API 커넥터 또는 인증이 없는 에이전트)는 모든 멤버가 즉시 사용할 수 있습니다 — 구성이 필요하지 않습니다.
+- **폴백 활성화** (`allow_fallback=true`, 기본값): 자신의 자격증명을 제공하지 않는 멤버는 자동으로 소유자의 기본 자격증명을 사용합니다. 이는 팀 공유 API 키 또는 단일 키가 전체 팀을 커버하는 내부 서비스에 적합합니다.
+- **폴백 비활성화** (`allow_fallback=false`): 모든 멤버가 자신의 자격증명을 구성해야 합니다. 이는 각 사용자가 개인 API 키가 필요한 경우(예: 사용자별 SaaS 라이선스)에 적합합니다.
 
-## Market (글로벌 퍼블리싱)
+자격증명이 필요하지 않은 리소스(예: 읽기 전용 공개 API 커넥터 또는 인증이 없는 에이전트)는 구독 후 즉시 작동합니다. 구성이 필요하지 않습니다.
 
-**Market**은 FIM One의 글로벌 리소스 마켓플레이스 역할을 하는 특수한 시스템 관리 조직입니다.
+<Info>
+자격증명 폴백은 멤버가 리소스를 구독한 후에만 적용됩니다. 폴백 메커니즘은 리소스의 접근성이 아닌 런타임에 자격증명이 어떻게 해결되는지를 결정합니다.
+</Info>
 
-### Market 작동 방식
+## 리소스 가시성
 
-```mermaid
-flowchart LR
-    subgraph MarketOrg["Market Organization (System-Managed)"]
-        direction TB
-        R1["Published Agent"]
-        R2["Published Connector"]
-        R3["Published Workflow"]
-        Admin["System Admin<br/>(Market Owner)"]
-    end
+FIM One의 모든 리소스에는 접근 범위를 결정하는 `visibility`가 있습니다:
 
-    U1["User A"] -->|"publish"| MarketOrg
-    Admin -->|"review & approve"| MarketOrg
-
-    MarketOrg -->|"browse & subscribe"| U2["User B"]
-    MarketOrg -->|"browse & subscribe"| U3["User C"]
-```
-
-주요 특징:
-
-1. **단일 글로벌 인스턴스.** 시스템에는 정확히 하나의 Market 조직이 있습니다. 플랫폼 초기화 중에 자동으로 생성됩니다.
-2. **모든 사용자가 참여자입니다.** 모든 사용자는 Market 리소스를 탐색하고 구독할 수 있습니다. Market은 항상 접근 가능하며 기본 검색 채널입니다.
-3. **필수 검토.** 일반 조직과 달리 Market은 **항상** 검토가 필요합니다. 게시된 모든 리소스는 시스템 관리자의 승인을 받아야 표시됩니다. 이 검토 요구사항은 잠겨 있으며 변경할 수 없습니다.
-4. **사용하려면 구독하세요.** 사용자는 Market 리소스가 자신의 리소스 목록에 나타나기 전에 명시적으로 구독해야 합니다. 이는 리소스가 모든 멤버에게 자동으로 제공되는 조직 내부 공유와 다릅니다.
-
-### 마켓에 게시
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant P as Platform
-    participant A as System Admin
-
-    U->>P: Publish resource to Market
-    P->>P: publish_status = "pending_review"
-    P-->>U: Awaiting admin review
-
-    A->>P: Review & Approve
-    P->>P: publish_status = "approved"
-    P-->>A: Resource now visible in Market
-
-    Note over U,A: Other users can now discover and subscribe
-```
-
-### 구독 및 사용
-
-리소스가 승인되어 마켓에 등록되면 모든 사용자가 다음을 수행할 수 있습니다:
-
-1. **마켓 탐색** — 사용 가능한 리소스 발견
-2. **리소스 구독** — 사용하고 싶은 리소스에 구독
-3. **리소스 사용** — 자격 증명이 필요하고 폴백을 지원하지 않는 경우 먼저 자신의 키 구성
-
-## 신뢰 경계
-
-Organization과 Market 간의 구분은 기본적인 **신뢰 경계**를 반영합니다:
-
-```mermaid
-flowchart TB
-    subgraph Trusted["Organization (Trust Zone)"]
-        direction LR
-        T1["Shared by default"]
-        T2["Review optional"]
-        T3["Credential fallback OK"]
-    end
-
-    subgraph Untrusted["Market (No Trust Assumed)"]
-        direction LR
-        U1["Subscribe to access"]
-        U2["Review mandatory"]
-        U3["Bring your own key<br/>(or use fallback if allowed)"]
-    end
-
-    Trusted ---|"trust boundary"| Untrusted
-```
-
-### 조직 내에서
-
-같은 조직의 구성원들은 암묵적인 **신뢰 관계**를 공유합니다. 조직 소유자가 이들을 함께 모으기로 결정했으므로:
-
-- 게시된 리소스는 **즉시 사용 가능**합니다 (명시적으로 검토가 활성화되지 않은 경우)
-- 자격증명 폴백은 구성원이 소유자의 공유 API 키를 사용할 수 있음을 의미합니다
-- 구독 단계가 필요하지 않습니다 — 조직에 속해 있으면 공유된 모든 것을 볼 수 있습니다
-
-이는 팀이 실제로 작동하는 방식을 반영합니다: 공유 인프라를 통해 팀원들을 신뢰합니다.
-
-### 마켓 전역
-
-마켓은 **전역적**입니다 — 누구나 게시할 수 있고, 누구나 구독할 수 있습니다. 기존의 신뢰 관계가 없으므로:
-
-- **검토는 필수**이며, 이는 저품질 또는 악의적인 리소스가 생태계에 진입하는 것을 방지합니다
-- **구독이 필수**이므로 사용자는 명시적으로 리소스를 선택합니다 (작업 공간에 예상치 못한 추가 없음)
-- **자격증명 처리**는 동일한 폴백 메커니즘을 따르지만, 사용자는 폴백을 사용하는 마켓 리소스를 사용할 때 요청이 게시자의 자격증명을 통해 흐른다는 점을 유의해야 합니다
-
-## 리소스 가시성 요약
-
-FIM One의 모든 리소스에는 접근 범위를 결정하는 `visibility` 필드가 있습니다:
-
-| 가시성 | 범위 | 볼 수 있는 사람 |
+| 가시성 | 범위 | 검색 가능한 사용자 |
 |---|---|---|
 | `personal` | 소유자만 | 리소스를 생성한 사용자 |
-| `org` | 조직 | 대상 조직의 모든 멤버 (승인된 경우) |
-| `org` + Market | 글로벌 | 구독한 모든 사람 (관리자 승인 시) |
+| `org` | 조직 | 조직 구성원은 검색 및 구독 가능 (승인 시) |
 
-가시성 필터 로직은 통합되어 있습니다 — 동일한 쿼리가 개인, 조직 및 구독 리소스를 처리합니다:
+가시성 필터는 통합 쿼리 패턴을 따릅니다:
 
 ```
-다음의 경우 표시됨:
-  1. 소유자인 경우 (모든 가시성), 또는
-  2. 소속된 조직에 게시되었고 승인된 경우, 또는
-  3. Market에서 구독한 경우
+다음의 경우 리소스를 워크스페이스에서 사용할 수 있습니다:
+  1. 리소스를 소유하고 있거나 (모든 가시성), 또는
+  2. 속한 조직에 게시되었고, 승인되었으며, 구독한 경우
 ```
+
+<Warning>
+조직에 리소스를 게시해도 자동으로 접근 권한이 부여되지 않습니다. 구성원은 Market의 조직 범위를 통해 구독하여 리소스를 워크스페이스에 추가해야 합니다.
+</Warning>
 
 ## 실제 시나리오
 
-### 시나리오 1: 팀이 데이터베이스 커넥터 공유
+### 팀이 데이터베이스 커넥터 공유하기
 
 1. Alice가 팀의 PostgreSQL 데이터베이스에 대한 커넥터를 생성합니다
-2. Alice가 팀의 조직에 게시합니다 (커넥터는 검토 비활성화)
-3. 조직 구성원인 Bob과 Carol은 즉시 자신의 커넥터 목록에서 이를 볼 수 있습니다
-4. 커넥터는 Alice의 데이터베이스 자격증명을 폴백으로 사용합니다 — Bob과 Carol은 아무것도 구성할 필요가 없습니다
-5. 외부 계약자인 Dave가 자신의 읽기 전용 자격증명이 필요한 경우, 자신의 자격증명으로 재정의할 수 있습니다
+2. Alice가 팀의 조직에 게시합니다 (커넥터는 검토가 비활성화됨)
+3. 커넥터가 마켓의 조직 범위에서 검색 가능해집니다
+4. Bob이 조직의 공유 리소스를 찾아보고 커넥터를 찾은 후 구독합니다
+5. 커넥터가 Bob의 워크스페이스에 나타나며, Alice의 데이터베이스 자격증명을 폴백으로 사용합니다
+6. Carol도 구독합니다. 외부 계약자인 Dave도 구독하고 대신 자신의 읽기 전용 자격증명을 구성합니다
 
-### 시나리오 2: 에이전트를 마켓에 게시
+### 엄격한 검토가 있는 조직
 
-1. Alice가 "Contract Analyzer" 에이전트를 빌드하고 마켓에 게시합니다
-2. 시스템 관리자가 검토하고 승인합니다
-3. 에이전트가 마켓 브라우즈 페이지에 나타납니다
-4. Bob이 이를 발견하고 "구독"을 클릭하면 자신의 에이전트 목록에 나타납니다
-5. 에이전트가 `allow_fallback=false`를 사용하는 API 키가 필요한 커넥터를 참조합니다 — Bob은 사용하기 전에 자신의 키를 구성해야 합니다
-
-### 시나리오 3: 엄격한 검토를 하는 조직
-
-1. 규정 준수 중심 회사가 조직에서 `review_agents=true` 및 `review_connectors=true`를 활성화합니다
-2. 직원이 새로운 에이전트를 게시하면 "pending_review" 상태로 진입합니다
+1. 규정 준수에 중점을 두는 회사가 조직에서 `review_agents=true` 및 `review_connectors=true`를 활성화합니다
+2. 직원이 새로운 에이전트를 게시하면 `pending_review` 상태로 진입합니다
 3. 조직 관리자가 에이전트 구성을 검토하고 승인합니다
-4. 그 후에만 다른 구성원이 사용할 수 있게 됩니다
-5. 게시자가 나중에 승인된 에이전트를 편집하면 재승인을 위해 자동으로 "pending_review"로 되돌아갑니다
+4. 에이전트가 검색 가능해집니다 — 다른 멤버가 이제 에이전트를 찾고 구독할 수 있습니다
+5. 게시자가 나중에 승인된 에이전트를 편집하면 재승인을 위해 자동으로 `pending_review`로 되돌아갑니다
+
+### 대규모 조직에서의 선택적 구독
+
+1. 조직이 내부 API, 데이터베이스 및 타사 서비스를 포함하는 50개 이상의 커넥터를 게시합니다
+2. 데이터 팀은 데이터베이스 커넥터와 분석 API만 구독합니다
+3. 마케팅 팀은 CRM 및 이메일 플랫폼 커넥터만 구독합니다
+4. 각 팀 멤버의 워크스페이스는 집중되고 정돈된 상태로 유지됩니다
+
+## 참고 항목
+
+- [Market Architecture](/concepts/market) — 글로벌 Market과 조직과의 관계에 대해 알아봅니다. 둘 다 동일한 구독 모델을 사용하지만 Market은 필수 검토가 있는 조직 간 검색 채널로 기능합니다.
+- [에이전트 & 리소스 검색](/architecture/agent-discovery) — 구독한 리소스가 채팅 중에 도구 세트로 어떻게 조립되는지 알아봅니다.

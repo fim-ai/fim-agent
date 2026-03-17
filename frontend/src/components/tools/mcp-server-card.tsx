@@ -323,7 +323,7 @@ export function MCPServerCard({
             className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
             <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
-            {tc("installed")}
+            {tc("subscribedMarket")}
           </Badge>
         </div>
       )}
@@ -335,7 +335,7 @@ export function MCPServerCard({
             className="text-[10px] px-1.5 py-0 h-5 bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
           >
             <Building2 className="h-2.5 w-2.5 mr-0.5" />
-            {tc("shared")}
+            {tc("subscribedOrg")}
           </Badge>
         </div>
       )}

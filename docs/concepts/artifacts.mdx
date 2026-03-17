@@ -57,12 +57,4 @@ Each artifact shows:
 
 ## Storage
 
-Artifacts are stored on the server filesystem under `uploads/conversations/{conversation_id}/artifacts/`. Each artifact gets a UUID-based filename, making URLs unguessable. Files are served directly — no database records for individual artifacts, keeping the storage layer simple and fast.
-
-## API
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/artifacts` | List all artifacts for the current user. Supports `?page=`, `?size=`, `?type=` filters |
-| `GET /api/conversations/{id}/artifacts` | List artifacts for a specific conversation |
-| `GET /api/conversations/{id}/artifacts/{artifact_id}` | Download a specific artifact |
+Artifacts are stored on the server filesystem, one directory per conversation. Each artifact gets a UUID-based filename, making URLs unguessable without access to the conversation. Files are served directly — no database records for individual artifacts, keeping the storage layer simple and fast.

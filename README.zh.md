@@ -10,16 +10,14 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**您的系统无法相互通信。FIM One 将它们全部连接到 AI——无需代码更改，无需数据迁移。**
-
-*AI 驱动的连接器中心——嵌入到一个系统作为 Copilot，或将它们全部连接为中心。*
+**您的系统无法相互通信。FIM One 是由 AI 驱动的桥梁 — 作为 Copilot 嵌入，或将它们全部连接为中心。**
 
 🌐 [网站](https://one.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告错误](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ 跳过设置——在云上尝试 FIM One。**
+> **☁️ 跳过设置 — 在云端尝试 FIM One。**
 > 托管版本已在 **[cloud.fim.ai](https://cloud.fim.ai/)** 上线：无需 Docker、无需 API 密钥、无需配置。登录并在几秒内开始连接您的系统。_早期访问，欢迎反馈。_
 
 ---

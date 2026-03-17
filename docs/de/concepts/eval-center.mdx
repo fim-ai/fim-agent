@@ -11,33 +11,23 @@ Konzipiert für die Überprüfung durch Unternehmenseinkauf — jedes Ergebnis i
 
 ## Funktionsweise
 
-Jede Evaluierungslauf führt eine **dreistufige Pipeline** für jeden Testfall aus:
+Jeder Evaluierungslauf führt eine **dreistufige Pipeline** für jeden Testfall aus:
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  Stage 1 — Agent Execution                               │
-│                                                          │
-│  A real ReActAgent runs the test case prompt.             │
-│  Same engine as chat: same model, same tools, same       │
-│  instructions. No mocking, no shortcuts.                 │
-│                                                          │
-│  → Produces: answer, latency, token usage                │
-├──────────────────────────────────────────────────────────┤
-│  Stage 2 — LLM Grading                                   │
-│                                                          │
-│  A separate "grader" LLM (fast model) judges the answer  │
-│  against the expected behavior and assertions.            │
-│                                                          │
-│  Input:  prompt + expected_behavior + assertions + answer │
-│  Output: { verdict: "pass"|"fail", reasoning: "..." }    │
-├──────────────────────────────────────────────────────────┤
-│  Stage 3 — Persist & Aggregate                           │
-│                                                          │
-│  Each case result is saved to the database.               │
-│  After all cases finish: pass rate, avg latency,          │
-│  total tokens are computed and attached to the run.       │
-└──────────────────────────────────────────────────────────┘
-```
+<Steps>
+  <Step title="Agent-Ausführung">
+    Ein echter ReActAgent führt die Testfall-Eingabeaufforderung aus. Gleiche Engine wie Chat: gleiches Modell, gleiche Tools, gleiche Anweisungen. Kein Mocking, keine Abkürzungen.
+
+    Erzeugt: **Antwort**, **Latenz**, **Token-Nutzung**.
+  </Step>
+  <Step title="LLM-Bewertung">
+    Ein separates "Bewerter"-LLM (schnelles Modell) bewertet die Antwort anhand des erwarteten Verhaltens und der Assertions.
+
+    Eingabe: Eingabeaufforderung + erwartetes Verhalten + Assertions + Antwort. Ausgabe: `{ verdict: "pass"|"fail", reasoning: "..." }`.
+  </Step>
+  <Step title="Persistierung & Aggregation">
+    Jedes Fallergebnis wird in der Datenbank gespeichert. Nach Abschluss aller Fälle: **Erfolgsquote**, **durchschnittliche Latenz**, **Gesamttokens** werden berechnet und an den Lauf angehängt.
+  </Step>
+</Steps>
 
 ### Wichtige Designentscheidungen
 
@@ -162,22 +152,3 @@ Der Grader verwendet `structured_llm_call` mit Function Calling, um das Schema d
 - Nach Hinzufügen oder Entfernen von Tool-Kategorien
 - Vor jeder Produktionsbereitstellung (CI/CD-Integration kommt in einer zukünftigen Version)
 
-## API-Referenz
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|-------------|
-| `POST` | `/api/eval/datasets` | Datensatz erstellen |
-| `GET` | `/api/eval/datasets` | Datensätze auflisten (paginiert) |
-| `GET` | `/api/eval/datasets/{id}` | Datensatz abrufen |
-| `PUT` | `/api/eval/datasets/{id}` | Datensatz aktualisieren |
-| `DELETE` | `/api/eval/datasets/{id}` | Datensatz löschen (kaskadiert Fälle) |
-| `POST` | `/api/eval/datasets/{id}/cases` | Testfall hinzufügen |
-| `GET` | `/api/eval/datasets/{id}/cases` | Fälle auflisten (paginiert) |
-| `PUT` | `/api/eval/datasets/{id}/cases/{caseId}` | Fall aktualisieren |
-| `DELETE` | `/api/eval/datasets/{id}/cases/{caseId}` | Fall löschen |
-| `POST` | `/api/eval/runs` | Evaluierungslauf starten |
-| `GET` | `/api/eval/runs` | Läufe auflisten (paginiert) |
-| `GET` | `/api/eval/runs/{id}` | Lauf + alle Fallergebnisse abrufen |
-| `DELETE` | `/api/eval/runs/{id}` | Lauf löschen (kaskadiert Ergebnisse) |
-
-Alle Endpunkte erfordern JWT-Authentifizierung (`Authorization: Bearer <token>`).

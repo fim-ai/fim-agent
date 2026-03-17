@@ -102,14 +102,21 @@ flowchart TD
 
 ReAct est l'unité atomique ; DAG est la couche d'orchestration. Les deux moteurs fonctionnent dans les trois modes (Standalone, Copilot, Hub). En mode Hub, une seule étape DAG peut appeler des connecteurs vers différents systèmes.
 
-## Pourquoi pas de moteur de workflow traditionnel
+## Deux paradigmes d'exécution
 
-FIM One ne construit délibérément **pas** d'éditeur de workflow par glisser-déposer. C'est un choix stratégique :
+FIM One fournit deux paradigmes complémentaires pour accomplir le travail :
 
-1. **Les workflows existent déjà ailleurs.** Les processus fixes des clients d'entreprise (chaînes d'approbation, flux d'audit) vivent dans leurs systèmes OA, ERP et hérités. Ils ont besoin d'une IA qui se connecte à ces systèmes, pas d'un autre éditeur de workflow.
+| Paradigme | Orchestration | Idéal pour |
+|----------|--------------|----------|
+| **Agent (Chat)** | L'LLM décide de l'étape suivante dynamiquement (ReAct ou DAG) | Tâches exploratoires, conversations, raisonnement flexible |
+| **Workflow** | DAG fixe défini au moment de la conception (éditeur visuel, 26 types de nœuds) | Chaînes d'approbation, ETL planifiés, automations multi-étapes |
 
-2. **Le DAG dynamique couvre le cas flexible.** Pour les tâches non prédéfinies, les DAG générés par LLM s'adaptent à l'exécution — aucune conception humaine préalable requise.
+Les **Agents** excellent quand la tâche est ouverte — « analyser les données de ce trimestre et recommander des actions ». L'LLM planifie et s'adapte à la volée.
 
-3. **Les capacités existantes se composent en pipelines fixes.** Les tâches planifiées (prévues) déclenchent un agent DAG avec une invite fixe ; le DAG planifie les étapes ; les connecteurs établissent un pont vers les systèmes cibles. La combinaison équivaut à un pipeline statique — mais plus flexible, car l'LLM ajuste son plan en fonction des données qu'il rencontre.
+Les **Workflows** excellent quand le processus est connu et répétable — « chaque lundi, récupérer les factures de l'ERP, exécuter les vérifications de conformité, acheminer les exceptions à un examinateur ». L'éditeur visuel vous permet de connecter des nœuds (Agent, Connecteur, KB, LLM, HTTP, Code, Approbation Humaine, Sous-Workflow) dans un DAG fixe.
 
-4. **Connecteur = appel API.** Les opérations de workflow complexes (transfert, rejet, escalade) sont la responsabilité du système cible. Du point de vue du connecteur, chaque opération est simplement une requête HTTP avec des paramètres. FIM One appelle l'API ; le système cible gère la machine d'état.
+Les deux paradigmes se composent naturellement : un Workflow peut invoquer un Agent à n'importe quelle étape qui nécessite un raisonnement flexible au sein d'un pipeline autrement fixe. Les Agents ne peuvent pas appeler directement les Workflows — la relation est unidirectionnelle.
+
+<Tip>
+**Quand choisir lequel :** Si vous vous trouvez à écrire des instructions très spécifiques, étape par étape, pour un Agent, ce processus appartient probablement à un Workflow. Si la tâche nécessite du jugement, de l'exploration ou l'adaptation à des données inattendues, gardez-la comme un Agent.
+</Tip>
