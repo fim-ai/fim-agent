@@ -2033,6 +2033,7 @@ async def react_endpoint(
                 context_guard=context_guard,
                 fast_llm=fast_llm,
                 user_timezone=user_timezone,
+                agent_directive=agent_instructions,
             )
 
             image_urls = [url for _, _, url in image_data] if image_data else None
@@ -2681,6 +2682,7 @@ async def dag_endpoint(
                     max_iterations=dag_step_max_iters,
                     context_guard=dag_context_guard,
                     user_timezone=user_timezone,
+                    agent_directive=agent_instructions,
                 )
                 registry = get_model_registry()
                 exec_stop_event = asyncio.Event()

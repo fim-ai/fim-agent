@@ -205,6 +205,11 @@ class ReActAgent:
             tool outputs.  When provided, workspace tools are auto-registered
             and tool outputs exceeding the offload threshold are saved to
             files with a preview injected into the conversation.
+        agent_directive: Optional agent-level instructions that define the
+            agent's core purpose (e.g. "translate Chinese to English").
+            Unlike ``extra_instructions`` (which bundles Skills, KB hints,
+            and preferences), this is injected into the **synthesis** step
+            so the final answer honours the agent's identity.
     """
 
     def __init__(
@@ -221,6 +226,7 @@ class ReActAgent:
         workspace: AgentWorkspace | None = None,
         fast_llm: BaseLLM | None = None,
         user_timezone: str | None = None,
+        agent_directive: str | None = None,
     ) -> None:
         self._llm = llm
         self._fast_llm = fast_llm
@@ -228,6 +234,7 @@ class ReActAgent:
         self._system_prompt_override = system_prompt
         self._user_timezone = user_timezone
         self._extra_instructions = extra_instructions
+        self._agent_directive = agent_directive
         self._max_iterations = max_iterations
         self._use_native_tools = use_native_tools
         self._memory = memory
@@ -408,13 +415,25 @@ class ReActAgent:
             "Provide a concise, coherent response that addresses the original "
             "question. Do NOT include meta-commentary like 'based on the results' "
             "or 'according to the tool output' -- just answer directly.",
+        ]
+
+        # Carry agent directive into synthesis so the agent's purpose is
+        # honoured in the final answer (e.g. a translation agent should
+        # output a translation, not a conversational reply).
+        # Only the directive is injected — Skills/KB hints are irrelevant
+        # for synthesis (tool execution is already complete).
+        if self._agent_directive:
+            system_parts.append("")
+            system_parts.append(f"## Agent Directive\n{self._agent_directive}")
+
+        system_parts.extend([
             "",
             "Guidelines:",
             "- Present key results clearly; use markdown formatting when helpful.",
             "- LANGUAGE: By default answer in the same language as the original "
-            "question. If the agent reasoning shows a different target language "
-            "(e.g. a translation task), use that language instead.",
-        ]
+            "question. If the Agent Directive specifies different language "
+            "behaviour (e.g. translation), follow the Agent Directive.",
+        ])
         if language_directive:
             system_parts.append(f"- {language_directive}")
 
