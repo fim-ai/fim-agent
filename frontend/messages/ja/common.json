@@ -108,10 +108,10 @@
   "createdAt": "作成日時",
   "noResultsTitle": "結果が見つかりません",
   "noResultsDescription": "フィルターまたは検索クエリを調整してみてください。",
-  "shared": "共有",
+  "shared": "組織",
   "mine": "マイ",
   "fromOrg": "組織",
-  "installed": "購読済み",
+  "installed": "マーケット",
   "fromMarket": "マーケットから",
   "uninstall": "購読解除",
   "uninstalled": "リソースの購読を解除しました",
@@ -124,5 +124,5 @@
   "roadmap": "ロードマップ",
   "website": "ウェブサイト",
   "discord": "Discord",
-  "orgShared": "組織共有"
+  "orgShared": "組織"
 }

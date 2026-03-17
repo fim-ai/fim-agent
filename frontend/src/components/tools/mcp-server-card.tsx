@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import {
-  Building2, Clock, Download, MoreHorizontal, PackageMinus, Pencil, Trash2, Terminal, Globe, GlobeLock, FlaskConical,
+  Building2, Clock, MoreHorizontal, PackageMinus, Pencil, Trash2, Terminal, Globe, GlobeLock, FlaskConical,
   Loader2, CheckCircle2, XCircle, Key, AlertTriangle, RotateCw, Power, ShoppingBag,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -319,9 +319,9 @@ export function MCPServerCard({
         <div className="flex items-center gap-1.5 mb-2">
           <Badge
             variant="secondary"
-            className="text-[10px] px-1.5 py-0 h-5 bg-violet-500/10 text-violet-500 dark:text-violet-400 border-violet-500/20"
+            className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
-            <Download className="h-2.5 w-2.5 mr-0.5" />
+            <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
             {tc("installed")}
           </Badge>
         </div>
@@ -338,7 +338,7 @@ export function MCPServerCard({
         </div>
       )}
 
-      {/* Owner visibility badges */}
+      {/* Owner visibility badge — Market */}
       {isOwner && isOrgResource && server.org_id === MARKET_ORG_ID && (
         <div className="flex items-center gap-1.5 mb-2">
           <Badge
@@ -346,11 +346,13 @@ export function MCPServerCard({
             className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
             <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
-            {tc("published")}
+            {tc("installed")}
           </Badge>
         </div>
       )}
-      {isOwner && isOrgResource && server.org_id !== MARKET_ORG_ID && (
+
+      {/* Owner visibility badge — Organization */}
+      {isOwner && isOrgResource && server.org_id && server.org_id !== MARKET_ORG_ID && (
         <div className="flex items-center gap-1.5 mb-2">
           <Badge
             variant="secondary"

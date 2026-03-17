@@ -108,10 +108,10 @@
   "createdAt": "생성됨",
   "noResultsTitle": "결과를 찾을 수 없습니다",
   "noResultsDescription": "필터 또는 검색 쿼리를 조정해 보세요.",
-  "shared": "공유됨",
+  "shared": "조직",
   "mine": "내 것",
   "fromOrg": "조직",
-  "installed": "구독됨",
+  "installed": "마켓",
   "fromMarket": "마켓에서",
   "uninstall": "구독 취소",
   "uninstalled": "리소스 구독 취소됨",
@@ -124,5 +124,5 @@
   "roadmap": "로드맵",
   "website": "웹사이트",
   "discord": "Discord",
-  "orgShared": "조직 공유"
+  "orgShared": "조직"
 }

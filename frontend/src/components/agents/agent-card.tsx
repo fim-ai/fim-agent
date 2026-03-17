@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Bot, Building2, Clock, Download, MoreHorizontal, PackageMinus, Pencil, Trash2, Globe, GlobeLock, MessageSquare, RotateCw, ShoppingBag, XCircle } from "lucide-react"
+import { Bot, Building2, Clock, MoreHorizontal, PackageMinus, Pencil, Trash2, Globe, GlobeLock, MessageSquare, RotateCw, ShoppingBag, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -143,9 +143,9 @@ export function AgentCard({
         {isInstalled && (
           <Badge
             variant="secondary"
-            className="text-[10px] px-1.5 py-0 h-5 bg-violet-500/10 text-violet-500 dark:text-violet-400 border-violet-500/20"
+            className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
-            <Download className="h-2.5 w-2.5 mr-0.5" />
+            <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
             {tc("installed")}
           </Badge>
         )}
@@ -159,14 +159,25 @@ export function AgentCard({
           </Badge>
         )}
 
-        {/* Owner visibility badge — Market only */}
+        {/* Owner visibility badge — Market */}
         {isOwner && isOrgResource && agent.org_id === MARKET_ORG_ID && (
           <Badge
             variant="secondary"
             className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
             <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
-            {tc("published")}
+            {tc("installed")}
+          </Badge>
+        )}
+
+        {/* Owner visibility badge — Organization */}
+        {isOwner && isOrgResource && agent.org_id && agent.org_id !== MARKET_ORG_ID && (
+          <Badge
+            variant="secondary"
+            className="text-[10px] px-1.5 py-0 h-5 bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
+          >
+            <Building2 className="h-2.5 w-2.5 mr-0.5" />
+            {tc("shared")}
           </Badge>
         )}
 

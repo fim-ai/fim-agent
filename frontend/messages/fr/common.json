@@ -108,10 +108,10 @@
   "createdAt": "Créé",
   "noResultsTitle": "Aucun résultat trouvé",
   "noResultsDescription": "Essayez d'ajuster vos filtres ou votre requête de recherche.",
-  "shared": "Partagé",
+  "shared": "Organisation",
   "mine": "Mes éléments",
   "fromOrg": "Organisation",
-  "installed": "Abonné",
+  "installed": "Marché",
   "fromMarket": "De la Marketplace",
   "uninstall": "Se désabonner",
   "uninstalled": "Ressource désabonnée",
@@ -124,5 +124,5 @@
   "roadmap": "Feuille de route",
   "website": "Site web",
   "discord": "Discord",
-  "orgShared": "Partagé par l'organisation"
+  "orgShared": "Organisation"
 }

@@ -172,9 +172,9 @@ export function ConnectorCard({
         <div className="flex items-center gap-1.5 mb-1.5">
           <Badge
             variant="secondary"
-            className="text-[10px] px-1.5 py-0 h-5 bg-violet-500/10 text-violet-500 dark:text-violet-400 border-violet-500/20"
+            className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
-            <Download className="h-2.5 w-2.5 mr-0.5" />
+            <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
             {tc("installed")}
           </Badge>
         </div>
@@ -191,7 +191,7 @@ export function ConnectorCard({
         </div>
       )}
 
-      {/* Owner visibility badge — Market only */}
+      {/* Owner visibility badge — Market */}
       {isOwner && isOrgResource && connector.org_id === MARKET_ORG_ID && (
         <div className="flex items-center gap-1.5 mb-1.5">
           <Badge
@@ -199,7 +199,20 @@ export function ConnectorCard({
             className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
           >
             <ShoppingBag className="h-2.5 w-2.5 mr-0.5" />
-            {tc("published")}
+            {tc("installed")}
+          </Badge>
+        </div>
+      )}
+
+      {/* Owner visibility badge — Organization */}
+      {isOwner && isOrgResource && connector.org_id && connector.org_id !== MARKET_ORG_ID && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Badge
+            variant="secondary"
+            className="text-[10px] px-1.5 py-0 h-5 bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20"
+          >
+            <Building2 className="h-2.5 w-2.5 mr-0.5" />
+            {tc("shared")}
           </Badge>
         </div>
       )}

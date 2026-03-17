@@ -108,10 +108,10 @@
   "createdAt": "创建时间",
   "noResultsTitle": "未找到结果",
   "noResultsDescription": "尝试调整您的筛选条件或搜索查询。",
-  "shared": "已共享",
+  "shared": "组织",
   "mine": "我的",
   "fromOrg": "组织",
-  "installed": "已订阅",
+  "installed": "市场",
   "fromMarket": "来自市场",
   "uninstall": "取消订阅",
   "uninstalled": "资源已取消订阅",
@@ -124,5 +124,5 @@
   "roadmap": "路线图",
   "website": "网站",
   "discord": "Discord",
-  "orgShared": "组织共享"
+  "orgShared": "组织"
 }
