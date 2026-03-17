@@ -37,7 +37,7 @@
   "statusAnalyzingRound": "分析中 (ラウンド {round})...",
   "statusRouting": "最適なモードを選択中...",
   "statusProcessing": "処理中...",
-  "answerGenerating": "回答を生成中...",
+  "answerGenerating": "回答を生成中",
   "standardMode": "標準モード",
   "plannerMode": "プランナーモード",
   "autoMode": "自動モード",

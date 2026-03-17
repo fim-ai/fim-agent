@@ -266,6 +266,10 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
         }
       }
       currentPhase = null
+      // Mark answer as done so the streaming spinner stops
+      if (streamingAnswer) {
+        answerDone = true
+      }
     }
 
     return {

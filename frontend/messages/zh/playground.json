@@ -37,7 +37,7 @@
   "statusAnalyzingRound": "分析中 (第 {round} 轮)...",
   "statusRouting": "选择最佳模式中...",
   "statusProcessing": "处理中...",
-  "answerGenerating": "生成答案中...",
+  "answerGenerating": "正在生成答案",
   "standardMode": "标准模式",
   "plannerMode": "规划器模式",
   "autoMode": "自动模式",

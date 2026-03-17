@@ -37,7 +37,7 @@
   "statusAnalyzingRound": "분석 중 (라운드 {round})...",
   "statusRouting": "최적의 모드 선택 중...",
   "statusProcessing": "처리 중...",
-  "answerGenerating": "답변 생성 중...",
+  "answerGenerating": "답변 생성 중",
   "standardMode": "표준 모드",
   "plannerMode": "플래너 모드",
   "autoMode": "자동 모드",

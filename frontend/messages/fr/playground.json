@@ -37,7 +37,7 @@
   "statusAnalyzingRound": "Analyse (Tour {round})...",
   "statusRouting": "Choix du meilleur mode...",
   "statusProcessing": "Traitement...",
-  "answerGenerating": "Génération de la réponse...",
+  "answerGenerating": "Génération de la réponse",
   "standardMode": "Mode Standard",
   "plannerMode": "Mode Planificateur",
   "autoMode": "Mode Auto",

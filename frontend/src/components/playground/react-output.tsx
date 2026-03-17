@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
 import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
-import { Loader2, Wrench, Brain, CheckCircle2, Clock, RefreshCw, BarChart3, ChevronDown, ChevronUp, ChevronRight } from "lucide-react"
+import { Loader2, Wrench, Brain, CheckCircle2, Clock, RefreshCw, BarChart3, ChevronDown, ChevronUp, ChevronRight, StopCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { UserAvatar } from "@/components/shared/user-avatar"
 import { fmtDuration } from "@/lib/utils"
@@ -122,8 +122,10 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
     )
   }
 
-  // Show streaming answer before done arrives (no tool calls, or still streaming)
-  const showStreamingAnswer = isAnswerStreaming && !hasDone && displayAnswer
+  // Show streaming answer card when answer step exists or streaming content arrives (before done)
+  const hasAnswerStep = items.some(i => i.event === "step" && (i.data as ReactStepEvent).type === "answer")
+  const showStreamingAnswer = !hasDone && (hasAnswerStep || (isAnswerStreaming && displayAnswer))
+  const isAborted = !isStreaming && !hasDone
 
   // Streaming (no done yet) or direct answer (no steps): render as before
   return (
@@ -167,30 +169,36 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
       })}
       {/* Streaming answer — shown before done arrives */}
       {showStreamingAnswer && (
-        <StreamingAnswerCard content={displayAnswer} />
+        <StreamingAnswerCard content={displayAnswer} aborted={isAborted} />
       )}
     </div>
   )
 }
 
-function StreamingAnswerCard({ content }: { content: string }) {
+function StreamingAnswerCard({ content, aborted }: { content: string; aborted?: boolean }) {
   const t = useTranslations("playground")
   return (
-    <Card className="py-4">
-      <CardHeader className="pb-0">
+    <Card className="border-green-500/20 py-4">
+      <CardHeader className={content ? "pb-0" : undefined}>
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500/10">
-            <Loader2 className="h-3.5 w-3.5 text-green-500 animate-spin" />
+            {aborted ? (
+              <StopCircle className="h-3.5 w-3.5 text-green-500" />
+            ) : (
+              <Loader2 className="h-3.5 w-3.5 text-green-500 animate-spin" />
+            )}
           </div>
-          <CardTitle className="text-sm">{t("result")}</CardTitle>
+          <CardTitle className="text-sm">{aborted ? t("result") : t("answerGenerating")}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent>
-        <MarkdownContent
-          content={content}
-          className="prose-sm text-sm text-foreground/90 streaming-cursor"
-        />
-      </CardContent>
+      {content && (
+        <CardContent>
+          <MarkdownContent
+            content={content}
+            className={`prose-sm text-sm text-foreground/90${aborted ? "" : " streaming-cursor"}`}
+          />
+        </CardContent>
+      )}
     </Card>
   )
 }
@@ -246,15 +254,9 @@ function StepCard({ step, duration, displayIteration }: { step: ReactStepEvent; 
     return <ThinkingCard iterLabel={iterLabel} duration={duration} reasoning={step.reasoning} />
   }
 
+  // "answer" step is merged into StreamingAnswerCard — skip standalone rendering
   if (step.type === "answer") {
-    return (
-      <Card className="border-green-500/20 py-4">
-        <CardContent className="flex items-center gap-3">
-          <Loader2 className="h-4 w-4 animate-spin text-green-500" />
-          <span className="text-sm shiny-text">{t("answerGenerating")}</span>
-        </CardContent>
-      </Card>
-    )
+    return null
   }
 
   // iteration type — map to shared IterationData

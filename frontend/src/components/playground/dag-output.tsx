@@ -26,6 +26,7 @@ import {
   ChevronRight,
   SkipForward,
   AlertCircle,
+  StopCircle,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { UserAvatar } from "@/components/shared/user-avatar"
@@ -82,7 +83,7 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
   hideStepCards,
   injectEvents = [],
   streamingAnswer,
-  answerDone: _answerDone,
+  answerDone,
   suggestions,
   onSuggestionSelect,
 }, ref) {
@@ -102,7 +103,7 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
 
   // Determine which answer to show: doneEvent.answer is authoritative, fall back to streaming
   const displayAnswer = doneEvent?.answer ?? streamingAnswer ?? ""
-  const isAnswerStreaming = !!streamingAnswer && !doneEvent
+  const isAnswerStreaming = !!streamingAnswer && !doneEvent && !answerDone
 
   // After completion: collapsible summary bar + always-visible done card
   if (doneEvent && totalSteps > 0) {
@@ -247,6 +248,11 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
       {isAnswerStreaming && displayAnswer && (
         <DagStreamingAnswerCard content={displayAnswer} />
       )}
+
+      {/* Aborted partial answer — show without spinner */}
+      {!isAnswerStreaming && answerDone && !doneEvent && displayAnswer && (
+        <DagStreamingAnswerCard content={displayAnswer} aborted />
+      )}
     </div>
   )
 })
@@ -295,14 +301,18 @@ function PreviousRoundCard({ snapshot, hideDagGraph, hideStepCards }: { snapshot
   )
 }
 
-function DagStreamingAnswerCard({ content }: { content: string }) {
+function DagStreamingAnswerCard({ content, aborted }: { content: string; aborted?: boolean }) {
   const t = useTranslations("playground")
   return (
     <Card className="border-green-500/20 py-4">
       <CardHeader className="pb-0">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500/10">
-            <Loader2 className="h-3.5 w-3.5 text-green-500 animate-spin" />
+            {aborted ? (
+              <StopCircle className="h-3.5 w-3.5 text-green-500" />
+            ) : (
+              <Loader2 className="h-3.5 w-3.5 text-green-500 animate-spin" />
+            )}
           </div>
           <CardTitle className="text-sm">{t("result")}</CardTitle>
         </div>
@@ -310,7 +320,7 @@ function DagStreamingAnswerCard({ content }: { content: string }) {
       <CardContent>
         <MarkdownContent
           content={stripCitations(content)}
-          className="prose-sm text-sm text-foreground/90 streaming-cursor"
+          className={`prose-sm text-sm text-foreground/90${aborted ? "" : " streaming-cursor"}`}
         />
       </CardContent>
     </Card>

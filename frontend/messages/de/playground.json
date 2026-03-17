@@ -37,7 +37,7 @@
   "statusAnalyzingRound": "Wird analysiert (Runde {round})...",
   "statusRouting": "Bester Modus wird gewählt...",
   "statusProcessing": "Wird verarbeitet...",
-  "answerGenerating": "Antwort wird generiert...",
+  "answerGenerating": "Antwort wird generiert",
   "standardMode": "Standardmodus",
   "plannerMode": "Planermodus",
   "autoMode": "Automodus",
