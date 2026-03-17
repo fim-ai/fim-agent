@@ -1,6 +1,6 @@
 {
   "title": "マーケット",
-  "description": "共有リソースを参照して購読する",
+  "description": "共有リソースを閲覧して購読する",
   "empty": "マーケットプレイスで利用可能なリソースがありません",
   "subscribed": "購読済み",
   "subscribe": "購読",
@@ -24,6 +24,9 @@
   "emptyDescription": "マーケットプレイスに公開されたリソースがここに表示されます。",
   "subscribeSuccess": "正常に購読しました",
   "unsubscribeSuccess": "正常に購読を解除しました",
+  "dependenciesLabel": "依存関係",
+  "contentDepsIncluded": "含まれるもの: {items} (購読者向けに自動的に含まれます)",
+  "connectionDepsRequired": "セットアップが必要: {items} (購読者は認証情報を提供する必要があります)",
   "scopeLabel": "スコープ",
   "scopeGlobalMarket": "グローバルマーケット",
   "scopeOrg": "組織",

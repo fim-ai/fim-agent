@@ -24,8 +24,11 @@
   "emptyDescription": "Les ressources publiées sur la marketplace apparaîtront ici.",
   "subscribeSuccess": "Abonnement réussi",
   "unsubscribeSuccess": "Désabonnement réussi",
+  "dependenciesLabel": "Dépendances",
+  "contentDepsIncluded": "Inclut : {items} (inclus automatiquement pour les abonnés)",
+  "connectionDepsRequired": "Configuration requise : {items} (les abonnés devront fournir des identifiants)",
   "scopeLabel": "Portée",
-  "scopeGlobalMarket": "Marché mondial",
+  "scopeGlobalMarket": "Marché Global",
   "scopeOrg": "Organisation",
   "categorySolutions": "Solutions",
   "categoryComponents": "Composants"

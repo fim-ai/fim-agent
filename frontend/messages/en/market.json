@@ -20,6 +20,9 @@
   "scopeOrg": "Organization",
   "categorySolutions": "Solutions",
   "categoryComponents": "Components",
+  "dependenciesLabel": "Dependencies",
+  "contentDepsIncluded": "Includes: {items} (auto-included for subscribers)",
+  "connectionDepsRequired": "Requires setup: {items} (subscribers will need to provide credentials)",
   "types": {
     "all": "All",
     "agent": "Agents",

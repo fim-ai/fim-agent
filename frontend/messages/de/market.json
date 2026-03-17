@@ -1,6 +1,6 @@
 {
   "title": "Marktplatz",
-  "description": "Durchsuchen und abonnieren Sie freigegebene Ressourcen",
+  "description": "Durchsuchen und abonnieren Sie gemeinsam genutzte Ressourcen",
   "empty": "Keine Ressourcen im Marketplace verfügbar",
   "subscribed": "Abonniert",
   "subscribe": "Abonnieren",
@@ -24,6 +24,9 @@
   "emptyDescription": "Ressourcen, die im Marketplace veröffentlicht werden, werden hier angezeigt.",
   "subscribeSuccess": "Erfolgreich abonniert",
   "unsubscribeSuccess": "Abonnement erfolgreich gekündigt",
+  "dependenciesLabel": "Abhängigkeiten",
+  "contentDepsIncluded": "Enthält: {items} (automatisch für Abonnenten enthalten)",
+  "connectionDepsRequired": "Erfordert Einrichtung: {items} (Abonnenten müssen Anmeldedaten bereitstellen)",
   "scopeLabel": "Bereich",
   "scopeGlobalMarket": "Globaler Marktplatz",
   "scopeOrg": "Organisation",
