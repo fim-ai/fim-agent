@@ -226,6 +226,7 @@ async def _resolve_agent(agent_id: str, db: AsyncSession) -> DependencyManifest:
     from fim_one.web.models.connector import Connector
     from fim_one.web.models.knowledge_base import KnowledgeBase
     from fim_one.web.models.mcp_server import MCPServer
+    from fim_one.web.models.skill import Skill
 
     manifest = DependencyManifest()
 
@@ -264,6 +265,24 @@ async def _resolve_agent(agent_id: str, db: AsyncSession) -> DependencyManifest:
                     allow_fallback=getattr(connector, "allow_fallback", False),
                 )
             )
+
+    # Skills
+    skill_ids: list[str] = agent.skill_ids or []
+    for sid in skill_ids:
+        if not sid or not isinstance(sid, str):
+            continue
+        skill = await _fetch_by_id(Skill, sid, db)
+        if skill is not None:
+            manifest.content_deps.append(
+                ContentDep(
+                    resource_type="skill",
+                    resource_id=skill.id,
+                    resource_name=skill.name,
+                )
+            )
+            # Recursively resolve skill's own deps (resource_refs)
+            skill_manifest = await _resolve_skill(sid, db)
+            manifest.merge(skill_manifest)
 
     # MCP servers
     mcp_server_ids: list[str] = agent.mcp_server_ids or []
@@ -411,7 +430,7 @@ async def _resolve_workflow(
         if not isinstance(data, dict):
             continue
 
-        field_specs = _WORKFLOW_NODE_REFS.get(node_type)
+        field_specs = _WORKFLOW_NODE_REFS.get(node_type.upper())
         if not field_specs:
             continue
 
