@@ -6,20 +6,27 @@ this API and consumed through ResourceSubscription.
 """
 from __future__ import annotations
 
+import logging
 import math
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_one.db import get_session
 from fim_one.web.auth import get_current_user
+from fim_one.web.dependency_analyzer import (
+    SOLUTION_TYPES,
+    resolve_solution_dependencies,
+)
 from fim_one.web.exceptions import AppError
 from fim_one.web.models.agent import Agent
 from fim_one.web.models.connector import Connector
+from fim_one.web.models.connector_credential import ConnectorCredential
 from fim_one.web.models.knowledge_base import KnowledgeBase
 from fim_one.web.models.mcp_server import MCPServer
+from fim_one.web.models.mcp_server_credential import MCPServerCredential
 from fim_one.web.models.organization import Organization
 from fim_one.web.models.resource_subscription import ResourceSubscription
 from fim_one.web.models.skill import Skill
@@ -27,6 +34,8 @@ from fim_one.web.models.user import User
 from fim_one.web.models.workflow import Workflow
 from fim_one.web.platform import MARKET_ORG_ID
 from fim_one.web.schemas.common import ApiResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 
@@ -197,6 +206,7 @@ async def browse_market(
         for obj in result.scalars().all():
             info = info_fn(obj)
             info["is_subscribed"] = obj.id in subscribed_ids
+            info["is_solution"] = rtype in SOLUTION_TYPES
             items.append(info)
 
             if obj.user_id:
@@ -313,7 +323,15 @@ async def unsubscribe_resource(
     current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> ApiResponse:
-    """Unsubscribe from a resource."""
+    """Unsubscribe from a resource with cascade cleanup.
+
+    1. Deletes the main subscription.
+    2. For connection-type resources (connector, mcp_server): deletes the
+       user's stored credential for that resource.
+    3. For Solution-type resources (agent, skill, workflow): resolves content
+       dependencies and removes orphaned content-dep subscriptions that are
+       no longer needed by any other subscribed Solution.
+    """
     result = await db.execute(
         select(ResourceSubscription).where(
             ResourceSubscription.user_id == current_user.id,
@@ -322,10 +340,107 @@ async def unsubscribe_resource(
         )
     )
     sub = result.scalar_one_or_none()
-    if sub:
-        await db.delete(sub)
-        await db.commit()
+    if not sub:
+        return ApiResponse(data={"unsubscribed": True})
+
+    # --- 1. Delete the main subscription ---
+    await db.delete(sub)
+
+    # --- 2. Clean up credentials for connection-type resources ---
+    if body.resource_type == "connector":
+        await db.execute(
+            delete(ConnectorCredential).where(
+                ConnectorCredential.connector_id == body.resource_id,
+                ConnectorCredential.user_id == current_user.id,
+            )
+        )
+    elif body.resource_type == "mcp_server":
+        await db.execute(
+            delete(MCPServerCredential).where(
+                MCPServerCredential.server_id == body.resource_id,
+                MCPServerCredential.user_id == current_user.id,
+            )
+        )
+
+    # --- 3. Cascade-clean content deps for Solution-type resources ---
+    if body.resource_type in SOLUTION_TYPES:
+        await _cascade_clean_content_deps(
+            user_id=current_user.id,
+            unsubscribed_type=body.resource_type,
+            unsubscribed_id=body.resource_id,
+            db=db,
+        )
+
+    await db.commit()
     return ApiResponse(data={"unsubscribed": True})
+
+
+async def _cascade_clean_content_deps(
+    *,
+    user_id: str,
+    unsubscribed_type: str,
+    unsubscribed_id: str,
+    db: AsyncSession,
+) -> None:
+    """Remove orphaned content-dep subscriptions after a Solution is unsubscribed.
+
+    For each content dep of the unsubscribed Solution, checks whether any
+    OTHER subscribed Solution still references it.  If not, the content-dep
+    subscription is deleted.
+    """
+    manifest = await resolve_solution_dependencies(
+        unsubscribed_type, unsubscribed_id, db
+    )
+    if not manifest.content_deps:
+        return
+
+    # Get all remaining Solution subscriptions for this user
+    other_subs_result = await db.execute(
+        select(ResourceSubscription).where(
+            ResourceSubscription.user_id == user_id,
+            ResourceSubscription.resource_type.in_(list(SOLUTION_TYPES)),
+            # Exclude the one we just deleted (already removed from session,
+            # but belt-and-suspenders: filter by id)
+            ResourceSubscription.resource_id != unsubscribed_id,
+        )
+    )
+    other_solution_subs = other_subs_result.scalars().all()
+
+    # Pre-resolve deps for each remaining Solution (cache to avoid re-querying)
+    other_dep_sets: list[set[tuple[str, str]]] = []
+    for other_sub in other_solution_subs:
+        other_manifest = await resolve_solution_dependencies(
+            other_sub.resource_type, other_sub.resource_id, db
+        )
+        other_dep_sets.append(
+            {(d.resource_type, d.resource_id) for d in other_manifest.content_deps}
+        )
+
+    # Union all deps from other Solutions
+    all_still_needed: set[tuple[str, str]] = set()
+    for dep_set in other_dep_sets:
+        all_still_needed |= dep_set
+
+    # Delete orphaned content-dep subscriptions
+    for dep in manifest.content_deps:
+        dep_key = (dep.resource_type, dep.resource_id)
+        if dep_key in all_still_needed:
+            continue
+
+        dep_sub_result = await db.execute(
+            select(ResourceSubscription).where(
+                ResourceSubscription.user_id == user_id,
+                ResourceSubscription.resource_type == dep.resource_type,
+                ResourceSubscription.resource_id == dep.resource_id,
+            )
+        )
+        dep_sub_obj = dep_sub_result.scalar_one_or_none()
+        if dep_sub_obj:
+            logger.info(
+                "Cascade-deleting orphaned subscription: user=%s, type=%s, id=%s",
+                user_id, dep.resource_type, dep.resource_id,
+            )
+            await db.delete(dep_sub_obj)
 
 
 @router.get("/subscriptions", response_model=ApiResponse)
