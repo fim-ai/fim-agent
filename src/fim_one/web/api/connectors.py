@@ -21,7 +21,7 @@ from fim_one.core.tool.connector.semantic_tags import get_all_semantic_tags
 from fim_one.web.exceptions import AppError
 from fim_one.db import get_session
 from fim_one.web.auth import get_current_user, get_user_org_ids
-from fim_one.web.platform import is_market_org
+from fim_one.web.platform import MARKET_ORG_ID, is_market_org
 from fim_one.web.models.connector import Connector, ConnectorAction
 from fim_one.web.models.connector_credential import ConnectorCredential
 from fim_one.web.models.resource_subscription import ResourceSubscription
@@ -301,14 +301,16 @@ async def list_connectors(
     from fim_one.web.visibility import build_visibility_filter
     user_org_ids = await get_user_org_ids(current_user.id, db)
 
-    # Get subscribed connector IDs
+    # Get subscribed connector IDs with org_id for source tagging
     sub_result = await db.execute(
-        select(ResourceSubscription.resource_id).where(
+        select(ResourceSubscription.resource_id, ResourceSubscription.org_id).where(
             ResourceSubscription.user_id == current_user.id,
             ResourceSubscription.resource_type == "connector",
         )
     )
-    subscribed_connector_ids = sub_result.scalars().all()
+    sub_rows = sub_result.all()
+    subscribed_connector_ids = [r.resource_id for r in sub_rows]
+    sub_org_map = {r.resource_id: r.org_id for r in sub_rows}
 
     base = select(Connector).where(
         build_visibility_filter(Connector, current_user.id, user_org_ids, subscribed_ids=subscribed_connector_ids)
@@ -334,9 +336,10 @@ async def list_connectors(
         if c.user_id == current_user.id:
             resp.source = "own"
         elif c.id in subscribed_connector_ids_set:
-            resp.source = "installed"
+            sub_org_id = sub_org_map.get(c.id)
+            resp.source = "market" if sub_org_id == MARKET_ORG_ID else "org"
         else:
-            resp.source = "org"
+            resp.source = "org"  # fallback, should not be reached
         items.append(resp.model_dump())
 
     return PaginatedResponse(

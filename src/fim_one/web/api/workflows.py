@@ -26,7 +26,7 @@ from fim_one.db import get_session, create_session
 from fim_one.core.workflow.rate_limiter import WorkflowRateLimiter
 from fim_one.web.exceptions import AppError
 from fim_one.web.auth import get_current_user, get_user_org_ids
-from fim_one.web.platform import is_market_org
+from fim_one.web.platform import MARKET_ORG_ID, is_market_org
 from fim_one.web.models import User, Workflow, WorkflowApproval, WorkflowRun, WorkflowVersion
 from fim_one.web.models.resource_subscription import ResourceSubscription
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse, PublishRequest
@@ -369,14 +369,16 @@ async def list_workflows(
 ) -> PaginatedResponse:
     user_org_ids = await get_user_org_ids(current_user.id, db)
 
-    # Get subscribed workflow IDs
+    # Get subscribed workflow IDs with org_id for source tagging
     sub_result = await db.execute(
-        select(ResourceSubscription.resource_id).where(
+        select(ResourceSubscription.resource_id, ResourceSubscription.org_id).where(
             ResourceSubscription.user_id == current_user.id,
             ResourceSubscription.resource_type == "workflow",
         )
     )
-    subscribed_workflow_ids = sub_result.scalars().all()
+    sub_rows = sub_result.all()
+    subscribed_workflow_ids = [r.resource_id for r in sub_rows]
+    sub_org_map = {r.resource_id: r.org_id for r in sub_rows}
 
     base = select(Workflow).where(
         build_visibility_filter(Workflow, current_user.id, user_org_ids, subscribed_ids=subscribed_workflow_ids),
@@ -431,9 +433,10 @@ async def list_workflows(
         if w.user_id == current_user.id:
             resp.source = "own"
         elif w.id in subscribed_workflow_ids_set:
-            resp.source = "installed"
+            sub_org_id = sub_org_map.get(w.id)
+            resp.source = "market" if sub_org_id == MARKET_ORG_ID else "org"
         else:
-            resp.source = "org"
+            resp.source = "org"  # fallback, should not be reached
         items.append(resp.model_dump())
 
     return PaginatedResponse(
