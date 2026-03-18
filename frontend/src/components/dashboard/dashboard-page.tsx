@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
-import { MessageSquare, Bot, Database, Plug, TrendingUp, TrendingDown, Minus, Activity, Library, Clock, ChevronRight, ShoppingBag, GitBranch } from "lucide-react"
+import { MessageSquare, Bot, Database, Plug, TrendingUp, TrendingDown, Minus, Activity, Library, Clock, ChevronRight, GitBranch } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { zhCN, enUS } from "date-fns/locale"
 import {
@@ -25,7 +25,8 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
 import { useConversation } from "@/contexts/conversation-context"
 import { UserAvatar as SharedUserAvatar } from "@/components/shared/user-avatar"
-import { dashboardApi, marketApi, type DashboardStats, type MarketItem } from "@/lib/api"
+import { dashboardApi, workflowApi, type DashboardStats } from "@/lib/api"
+import type { WorkflowResponse } from "@/types/workflow"
 import { cn, formatTokens } from "@/lib/utils"
 
 const TICK_STYLE = { fill: "currentColor", fontSize: 11 } as const
@@ -173,7 +174,7 @@ export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [marketItems, setMarketItems] = useState<MarketItem[]>([])
+  const [workflows, setWorkflows] = useState<WorkflowResponse[]>([])
 
   // Auth guard
   useEffect(() => {
@@ -182,16 +183,20 @@ export function DashboardPage() {
     }
   }, [authLoading, user, router])
 
-  // Fetch dashboard stats + market items
+  // Fetch dashboard stats + workflows
   useEffect(() => {
     if (!user) return
     setLoading(true)
-    dashboardApi
-      .stats()
-      .then((data) => setStats(data))
+    Promise.all([
+      dashboardApi.stats(),
+      workflowApi.list(1, 10),
+    ])
+      .then(([statsData, workflowsData]) => {
+        setStats(statsData)
+        setWorkflows(workflowsData.items)
+      })
       .catch((err) => setError(err instanceof Error ? err.message : t("error")))
       .finally(() => setLoading(false))
-    marketApi.browse({ size: 4 }).then((res) => setMarketItems(res.items)).catch(() => {})
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // While auth is resolving or user is not available
@@ -221,9 +226,14 @@ export function DashboardPage() {
               onClick={() => {
                 setError(null)
                 setLoading(true)
-                dashboardApi
-                  .stats()
-                  .then((data) => setStats(data))
+                Promise.all([
+                  dashboardApi.stats(),
+                  workflowApi.list(1, 10),
+                ])
+                  .then(([statsData, workflowsData]) => {
+                    setStats(statsData)
+                    setWorkflows(workflowsData.items)
+                  })
                   .catch((err) => setError(err instanceof Error ? err.message : t("error")))
                   .finally(() => setLoading(false))
               }}
@@ -235,6 +245,38 @@ export function DashboardPage() {
       </div>
     )
   }
+
+  // My Agents (by usage)
+  const sortedAgents = useMemo(
+    () => [...(stats?.top_agents ?? [])].sort((a, b) => b.conversation_count - a.conversation_count).slice(0, 6),
+    [stats?.top_agents]
+  )
+
+  // Workflows (by recency)
+  const sortedWorkflows = useMemo(
+    () => [...(workflows ?? [])].sort((a, b) => {
+      const timeA = new Date(a.updated_at || a.created_at).getTime()
+      const timeB = new Date(b.updated_at || b.created_at).getTime()
+      return timeB - timeA
+    }).slice(0, 4),
+    [workflows]
+  )
+
+  // Connectors (by activity & status)
+  const sortedConnectors = useMemo(
+    () => [...(stats?.connector_health ?? [])].sort((a, b) => {
+      if (a.status === "active" && b.status !== "active") return -1
+      if (a.status !== "active" && b.status === "active") return 1
+      return b.call_count_today - a.call_count_today
+    }).slice(0, 4),
+    [stats?.connector_health]
+  )
+
+  // KB (by document count)
+  const sortedKBs = useMemo(
+    () => [...(stats?.top_kbs ?? [])].sort((a, b) => b.document_count - a.document_count).slice(0, 4),
+    [stats?.top_kbs]
+  )
 
   // Stat card config
   const statCards = [
@@ -518,22 +560,8 @@ export function DashboardPage() {
         {/* ---- 4. Content Cards ---- */}
         {loading ? (
           <>
-            {/* Row A skeleton */}
+            {/* Row A skeleton: My Agents + Recent Conversations */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* Recent Conversations skeleton */}
-              <Card className="gap-0 py-2">
-                <CardHeader className="px-5 py-3">
-                  <Skeleton className="h-5 w-40" />
-                </CardHeader>
-                <CardContent className="px-0 pb-1">
-                  <ul className="divide-y divide-border">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <li key={i}><Skeleton.ListRow /></li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-
               {/* My Agents skeleton */}
               <Card className="gap-0 py-2">
                 <CardHeader className="px-5 py-3">
@@ -545,47 +573,14 @@ export function DashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            {/* Row B skeleton: KB + Connectors + Workflows */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {/* KB skeleton */}
+              {/* Recent Conversations skeleton */}
               <Card className="gap-0 py-2">
                 <CardHeader className="px-5 py-3">
-                  <Skeleton className="h-5 w-32" />
-                </CardHeader>
-                <CardContent className="px-5 pb-4 pt-1">
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => <Skeleton.KbCard key={i} />)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Connectors skeleton */}
-              <Card className="gap-0 py-2">
-                <CardHeader className="px-5 py-3">
-                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-5 w-40" />
                 </CardHeader>
                 <CardContent className="px-0 pb-1">
-                  <ul className="divide-y divide-border">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <li key={i}><Skeleton.ListRow twoLines /></li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-
-              {/* Workflows skeleton */}
-              <Card className="gap-0 py-2">
-                <CardHeader className="px-5 py-3">
-                  <Skeleton className="h-5 w-24" />
-                </CardHeader>
-                <CardContent className="px-5 pb-4 pt-1">
-                  <div className="space-y-2 mb-3">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                  <ul className="divide-y divide-border">
+                  <ul className="divide-y divide-border/50">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <li key={i}><Skeleton.ListRow /></li>
                     ))}
@@ -594,32 +589,71 @@ export function DashboardPage() {
               </Card>
             </div>
 
-            {/* Market Spotlight skeleton */}
-            <Card className="gap-0 py-2">
-              <CardHeader className="px-5 py-3">
-                <Skeleton className="h-5 w-36" />
-              </CardHeader>
-              <CardContent className="px-5 pb-4 pt-1">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="rounded-lg border border-border p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-8 w-8 rounded-lg" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Row B skeleton: KB + Connectors + Workflows */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="gap-0 py-2">
+                  <CardHeader className="px-5 py-3">
+                    <Skeleton className="h-5 w-28" />
+                  </CardHeader>
+                  <CardContent className="px-0 pb-1">
+                    <ul className="divide-y divide-border/50">
+                      {Array.from({ length: 4 }).map((_, j) => (
+                        <li key={j}><Skeleton.ListRow /></li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </>
         ) : (
           <>
-            {/* Row A: Recent Conversations + My Agents */}
+            {/* Row A: My Agents + Recent Conversations */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+              {/* My Agents */}
+              <Card className="gap-0 py-2">
+                <CardHeader className="px-5 py-3">
+                  <Link href="/agents" className="group flex items-center justify-between rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    <CardTitle className="flex items-center gap-2 text-base font-medium">
+                      <Bot className="h-4 w-4 text-muted-foreground" />
+                      {t("agentsTitle")}
+                    </CardTitle>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </Link>
+                </CardHeader>
+                <CardContent className="px-5 pb-4 pt-1">
+                  {!sortedAgents.length ? (
+                    <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
+                      <p>{t("agentsEmpty")}</p>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/agents/new">{t("agentsCreate")}</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {sortedAgents.map((agent) => (
+                        <Link
+                          key={agent.id}
+                          href={`/agents/${agent.id}`}
+                          className="flex items-start gap-3 rounded-xl border border-border bg-card/50 p-3 transition-all hover:border-border/80 hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <AgentIcon icon={agent.icon} name={agent.name} />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-foreground">
+                              {agent.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground/80 mt-0.5">
+                              {t("agentsConvCount", { count: agent.conversation_count })}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Recent Conversations */}
               <Card className="gap-0 py-2">
@@ -641,20 +675,17 @@ export function DashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    <ul className="divide-y divide-border">
-                      {conversations.slice(0, 6).map((conv) => (
+                    <ul className="divide-y divide-border/50">
+                      {conversations.slice(0, 5).map((conv) => (
                         <li key={conv.id}>
                           <Link
                             href={`/?c=${conv.id}`}
-                            className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
-                            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-muted">
-                              <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                            </span>
-                            <p className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">
+                            <p className="flex-1 min-w-0 truncate text-sm font-medium text-foreground/90">
                               {conv.title || t("untitled")}
                             </p>
-                            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                            <span className="shrink-0 text-xs text-muted-foreground/70 tabular-nums">
                               {relativeTime(conv.updated_at ?? conv.created_at, locale)}
                             </span>
                           </Link>
@@ -664,55 +695,9 @@ export function DashboardPage() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* My Agents */}
-              <Card className="gap-0 py-2">
-                <CardHeader className="px-5 py-3">
-                  <Link href="/agents" className="group flex items-center justify-between rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                    <CardTitle className="flex items-center gap-2 text-base font-medium">
-                      <Bot className="h-4 w-4 text-muted-foreground" />
-                      {t("agentsTitle")}
-                    </CardTitle>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                  </Link>
-                </CardHeader>
-                <CardContent className="px-5 pb-4 pt-1">
-                  {!stats?.top_agents.length ? (
-                    <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
-                      <p>{t("agentsEmpty")}</p>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href="/agents/new">{t("agentsCreate")}</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {stats.top_agents.slice(0, 4).map((agent) => (
-                        <Link
-                          key={agent.id}
-                          href={`/agents/${agent.id}`}
-                          className="flex items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        >
-                          <AgentIcon icon={agent.icon} name={agent.name} />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {agent.name}
-                            </p>
-                            <Badge
-                              variant="secondary"
-                              className="mt-1 h-5 px-2 text-xs font-normal"
-                            >
-                              {t("agentsConvCount", { count: agent.conversation_count })}
-                            </Badge>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
 
-            {/* Row B: Knowledge Bases + Connector Health + Workflows */}
+            {/* Row B: Knowledge Bases + Connectors + Workflows */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
               {/* Knowledge Bases */}
@@ -726,39 +711,40 @@ export function DashboardPage() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   </Link>
                 </CardHeader>
-                <CardContent className="px-5 pb-4 pt-1">
-                  {!stats?.top_kbs.length ? (
-                    <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
+                <CardContent className="px-0 pb-1">
+                  {!sortedKBs.length ? (
+                    <div className="flex flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground">
                       <p>{t("kbEmpty")}</p>
                       <Button variant="outline" size="sm" asChild>
                         <Link href="/kb">{t("kbCreate")}</Link>
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {stats.top_kbs.slice(0, 3).map((kb) => (
-                        <Link
-                          key={kb.id}
-                          href={`/kb/${kb.id}`}
-                          className="flex flex-col gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        >
-                          <p className="truncate text-sm font-medium text-foreground">{kb.name}</p>
-                          <div className="flex gap-2">
-                            <Badge variant="secondary" className="h-5 px-2 text-xs font-normal">
-                              {t("kbDocs", { count: kb.document_count })}
-                            </Badge>
-                            <Badge variant="secondary" className="h-5 px-2 text-xs font-normal">
-                              {t("kbChunks", { count: kb.total_chunks })}
-                            </Badge>
-                          </div>
-                        </Link>
+                    <ul className="divide-y divide-border/50">
+                      {sortedKBs.map((kb) => (
+                        <li key={kb.id}>
+                          <Link
+                            href={`/kb/${kb.id}`}
+                            className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-muted/60">
+                              <Library className="h-3.5 w-3.5 text-muted-foreground" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">{kb.name}</p>
+                              <span className="text-[11px] text-muted-foreground/70">
+                                {t("kbDocs", { count: kb.document_count })} · {t("kbChunks", { count: kb.total_chunks })}
+                              </span>
+                            </div>
+                          </Link>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Connector Health */}
+              {/* Connectors */}
               <Card className="gap-0 py-2">
                 <CardHeader className="px-5 py-3">
                   <Link href="/connectors" className="group flex items-center justify-between rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
@@ -770,7 +756,7 @@ export function DashboardPage() {
                   </Link>
                 </CardHeader>
                 <CardContent className="px-0 pb-1">
-                  {!stats?.connector_health.length ? (
+                  {!sortedConnectors.length ? (
                     <div className="flex flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground">
                       <p>{t("connectorsEmpty")}</p>
                       <Button variant="outline" size="sm" asChild>
@@ -778,14 +764,14 @@ export function DashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    <ul className="divide-y divide-border">
-                      {stats.connector_health.slice(0, 5).map((conn) => (
+                    <ul className="divide-y divide-border/50">
+                      {sortedConnectors.map((conn) => (
                         <li key={conn.id}>
                           <Link
                             href={`/connectors/${conn.id}`}
-                            className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
-                            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-muted">
+                            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-muted/60">
                               {conn.icon ? (
                                 <span className="text-base">{conn.icon}</span>
                               ) : (
@@ -794,18 +780,19 @@ export function DashboardPage() {
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-foreground">{conn.name}</p>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-[11px] text-muted-foreground/70">
                                 {conn.call_count_today > 0
                                   ? t("connectorCallsToday", { count: conn.call_count_today })
                                   : t("connectorNoCallsRecently")}
                               </span>
                             </div>
                             <Badge
-                              variant={conn.status === "active" ? "secondary" : conn.status === "error" ? "destructive" : "outline"}
+                              variant="secondary"
                               className={cn(
-                                "h-5 px-2 text-xs font-normal shrink-0",
-                                conn.status === "active" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-                                conn.status === "inactive" && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                "h-5 px-1.5 text-[10px] uppercase tracking-wider font-semibold shrink-0 border-none",
+                                conn.status === "active"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-muted text-muted-foreground/80"
                               )}
                             >
                               {conn.status === "active" ? t("statusActive") : conn.status === "error" ? t("statusError") : t("statusInactive")}
@@ -829,121 +816,54 @@ export function DashboardPage() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   </Link>
                 </CardHeader>
-                <CardContent className="px-5 pb-4 pt-1">
-                  {!stats?.total_workflows ? (
-                    <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
+                <CardContent className="px-0 pb-1">
+                  {!sortedWorkflows.length ? (
+                    <div className="flex flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground">
                       <p>{t("workflowsEmpty")}</p>
                       <Button variant="outline" size="sm" asChild>
                         <Link href="/workflows">{t("workflowsCreate")}</Link>
                       </Button>
                     </div>
                   ) : (
-                    <>
-                      {/* Summary stats */}
-                      <div className="flex flex-wrap gap-3 mb-3">
-                        <span className="text-xs text-muted-foreground">
-                          {t("workflowTotal", { count: stats.total_workflows })}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {t("workflowRunsToday", { count: stats.workflow_runs_today })}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {t("workflowSuccessRate", { rate: stats.workflow_success_rate })}
-                        </span>
-                      </div>
-                      {/* Recent runs */}
-                      {!stats.recent_workflow_runs?.length ? (
-                        <p className="py-4 text-center text-xs text-muted-foreground">
-                          {t("workflowsEmpty")}
-                        </p>
-                      ) : (
-                        <ul className="-mx-5 divide-y divide-border">
-                          {stats.recent_workflow_runs.slice(0, 5).map((run) => (
-                            <li key={run.id}>
-                              <Link
-                                href={`/workflows/${run.workflow_id}`}
-                                className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                              >
-                                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-muted">
-                                  <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-                                </span>
-                                <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                                  {run.workflow_name}
-                                </p>
-                                <Badge
-                                  variant={run.status === "failed" ? "destructive" : "secondary"}
-                                  className={cn(
-                                    "h-5 px-2 text-xs font-normal shrink-0",
-                                    run.status === "completed" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-                                    run.status === "running" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                                    run.status === "cancelled" && "bg-muted text-muted-foreground"
-                                  )}
-                                >
-                                  {run.status === "completed" ? t("workflowRunCompleted")
-                                    : run.status === "failed" ? t("workflowRunFailed")
-                                    : run.status === "running" ? t("workflowRunRunning")
-                                    : t("workflowRunCancelled")}
-                                </Badge>
-                                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                                  {relativeTime(run.created_at, locale)}
-                                </span>
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </>
+                    <ul className="divide-y divide-border/50">
+                      {sortedWorkflows.map((w) => (
+                        <li key={w.id}>
+                          <Link
+                            href={`/workflows/${w.id}`}
+                            className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-muted/60">
+                              {w.icon ? (
+                                <span className="text-base">{w.icon}</span>
+                              ) : (
+                                <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">{w.name}</p>
+                              <span className="text-[11px] text-muted-foreground/70">
+                                {relativeTime(w.updated_at || w.created_at, locale)}
+                              </span>
+                            </div>
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "h-5 px-1.5 text-[10px] uppercase tracking-wider font-semibold shrink-0 border-none",
+                                w.is_active
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-muted text-muted-foreground/80"
+                              )}
+                            >
+                              {w.is_active ? t("statusActive") : t("statusInactive")}
+                            </Badge>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </CardContent>
               </Card>
             </div>
-
-            {/* Market Spotlight */}
-            <Card className="gap-0 py-2">
-              <CardHeader className="px-5 py-3">
-                <Link href="/market" className="group flex items-center justify-between rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                  <CardTitle className="flex items-center gap-2 text-base font-medium">
-                    <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                    {t("marketTitle")}
-                  </CardTitle>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                </Link>
-              </CardHeader>
-              <CardContent className="px-5 pb-4 pt-1">
-                {!marketItems.length ? (
-                  <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
-                    <p>{t("marketEmpty")}</p>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/market">{t("marketEmptyCta")}</Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-                    {marketItems.slice(0, 4).map((item) => (
-                      <Link
-                        key={item.id}
-                        href="/market"
-                        className="flex flex-col gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-base">
-                            {item.icon || <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground" />}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-                          </div>
-                        </div>
-                        <p className="line-clamp-2 text-xs text-muted-foreground">{item.description || ""}</p>
-                        <div className="flex items-center gap-2 mt-auto">
-                          <Badge variant="secondary" className="text-xs font-normal">{item.resource_type.replace("_", " ")}</Badge>
-                          {item.is_subscribed && <Badge variant="outline" className="text-xs font-normal text-emerald-600">{t("marketSubscribed")}</Badge>}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </>
         )}
       </div>
