@@ -3,7 +3,7 @@ title: "권장 모델"
 description: "FIM One 배포에 적합한 LLM을 선택하세요."
 ---
 
-FIM One은 **공급자에 무관합니다** — 모든 OpenAI 호환 엔드포인트가 작동합니다. 이 페이지는 사용 사례에 맞는 최적의 모델 조합을 선택하는 데 도움을 줍니다. 구성 세부 사항은 [환경 변수](/configuration/environment-variables)를 참조하세요.
+FIM One은 **공급자 독립적**입니다 — 모든 OpenAI 호환 엔드포인트가 작동합니다. 이 페이지는 사용 사례에 맞는 최적의 모델 조합을 선택하는 데 도움을 줍니다. 구성 세부 정보는 [환경 변수](/configuration/environment-variables)를 참조하세요.
 
 ## FIM One이 모델을 사용하는 방식
 
@@ -16,16 +16,18 @@ FIM One에는 두 개의 모델 슬롯이 있습니다:
 
 `FAST_LLM_MODEL`이 설정되지 않으면 `LLM_MODEL`로 폴백됩니다. 프로덕션 배포의 경우, 두 개의 모델로 분리하면 최적의 비용/품질 균형을 얻을 수 있습니다.
 
+---
+
 ## 빠른 선택 매트릭스
 
-| 제공자 | 주요 LLM | 빠른 LLM | 추론 | 참고 |
+| 제공자 | 메인 LLM | 빠른 LLM | 추론 | 참고 |
 |---|---|---|---|---|
-| **OpenAI** | `gpt-5.4` / `o3` | `gpt-5-mini` / `gpt-5-nano` | ✅ `reasoning_effort` | 최고의 기본 도구 호출; GPT-5.4는 최신 플래그십 |
-| **Anthropic** | `claude-sonnet-4-6` | `claude-haiku-4-5` | ✅ LiteLLM 경유 | 기본 API 라우팅; 전체 `reasoning_content` 지원 |
+| **OpenAI** | `gpt-5.4` / `o3` | `gpt-5-mini` / `gpt-5-nano` | ✅ `reasoning_effort` | 최고의 네이티브 도구 호출; GPT-5.4는 최신 플래그십 |
+| **Anthropic** | `claude-sonnet-4-6` | `claude-haiku-4-5` | ✅ LiteLLM 경유 | 네이티브 API 라우팅; 전체 `reasoning_content` 지원 |
 | **Google Gemini** | `gemini-2.5-pro` / `gemini-3.1-pro-preview` | `gemini-2.5-flash` / `gemini-3-flash-preview` | ✅ `reasoning_effort` | 2.5는 안정적 GA; 3.x는 미리보기 |
-| **DeepSeek** | `deepseek-chat` (V3.2) | `deepseek-chat` | ✅ `deepseek-reasoner` | 최고의 비용/성능; V4 임박 |
+| **DeepSeek** | `deepseek-chat` (V3.2) | `deepseek-chat` | ✅ `deepseek-reasoner` | 최고의 비용/성능; V4 곧 출시 |
 | **Qwen (Alibaba)** | `qwen3.5-plus` / `qwen3-max` | `qwen-turbo` | ✅ `qwen3-max-thinking` | 가장 강력한 중국어 지원 |
-| **ChatGLM (Zhipu)** | `glm-5` | `glm-4-flash` | ❌ | GLM-5는 744B MoE; glm-4-flash 무료 계층 |
+| **ChatGLM (Zhipu)** | `glm-5` | `glm-4-flash` | ❌ | GLM-5는 744B MoE; glm-4-flash 무료 티어 |
 | **MiniMax** | `MiniMax-M2.5` | `MiniMax-M2.5-Lightning` | ❌ | 오픈 가중치, 강력한 코딩 (80.2% SWE-Bench) |
 | **Kimi (Moonshot)** | `kimi-k2.5` | `kimi-k2.5` | ❌ | 256K 컨텍스트, 강력한 코딩 |
 | **Ollama (로컬)** | `qwen3.5` / `llama4` | `qwen3.5:9b` | ❌ | 완전 오프라인, API 키 불필요 |
@@ -36,14 +38,14 @@ FIM One에는 두 개의 모델 슬롯이 있습니다:
 
 ### OpenAI
 
-가장 검증된 옵션입니다. OpenAI 모델은 최고의 네이티브 함수 호출(도구 호출) 지원을 제공하며, 이는 에이전트 안정성에 직접적인 영향을 미칩니다. GPT-5 패밀리(2025년 8월 이후)는 GPT-4에 비해 주요 세대 도약입니다.
+가장 검증된 옵션입니다. OpenAI 모델은 최고 수준의 네이티브 함수 호출(도구 호출) 지원을 제공하며, 이는 에이전트 신뢰성에 직접적인 영향을 미칩니다. GPT-5 패밀리(2025년 8월 이후)는 GPT-4보다 한 세대 앞선 주요 도약입니다.
 
 **권장 모델:**
 - 메인: `gpt-5.4` (최신 플래그십, 2026년 3월 — 내장 컴퓨터 사용) 또는 `o3` (최고의 추론 정확도)
 - 빠름: `gpt-5-mini` (MTok당 $0.25/$2.00) 또는 `gpt-5-nano` (MTok당 $0.05/$0.40로 가장 저렴)
-- 레거시: `gpt-4.1` (API에서 여전히 사용 가능, 1M 컨텍스트, 코딩에 적합) — 2026년 2월 ChatGPT에서 중단됨
+- 레거시: `gpt-4.1` (여전히 API에 있음, 1M 컨텍스트, 코딩에 적합) — 2026년 2월 ChatGPT에서 중단됨
 
-**추론:** `LLM_REASONING_EFFORT=medium`을 설정하세요 — o-series 및 GPT-5.x 모델과 기본적으로 작동합니다. o-series는 `max_tokens` 대신 `max_completion_tokens`을 필요로 하며, LiteLLM이 자동으로 처리합니다. 참고: GPT-5.x는 `/v1/chat/completions`에서 `reasoning_effort`와 도구 호출을 함께 지원하지 않습니다 — FIM One은 에이전트 도구 사용 단계에서 이를 자동으로 제거하여 워크플로우가 중단 없이 실행되도록 합니다. GPT-5.x는 `temperature=1`만 지원합니다 — FIM One은 LiteLLM의 매개변수 필터링(`drop_params`)을 통해 자동으로 처리합니다.
+**추론:** `LLM_REASONING_EFFORT=medium`을 설정하세요 — o-series 및 GPT-5.x 모델과 기본적으로 작동합니다. o-series는 `max_tokens` 대신 `max_completion_tokens`이 필요하며, LiteLLM이 자동으로 처리합니다. 참고: GPT-5.x는 `/v1/chat/completions`에서 `reasoning_effort`와 도구 호출을 함께 지원하지 않습니다 — FIM One은 에이전트 도구 사용 단계에서 이를 자동으로 제거하여 워크플로우가 중단 없이 실행되도록 합니다. GPT-5.x는 `temperature=1`만 지원합니다 — FIM One은 LiteLLM의 매개변수 필터링(`drop_params`)을 통해 자동으로 처리합니다.
 
 | 모델 | 입력 $/MTok | 출력 $/MTok | 컨텍스트 |
 |---|---|---|---|
@@ -54,7 +56,7 @@ FIM One에는 두 개의 모델 슬롯이 있습니다:
 | `gpt-5-nano` | $0.05 | $0.40 | — |
 
 ```bash
-# .env — OpenAI (프로덕션 추론 포함)
+# .env — OpenAI (production with reasoning)
 LLM_API_KEY=sk-...
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_MODEL=gpt-5.4
@@ -63,13 +65,15 @@ LLM_REASONING_EFFORT=medium
 ```
 
 ```bash
-# .env — OpenAI (예산 추론)
+# .env — OpenAI (budget reasoning)
 LLM_API_KEY=sk-...
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_MODEL=o3
 FAST_LLM_MODEL=gpt-5-nano
 LLM_REASONING_EFFORT=medium
 ```
+
+---
 
 ### Anthropic (Claude)
 
@@ -78,17 +82,15 @@ Claude는 미묘한 추론과 복잡한 다단계 작업에 탁월합니다. FIM
 **권장 모델:**
 - Main: `claude-sonnet-4-6` (기능과 비용의 최적 균형 — $3/$15 per MTok)
 - Fast: `claude-haiku-4-5` (빠르고 저렴함 — $1/$5 per MTok)
-- Premium: `claude-opus-4-6` (가장 강력함, 최대 출력 128K — $5/$25 per MTok)
+- Premium: `claude-opus-4-6` (가장 강력함, 최대 128K 출력 — $5/$25 per MTok)
 
 **Base URL:** `https://api.anthropic.com/v1/`
 
-모든 현재 Claude 모델은 확장 사고를 지원하며 200K 컨텍스트 윈도우(베타에서 1M)를 가지고 있습니다.
+모든 현재 Claude 모델은 확장 사고를 지원하며 200K 컨텍스트 윈도우(베타에서 1M)를 가집니다.
 
-**추론:** `LLM_REASONING_EFFORT=medium`을 설정하세요 — LiteLLM은 Anthropic 모델을 네이티브 API를 통해 라우팅하므로, `reasoning_content`(확장 사고)가 완전히 반환되고 UI의 "thinking" 단계에서 표시됩니다. 확장 사고가 활성화되면 Anthropic은 `temperature=1`을 요구합니다 — `.env` 또는 모델 구성에서 `LLM_TEMPERATURE=1`을 설정하세요. 자세한 내용은 [Extended Thinking](/configuration/environment-variables#extended-thinking-reasoning)을 참조하세요.
+**추론:** `LLM_REASONING_EFFORT=medium`을 설정하세요 — LiteLLM은 Anthropic 모델을 네이티브 API를 통해 라우팅하므로, `reasoning_content`(확장 사고)가 완전히 반환되고 UI "thinking" 단계에서 표시됩니다. 확장 사고가 활성화되면 Anthropic은 `temperature=1`을 요구합니다 — `.env` 또는 모델 구성에서 `LLM_TEMPERATURE=1`을 설정하세요. 자세한 내용은 [Extended Thinking](/configuration/environment-variables#extended-thinking-reasoning)을 참조하세요.
 
 ```bash
-
-```
 # .env — Anthropic Claude
 LLM_API_KEY=sk-ant-...
 LLM_BASE_URL=https://api.anthropic.com/v1/
@@ -101,11 +103,11 @@ LLM_REASONING_EFFORT=medium
 
 ### Google Gemini
 
-Gemini 모델은 Google의 OpenAI 호환 엔드포인트를 통해 경쟁력 있는 가격으로 강력한 성능을 제공합니다. 3.x 세대(2025년 말 이후)는 큰 도약입니다 — Gemini 3 Flash는 2.5 Pro보다 성능이 우수하면서 3배 더 빠릅니다.
+Gemini 모델은 Google의 OpenAI 호환 엔드포인트를 통해 경쟁력 있는 가격으로 강력한 성능을 제공합니다. 3.x 세대(2025년 말 이후)는 큰 도약입니다 — Gemini 3 Flash는 2.5 Pro를 능가하면서 3배 더 빠릅니다.
 
 **권장 모델:**
-- 안정적(GA): `gemini-2.5-pro` (주요) + `gemini-2.5-flash` (빠름) — 프로덕션 준비 완료
-- 최신(Preview): `gemini-3.1-pro-preview` (주요) + `gemini-3-flash-preview` (빠름) — 최고 성능, 하지만 preview 상태
+- 안정(GA): `gemini-2.5-pro` (메인) + `gemini-2.5-flash` (빠름) — 프로덕션 준비 완료
+- 최신(Preview): `gemini-3.1-pro-preview` (메인) + `gemini-3-flash-preview` (빠름) — 최고 성능, 하지만 preview 상태
 
 **Base URL:** `https://generativelanguage.googleapis.com/v1beta/openai/`
 
@@ -115,9 +117,9 @@ Gemini 모델은 Google의 OpenAI 호환 엔드포인트를 통해 경쟁력 있
 |---|---|---|---|
 | `gemini-3.1-pro-preview` | $2.00 | $12.00 | Preview |
 | `gemini-3-flash-preview` | $0.50 | $3.00 | Preview |
-| `gemini-2.5-pro` | $1.25 | $10.00 | Stable GA |
-| `gemini-2.5-flash` | $0.30 | $2.50 | Stable GA |
-| `gemini-2.5-flash-lite` | $0.10 | $0.40 | Stable GA |
+| `gemini-2.5-pro` | $1.25 | $10.00 | 안정 GA |
+| `gemini-2.5-flash` | $0.30 | $2.50 | 안정 GA |
+| `gemini-2.5-flash-lite` | $0.10 | $0.40 | 안정 GA |
 
 ```bash
 # .env — Gemini (stable)
@@ -129,7 +131,7 @@ LLM_REASONING_EFFORT=medium
 ```
 
 ```bash
-# .env — Gemini (최신 미리보기)
+# .env — Gemini (latest preview)
 LLM_API_KEY=AIza...
 LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 LLM_MODEL=gemini-3.1-pro-preview
@@ -141,7 +143,7 @@ LLM_REASONING_EFFORT=medium
 
 ### DeepSeek
 
-DeepSeek는 시장에서 최고의 비용/성능 비율을 제공합니다. V3.2(2025년 12월)는 채팅과 추론 라인을 단일 모델로 통합했으며, 매우 저렴한 가격입니다.
+DeepSeek는 시장에서 최고의 비용/성능 비율을 제공합니다. V3.2(2025년 12월)는 채팅과 추론 라인을 단일 모델로 통합했으며, 매우 낮은 가격을 제공합니다.
 
 **모델 ID** (모두 V3.2로 지원됨):
 - `deepseek-chat` — 범용(비사고 모드)
@@ -151,10 +153,10 @@ DeepSeek는 시장에서 최고의 비용/성능 비율을 제공합니다. V3.2
 
 **가격:** MTok당 $0.28/$0.42 (캐시 히트: $0.028) — 지금까지 가장 저렴한 최첨단 API입니다.
 
-> **V4가 임박했습니다** (2026년 3월): 1M 컨텍스트 윈도우를 가진 조 단위 매개변수 멀티모달 모델. 출시 시 새로운 모델 ID를 예상하세요.
+> **V4가 임박함** (2026년 3월): 1M 컨텍스트 윈도우를 가진 조 단위 매개변수 멀티모달 모델. 출시 시 새로운 모델 ID를 기대하세요.
 
 ```bash
-# .env — DeepSeek (예산 친화적)
+# .env — DeepSeek (budget-friendly)
 LLM_API_KEY=sk-...
 LLM_BASE_URL=https://api.deepseek.com
 LLM_MODEL=deepseek-chat
@@ -162,7 +164,7 @@ FAST_LLM_MODEL=deepseek-chat
 ```
 
 ```bash
-# .env — DeepSeek (추론 포함)
+# .env — DeepSeek (with reasoning)
 LLM_API_KEY=sk-...
 LLM_BASE_URL=https://api.deepseek.com
 LLM_MODEL=deepseek-reasoner
@@ -173,11 +175,11 @@ FAST_LLM_MODEL=deepseek-chat
 
 ### 중국 국내 모델
 
-모든 주요 중국 모델 제공자는 OpenAI 호환 엔드포인트를 제공합니다. 이들은 중국어 작업에 특히 강력하며 경쟁력 있는 로컬 가격을 제공합니다.
+모든 주요 중국 모델 제공업체는 OpenAI 호환 엔드포인트를 제공합니다. 이들은 중국어 작업에 특히 강력하며 경쟁력 있는 로컬 가격을 제공합니다.
 
 #### Qwen / 通义千问 (Alibaba Cloud)
 
-Qwen 3.5 (2026년 2월)는 최신 세대입니다 — 397B MoE 플래그십이 MMLU-Pro에서 GPT-5.2를 능가합니다.
+Qwen 3.5 (2026년 2월)는 최신 세대입니다 — 397B MoE 플래그십 모델이 MMLU-Pro에서 GPT-5.2를 능가합니다.
 
 - **Base URL:** `https://dashscope.aliyuncs.com/compatible-mode/v1`
 - **International:** `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`
@@ -230,9 +232,9 @@ LLM_MODEL=MiniMax-M2.5
 FAST_LLM_MODEL=MiniMax-M2.5-Lightning
 ```
 
-#### Kimi / 월지암면 (Moonshot)
+#### Kimi / 月之暗面 (Moonshot)
 
-Kimi K2.5 (2026년 1월)는 256K 컨텍스트를 가지고 있으며 강력한 코딩 성능(오픈소스 모델 중 SWE-Bench 76.8%)을 제공합니다.
+Kimi K2.5 (2026년 1월)는 256K 컨텍스트와 강력한 코딩 성능(오픈소스 모델 중 SWE-Bench 76.8%)을 갖추고 있습니다.
 
 - **Base URL:** `https://api.moonshot.ai/v1`
 - **Model:** `kimi-k2.5`
@@ -249,27 +251,27 @@ FAST_LLM_MODEL=kimi-k2.5
 
 ### 로컬 모델 (Ollama)
 
-자신의 하드웨어에서 모델을 완전히 실행하세요 — API 키가 필요 없고, 완전히 오프라인입니다. Ollama는 기본적으로 OpenAI 호환 엔드포인트를 제공합니다. 오픈소스 환경이 극적으로 변했습니다 — Qwen 3.5, Llama 4, GPT-OSS(OpenAI의 첫 번째 오픈 가중치 모델)가 모두 사용 가능합니다.
+자신의 하드웨어에서 모델을 완전히 실행하세요 — API 키가 필요 없고, 완전히 오프라인입니다. Ollama는 기본적으로 OpenAI 호환 엔드포인트를 제공합니다. 오픈소스 환경이 극적으로 변했습니다 — Qwen 3.5, Llama 4, GPT-OSS (OpenAI의 첫 오픈 가중치 모델)이 모두 사용 가능합니다.
 
 **기본 URL:** `http://localhost:11434/v1`
 
 **VRAM별 권장 모델:**
 
-| VRAM | 메인 LLM | 빠른 LLM | 참고 |
+| VRAM | 주요 LLM | 빠른 LLM | 참고 |
 |---|---|---|---|
 | 8 GB | `qwen3.5:9b` / `gemma3:4b` | `qwen3.5:4b` | Qwen 3.5 9B는 이 계층에서 최고 |
 | 16 GB | `gpt-oss:20b` / `deepseek-r1:14b` | `qwen3.5:9b` | GPT-OSS 20B는 에이전트 최적화됨 |
 | 24 GB | `qwen3:32b` / `deepseek-r1:32b` | `qwen3.5:9b` | Qwen 3 32B는 도구 호출에 최적 |
-| 48 GB+ | `llama3.3:70b` / `gpt-oss:120b` | `qwen3.5:14b` | 거의 최첨단 수준의 품질 |
+| 48 GB+ | `llama3.3:70b` / `gpt-oss:120b` | `qwen3.5:14b` | 최신 수준의 품질 |
 
-**도구 호출에 최적:** Qwen 3/3.5 (32B+), GLM-4.7, GPT-OSS, Mistral — 이들은 명시적 함수 호출 학습을 받았습니다. 14B+ 파라미터를 가진 모델이 안정적인 도구 호출의 최소 요구사항이며, 32B+가 강력히 권장됩니다.
+**도구 호출에 최적:** Qwen 3/3.5 (32B+), GLM-4.7, GPT-OSS, Mistral — 이들은 명시적 함수 호출 학습을 받았습니다. 14B+ 파라미터를 가진 모델이 안정적인 도구 호출의 최소 요구사항이며, 32B+ 이상이 강력히 권장됩니다.
 
 <Warning>
 **도구 호출 품질은 로컬 모델 간에 크게 다릅니다.** 모든 모델이 유효한 함수 호출을 안정적으로 생성하는 것은 아닙니다. 프로덕션에서 사용하기 전에 에이전트 워크플로우로 선택한 모델을 테스트하세요. 일반적인 규칙: 최소 14B, 에이전트 작업에는 32B+ 권장.
 </Warning>
 
 ```bash
-# .env — Ollama (균형잡힌, 16GB VRAM)
+# .env — Ollama (balanced, 16GB VRAM)
 LLM_API_KEY=ollama
 LLM_BASE_URL=http://localhost:11434/v1
 LLM_MODEL=gpt-oss:20b
@@ -279,7 +281,7 @@ LLM_MAX_OUTPUT_TOKENS=8192
 ```
 
 ```bash
-# .env — Ollama (에이전트 최적화, 24GB VRAM)
+# .env — Ollama (agent-optimized, 24GB VRAM)
 LLM_API_KEY=ollama
 LLM_BASE_URL=http://localhost:11434/v1
 LLM_MODEL=qwen3:32b
@@ -292,7 +294,7 @@ LLM_MAX_OUTPUT_TOKENS=8192
 
 ## 제3자 릴레이 플랫폼
 
-많은 사용자가 단일 릴레이(프록시) 서비스를 통해 여러 모델 제공자에 액세스합니다. FIM One은 URL 경로 패턴을 기반으로 올바른 API 프로토콜을 자동으로 감지합니다. `LLM_BASE_URL`을 입력하기만 하면 작동합니다.
+많은 사용자가 단일 릴레이(프록시) 서비스를 통해 여러 모델 제공자에 액세스합니다. FIM One은 URL 경로 패턴을 기반으로 올바른 API 프로토콜을 자동으로 감지합니다 — `LLM_BASE_URL`을 입력하기만 하면 작동합니다.
 
 ### 작동 방식
 
@@ -302,18 +304,15 @@ LLM_MAX_OUTPUT_TOKENS=8192
 |---|---|---|---|
 | `/v1` (또는 일치 없음) | OpenAI 호환 | `Authorization: Bearer` | 범용 폴백, 대부분의 릴레이와 호환 |
 | `/claude` 또는 `/anthropic` | Anthropic 네이티브 | `x-api-key` | 전체 `reasoning_content` (확장 사고) 지원 |
-| `/gemini` | Google 네이티브 | `x-goog-api-key` | 네이티브 Gemini 매개변수 변환 |
+| `/gemini` | Google 네이티브 | `x-goog-api-key` | 네이티브 Gemini 파라미터 변환 |
 
 **해결 순서:** 명시적 DB 제공자 필드 > 도메인 일치 (공식 API) > URL 경로 힌트 (릴레이 플랫폼) > OpenAI 호환 폴백.
 
-### 예시: 하나의 릴레이, 세 가지 프로토콜
+### 예제: 하나의 릴레이, 세 가지 프로토콜
 
 단일 릴레이 계정으로 기본 URL 경로를 변경하기만 하면 다양한 공급자에 액세스할 수 있습니다:
 
 ```bash
-
-
-```
 # .env — Claude via relay (Anthropic native protocol)
 LLM_API_KEY=your-relay-key
 LLM_BASE_URL=https://relay.example.com/anthropic
@@ -328,20 +327,20 @@ LLM_MODEL=gemini-2.5-pro
 ```
 
 ```bash
-# .env — 릴레이를 통한 GPT (OpenAI 호환 프로토콜)
+# .env — GPT via relay (OpenAI compatible protocol)
 LLM_API_KEY=your-relay-key
 LLM_BASE_URL=https://relay.example.com/v1
 LLM_MODEL=gpt-5.4
 ```
 
-추가 구성이 필요하지 않습니다 — 인증 헤더, 매개변수 형식 및 응답 파싱이 모두 자동으로 전환됩니다.
+추가 구성이 필요 없습니다 — 인증 헤더, 매개변수 형식 및 응답 파싱이 모두 자동으로 전환됩니다.
 
 ### 단계별: 경로 감지 작동 방식
 
 릴레이를 구성할 때 내부적으로 어떤 일이 발생하는지 보여주는 구체적인 예시입니다:
 
 ```bash
-# .env — 릴레이 플랫폼을 통한 Claude
+# .env — Claude via a relay platform
 LLM_API_KEY=your-relay-key
 LLM_BASE_URL=https://my-relay.example.com/claude
 LLM_MODEL=claude-sonnet-4-6
@@ -349,19 +348,19 @@ LLM_REASONING_EFFORT=medium
 ```
 
 1. FIM One이 URL 경로에서 `/claude`를 감지 → **Anthropic 네이티브** 프로토콜 감지
-2. 모델은 LiteLLM 라우팅을 위해 `anthropic/claude-sonnet-4-6`으로 접두사 지정
-3. 요청은 `x-api-key` 인증 헤더와 함께 Anthropic의 `/v1/messages` 형식 사용
-4. `reasoning_effort=medium`은 Anthropic의 네이티브 `thinking` 파라미터로 변환 (OpenAI의 `reasoning_effort` 아님)
+2. 모델이 LiteLLM 라우팅을 위해 `anthropic/claude-sonnet-4-6`으로 접두사 지정
+3. 요청이 Anthropic의 `/v1/messages` 형식을 `x-api-key` 인증 헤더와 함께 사용
+4. `reasoning_effort=medium`이 Anthropic의 네이티브 `thinking` 파라미터로 변환됨 (OpenAI의 `reasoning_effort`가 아님)
 
 <Warning>
-동일한 릴레이 URL이 `https://my-relay.example.com/v1`이었다면, `/claude` 힌트가 없어서 FIM One은 OpenAI 호환 프로토콜로 폴백되어 Claude 네이티브 엔드포인트에 `/v1/chat/completions` 요청을 보내게 되어 실패합니다. **URL 경로가 중요합니다.**
+동일한 릴레이 URL이 `https://my-relay.example.com/v1`이었다면, `/claude` 힌트가 누락되어 FIM One이 OpenAI 호환 프로토콜로 폴백되어 Claude 네이티브 엔드포인트에 `/v1/chat/completions` 요청을 보내게 되어 실패합니다. **URL 경로가 중요합니다.**
 </Warning>
 
-### 이것이 중요한 이유
+### 왜 이것이 중요한가
 
-- **Anthropic 네이티브 엔드포인트**는 적절한 `reasoning_content` 지원(UI에서 확장된 사고 표시), 올바른 도구 호출 형식, `x-api-key` 인증을 제공합니다 — OpenAI 호환 변환을 사용할 때 손실되는 기능입니다.
+- **Anthropic 네이티브 엔드포인트**는 적절한 `reasoning_content` 지원(UI에서 확장 사고 가시화), 올바른 도구 호출 형식, `x-api-key` 인증을 제공합니다 — OpenAI 호환 변환을 사용할 때 손실되는 기능입니다.
 - **Google 네이티브 엔드포인트**는 네이티브 Gemini 매개변수와 `x-goog-api-key` 인증을 제공합니다.
-- **OpenAI 호환**은 범용 폴백이며 모든 릴레이에서 작동하지만, 공급자별 기능(예: 확장된 사고 출력)은 사용할 수 없을 수 있습니다.
+- **OpenAI 호환**은 범용 폴백이며 모든 릴레이에서 작동하지만, 공급자별 기능(예: 확장 사고 출력)은 사용할 수 없을 수 있습니다.
 
 <Note>
 릴레이 플랫폼이 비표준 경로 규칙을 사용하는 경우(예: URL에 `/claude` 또는 `/anthropic`이 없음), FIM One은 OpenAI 호환 프로토콜로 폴백됩니다 — 대부분의 사용 사례에서 작동합니다. 완전한 네이티브 프로토콜 지원을 위해 관리자 모델 구성 UI를 통해 `provider` 필드를 명시적으로 설정할 수 있습니다.
@@ -369,12 +368,12 @@ LLM_REASONING_EFFORT=medium
 
 ## 구성 전략
 
-### Main vs Fast: 언제 분할할지
+### Main vs Fast: 언제 분할할 것인가
 
 - **분할** 메인 모델이 비싸거나 느릴 때 (예: `gpt-5.4` + `gpt-5-nano`). DAG 모드는 많은 병렬 단계를 실행합니다 — 더 저렴한 빠른 모델을 사용하면 상당한 비용을 절감할 수 있습니다.
 - **동일 모델** 모델이 이미 저렴할 때 (예: 둘 다 `deepseek-chat`). 두 모델을 관리하는 오버헤드는 그만한 가치가 없습니다.
 
-### 추론을 활성화해야 할 때
+### 추론을 활성화하는 시기
 
 - **활성화**: 복잡한 분석 작업, 다단계 계획, 신중한 판단이 필요한 작업
 - **비활성화** (기본값): 일상적인 작업, 간단한 Q&A, 비용에 민감한 배포

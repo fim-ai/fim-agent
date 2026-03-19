@@ -1,6 +1,6 @@
 ---
-title: "Schnelleinstieg"
-description: "Starten Sie FIM One in Minuten – oder probieren Sie die Cloud-Version sofort aus."
+title: "Schnellstart"
+description: "Starten Sie FIM One in wenigen Minuten – oder probieren Sie die Cloud-Version sofort aus."
 ---
 
 <Tip>
@@ -10,34 +10,33 @@ description: "Starten Sie FIM One in Minuten – oder probieren Sie die Cloud-Ve
 
 ## Option A: Docker (Empfohlen)
 
-Keine lokale Python- oder Node.js-Installation erforderlich – alles wird im Container erstellt.
+Keine lokale Python- oder Node.js-Installation erforderlich — alles wird im Container erstellt.
 
 ```bash
 git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
-```
 
-# Konfigurieren — nur LLM_API_KEY ist erforderlich
+# Configure — only LLM_API_KEY is required
 cp example.env .env
-# Bearbeiten Sie .env: Setzen Sie LLM_API_KEY (und optional LLM_BASE_URL, LLM_MODEL)
+# Edit .env: set LLM_API_KEY (and optionally LLM_BASE_URL, LLM_MODEL)
 
-# Erstellen und Ausführen (beim ersten Mal oder nach dem Abrufen neuer Code)
+# Build and run (first time, or after pulling new code)
 docker compose up --build -d
 ```
 
-Öffnen Sie http://localhost:3000 — beim ersten Start werden Sie durch die Erstellung eines Admin-Kontos geführt. Das ist alles.
+Öffnen Sie http://localhost:3000 — beim ersten Start werden Sie durch die Erstellung eines Admin-Kontos geführt. Das war's.
 
 Nach dem ersten Build benötigen nachfolgende Starts nur:
 
 ```bash
-docker compose up -d          # starten (Rebuild überspringen, wenn Image unverändert)
-docker compose down           # stoppen
-docker compose logs -f        # Protokolle anzeigen
+docker compose up -d          # start (skip rebuild if image unchanged)
+docker compose down           # stop
+docker compose logs -f        # view logs
 ```
 
-Daten werden in Docker benannten Volumes (`fim-data`, `fim-uploads`) persistent gespeichert und überstehen Container-Neustarts.
+Daten werden in Docker Named Volumes (`fim-data`, `fim-uploads`) gespeichert und bleiben nach Container-Neustarts erhalten.
 
-**Hinweis:** Der Docker-Modus unterstützt kein Hot Reload. Code-Änderungen erfordern ein Rebuild des Image (`docker compose up --build -d`). Für aktive Entwicklung mit Live Reload verwenden Sie **Option B** unten.
+**Hinweis:** Der Docker-Modus unterstützt kein Hot Reload. Code-Änderungen erfordern ein Neuerstellen des Images (`docker compose up --build -d`). Für aktive Entwicklung mit Live Reload verwenden Sie **Option B** unten.
 
 ## Option B: Lokale Entwicklung
 
@@ -48,22 +47,21 @@ git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
 
 cp example.env .env
-```
-# .env bearbeiten: LLM_API_KEY setzen
+# Edit .env: set LLM_API_KEY
 
-# Installieren
+# Install
 uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
-# Starten (mit Hot Reload)
+# Launch (with hot reload)
 ./start.sh
 ```
 
-| Befehl           | Was wird gestartet                                      | URL                                      |
+| Befehl           | Was startet                                             | URL                                      |
 | ---------------- | ------------------------------------------------------- | ---------------------------------------- |
 | `./start.sh`     | Next.js + FastAPI                                       | http://localhost:3000 (UI) + :8000 (API) |
-| `./start.sh dev` | Dasselbe, mit Hot Reload (Python `--reload` + Next.js HMR) | Dasselbe                                 |
-| `./start.sh api` | Nur FastAPI (headless, für Integration oder Tests)      | http://localhost:8000/api                |
+| `./start.sh dev` | Dasselbe, mit Hot Reload (Python `--reload` + Next.js HMR) | Dasselbe                                     |
+| `./start.sh api` | Nur FastAPI (headless, für Integration oder Tests)     | http://localhost:8000/api                |
 
 ## Konfiguration
 
@@ -76,20 +74,19 @@ FIM One funktioniert mit **jedem OpenAI-kompatiblen LLM-Anbieter** — OpenAI, D
 | **Anthropic** | `sk-ant-...` | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
 | **Ollama** (lokal) | `ollama` | `http://localhost:11434/v1` | `qwen2.5:14b` |
 
-**[Jina AI](https://jina.ai/)** ermöglicht Websuche/Abruf, Einbettung und die vollständige RAG-Pipeline (kostenlos verfügbar).
+**[Jina AI](https://jina.ai/)** ermöglicht Websuche/Abruf, Einbettung und die vollständige RAG-Pipeline (kostenlose Stufe verfügbar).
 
 Minimale `.env`:
 
 ```bash
 LLM_API_KEY=sk-your-key
-```
-# LLM_BASE_URL=https://api.openai.com/v1   # Standard — für andere Anbieter ändern
-# LLM_MODEL=gpt-4o                         # Standard — für andere Modelle ändern
+# LLM_BASE_URL=https://api.openai.com/v1   # default — change for other providers
+# LLM_MODEL=gpt-4o                         # default — change for other models
 
-JINA_API_KEY=jina_...                       # entsperrt Web-Tools + RAG
+JINA_API_KEY=jina_...                       # unlocks web tools + RAG
 ```
 
-Eine vollständige Liste aller Konfigurationsoptionen finden Sie in der [Umgebungsvariablen](/configuration/environment-variables)-Referenz.
+Eine vollständige Liste aller Konfigurationsoptionen finden Sie in der Referenz [Umgebungsvariablen](/configuration/environment-variables).
 
 ## Produktionsbereitstellung
 
@@ -98,8 +95,8 @@ Eine vollständige Liste aller Konfigurationsoptionen finden Sie in der [Umgebun
 `docker compose up -d` startet alles, was Sie benötigen — **keine manuelle Servicekonfiguration erforderlich**:
 
 | Service | Zweck | Konfiguriert von |
-|---------|-------|------------------|
-| **fim-one** | API + Frontend | `.env` (Ihre LLM-Schlüssel usw.) |
+|---------|-------|-----------------|
+| **fim-one** | API + Frontend | `.env` (Ihre LLM-Schlüssel, etc.) |
 | **Redis** | Cross-Worker-Interrupt-Relay | Automatisch konfiguriert durch Compose |
 
 ```bash
@@ -111,7 +108,7 @@ docker compose down            # stop all services
 
 #### Skalierung mit Workern
 
-Standardmäßig wird die API mit einem einzelnen Worker-Prozess ausgeführt. Um mehr gleichzeitige Benutzer zu unterstützen, erhöhen Sie die Worker über `.env`:
+Standardmäßig wird die API mit einem einzelnen Worker-Prozess ausgeführt. Um mehr gleichzeitige Benutzer zu verarbeiten, erhöhen Sie die Worker über `.env`:
 
 ```bash
 WORKERS=4   # number of Uvicorn worker processes
@@ -119,19 +116,19 @@ WORKERS=4   # number of Uvicorn worker processes
 
 Anforderungen für mehrere Worker:
 - **PostgreSQL** — SQLite ist ein Single-Writer und unterstützt keine gleichzeitigen Schreibvorgänge. Setzen Sie `DATABASE_URL` auf eine PostgreSQL-Verbindungszeichenfolge.
-- **Redis** — bereits in Docker Compose enthalten (automatisch konfiguriert). Verwaltet die Relay von Interrupts/Injections zwischen Workern.
+- **Redis** — bereits in Docker Compose enthalten (automatisch konfiguriert). Verwaltet das Cross-Worker-Interrupt/Inject-Relay.
 
 Mit `WORKERS=1` (Standard) sind weder Redis noch PostgreSQL erforderlich — SQLite funktioniert einwandfrei.
 
 #### Nginx Reverse Proxy
 
-Für HTTPS und benutzerdefinierte Domäne setzen Sie einen Nginx Reverse Proxy davor:
+Für HTTPS und benutzerdefinierte Domäne setzen Sie einen Nginx-Reverse-Proxy davor:
 
 ```
 User → Nginx (443/HTTPS) → localhost:3000
 ```
 
-Die API läuft intern auf Port 8000 — Next.js leitet `/api/*` Anfragen automatisch weiter. Nur Port 3000 muss freigegeben werden.
+Die API läuft intern auf Port 8000 — Next.js leitet `/api/*`-Anfragen automatisch weiter. Nur Port 3000 muss freigegeben werden.
 
 #### Code Execution Sandbox
 
@@ -148,7 +145,7 @@ volumes:
 Verwenden Sie für ein Setup ohne offene Ports [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) anstelle von Nginx. Der gesamte Datenverkehr fließt über Cloudflares Edge — es ist nicht erforderlich, die Ports 80/443 freizugeben, SSL-Zertifikate zu verwalten oder Firewall-Regeln zu konfigurieren.
 
 <Warning>
-**Benutzer in Festlandchina**: Cloudflare Free/Pro/Business-Pläne haben **keine PoPs (Points-of-Presence) in Festlandchina**. Der Datenverkehr aus Festlandchina wird zu Overseas-Edges weitergeleitet (typischerweise US West), was zu häufigen 502-Fehlern und hoher Latenz führt. Verwenden Sie **nicht** Cloudflare Tunnel, wenn Ihre primären Benutzer in Festlandchina ansässig sind. Cloudflare Enterprise mit China Network (JD Cloud-Partnerschaft) ist erforderlich für zuverlässigen Zugriff auf Festlandchina.
+**Benutzer in Festlandchina**: Cloudflare Free/Pro/Business-Pläne haben **keine PoPs (Points-of-Presence) in Festlandchina**. Der Datenverkehr aus Festlandchina wird zu Overseas-Edges weitergeleitet (typischerweise US West), was häufig zu 502-Fehlern und hoher Latenz führt. Verwenden Sie **nicht** Cloudflare Tunnel, wenn Ihre primären Benutzer in Festlandchina sind. Cloudflare Enterprise mit China Network (JD Cloud-Partnerschaft) ist erforderlich für zuverlässigen Zugriff auf Festlandchina.
 </Warning>
 
 ```
@@ -158,11 +155,11 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
 **Einrichtung:**
 
 <Steps>
-  <Step title="Erstellen Sie einen Tunnel">
+  <Step title="Tunnel erstellen">
     Gehen Sie zu [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels → **Create a tunnel**.
     Wählen Sie **Cloudflared** als Connector-Typ.
   </Step>
-  <Step title="Konfigurieren Sie den öffentlichen Hostnamen">
+  <Step title="Öffentlichen Hostnamen konfigurieren">
     Fügen Sie in der Tunnel-Konfiguration einen öffentlichen Hostnamen hinzu:
 
     | Feld | Wert |
@@ -174,16 +171,16 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
 
     <Note>Die URL verwendet den Docker-Servicenamen `fim-one`, nicht `localhost`, da `cloudflared` als separater Container im selben Docker-Netzwerk ausgeführt wird.</Note>
   </Step>
-  <Step title="Kopieren Sie das Tunnel-Token">
-    Suchen Sie auf der Seite **Configure** des Tunnels den Installationsbefehl — er enthält ein Token, das mit `eyJ...` beginnt. Kopieren Sie es.
+  <Step title="Tunnel-Token kopieren">
+    Suchen Sie auf der Seite **Configure** des Tunnels den Installationsbefehl — er enthält einen Token, der mit `eyJ...` beginnt. Kopieren Sie ihn.
   </Step>
-  <Step title="Fügen Sie das Token zu .env hinzu">
+  <Step title="Token zu .env hinzufügen">
     ```bash
     # Add to your .env file on the server
     CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNj...
     ```
   </Step>
-  <Step title="Stellen Sie mit dem Tunnel-Overlay bereit">
+  <Step title="Mit dem Tunnel-Overlay bereitstellen">
     ```bash
     docker compose -f docker-compose.yml -f docker-compose.tunnel.yml build
     docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
@@ -191,16 +188,16 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
 
     Das `docker-compose.tunnel.yml`-Overlay fügt einen `cloudflared`-Sidecar-Container hinzu. Die Basis-`docker-compose.yml` bleibt unverändert — Community-Benutzer ohne Cloudflare können weiterhin `docker compose up -d` wie zuvor verwenden.
   </Step>
-  <Step title="Löschen Sie den alten DNS-Datensatz">
-    Wenn Ihre Domain zuvor einen A-Datensatz hatte, der auf die IP-Adresse Ihres Servers verweist, **löschen Sie ihn** in Cloudflare DNS. Der Tunnel erstellt automatisch einen CNAME-Datensatz, der auf seinen Edge-Endpunkt verweist.
+  <Step title="Alten DNS-Eintrag entfernen">
+    Wenn Ihre Domain zuvor einen A-Eintrag hatte, der auf die IP-Adresse Ihres Servers verweist, **löschen Sie ihn** in Cloudflare DNS. Der Tunnel erstellt automatisch einen CNAME-Eintrag, der auf seinen Edge-Endpunkt verweist.
   </Step>
-  <Step title="Schließen Sie Server-Ports">
+  <Step title="Server-Ports schließen">
     Entfernen Sie (oder kommentieren Sie aus) den Abschnitt `ports` aus `docker-compose.yml` auf Ihrem Server. Der Datenverkehr fließt nun ausschließlich durch den Tunnel — keine eingehenden Ports erforderlich.
   </Step>
 </Steps>
 
 <Tip>
-  Cloudflare Tunnel ist kostenlos in allen Plänen, einschließlich Free. Es gibt keine Bandbreiten- oder Datenverkehrslimits.
+  Cloudflare Tunnel ist kostenlos bei allen Plänen, einschließlich Free. Es gibt keine Bandbreiten- oder Datenverkehrsgrenzen.
 </Tip>
 
 ### Script-Bereitstellung (Bare Metal)
@@ -218,13 +215,10 @@ In diesem Modus ist Redis **nicht** automatisch enthalten. Das System läuft sta
 Um Multi-Worker mit Redis lokal zu aktivieren:
 
 ```bash
-
-
-```
-# Starten Sie eine Redis-Instanz (Docker oder Systempaket)
+# Start a Redis instance (Docker or system package)
 docker run -d --name redis -p 6379:6379 redis:7-alpine
 
-# Zu .env hinzufügen
+# Add to .env
 REDIS_URL=redis://localhost:6379/0
 WORKERS=4
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_one

@@ -278,6 +278,7 @@ Per the Orthogonality Strategy, these would be high-effort and face absorption r
 | Memory Lifecycle (TTL, quotas) | Depends on cross-session memory; deferred together |
 | Active Context Compression Tool (agent-triggered) | Explicitly frozen with ContextGuard (v0.5). Context windows at 200K+ reduce value. Will not be revisited unless context costs become a major enterprise complaint |
 | Browser Automation / Computer Use | High maintenance cost (DOM changes, anti-bot, sandboxing). Industry converging on Computer Use mode (Anthropic, OpenAI Operator, Google Mariner) and MCP browser tools (Puppeteer/Playwright MCP). Consume via MCP integration, don't self-build. Re-evaluate when stable Computer Use MCP standard emerges |
+| Web Push Notifications | Browser-native push via Service Worker + VAPID. Overlaps with IM Channel Integration (v0.8) which covers enterprise-preferred channels (Lark/Slack/WeCom/Email). IM push has higher enterprise value; Web Push is a nice-to-have for Portal-only users. Re-evaluate after IM Channel ships — if users request browser notifications beyond IM coverage |
 
 ## How Versions Align With Modes
 

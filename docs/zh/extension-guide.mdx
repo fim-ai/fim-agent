@@ -1,13 +1,13 @@
 ---
 title: "扩展指南"
-description: "如何将自定义 LLM 提供商、工具、内存后端、嵌入、重排序器、Web 后端和 RAG 组件插入到 FIM One 中。"
+description: "如何将自定义 LLM 提供商、工具、内存后端、嵌入、重排序器、Web 后端和 RAG 组件插入 FIM One。"
 ---
 
 ## 概述
 
-FIM One 围绕一组精简的抽象基类构建——每个可交换组件对应一个基类。每个组件都有单一职责和最小化接口。你实现抽象方法，将实例连接到相应的注册表或注入器，系统的其余部分会自动使用你的实现。
+FIM One 围绕一组精简的抽象基类构建——每个可交换组件对应一个基类。每个组件都有单一职责和最小化接口。你实现抽象方法，将实例连接到适当的注册表或注入器，系统的其余部分会自动使用你的实现。
 
-| 扩展点 | 基类 | 文件 | 注册 |
+| 扩展点 | 基类 | 文件 | 注册方式 |
 |---|---|---|---|
 | LLM 提供商 | `BaseLLM` | `core/model/base.py` | `ModelRegistry.register()` |
 | 工具 | `BaseTool` | `core/tool/base.py` | 在 `builtin/` 中放置文件 |
@@ -25,7 +25,7 @@ FIM One 围绕一组精简的抽象基类构建——每个可交换组件对应
 
 ## 自定义 LLM 提供商
 
-`BaseLLM` 有两个必需方法 — `chat` 和 `stream_chat` — 加上一个可选的 `abilities` 属性，用于告诉系统该模型能做什么。
+`BaseLLM` 有两个必需方法 — `chat` 和 `stream_chat` — 以及一个可选的 `abilities` 属性，用于告诉系统该模型可以执行的操作。
 
 ```python
 from collections.abc import AsyncIterator
@@ -82,7 +82,7 @@ class MyLLM(BaseLLM):
 
 ### 通过 ModelRegistry 注册
 
-`ModelRegistry` 将名称映射到 `BaseLLM` 实例，并按角色解析。系统使用四个内置角色：`general`、`fast`、`compact` 和 `vision`。你可以添加自己的角色。
+`ModelRegistry` 将名称映射到 `BaseLLM` 实例并按角色解析。系统使用四个内置角色：`general`、`fast`、`compact` 和 `vision`。您可以添加自己的角色。
 
 ```python
 from fim_one.core.model.registry import ModelRegistry
@@ -91,13 +91,13 @@ registry = ModelRegistry()
 registry.register("my-llm", MyLLM(api_key="...", model="my-v1"), roles=["general"])
 registry.register("my-fast", MyLLM(api_key="...", model="my-mini"), roles=["fast", "compact"])
 
-# 稍后检索
+# Retrieve later
 llm = registry.get_default()           # first "general" model, or first registered
 llm = registry.get_by_role("fast")     # first model with the "fast" role
 llm = registry.get("my-llm")           # by exact name
 ```
 
-`abilities` 字典是 LLM 和 ReAct 引擎之间的契约。当 `tool_call=True` 且智能体是使用 `use_native_tools=True` 创建时，引擎将使用原生函数调用。否则它会自动回退到 JSON 模式。
+`abilities` 字典是 LLM 和 ReAct 引擎之间的契约。当 `tool_call=True` 且智能体是使用 `use_native_tools=True` 创建时，引擎将使用原生函数调用。否则会自动回退到 JSON 模式。
 
 ---
 
@@ -149,16 +149,16 @@ class GitStatusTool(BaseTool):
 
 ### 自动发现
 
-将你的文件放在 `src/fim_one/core/tool/builtin/` 中。`discover_builtin_tools()` 扫描器会自动找到任何具体的（非抽象的）`BaseTool` 子类——无需手动注册。
+将您的文件放在 `src/fim_one/core/tool/builtin/` 中。`discover_builtin_tools()` 扫描器会自动找到任何具体的（非抽象的）`BaseTool` 子类 — 无需手动注册。
 
 ```
 src/fim_one/core/tool/builtin/
-├── calculator.py       ← 现有工具
-├── git_status.py       ← 你的新文件 → 自动发现
+├── calculator.py       ← existing tool
+├── git_status.py       ← your new file → auto-discovered
 └── ...
 ```
 
-扫描器会跳过 `_SKIP_AUTO_DISCOVER` 中列出的类。对于需要外部配置（例如 API 密钥）且需要在启动时有条件地实例化的工具，请使用该集合。
+扫描器会跳过在 `_SKIP_AUTO_DISCOVER` 中列出的类。对于需要外部配置（例如 API 密钥）并需要在启动时有条件地实例化的工具，请使用该集合。
 
 ### 信号不可用
 
@@ -172,7 +172,7 @@ def availability(self) -> tuple[bool, str | None]:
     return True, None
 ```
 
-### 使用工件获得丰富的结果
+### 使用工件的丰富结果
 
 当你的工具生成文件时，返回 `ToolResult` 而不是普通的 `str`：
 
@@ -254,7 +254,7 @@ class MyEmbedding(BaseEmbedding):
 
 ## 自定义图像生成
 
-`BaseImageGen` 有一个单一方法 `generate`。它将图像保存到 `output_dir` 并返回一个 `ImageResult`，其中包含文件路径和服务器相对 URL。
+`BaseImageGen` 有一个单一方法 `generate`。它将图像保存到 `output_dir` 并返回一个 `ImageResult`，包含文件路径和服务器相对 URL。
 
 ```python
 from fim_one.core.image_gen.base import BaseImageGen, ImageResult
@@ -280,9 +280,9 @@ class StableDiffusionImageGen(BaseImageGen):
 
 ---
 
-## 自定义重排器
+## 自定义重排序器
 
-`BaseReranker` 接收一个查询和文档字符串列表，并返回重新排序后的结果及其分数。
+`BaseReranker` 接收一个查询和一个文档字符串列表，并返回重新排序后的文档及其分数。
 
 ```python
 from fim_one.core.reranker.base import BaseReranker, RerankResult
@@ -344,6 +344,8 @@ class BingSearch(BaseWebSearch):
         ]
 ```
 
+---
+
 ## 自定义 RAG 组件
 
 RAG 管道有三个独立可交换的阶段：加载、分块和检索。
@@ -367,7 +369,7 @@ class DocxLoader(BaseLoader):
 
 ### 文本分块器
 
-`BaseChunker` 将文本分割成 `Chunk` 对象。`MAX_CHUNK_SIZE = 6000` 字符是硬性上限 — 超过此大小的块可能会溢出 Jina Embeddings v3 token 窗口。
+`BaseChunker` 将文本分割成 `Chunk` 对象。`MAX_CHUNK_SIZE = 6000` 字符是硬性上限 — 超过此大小的分块可能会超出 Jina Embeddings v3 的令牌窗口。
 
 ```python
 from typing import Any
@@ -421,12 +423,12 @@ class ElasticsearchRetriever(BaseRetriever):
 
 ## 设计原则
 
-几个模式在所有基类中保持一致，使自定义实现更容易正确编写：
+几个模式在所有基类中保持一致，使得自定义实现更容易正确编写：
 
-**异步优先。** 每个方法都是 `async def`。即使你的实现是同步的，也要用 `asyncio.to_thread()` 包装它，而不是阻塞事件循环。
+**异步优先。** 每个方法都是 `async def`。即使你的实现是同步的，也应该用 `asyncio.to_thread()` 包装它，而不是阻塞事件循环。
 
 **工具的字符串输出。** `BaseTool.run()` 返回 `str`（或 `ToolResult`）。LLM 只能看到文本 — 工具实现负责将复杂数据序列化为可读格式。
 
 **最小化接口。** 每个基类定义最小的必需契约。`BaseMemory` 是三个方法；`BaseWebFetch` 是一个。你永远不需要实现你不需要的功能。
 
-**组合优于继承。** 基类是接口，不是框架。你在构造时注入你的实现；运行时永远不会对其进行猴子补丁或进一步子类化。
+**组合优于继承。** 基类是接口，而不是框架。你在构造时注入你的实现；运行时永远不会对其进行猴子补丁或进一步子类化。

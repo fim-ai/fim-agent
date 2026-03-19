@@ -267,17 +267,18 @@ Selon la [Stratégie d'orthogonalité](/strategy/orthogonality-strategy), ces fo
 
 ## À considérer (Reporté indéfiniment)
 
-Selon la Stratégie d'Orthogonalité, ces éléments seraient à fort effort et face à un risque d'absorption :
+Selon la Stratégie d'Orthogonalité, ces éléments seraient très coûteux et risqueraient une absorption :
 
 | Fonctionnalité | Raison du report |
 |---------|------------|
-| Orchestration Multi-Agent (hiérarchies profondes) | Les fournisseurs construisent nativement (OpenAI Swarm, Claude Code Teams, Google A2A). Le CallAgentTool de FIM One couvre le cas de délégation à un niveau ; les agents d'arrière-plan déclenchés par événement sont couverts par les Tâches Planifiées en v0.9 |
-| Compétences Auto-modifiables d'Agent (Mémoire Procédurale) | Les agents mettant à jour leur propre `skill.md` pendant l'exécution — complexité élevée, surface de sécurité/audit. Dépend de la livraison du Système de Compétences d'Agent (v0.8) en premier. Réévaluer si les clients entreprise demandent explicitement des agents auto-améliorants |
-| ~~Espace de Travail d'Agent (Déchargement de Fichiers de Sortie d'Outil)~~ | Promu en v0.9. La valeur est la **lecture sélective**, non la capacité de contexte — la validation Claude Code l'a confirmé. Le raisonnement de report original (« les fenêtres 200K+ réduisent l'urgence ») était incorrect. |
-| Mémoire Long-Terme Inter-Session | Les fenêtres de contexte croissent rapidement (200K–2M) ; les fournisseurs ajoutent la mémoire intégrée (mémoire OpenAI, mise en cache de contexte Gemini) ; coût d'implémentation élevé par rapport à la valeur de différenciation décroissante. Réévaluer quand les clients entreprise la demandent explicitement |
-| Cycle de Vie de la Mémoire (TTL, quotas) | Dépend de la mémoire inter-session ; reporté ensemble |
-| Outil de Compression de Contexte Actif (déclenché par agent) | Explicitement gelé avec ContextGuard (v0.5). Les fenêtres de contexte à 200K+ réduisent la valeur. Ne sera pas revisité sauf si les coûts de contexte deviennent une plainte majeure des entreprises |
-| Automatisation de Navigateur / Utilisation d'Ordinateur | Coût de maintenance élevé (changements DOM, anti-bot, sandboxing). L'industrie converge vers le mode Computer Use (Anthropic, OpenAI Operator, Google Mariner) et les outils de navigateur MCP (Puppeteer/Playwright MCP). Consommer via l'intégration MCP, ne pas auto-construire. Réévaluer quand une norme MCP Computer Use stable émerge |
+| Orchestration Multi-Agents (hiérarchies profondes) | Les fournisseurs construisent nativement (OpenAI Swarm, Claude Code Teams, Google A2A). Le CallAgentTool de FIM One couvre le cas de délégation à un niveau ; les agents d'arrière-plan déclenchés par événement sont couverts par les Tâches Planifiées en v0.9 |
+| Agents Auto-modifiant les Compétences (Mémoire Procédurale) | Les agents mettant à jour leur propre `skill.md` pendant l'exécution — complexité élevée, surface de sécurité/audit. Dépend de la livraison du Système de Compétences d'Agent (v0.8) en premier. Réévaluer si les clients entreprise demandent explicitement des agents auto-améliorants |
+| ~~Espace de Travail d'Agent (Déchargement des Fichiers de Sortie d'Outils)~~ | Promu à v0.9. La valeur est la **lecture sélective**, non la capacité de contexte — la validation Claude Code l'a confirmé. Le raisonnement de report original (« les fenêtres 200K+ réduisent l'urgence ») était erroné. |
+| Mémoire à Long Terme Entre Sessions | Les fenêtres de contexte croissent rapidement (200K–2M) ; les fournisseurs ajoutent la mémoire intégrée (mémoire OpenAI, mise en cache de contexte Gemini) ; coût d'implémentation élevé par rapport à la valeur de différenciation décroissante. Réévaluer quand les clients entreprise la demandent explicitement |
+| Cycle de Vie de la Mémoire (TTL, quotas) | Dépend de la mémoire entre sessions ; reporté ensemble |
+| Outil de Compression de Contexte Actif (déclenché par agent) | Explicitement gelé avec ContextGuard (v0.5). Les fenêtres de contexte à 200K+ réduisent la valeur. Ne sera pas revisité sauf si les coûts de contexte deviennent une plainte majeure en entreprise |
+| Automatisation de Navigateur / Utilisation d'Ordinateur | Coût de maintenance élevé (changements DOM, anti-bot, sandboxing). L'industrie converge vers le mode Utilisation d'Ordinateur (Anthropic, OpenAI Operator, Google Mariner) et les outils MCP de navigateur (Puppeteer/Playwright MCP). Consommer via l'intégration MCP, ne pas auto-construire. Réévaluer quand un standard MCP stable pour Utilisation d'Ordinateur émerge |
+| Notifications Web Push | Push natif du navigateur via Service Worker + VAPID. Chevauche l'Intégration de Canal IM (v0.8) qui couvre les canaux préférés en entreprise (Lark/Slack/WeCom/Email). Le push IM a une valeur entreprise plus élevée ; Web Push est un plus pour les utilisateurs du Portail uniquement. Réévaluer après la livraison du Canal IM — si les utilisateurs demandent des notifications de navigateur au-delà de la couverture IM |
 
 ## Comment les versions s'alignent avec les modes
 

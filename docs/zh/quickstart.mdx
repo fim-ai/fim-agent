@@ -15,30 +15,28 @@ description: "在几分钟内运行 FIM One — 或立即尝试云版本。"
 ```bash
 git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
-```
 
-# 配置 — 仅需要 LLM_API_KEY
+# Configure — only LLM_API_KEY is required
 cp example.env .env
-# 编辑 .env：设置 LLM_API_KEY（以及可选的 LLM_BASE_URL、LLM_MODEL）
+# Edit .env: set LLM_API_KEY (and optionally LLM_BASE_URL, LLM_MODEL)
 
-# 构建并运行（首次运行或拉取新代码后）
-```bash
+# Build and run (first time, or after pulling new code)
 docker compose up --build -d
 ```
 
-打开 http://localhost:3000 — 首次启动时，系统会引导你创建管理员账户。就这么简单。
+打开 http://localhost:3000 — 首次启动时，您将被引导创建管理员账户。就这样。
 
 初始构建后，后续启动只需要：
 
 ```bash
-docker compose up -d          # 启动（如果镜像未变更则跳过重建）
-docker compose down           # 停止
-docker compose logs -f        # 查看日志
+docker compose up -d          # start (skip rebuild if image unchanged)
+docker compose down           # stop
+docker compose logs -f        # view logs
 ```
 
 数据持久化在 Docker 命名卷（`fim-data`、`fim-uploads`）中，容器重启后数据保留。
 
-**注意：** Docker 模式不支持热重载。代码更改需要重建镜像（`docker compose up --build -d`）。如需进行带有实时重载的活跃开发，请使用下面的**选项 B**。
+**注意：** Docker 模式不支持热重载。代码更改需要重新构建镜像（`docker compose up --build -d`）。如需进行带实时重载的活跃开发，请使用下面的**选项 B**。
 
 ## 选项 B：本地开发
 
@@ -49,45 +47,43 @@ git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
 
 cp example.env .env
-```
-# 编辑 .env: 设置 LLM_API_KEY
+# Edit .env: set LLM_API_KEY
 
-# 安装
+# Install
 uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
-# 启动（带热重载）
+# Launch (with hot reload)
 ./start.sh
 ```
 
 | 命令             | 启动内容                                                | URL                                      |
 | ---------------- | ------------------------------------------------------- | ---------------------------------------- |
 | `./start.sh`     | Next.js + FastAPI                                       | http://localhost:3000 (UI) + :8000 (API) |
-| `./start.sh dev` | 相同，带热重载（Python `--reload` + Next.js HMR）       | 相同                                     |
-| `./start.sh api` | 仅 FastAPI（无头模式，用于集成或测试）                  | http://localhost:8000/api                |
+| `./start.sh dev` | 相同，带热重载（Python `--reload` + Next.js HMR）      | 相同                                     |
+| `./start.sh api` | 仅 FastAPI（无头模式，用于集成或测试）                 | http://localhost:8000/api                |
 
 ## 配置
 
-FIM One 支持**任何与 OpenAI 兼容的 LLM 提供商** — OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。
+FIM One 与**任何 OpenAI 兼容的 LLM 提供商**配合使用 — OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。
 
 | 提供商 | `LLM_API_KEY` | `LLM_BASE_URL` | `LLM_MODEL` |
 | -------- | ------------- | -------------- | ----------- |
-| **OpenAI** | `sk-...` | *(默认)* | `gpt-4o` |
+| **OpenAI** | `sk-...` | *(default)* | `gpt-4o` |
 | **DeepSeek** | `sk-...` | `https://api.deepseek.com/v1` | `deepseek-chat` |
 | **Anthropic** | `sk-ant-...` | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
 | **Ollama** (本地) | `ollama` | `http://localhost:11434/v1` | `qwen2.5:14b` |
 
-**[Jina AI](https://jina.ai/)** 解锁网页搜索/获取、嵌入和完整的 RAG 管道（提供免费层级）。
+**[Jina AI](https://jina.ai/)** 解锁网络搜索/获取、嵌入和完整的 RAG 管道（提供免费层）。
 
 最小化 `.env`：
 
 ```bash
 LLM_API_KEY=sk-your-key
-```
-# LLM_BASE_URL=https://api.openai.com/v1   # 默认值 — 更改为其他提供商
-# LLM_MODEL=gpt-4o                         # 默认值 — 更改为其他模型
+# LLM_BASE_URL=https://api.openai.com/v1   # default — change for other providers
+# LLM_MODEL=gpt-4o                         # default — change for other models
 
-JINA_API_KEY=jina_...                       # 解锁网络工具 + RAG
+JINA_API_KEY=jina_...                       # unlocks web tools + RAG
 ```
 
 有关所有配置选项的完整列表，请参阅[环境变量](/configuration/environment-variables)参考。
@@ -110,7 +106,7 @@ docker compose logs -f         # view logs
 docker compose down            # stop all services
 ```
 
-#### 使用 Workers 进行扩展
+#### 使用 Workers 扩展
 
 默认情况下，API 运行单个 worker 进程。要处理更多并发用户，请通过 `.env` 增加 workers：
 
@@ -132,15 +128,13 @@ WORKERS=4   # number of Uvicorn worker processes
 User → Nginx (443/HTTPS) → localhost:3000
 ```
 
-API 在内部的 8000 端口上运行 — Next.js 自动代理 `/api/*` 请求。只需要暴露 3000 端口。
+API 在内部运行在端口 8000 — Next.js 自动代理 `/api/*` 请求。只需要暴露端口 3000。
 
 #### 代码执行沙箱
 
-如果你使用代码执行沙箱（`CODE_EXEC_BACKEND=docker`），挂载 Docker socket：
+如果您使用代码执行沙箱（`CODE_EXEC_BACKEND=docker`），请挂载 Docker 套接字：
 
 ```yaml
-
-```
 # docker-compose.yml
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
@@ -151,7 +145,7 @@ volumes:
 对于零开放端口的设置，使用 [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) 代替 Nginx。所有流量都通过 Cloudflare 的边缘节点流动 — 无需暴露 80/443 端口、管理 SSL 证书或配置防火墙规则。
 
 <Warning>
-**中国大陆用户**：Cloudflare Free/Pro/Business 计划**在中国大陆没有 PoP（存在点）**。来自中国大陆的流量被路由到海外边缘节点（通常是美国西部），导致频繁的 502 错误和高延迟。如果您的主要用户在中国大陆，**不要**使用 Cloudflare Tunnel。需要 Cloudflare Enterprise with China Network（JD Cloud 合作）才能获得可靠的中国大陆访问。
+**中国大陆用户**：Cloudflare Free/Pro/Business 计划在中国大陆**没有 PoP（存在点）**。来自中国大陆的流量被路由到海外边缘节点（通常是美国西部），导致频繁的 502 错误和高延迟。如果您的主要用户在中国大陆，**不要**使用 Cloudflare Tunnel。需要 Cloudflare Enterprise with China Network（JD Cloud 合作）才能可靠地访问中国大陆。
 </Warning>
 
 ```
@@ -198,12 +192,12 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
     如果您的域名之前有一条 A 记录指向您的服务器 IP，**在 Cloudflare DNS 中删除它**。隧道会自动创建一条 CNAME 记录指向其边缘端点。
   </Step>
   <Step title="关闭服务器端口">
-    从服务器上的 `docker-compose.yml` 中删除（或注释掉）`ports` 部分。流量现在完全通过隧道流动 — 不需要入站端口。
+    从服务器上的 `docker-compose.yml` 中删除（或注释掉）`ports` 部分。流量现在完全通过隧道流动 — 无需入站端口。
   </Step>
 </Steps>
 
 <Tip>
-  Cloudflare Tunnel 在所有计划（包括免费计划）上都是免费的。没有带宽或流量限制。
+  Cloudflare Tunnel 在所有计划（包括 Free）上都是免费的。没有带宽或流量限制。
 </Tip>
 
 ### 脚本部署（裸机）
@@ -216,18 +210,15 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
 ./start.sh api       # API only (headless)
 ```
 
-在此模式下，Redis **不会**自动包含。系统默认以单工作进程、进程内模式运行 — 适合低流量部署。
+在此模式下，Redis **不会**自动包含。系统默认以单工作进程、进程内模式运行——适合低流量部署。
 
 要在本地启用带 Redis 的多工作进程：
 
 ```bash
-
-
-```
-# 启动 Redis 实例（Docker 或系统包）
+# Start a Redis instance (Docker or system package)
 docker run -d --name redis -p 6379:6379 redis:7-alpine
 
-# 添加到 .env
+# Add to .env
 REDIS_URL=redis://localhost:6379/0
 WORKERS=4
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_one

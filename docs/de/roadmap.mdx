@@ -265,19 +265,20 @@ Gemäß der [Orthogonality Strategy](/strategy/orthogonality-strategy) sind dies
 | Grounded Generation | v0.5 | Modelle verbessern sich bei Zitaten; 5-stufige Pipeline bietet abnehmenden Mehrwert |
 | ContextGuard / Pinned Messages | v0.5 | Wird wie vorhanden ausgeliefert; keine neuen Funktionen |
 
-## Überlegung (auf unbestimmte Zeit aufgeschoben)
+## Überlegung (Auf unbestimmte Zeit aufgeschoben)
 
 Gemäß der Orthogonalitätsstrategie würden diese einen hohen Aufwand erfordern und ein Absorptionsrisiko bergen:
 
 | Feature | Grund für Aufschub |
 |---------|------------|
 | Multi-Agent-Orchestrierung (tiefe Hierarchien) | Anbieter bauen nativ (OpenAI Swarm, Claude Code Teams, Google A2A). FIM One's CallAgentTool deckt den Fall der einstufigen Delegation ab; ereignisgesteuerte Hintergrund-Agenten werden durch Scheduled Jobs in v0.9 abgedeckt |
-| Agent-Selbstmodifizierende Fähigkeiten (Procedural Memory) | Agenten aktualisieren ihre eigene `skill.md` während der Ausführung — hohe Komplexität, Sicherheits-/Audit-Oberfläche. Hängt davon ab, dass das Agent Skill System (v0.8) zuerst ausgeliefert wird. Neu bewerten, wenn Enterprise-Kunden explizit selbstverbessernde Agenten anfordern |
+| Agent-Selbstmodifizierende Fähigkeiten (Procedural Memory) | Agenten aktualisieren ihre eigene `skill.md` während der Ausführung — hohe Komplexität, Sicherheits-/Audit-Oberfläche. Hängt davon ab, dass Agent Skill System (v0.8) zuerst ausgeliefert wird. Neu bewerten, wenn Unternehmenskunden explizit selbstverbessernde Agenten anfordern |
 | ~~Agent Workspace (Tool Output File Offloading)~~ | Befördert zu v0.9. Der Wert liegt in **selektivem Lesen**, nicht in Kontextkapazität — Claude Code-Validierung bestätigt. Ursprüngliche Aufschublogik („200K+ Fenster reduzieren Dringlichkeit") war falsch. |
-| Cross-Session Long-Term Memory | Kontextfenster wachsen schnell (200K–2M); Anbieter fügen integriertes Memory hinzu (OpenAI memory, Gemini context caching); hohe Implementierungskosten vs. sinkender Differenzierungswert. Neu bewerten, wenn Enterprise-Kunden es explizit anfordern |
-| Memory Lifecycle (TTL, Kontingente) | Hängt von Cross-Session Memory ab; gemeinsam aufgeschoben |
-| Active Context Compression Tool (agent-ausgelöst) | Explizit eingefroren mit ContextGuard (v0.5). Kontextfenster bei 200K+ reduzieren den Wert. Wird nicht überprüft, es sei denn, Kontextkosten werden zu einer großen Enterprise-Beschwerde |
-| Browser-Automatisierung / Computer Use | Hohe Wartungskosten (DOM-Änderungen, Anti-Bot, Sandboxing). Industrie konvergiert auf Computer Use Mode (Anthropic, OpenAI Operator, Google Mariner) und MCP Browser Tools (Puppeteer/Playwright MCP). Über MCP-Integration nutzen, nicht selbst bauen. Neu bewerten, wenn ein stabiler Computer Use MCP-Standard entsteht |
+| Sitzungsübergreifendes Langzeitgedächtnis | Kontextfenster wachsen schnell (200K–2M); Anbieter fügen integriertes Gedächtnis hinzu (OpenAI memory, Gemini context caching); hohe Implementierungskosten vs. sinkender Differenzierungswert. Neu bewerten, wenn Unternehmenskunden es explizit anfordern |
+| Memory Lifecycle (TTL, Kontingente) | Hängt von sitzungsübergreifendem Gedächtnis ab; zusammen aufgeschoben |
+| Active Context Compression Tool (agent-ausgelöst) | Explizit eingefroren mit ContextGuard (v0.5). Kontextfenster bei 200K+ reduzieren den Wert. Wird nicht überprüft, es sei denn, Kontextkosten werden zu einer großen Unternehmensbeschwerde |
+| Browser-Automatisierung / Computer Use | Hohe Wartungskosten (DOM-Änderungen, Anti-Bot, Sandboxing). Industrie konvergiert zu Computer Use Mode (Anthropic, OpenAI Operator, Google Mariner) und MCP-Browser-Tools (Puppeteer/Playwright MCP). Über MCP-Integration nutzen, nicht selbst bauen. Neu bewerten, wenn stabiler Computer Use MCP-Standard entsteht |
+| Web Push-Benachrichtigungen | Browser-native Push über Service Worker + VAPID. Überlappt mit IM Channel Integration (v0.8), die unternehmensgenutzte Kanäle abdeckt (Lark/Slack/WeCom/Email). IM-Push hat höheren Unternehmenswert; Web Push ist ein Nice-to-Have für Portal-only-Benutzer. Neu bewerten nach IM Channel-Auslieferung — wenn Benutzer Browser-Benachrichtigungen über IM-Abdeckung hinaus anfordern |
 
 ## Wie Versionen mit Modi ausgerichtet sind
 

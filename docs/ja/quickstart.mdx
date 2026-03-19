@@ -1,44 +1,42 @@
 ---
 title: "クイックスタート"
-description: "FIM Oneを数分で実行するか、クラウド版をすぐに試してください。"
+description: "FIM One を数分で実行する — またはクラウド版をすぐに試す。"
 ---
 
 <Tip>
   **☁️ オプション 0: クラウド（セットアップ不要）**
-  自分でホストしたくない場合は、[**cloud.fim.ai**](https://cloud.fim.ai/) で FIM One をすぐに試してください — Docker、API キー、設定は不要です。サインインするだけで準備完了です。_アーリーアクセス。_
+  自分でホストしたくない場合は、[**cloud.fim.ai**](https://cloud.fim.ai/) で FIM One をすぐに試してください — Docker、API キー、設定は不要です。サインインすればすぐに使用できます。_早期アクセス。_
 </Tip>
 
 ## オプション A: Docker（推奨）
 
-ローカルの Python または Node.js は不要です。すべてがコンテナ内でビルドされます。
+ローカルの Python または Node.js は不要です。すべてコンテナ内でビルドされます。
 
 ```bash
 git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
-```
 
-# 設定 — LLM_API_KEY のみが必須です
+# Configure — only LLM_API_KEY is required
 cp example.env .env
-# .env を編集: LLM_API_KEY を設定 (オプションで LLM_BASE_URL、LLM_MODEL も設定)
+# Edit .env: set LLM_API_KEY (and optionally LLM_BASE_URL, LLM_MODEL)
 
-# ビルドと実行（初回、または新しいコードをプルした後）
-```bash
+# Build and run (first time, or after pulling new code)
 docker compose up --build -d
 ```
 
-http://localhost:3000 を開く — 初回起動時は管理者アカウントの作成ガイドが表示されます。以上です。
+http://localhost:3000 を開きます。初回起動時は、管理者アカウントの作成ガイドが表示されます。以上です。
 
-初回ビルド後、以降の起動には以下のコマンドのみが必要です：
+初回ビルド後、その後の起動には以下のみが必要です：
 
 ```bash
-docker compose up -d          # 起動（イメージが変わっていなければリビルドをスキップ）
-docker compose down           # 停止
-docker compose logs -f        # ログを表示
+docker compose up -d          # start (skip rebuild if image unchanged)
+docker compose down           # stop
+docker compose logs -f        # view logs
 ```
 
 データは Docker の名前付きボリューム（`fim-data`、`fim-uploads`）に永続化され、コンテナの再起動後も保持されます。
 
-**注記：** Docker モードはホットリロードをサポートしていません。コード変更にはイメージの再ビルド（`docker compose up --build -d`）が必要です。ライブリロード付きのアクティブな開発には、以下の**オプション B** を使用してください。
+**注意：** Docker モードはホットリロードをサポートしていません。コード変更にはイメージの再ビルド（`docker compose up --build -d`）が必要です。ライブリロード機能を備えたアクティブな開発には、以下の**オプション B** を使用してください。
 
 ## オプション B: ローカル開発
 
@@ -49,22 +47,21 @@ git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
 
 cp example.env .env
-```
-# .envを編集: LLM_API_KEYを設定
+# Edit .env: set LLM_API_KEY
 
-# インストール
+# Install
 uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
-# 起動（ホットリロード付き）
+# Launch (with hot reload)
 ./start.sh
 ```
 
-| コマンド          | 起動内容                                             | URL                                      |
+| コマンド      | 起動内容                                             | URL                                      |
 | ---------------- | ------------------------------------------------------- | ---------------------------------------- |
 | `./start.sh`     | Next.js + FastAPI                                       | http://localhost:3000 (UI) + :8000 (API) |
-| `./start.sh dev` | 同じ、ホットリロード付き（Python `--reload` + Next.js HMR） | 同じ                                     |
-| `./start.sh api` | FastAPI のみ（ヘッドレス、統合またはテスト用）     | http://localhost:8000/api                |
+| `./start.sh dev` | 同じ、ホットリロード付き (Python `--reload` + Next.js HMR) | 同じ                                     |
+| `./start.sh api` | FastAPI のみ (ヘッドレス、統合またはテスト用)     | http://localhost:8000/api                |
 
 ## 設定
 
@@ -77,13 +74,13 @@ FIM One は**任意の OpenAI 互換 LLM プロバイダー**で動作します 
 | **Anthropic** | `sk-ant-...` | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
 | **Ollama** (ローカル) | `ollama` | `http://localhost:11434/v1` | `qwen2.5:14b` |
 
-**[Jina AI](https://jina.ai/)** は Web 検索/取得、埋め込み、および完全な RAG パイプラインを実現します（無料ティア利用可能）。
+**[Jina AI](https://jina.ai/)** は Web 検索/取得、埋め込み、および完全な RAG パイプラインを実現します（無料ティアあり）。
 
 最小限の `.env`:
 
 ```bash
 LLM_API_KEY=sk-your-key
-# LLM_BASE_URL=https://api.openai.com/v1   # デフォルト — 他のプロバイダーの場合は変更してください
+# LLM_BASE_URL=https://api.openai.com/v1   # default — change for other providers
 # LLM_MODEL=gpt-4o                         # default — change for other models
 
 JINA_API_KEY=jina_...                       # unlocks web tools + RAG
@@ -95,9 +92,9 @@ JINA_API_KEY=jina_...                       # unlocks web tools + RAG
 
 ### Docker（推奨）
 
-`docker compose up -d` は必要なすべてのものを起動します — **手動でのサービス設定は不要です**：
+`docker compose up -d` は必要なすべてをセットアップします — **手動でのサービス設定は不要です**：
 
-| サービス | 目的 | 設定者 |
+| サービス | 目的 | 設定方法 |
 |---------|---------|---------------|
 | **fim-one** | API + フロントエンド | `.env`（LLMキーなど） |
 | **Redis** | ワーカー間割り込みリレー | compose により自動設定 |
@@ -111,21 +108,21 @@ docker compose down            # stop all services
 
 #### ワーカーでのスケーリング
 
-デフォルトでは、APIは単一のワーカープロセスで実行されます。より多くの同時ユーザーを処理するには、`.env`でワーカー数を増やします：
+デフォルトでは、APIは単一のワーカープロセスで実行されます。より多くの同時ユーザーを処理するには、`.env`でワーカーを増やします：
 
 ```bash
 WORKERS=4   # number of Uvicorn worker processes
 ```
 
 マルチワーカーの要件：
-- **PostgreSQL** — SQLiteはシングルライターであり、同時書き込みをサポートしていません。`DATABASE_URL`をPostgreSQL接続文字列に設定してください。
+- **PostgreSQL** — SQLiteはシングルライターであり、同時書き込みをサポートしていません。`DATABASE_URL`をPostgreSQL接続文字列に設定します。
 - **Redis** — Docker Composeに既に含まれています（自動設定）。ワーカー間の割り込み/注入リレーを処理します。
 
-`WORKERS=1`（デフォルト）の場合、RedisやPostgreSQLは不要です。SQLiteで問題なく動作します。
+`WORKERS=1`（デフォルト）の場合、RedisやPostgreSQLは不要です — SQLiteで問題なく動作します。
 
 #### Nginx リバースプロキシ
 
-HTTPS とカスタムドメインの場合、Nginx リバースプロキシをフロントに配置します:
+HTTPS とカスタムドメインの場合は、Nginx リバースプロキシをフロントに配置します：
 
 ```
 User → Nginx (443/HTTPS) → localhost:3000
@@ -145,10 +142,10 @@ volumes:
 
 #### Cloudflare Tunnel
 
-ゼロオープンポートセットアップの場合、Nginxの代わりに[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)を使用してください。すべてのトラフィックはCloudflareのエッジを通過します。ポート80/443を公開したり、SSLサーティフィケートを管理したり、ファイアウォールルールを設定する必要はありません。
+ゼロオープンポートセットアップの場合は、Nginx の代わりに [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) を使用してください。すべてのトラフィックは Cloudflare のエッジを通じて流れます。ポート 80/443 を公開したり、SSL 証明書を管理したり、ファイアウォールルールを設定する必要はありません。
 
 <Warning>
-**中国本土ユーザー**: Cloudflare Free/Pro/Businessプランは**中国本土にPoP（Points-of-Presence）がありません**。中国本土からのトラフィックは海外のエッジ（通常は米国西部）にルーティングされ、頻繁な502エラーと高レイテンシが発生します。主なユーザーが中国本土にいる場合は、Cloudflare Tunnelを**使用しないでください**。中国本土への確実なアクセスにはCloudflare Enterprise with China Network（JD Cloudパートナーシップ）が必要です。
+**中国本土ユーザー**: Cloudflare Free/Pro/Business プランは**中国本土に PoP（Points-of-Presence）がありません**。中国本土からのトラフィックは海外エッジ（通常は US West）にルーティングされ、頻繁に 502 エラーが発生し、レイテンシが高くなります。主なユーザーが中国本土にいる場合は、Cloudflare Tunnel を**使用しないでください**。中国本土への信頼できるアクセスには、China Network（JD Cloud パートナーシップ）を備えた Cloudflare Enterprise が必要です。
 </Warning>
 
 ```
@@ -159,27 +156,27 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
 
 <Steps>
   <Step title="トンネルを作成する">
-    [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels → **Create a tunnel**に移動します。
-    コネクタタイプとして**Cloudflared**を選択します。
+    [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels → **Create a tunnel** に移動します。
+    コネクタタイプとして **Cloudflared** を選択します。
   </Step>
   <Step title="パブリックホスト名を設定する">
-    トンネル設定でパブリックホスト名を追加します:
+    トンネル設定で、パブリックホスト名を追加します:
 
     | フィールド | 値 |
     |-------|-------|
     | **Type** | `HTTP` |
     | **URL** | `fim-one:3000` |
 
-    その他のすべての設定（HTTP Host Header、Chunked Encoding、Timeouts、Access）はデフォルトのままにしてください。
+    その他のすべての設定（HTTP Host Header、Chunked Encoding、Timeouts、Access）はデフォルトのままにしておきます。
 
-    <Note>URLは`localhost`ではなくDockerサービス名`fim-one`を使用します。これは`cloudflared`が同じDockerネットワーク内の別のコンテナとして実行されるためです。</Note>
+    <Note>URL は `localhost` ではなく Docker サービス名 `fim-one` を使用します。これは `cloudflared` が同じ Docker ネットワーク内の別のコンテナとして実行されるためです。</Note>
   </Step>
   <Step title="トンネルトークンをコピーする">
-    トンネルの**Configure**ページで、インストールコマンドを見つけます。これには`eyJ...`で始まるトークンが含まれています。それをコピーしてください。
+    トンネルの **Configure** ページで、インストールコマンドを見つけます。これには `eyJ...` で始まるトークンが含まれています。それをコピーします。
   </Step>
-  <Step title="トークンを.envに追加する">
+  <Step title="トークンを .env に追加する">
     ```bash
-    # サーバーの.envファイルに追加
+    # Add to your .env file on the server
     CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNj...
     ```
   </Step>
@@ -189,18 +186,18 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
     docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
     ```
 
-    `docker-compose.tunnel.yml`オーバーレイは`cloudflared`サイドカーコンテナを追加します。ベースの`docker-compose.yml`は変更されません。Cloudflareを使用していないコミュニティユーザーは引き続き`docker compose up -d`を使用できます。
+    `docker-compose.tunnel.yml` オーバーレイは `cloudflared` サイドカーコンテナを追加します。ベースの `docker-compose.yml` は変更されません。Cloudflare を使用しないコミュニティユーザーは、引き続き `docker compose up -d` を使用できます。
   </Step>
-  <Step title="古いDNSレコードを削除する">
-    ドメインが以前にサーバーのIPを指すAレコードを持っていた場合、Cloudflare DNSで**削除してください**。トンネルは自動的にそのエッジエンドポイントを指すCNAMEレコードを作成します。
+  <Step title="古い DNS レコードを削除する">
+    ドメインに以前にサーバーの IP を指すA レコードがあった場合は、Cloudflare DNS で**削除してください**。トンネルは自動的にそのエッジエンドポイントを指す CNAME レコードを作成します。
   </Step>
   <Step title="サーバーポートを閉じる">
-    サーバーの`docker-compose.yml`から`ports`セクションを削除（またはコメントアウト）してください。トラフィックはトンネルを通じてのみ流れるようになります。インバウンドポートは不要です。
+    サーバーの `docker-compose.yml` から `ports` セクションを削除（またはコメントアウト）します。トラフィックはトンネルを通じてのみ流れます。インバウンドポートは不要です。
   </Step>
 </Steps>
 
 <Tip>
-  Cloudflare Tunnelはすべてのプラン（Freeを含む）で無料です。帯域幅またはトラフィック制限はありません。
+  Cloudflare Tunnel は Free を含むすべてのプランで無料です。帯域幅またはトラフィック制限はありません。
 </Tip>
 
 ### スクリプトデプロイメント（ベアメタル）
@@ -213,18 +210,15 @@ User → Cloudflare Edge (SSL) → Tunnel → cloudflared → fim-one:3000
 ./start.sh api       # API only (headless)
 ```
 
-このモードでは、Redis は自動的に含まれ**ません**。システムはデフォルトでシングルワーカー、インプロセスモードで実行されます — 低トラフィックのデプロイメントに適しています。
+このモードでは、Redis は自動的に含まれません。システムはデフォルトでシングルワーカー、インプロセスモードで実行されます。これは低トラフィックのデプロイメントに適しています。
 
-Redis をローカルで有効にしてマルチワーカーを実行するには：
+ローカルでマルチワーカーと Redis を有効にするには：
 
 ```bash
-
-
-```
-# Redis インスタンスを起動する (Docker またはシステムパッケージ)
+# Start a Redis instance (Docker or system package)
 docker run -d --name redis -p 6379:6379 redis:7-alpine
 
-# .envに追加
+# Add to .env
 REDIS_URL=redis://localhost:6379/0
 WORKERS=4
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost/fim_one

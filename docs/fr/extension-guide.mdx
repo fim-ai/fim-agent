@@ -1,11 +1,11 @@
 ---
 title: "Guide d'extension"
-description: "Comment intégrer des fournisseurs LLM personnalisés, des outils, des backends de mémoire, des embeddings, des rérankers, des backends web et des composants RAG dans FIM One."
+description: "Comment intégrer des fournisseurs LLM personnalisés, des outils, des backends de mémoire, des embeddings, des rerankers, des backends web et des composants RAG dans FIM One."
 ---
 
 ## Aperçu
 
-FIM One est construit autour d'un ensemble de classes de base abstraites minces — une par composant interchangeable. Chaque composant a une seule responsabilité et une interface minimale. Vous implémentez les méthodes abstraites, connectez l'instance au registre ou à l'injecteur approprié, et le reste du système utilise automatiquement votre implémentation.
+FIM One est construit autour d'un ensemble de classes de base abstraites minces — une par composant interchangeable. Chaque composant a une responsabilité unique et une interface minimale. Vous implémentez les méthodes abstraites, connectez l'instance au registre ou à l'injecteur approprié, et le reste du système utilise automatiquement votre implémentation.
 
 | Point d'extension | Classe de base | Fichier | Enregistrement |
 |---|---|---|---|
@@ -13,7 +13,7 @@ FIM One est construit autour d'un ensemble de classes de base abstraites minces 
 | Outil | `BaseTool` | `core/tool/base.py` | Déposer un fichier dans `builtin/` |
 | Mémoire | `BaseMemory` | `core/memory/base.py` | Injection de constructeur |
 | Embedding | `BaseEmbedding` | `core/embedding/base.py` | Injection de constructeur |
-| Génération d'image | `BaseImageGen` | `core/image_gen/base.py` | Injection de constructeur |
+| Génération d'images | `BaseImageGen` | `core/image_gen/base.py` | Injection de constructeur |
 | Reranker | `BaseReranker` | `core/reranker/base.py` | Injection de constructeur |
 | Backend de récupération web | `BaseWebFetch` | `core/web/fetch/base.py` | Injection de constructeur |
 | Backend de recherche web | `BaseWebSearch` | `core/web/search/base.py` | Injection de constructeur |
@@ -80,9 +80,9 @@ class MyLLM(BaseLLM):
         yield  # make type-checker happy
 ```
 
-### Enregistrement via ModelRegistry
+### Inscription via ModelRegistry
 
-`ModelRegistry` mappe les noms aux instances `BaseLLM` et résout par rôle. Le système utilise quatre rôles intégrés : `general`, `fast`, `compact` et `vision`. Vous pouvez en ajouter vos propres.
+`ModelRegistry` mappe les noms aux instances `BaseLLM` et résout par rôle. Le système utilise quatre rôles intégrés : `general`, `fast`, `compact`, et `vision`. Vous pouvez en ajouter les vôtres.
 
 ```python
 from fim_one.core.model.registry import ModelRegistry
@@ -90,10 +90,8 @@ from fim_one.core.model.registry import ModelRegistry
 registry = ModelRegistry()
 registry.register("my-llm", MyLLM(api_key="...", model="my-v1"), roles=["general"])
 registry.register("my-fast", MyLLM(api_key="...", model="my-mini"), roles=["fast", "compact"])
-```
 
-# Récupérer plus tard
-```python
+# Retrieve later
 llm = registry.get_default()           # first "general" model, or first registered
 llm = registry.get_by_role("fast")     # first model with the "fast" role
 llm = registry.get("my-llm")           # by exact name
@@ -105,7 +103,7 @@ Le dictionnaire `abilities` est le contrat entre le LLM et le moteur ReAct. Quan
 
 ## Outil personnalisé
 
-Les outils sont l'extension la plus courante. `BaseTool` a trois éléments requis : `name`, `description` et `run`. Tout le reste a des valeurs par défaut sensées.
+Les outils sont l'extension la plus courante. `BaseTool` a trois éléments requis : `name`, `description`, et `run`. Tout le reste a des valeurs par défaut sensées.
 
 ```python
 from typing import Any
@@ -155,8 +153,8 @@ Déposez votre fichier dans `src/fim_one/core/tool/builtin/`. Le scanner `discov
 
 ```
 src/fim_one/core/tool/builtin/
-├── calculator.py       ← outil existant
-├── git_status.py       ← votre nouveau fichier → découvert automatiquement
+├── calculator.py       ← existing tool
+├── git_status.py       ← your new file → auto-discovered
 └── ...
 ```
 
@@ -192,9 +190,9 @@ async def run(self, **kwargs: Any) -> ToolResult:
 
 ---
 
-## Mémoire personnalisée
+## Mémoire personnalisé
 
-`BaseMemory` est la couche de persistance pour l'historique des conversations. Trois méthodes : `add_message`, `get_messages`, `clear`.
+`BaseMemory` est la couche de persistance pour l'historique de conversation. Trois méthodes : `add_message`, `get_messages`, `clear`.
 
 ```python
 import redis.asyncio as redis
@@ -220,13 +218,13 @@ class RedisMemory(BaseMemory):
         await self._redis.delete(self._key)
 ```
 
-Injectez via le constructeur de l'agent : `ReActAgent(llm=llm, memory=RedisMemory(conv_id, url))`.
+Injecter via le constructeur de l'agent : `ReActAgent(llm=llm, memory=RedisMemory(conv_id, url))`.
 
 ---
 
-## Intégration personnalisée d'embeddings
+## Intégration personnalisée
 
-`BaseEmbedding` fournit deux méthodes : `embed_texts` (batch) et `embed_query` (single), ainsi qu'une propriété `dimension`.
+`BaseEmbedding` fournit deux méthodes : `embed_texts` (lot) et `embed_query` (unique), ainsi qu'une propriété `dimension`.
 
 ```python
 from fim_one.core.embedding.base import BaseEmbedding
@@ -250,13 +248,13 @@ class MyEmbedding(BaseEmbedding):
         ...
 ```
 
-La distinction entre `embed_texts` et `embed_query` existe parce que de nombreux modèles d'embedding (par exemple E5, BGE) utilisent des préfixes différents pour les documents et les requêtes afin d'améliorer la qualité de la récupération.
+La distinction entre `embed_texts` et `embed_query` existe parce que de nombreux modèles d'intégration (par exemple E5, BGE) utilisent des préfixes différents pour les documents par rapport aux requêtes afin d'améliorer la qualité de la récupération.
 
 ---
 
 ## Génération d'images personnalisée
 
-`BaseImageGen` possède une seule méthode `generate`. Elle enregistre l'image dans `output_dir` et retourne un `ImageResult` avec le chemin du fichier et une URL relative au serveur.
+`BaseImageGen` a une seule méthode `generate`. Elle enregistre l'image dans `output_dir` et retourne un `ImageResult` avec le chemin du fichier et une URL relative au serveur.
 
 ```python
 from fim_one.core.image_gen.base import BaseImageGen, ImageResult
@@ -284,7 +282,7 @@ class StableDiffusionImageGen(BaseImageGen):
 
 ## Réclasseur personnalisé
 
-`BaseReranker` prend une requête et une liste de chaînes de documents et les retourne réorganisées avec des scores.
+`BaseReranker` prend une requête et une liste de chaînes de documents et les retourne réordonnées avec des scores.
 
 ```python
 from fim_one.core.reranker.base import BaseReranker, RerankResult
@@ -308,9 +306,9 @@ class CrossEncoderReranker(BaseReranker):
 
 ## Backends web personnalisés
 
-### Récupération web
+### Récupération Web
 
-`BaseWebFetch` récupère une URL et retourne son contenu en Markdown ou en texte brut.
+`BaseWebFetch` récupère une URL et retourne son contenu sous forme de Markdown ou de texte brut.
 
 ```python
 from fim_one.core.web.fetch.base import BaseWebFetch
@@ -346,6 +344,8 @@ class BingSearch(BaseWebSearch):
         ]
 ```
 
+---
+
 ## Composants RAG personnalisés
 
 Le pipeline RAG a trois étapes indépendamment interchangeables : chargement, segmentation et récupération.
@@ -367,9 +367,9 @@ class DocxLoader(BaseLoader):
         return [LoadedDocument(content=text, metadata={"source": str(path)})]
 ```
 
-### Découpeur de texte
+### Découpage de texte
 
-`BaseChunker` divise le texte en objets `Chunk`. `MAX_CHUNK_SIZE = 6000` caractères est la limite maximale — les tailles de chunk supérieures à cela peuvent dépasser la fenêtre de tokens Jina Embeddings v3.
+`BaseChunker` divise le texte en objets `Chunk`. `MAX_CHUNK_SIZE = 6000` caractères est la limite maximale — les tailles de chunk au-delà de cela peuvent dépasser la fenêtre de jetons de Jina Embeddings v3.
 
 ```python
 from typing import Any
@@ -425,10 +425,10 @@ class ElasticsearchRetriever(BaseRetriever):
 
 Quelques modèles sont cohérents dans toutes les classes de base qui facilitent l'écriture correcte des implémentations personnalisées :
 
-**Async en premier.** Chaque méthode est `async def`. Même si votre implémentation est synchrone, enveloppez-la avec `asyncio.to_thread()` plutôt que de bloquer la boucle d'événements.
+**Async en priorité.** Chaque méthode est `async def`. Même si votre implémentation est synchrone, enveloppez-la avec `asyncio.to_thread()` plutôt que de bloquer la boucle d'événements.
 
 **Sortie textuelle des outils.** `BaseTool.run()` retourne `str` (ou `ToolResult`). Le LLM ne voit que du texte — les implémentations d'outils sont responsables de la sérialisation des données complexes dans un format lisible.
 
-**Interfaces minimales.** Chaque classe de base définit le plus petit contrat nécessaire. `BaseMemory` compte trois méthodes ; `BaseWebFetch` en compte une. Vous n'êtes jamais obligé d'implémenter les fonctionnalités dont vous n'avez pas besoin.
+**Interfaces minimales.** Chaque classe de base définit le plus petit contrat nécessaire. `BaseMemory` compte trois méthodes ; `BaseWebFetch` en compte une. Vous n'êtes jamais obligé d'implémenter une fonctionnalité dont vous n'avez pas besoin.
 
 **Composition plutôt qu'héritage.** Les classes de base sont des interfaces, pas des frameworks. Vous injectez votre implémentation au moment de la construction ; l'exécution ne la sous-classe jamais ou ne la modifie jamais ultérieurement.
