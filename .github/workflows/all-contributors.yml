@@ -1,0 +1,113 @@
+name: Add Contributors
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [master]
+
+jobs:
+  add-contributor:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Determine contribution types
+        id: contrib
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          # Fetch the list of changed files from the PR
+          CHANGED_FILES=$(gh api \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename')
+
+          TYPES=""
+
+          # Check for security contributions (title or labels)
+          if echo "$PR_TITLE" | grep -qi "security" || echo "$PR_LABELS" | grep -qi "security"; then
+            TYPES="${TYPES},security"
+          fi
+
+          # Check for bug fix (title starts with "fix")
+          if echo "$PR_TITLE" | grep -qiE "^fix"; then
+            TYPES="${TYPES},bug"
+          fi
+
+          # Check changed files for contribution types
+          HAS_DOC=false
+          HAS_TRANSLATION=false
+          HAS_TEST=false
+          HAS_CODE=false
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+
+            case "$file" in
+              docs/*|*.md)
+                HAS_DOC=true
+                ;;
+              messages/*)
+                HAS_TRANSLATION=true
+                ;;
+              tests/*|*/tests/*|*/test_*)
+                HAS_TEST=true
+                ;;
+              frontend/*|src/*)
+                HAS_CODE=true
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          if [ "$HAS_DOC" = true ]; then TYPES="${TYPES},doc"; fi
+          if [ "$HAS_TRANSLATION" = true ]; then TYPES="${TYPES},translation"; fi
+          if [ "$HAS_TEST" = true ]; then TYPES="${TYPES},test"; fi
+          if [ "$HAS_CODE" = true ]; then TYPES="${TYPES},code"; fi
+
+          # Default to "code" if nothing matched
+          if [ -z "$TYPES" ]; then
+            TYPES="code"
+          else
+            # Remove leading comma
+            TYPES="${TYPES#,}"
+          fi
+
+          echo "types=$TYPES" >> "$GITHUB_OUTPUT"
+          echo "Detected contribution types: $TYPES"
+
+      - name: Add contributor
+        run: |
+          USERNAME="${{ github.event.pull_request.user.login }}"
+          TYPES="${{ steps.contrib.outputs.types }}"
+
+          echo "Adding $USERNAME with types: $TYPES"
+
+          # all-contributors-cli handles dedup internally --
+          # if user exists, it merges new types with existing ones
+          npx all-contributors-cli add "$USERNAME" "$TYPES"
+          npx all-contributors-cli generate
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .all-contributorsrc README.md
+          # Check if there are actual changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: add @${{ github.event.pull_request.user.login }} as contributor [skip ci]"
+            git push
+          fi
