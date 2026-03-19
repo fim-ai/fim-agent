@@ -130,6 +130,65 @@ def _split_sections(content: str) -> list[str]:
     return sections
 
 
+def _shield_code_blocks(text: str) -> tuple[str, list[str]]:
+    """Extract fenced code blocks, replacing with <!--CODE_BLOCK_N--> placeholders.
+
+    This prevents the LLM from translating or breaking code block content
+    (e.g. turning bash comments like '# Configure' into markdown headings).
+    """
+    blocks: list[str] = []
+    lines = text.splitlines(keepends=True)
+    result: list[str] = []
+    in_block = False
+    block_lines: list[str] = []
+    fence_char = ""
+
+    for line in lines:
+        stripped = line.strip()
+        if not in_block:
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                in_block = True
+                fence_char = stripped[0]
+                block_lines = [line]
+            else:
+                result.append(line)
+        else:
+            block_lines.append(line)
+            # Closing fence: same char, at least 3, no other content
+            if stripped.startswith(fence_char * 3) and stripped.rstrip(fence_char) == "":
+                blocks.append("".join(block_lines))
+                result.append(f"<!--CODE_BLOCK_{len(blocks) - 1}-->\n")
+                in_block = False
+                block_lines = []
+
+    # Handle unclosed code block (shouldn't happen but be safe)
+    if block_lines:
+        blocks.append("".join(block_lines))
+        result.append(f"<!--CODE_BLOCK_{len(blocks) - 1}-->\n")
+
+    return "".join(result), blocks
+
+
+def _restore_code_blocks(text: str, blocks: list[str]) -> str:
+    """Re-insert original code blocks from placeholders."""
+    for i, block in enumerate(blocks):
+        placeholder = f"<!--CODE_BLOCK_{i}-->"
+        restored = block.rstrip("\n")
+        if placeholder in text:
+            text = text.replace(placeholder, restored, 1)
+            continue
+        # Try common LLM mutations (added spaces inside HTML comment)
+        for variant in [
+            f"<!-- CODE_BLOCK_{i} -->",
+            f"<!--CODE_BLOCK_{i} -->",
+            f"<!-- CODE_BLOCK_{i}-->",
+        ]:
+            if variant in text:
+                text = text.replace(variant, restored, 1)
+                break
+    return text
+
+
 # ---------------------------------------------------------------------------
 # .env loader
 # ---------------------------------------------------------------------------
@@ -651,9 +710,24 @@ def _translate_sections(
         max_attempts = 3 if validate_fn else 1
 
         def _translate_one(idx: int, section: str) -> tuple[int, str | None]:
+            # Shield code blocks: extract them before LLM sees the content,
+            # so the LLM can't translate or break bash comments / fence structure.
+            shielded, code_blocks = _shield_code_blocks(section)
+            content_to_translate = shielded
+            if code_blocks:
+                content_to_translate = (
+                    "IMPORTANT: <!--CODE_BLOCK_N--> placeholders represent pre-extracted "
+                    "code blocks. Preserve each placeholder exactly as-is on its own line. "
+                    "Do NOT translate, modify, or remove them.\n\n"
+                    + shielded
+                )
+
             for attempt in range(max_attempts):
                 try:
-                    translated = llm_chat(config, system_prompt, section)
+                    translated = llm_chat(config, system_prompt, content_to_translate)
+                    # Restore code blocks from placeholders
+                    if code_blocks:
+                        translated = _restore_code_blocks(translated, code_blocks)
                     # Preserve trailing whitespace from original section.
                     # LLMs often strip trailing newlines, which causes sections
                     # to be glued together (e.g. "...value).## Next Heading").
