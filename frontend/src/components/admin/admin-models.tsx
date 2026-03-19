@@ -208,6 +208,7 @@ function ModelFormDialog({ open, onOpenChange, model, onSuccess }: ModelFormDial
         json_mode_enabled: jsonModeEnabled,
       }
       if (isEdit && model) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { api_key: _ak, ...rest } = body
         const updateBody = apiKey.trim() ? body : rest
         await adminApi.updateModel(model.id, updateBody)

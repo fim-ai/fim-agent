@@ -99,16 +99,6 @@ function ConnectorsPageInner() {
 
   const handleDelete = (id: string) => setPendingDeleteId(id)
 
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    try {
-      const updated = await connectorApi.toggleActive(id, isActive)
-      setConnectors((prev) => prev.map((c) => (c.id === id ? updated : c)))
-      toast.success(isActive ? t("connectorEnabled") : t("connectorDisabled"))
-    } catch {
-      toast.error(t("connectorToggleFailed"))
-    }
-  }
-
   const handlePublish = (id: string) => {
     setPendingPublishId(id)
     setPublishOrgId("")
@@ -254,7 +244,7 @@ function ConnectorsPageInner() {
 
   const filteredConnectors = useMemo(
     () => (user ? filterByScope(connectors, user.id) : connectors),
-    [connectors, scope, user, filterByScope],
+    [connectors, user, filterByScope],
   )
 
   const searchedConnectors = useMemo(() => {

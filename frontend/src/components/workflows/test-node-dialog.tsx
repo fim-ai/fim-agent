@@ -54,7 +54,6 @@ export function TestNodeDialog({
   onOpenChange,
 }: TestNodeDialogProps) {
   const t = useTranslations("workflows")
-  const tc = useTranslations("common")
 
   const [variables, setVariables] = useState<KeyValueRow[]>([
     { id: crypto.randomUUID(), key: "", value: "" },

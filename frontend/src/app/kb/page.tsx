@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
-import { kbApi, marketApi, orgApi } from "@/lib/api"
+import { kbApi, marketApi } from "@/lib/api"
 import type { UserOrg } from "@/lib/api"
 import { KBCard } from "@/components/kb/kb-card"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -63,7 +63,9 @@ function KBPageInner() {
   const [pendingPublishId, setPendingPublishId] = useState<string | null>(null)
   const [pendingUnpublishId, setPendingUnpublishId] = useState<string | null>(null)
   const [publishOrgId, setPublishOrgId] = useState<string>("")
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [orgsLoading, setOrgsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -120,37 +122,6 @@ function KBPageInner() {
   }
 
   const handleDelete = (id: string) => setPendingDeleteId(id)
-
-  const handlePublish = (id: string) => {
-    setPendingPublishId(id)
-    setPublishOrgId("")
-    setOrgsLoading(true)
-    orgApi.list().then((orgs) => {
-      setUserOrgs(orgs)
-    }).catch(() => {}).finally(() => setOrgsLoading(false))
-  }
-
-  const handleUnpublish = (id: string) => setPendingUnpublishId(id)
-
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    try {
-      const updated = await kbApi.toggleActive(id, isActive)
-      setKnowledgeBases((prev) => prev.map((kb) => (kb.id === id ? updated : kb)))
-      toast.success(isActive ? t("kbEnabled") : t("kbDisabled"))
-    } catch {
-      toast.error(t("kbToggleFailed"))
-    }
-  }
-
-  const handleResubmit = async (id: string) => {
-    try {
-      const updated = await kbApi.resubmit(id)
-      setKnowledgeBases((prev) => prev.map((kb) => (kb.id === id ? updated : kb)))
-      toast.success(t("resubmitSuccess"))
-    } catch {
-      toast.error(t("resubmitError"))
-    }
-  }
 
   const handleUninstall = (id: string) => setPendingUninstallId(id)
 
@@ -216,7 +187,7 @@ function KBPageInner() {
 
   const filteredKBs = useMemo(
     () => (user ? filterByScope(knowledgeBases, user.id) : knowledgeBases),
-    [knowledgeBases, scope, user, filterByScope],
+    [knowledgeBases, user, filterByScope],
   )
 
   const searchedKBs = useMemo(() => {

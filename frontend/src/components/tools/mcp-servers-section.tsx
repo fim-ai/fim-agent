@@ -41,8 +41,6 @@ interface MCPServersSectionProps {
 export function MCPServersSection({ onReady, currentUserId, scope = "all", searchQuery = "", currentPage = 1, onPageChange }: MCPServersSectionProps) {
   const t = useTranslations("tools")
   const tc = useTranslations("common")
-  const to = useTranslations("organizations")
-
   const [servers, setServers] = useState<MCPServerResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [allowStdio, setAllowStdio] = useState(true)
@@ -209,7 +207,6 @@ export function MCPServersSection({ onReady, currentUserId, scope = "all", searc
     () => {
       if (!currentUserId || scope === "all") return servers
       if (scope === "mine") return servers.filter((s) => s.user_id === currentUserId)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (scope === "installed") return servers.filter((s) => (s as any).source === "market")
       return servers.filter((s) => s.user_id !== currentUserId)

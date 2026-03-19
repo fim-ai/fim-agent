@@ -1157,7 +1157,7 @@ interface OrgCardProps {
   onViewReviewHistory: (org: UserOrg) => void
 }
 
-function OrgCard({ org, currentUserId, onEdit, onDelete, onLeave, onManageMembers, onManageReviews, onViewReviewHistory }: OrgCardProps) {
+function OrgCard({ org, onEdit, onDelete, onLeave, onManageMembers, onManageReviews, onViewReviewHistory }: OrgCardProps) {
   const t = useTranslations("organizations")
   const tc = useTranslations("common")
 

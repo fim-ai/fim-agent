@@ -245,7 +245,6 @@ function ThinkingCard({ iterLabel, duration, reasoning }: { iterLabel: number; d
 }
 
 function StepCard({ step, duration, displayIteration }: { step: ReactStepEvent; duration?: number; displayIteration?: number }) {
-  const t = useTranslations("playground")
   const iterLabel = displayIteration ?? (step.iteration ?? 0) + 1
 
   if (step.type === "thinking") {

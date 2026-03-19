@@ -121,6 +121,7 @@ const NAV_GROUPS: NavGroup[] = [
 ]
 
 // Flatten for type safety
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ALL_TAB_KEYS = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.key))
 type TabKey = (typeof ALL_TAB_KEYS)[number]
 

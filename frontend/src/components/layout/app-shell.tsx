@@ -322,7 +322,9 @@ function LogoEasterEgg() {
         animate={popping ? { y: [0, -5, 2, -2, 0] } : {}}
         transition={{ duration: 0.45, ease: "easeInOut" }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/fim-mark-light.svg" alt="FIM" className="h-5 w-auto shrink-0 dark:hidden" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/fim-mark.svg" alt="FIM" className="h-5 w-auto shrink-0 hidden dark:block" />
         <span className="text-base font-bold tracking-tight text-sidebar-foreground" style={{ fontFamily: "var(--font-cabinet), sans-serif" }}>{APP_NAME}</span>
       </motion.button>

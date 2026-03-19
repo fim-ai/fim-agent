@@ -209,7 +209,7 @@ function SkillsPageInner() {
 
   const filteredSkills = useMemo(
     () => (user ? filterByScope(skills, user.id) : skills),
-    [skills, scope, user, filterByScope],
+    [skills, user, filterByScope],
   )
 
   const searchedSkills = useMemo(() => {

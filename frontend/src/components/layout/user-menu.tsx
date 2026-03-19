@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import {
   BookOpen,
   ChevronsUpDown,
@@ -53,7 +52,6 @@ const LANGUAGE_OPTIONS = [
 
 export function UserMenu({ collapsed }: UserMenuProps) {
   const { user, logout, updateUser } = useAuth()
-  const router = useRouter()
   const t = useTranslations("common")
   const [open, setOpen] = useState(false)
 

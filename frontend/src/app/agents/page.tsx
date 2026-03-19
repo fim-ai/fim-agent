@@ -95,16 +95,6 @@ function AgentsPageInner() {
   }
   const handleUnpublish = (id: string) => setPendingUnpublishId(id)
 
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    try {
-      const updated = await agentApi.toggleActive(id, isActive)
-      setAgents((prev) => prev.map((a) => (a.id === id ? updated : a)))
-      toast.success(isActive ? t("agentEnabled") : t("agentDisabled"))
-    } catch {
-      toast.error(t("agentToggleFailed"))
-    }
-  }
-
   const handleResubmit = async (id: string) => {
     try {
       const updated = await agentApi.resubmit(id)
@@ -179,7 +169,7 @@ function AgentsPageInner() {
 
   const filteredAgents = useMemo(
     () => (user ? filterByScope(agents, user.id) : agents),
-    [agents, scope, user, filterByScope],
+    [agents, user, filterByScope],
   )
 
   const searchedAgents = useMemo(() => {

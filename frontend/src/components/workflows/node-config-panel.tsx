@@ -1498,7 +1498,6 @@ function CodeExecutionConfig({ data, updateField, t, otherNodes }: ConfigProps) 
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function IteratorConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
@@ -1659,7 +1658,6 @@ function VariableAggregatorConfig({ data, updateField, t, otherNodes }: ConfigPr
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LoopConfig({ data, updateField, t, otherNodes }: ConfigProps) {
   return (
     <div className="space-y-3">
@@ -2024,7 +2022,7 @@ function TransformConfig({ data, updateField, t, otherNodes }: ConfigProps) {
                   </Button>
                 </div>
                 {/* Config fields per type */}
-                <TransformOpConfig op={op} index={i} updateOperation={updateOperation} t={t} />
+                <TransformOpConfig op={op} index={i} updateOperation={updateOperation} />
               </div>
             ))}
           </div>
@@ -2048,12 +2046,10 @@ function TransformOpConfig({
   op,
   index,
   updateOperation,
-  t,
 }: {
   op: { type: string; config: Record<string, unknown> }
   index: number
   updateOperation: (index: number, field: string, value: unknown) => void
-  t: ReturnType<typeof useTranslations<"workflows">>
 }) {
   const config = op.config ?? {}
 

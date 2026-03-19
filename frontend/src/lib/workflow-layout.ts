@@ -6,12 +6,6 @@ const HORIZONTAL_SPACING = 300
 /** Vertical distance between nodes within the same layer */
 const VERTICAL_SPACING = 150
 
-/** Assumed node width for centering calculations */
-const NODE_WIDTH = 240
-
-/** Assumed node height for centering calculations */
-const NODE_HEIGHT = 80
-
 /**
  * Auto-layout workflow nodes using a simple layered/hierarchical (BFS) algorithm.
  *

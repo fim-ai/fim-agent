@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl"
 import {
   Activity,
   Building2,
-  CheckCircle2,
   Clock,
   Copy,
   Download,

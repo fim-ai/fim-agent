@@ -55,7 +55,6 @@ export function AdminSettings() {
   const t = useTranslations("admin.settings")
   const tc = useTranslations("common")
   const tError = useTranslations("errors")
-  const locale = useLocale()
   const [settings, setSettings] = useState<SystemSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -75,6 +74,7 @@ export function AdminSettings() {
         toast.error(getErrorMessage(err, tError)),
       )
       .finally(() => setIsLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const patch = async (updates: Partial<SystemSettings>) => {
@@ -403,6 +403,7 @@ function InviteCodeManager() {
     } finally {
       setIsLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { load() }, [load])

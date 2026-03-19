@@ -48,7 +48,7 @@ import type {
   MyCredentialStatus,
   ConnectorTemplate,
 } from "@/types/connector"
-import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, AdminMCPServer, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem } from "@/types/admin"
+import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem } from "@/types/admin"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate, MCPMyCredentialStatus } from "@/types/mcp-server"
 import type { ModelConfigResponse, ModelConfigCreate, ModelConfigUpdate } from "@/types/model_config"
 import type {

@@ -266,7 +266,7 @@ function WorkflowsPageInner() {
       )
     }
     return result
-  }, [workflows, searchQuery, scope, user, filterByScope])
+  }, [workflows, searchQuery, user, filterByScope])
 
   const totalPages = Math.ceil(filteredWorkflows.length / PAGE_SIZE)
   const paginatedWorkflows = useMemo(() => {

@@ -27,14 +27,12 @@ interface UseSlashCommandsOptions {
   onAbort?: () => void
 }
 
-const COMMAND_IDS = ["new", "agent", "mode"] as const
-type CommandId = (typeof COMMAND_IDS)[number]
+type CommandId = "new" | "agent" | "mode"
 
 export function useSlashCommands({
   query,
   isComposing,
   agents,
-  mode,
   isRunning,
   onNewChat,
   onAgentChange,

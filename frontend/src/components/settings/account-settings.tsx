@@ -233,7 +233,6 @@ export function AccountSettings() {
   }, [updateUser])
 
   const _bindResultHandled = useRef(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (_bindResultHandled.current) return
     const bindSuccess = searchParams.get("bind_success")
@@ -254,6 +253,7 @@ export function AccountSettings() {
       toast.error(text)
       router.replace("/settings?tab=account", { scroll: false })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleConnect = async (provider: string) => {
@@ -880,195 +880,6 @@ function DeleteAccountSection({
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Email Change Section
-// ---------------------------------------------------------------------------
-
-function EmailChangeSection({
-  user,
-  t,
-  refreshUser,
-}: {
-  user: UserInfo | null
-  t: ReturnType<typeof useTranslations<"settings.account">>
-  refreshUser: () => Promise<void>
-}) {
-  const tc = useTranslations("common")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [step, setStep] = useState<1 | 2>(1)
-  const [newEmail, setNewEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [code, setCode] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  const resetState = () => {
-    setStep(1)
-    setNewEmail("")
-    setPassword("")
-    setCode("")
-    setFieldErrors({})
-    setSubmitting(false)
-  }
-
-  const handleRequestChange = async () => {
-    const errors: Record<string, string> = {}
-    if (!newEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      errors.email = t("changeEmailInvalidEmail")
-    }
-    if (!password.trim()) {
-      errors.password = t("changeEmailPasswordRequired")
-    }
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors)
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      await apiFetch("/api/auth/change-email/request", {
-        method: "POST",
-        body: JSON.stringify({ new_email: newEmail.trim(), password }),
-      })
-      setStep(2)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message)
-      } else {
-        toast.error(t("changeEmailFailed"))
-      }
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleConfirmChange = async () => {
-    if (code.length < 6) return
-    setSubmitting(true)
-    try {
-      await apiFetch("/api/auth/change-email/confirm", {
-        method: "POST",
-        body: JSON.stringify({ new_email: newEmail.trim(), code }),
-      })
-      toast.success(t("changeEmailSuccess"))
-      setDialogOpen(false)
-      resetState()
-      await refreshUser()
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message)
-      } else {
-        toast.error(t("changeEmailFailed"))
-      }
-      setCode("")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-base font-medium">{t("emailTitle")}</h3>
-        <p className="text-sm text-muted-foreground">
-          {t("emailDescription")}
-        </p>
-      </div>
-
-      <div className="max-w-sm flex items-center gap-3">
-        <p className="text-sm flex-1">{user?.email ?? ""}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => { resetState(); setDialogOpen(true) }}
-        >
-          {t("changeEmail")}
-        </Button>
-      </div>
-
-      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) { setDialogOpen(false); resetState() } else { setDialogOpen(true) } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("changeEmailTitle")}</DialogTitle>
-            <DialogDescription>
-              {step === 1 ? t("changeEmailDescription") : t("changeEmailCodeSent")}
-            </DialogDescription>
-          </DialogHeader>
-
-          {step === 1 && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("newEmailLabel")}</label>
-                <Input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => { setNewEmail(e.target.value); setFieldErrors((p) => { const n = {...p}; delete n.email; return n }) }}
-                  placeholder={t("newEmailPlaceholder")}
-                  aria-invalid={!!fieldErrors.email}
-                />
-                {fieldErrors.email && (
-                  <p className="text-sm text-destructive">{fieldErrors.email}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("currentPasswordForEmail")}</label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => { const n = {...p}; delete n.password; return n }) }}
-                  placeholder={t("currentPasswordForEmailPlaceholder")}
-                  aria-invalid={!!fieldErrors.password}
-                />
-                {fieldErrors.password && (
-                  <p className="text-sm text-destructive">{fieldErrors.password}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("changeEmailCodeLabel")}</label>
-                <InputOTP maxLength={6} value={code} onChange={setCode}>
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                  </InputOTPGroup>
-                  <InputOTPSeparator />
-                  <InputOTPGroup>
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetState() }}>
-              {tc("cancel")}
-            </Button>
-            {step === 1 ? (
-              <Button onClick={handleRequestChange} disabled={submitting}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("changeEmailStep1")}
-              </Button>
-            ) : (
-              <Button onClick={handleConfirmChange} disabled={submitting || code.length < 6}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("changeEmailStep2")}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

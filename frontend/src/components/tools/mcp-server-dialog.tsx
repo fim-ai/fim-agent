@@ -141,6 +141,7 @@ export function MCPServerDialog({
         setAllowFallback(true)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, server])
 
   // isDirty: create mode = any meaningful field has content; edit mode = any field differs from original

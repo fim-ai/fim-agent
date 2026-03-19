@@ -16,8 +16,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { fmtDuration } from "@/lib/utils"
@@ -187,7 +185,7 @@ function highlightJson(json: string): React.ReactNode[] {
 }
 
 /** Collapsible JSON viewer for node outputs — always collapsible */
-function NodeOutputViewer({ output, expanded, onToggle }: { output: unknown; expanded: boolean; onToggle: () => void }) {
+function NodeOutputViewer({ output, expanded }: { output: unknown; expanded: boolean }) {
   const formatted = useMemo(() => prettyJson(output), [output])
   const highlighted = useMemo(() => highlightJson(formatted), [formatted])
 
@@ -259,7 +257,7 @@ function NodeResultCard({
           <p className="text-[11px] text-destructive mt-0.5">{result.error}</p>
         )}
         {hasOutput && (
-          <NodeOutputViewer output={result.output} expanded={expanded} onToggle={() => setExpanded((v) => !v)} />
+          <NodeOutputViewer output={result.output} expanded={expanded} />
         )}
       </div>
     </div>
@@ -440,9 +438,6 @@ function MergedLogEntryRow({
 
   // Badge to show: for merged entries that are still "started" (running), show running style
   const badgeType = entry.eventType === "node_started" ? "node_started" : entry.eventType
-  const badgeLabel = badgeType === "node_started"
-    ? t("runPanelLogEvent_node_started" as Parameters<typeof t>[0])
-    : t(`runPanelLogEvent_${badgeType}` as Parameters<typeof t>[0])
 
   return (
     <div className="py-0.5 px-1 rounded hover:bg-muted/50 transition-colors">

@@ -24,7 +24,6 @@ import "@xyflow/react/dist/style.css"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
 import { Beaker, Copy, Trash2, Settings, Clipboard, MousePointerSquareDashed, Maximize2, LayoutGrid, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 import { useWorkflowHistory } from "@/hooks/use-workflow-history"
 import { useRecentNodes } from "@/hooks/use-recent-nodes"
@@ -569,8 +568,10 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
   const clearRunOverlay = useCallback(() => {
     setNodes(prevNodes => prevNodes.map(node => {
       if (!node.data.runStatus && !node.data._runOverlay) return node
-      const { runStatus: _rs, _runOverlay: _ro, ...restData } = node.data as Record<string, unknown>
-      return { ...node, data: restData }
+      const data = { ...node.data } as Record<string, unknown>
+      delete data.runStatus
+      delete data._runOverlay
+      return { ...node, data }
     }))
     setHasRunOverlay(false)
   }, [setNodes])
@@ -839,8 +840,9 @@ export const WorkflowEditor = forwardRef<WorkflowEditorHandle, WorkflowEditorPro
       // Clear any leftover search styles
       result = result.map((node) => {
         if (node.className || (node.style && node.style.opacity != null)) {
-          const { opacity: _o, ...restStyle } = node.style ?? {}
-          return { ...node, className: undefined, style: Object.keys(restStyle).length > 0 ? restStyle : undefined }
+          const style = { ...node.style }
+          delete style.opacity
+          return { ...node, className: undefined, style: Object.keys(style).length > 0 ? style : undefined }
         }
         return node
       })

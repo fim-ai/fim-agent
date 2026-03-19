@@ -129,8 +129,6 @@ export function TemplateGalleryDialog<T extends BaseTemplate>({
   renderExtra,
   selectHint,
   emptyText,
-  creatingText: _creatingText,
-  createFailedText: _createFailedText,
 }: TemplateGalleryDialogProps<T>) {
   const tc = useTranslations("common")
 

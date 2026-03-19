@@ -93,7 +93,6 @@ function Confetti({ active }: { active: boolean }) {
   // Build once when first activated (one-way latch — useMemo won't rebuild)
   const pieces = useMemo(
     () => (active ? buildConfetti() : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [active],
   )
 

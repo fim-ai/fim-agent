@@ -101,7 +101,7 @@ interface PlaygroundPageProps {
   onTurnComplete?: () => void
 }
 
-export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, onTurnComplete }: PlaygroundPageProps) {
+export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComplete }: PlaygroundPageProps) {
   const t = useTranslations("playground")
   const tError = useTranslations("errors")
   const { user, isLoading: authLoading } = useAuth()
@@ -191,6 +191,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
         window.history.replaceState(null, "", targetUrl)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, pathname])
 
   // When user clicks a DIFFERENT conversation in sidebar, sync mode and reset SSE.
@@ -326,6 +327,7 @@ export function PlaygroundPage({ isNewChat, embedded, onClose, initialAgentId, o
       setSourceMode(mode)
       start(url, { body, onError: (err) => toast.error(getErrorMessage(err, tError)) })
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isRunning, mode, start, activeId, createConversation, selectConversation, selectedAgent, setInjectedMessages],
   )
 
@@ -431,6 +433,7 @@ function ImageThumbnail({ fileId, filename }: { fileId: string; filename: string
         onClick={() => setExpanded(true)}
         className="group relative overflow-hidden rounded-md border border-border/40"
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={blobUrl} alt={filename} className="h-16 w-16 object-cover transition-transform group-hover:scale-105" loading="lazy" />
       </button>
       {expanded && (
@@ -445,6 +448,7 @@ function ImageThumbnail({ fileId, filename }: { fileId: string; filename: string
               <Download className="h-4 w-4" />
             </a>
             <DialogTitle className="leading-normal pb-1 pr-24 truncate text-xs font-medium">{filename}</DialogTitle>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={blobUrl} alt={filename} className="max-h-[calc(90vh-6rem)] max-w-full w-auto mx-auto block rounded object-contain" />
           </DialogContent>
         </Dialog>
@@ -461,7 +465,6 @@ function HistoryTurn({ userContent, userMetadata, assistantMetadata, sseMessages
   sseMessages: SSEMessage[]
   hideDagGraph: boolean
 }) {
-  const t = useTranslations("playground")
   const { user } = useAuth()
   const userFallback = (user?.display_name || user?.email || "U").charAt(0).toUpperCase()
   const { items: reactItems, streamingAnswer: reactStreamingAnswer, suggestions: reactSuggestions } = useReactSteps(sseMessages, false)
@@ -890,7 +893,6 @@ function PlaygroundContent({
         onAgentChangeRef.current(agent)
       }).catch(() => {})
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAgentId, agentsLoaded, agents, selectedAgent])
 
   // Validate files before adding — check type and size
@@ -1125,6 +1127,7 @@ function PlaygroundContent({
         handleRunWithFiles()
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleRunWithFiles, slashCommands.handleKeyDown],
   )
 
@@ -1435,6 +1438,7 @@ function PlaygroundContent({
                   className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-xs"
                 >
                   {isImage && pf.previewUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={pf.previewUrl}
                       alt={pf.file.name}

@@ -95,7 +95,7 @@ export function SuggestedPromptsEditor({
       }
       return prev.slice(0, value.length)
     })
-  }, [value.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value.length])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event

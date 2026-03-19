@@ -478,6 +478,7 @@ function LoginPageInner() {
 
         {/* Top — logo */}
         <a href="https://one.fim.ai" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 relative z-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/fim-mark.svg" alt="FIM" className="h-6 w-auto shrink-0" />
           <span className="text-lg font-bold tracking-tight text-white" style={{ fontFamily: 'var(--font-cabinet), sans-serif' }}>{APP_NAME}</span>
         </a>
@@ -543,7 +544,9 @@ function LoginPageInner() {
         <div className="w-full max-w-sm">
           {/* Mobile-only logo (< lg) */}
           <a href="https://one.fim.ai" target="_blank" rel="noopener noreferrer" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/fim-mark-light.svg" alt="FIM" className="h-8 w-auto dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/fim-mark.svg" alt="FIM" className="h-8 w-auto hidden dark:block" />
             <span
               className="text-lg font-bold"

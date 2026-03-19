@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslations, useLocale } from "next-intl"
-import { Bot, Loader2, MoreHorizontal, Search, Info, Trash2, Power } from "lucide-react"
+import { Loader2, MoreHorizontal, Search, Info, Trash2, Power } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

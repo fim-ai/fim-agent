@@ -73,6 +73,7 @@ function ClickableImage({ src, alt }: { src: string; alt: string }) {
   const [open, setOpen] = useState(false)
   return (
     <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}
@@ -93,6 +94,7 @@ function ClickableImage({ src, alt }: { src: string; alt: string }) {
               <Download className="h-4 w-4" />
             </a>
             <DialogTitle className="leading-normal pb-1 pr-24 truncate text-xs font-medium">{alt || "Image"}</DialogTitle>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt={alt} className="max-h-[calc(90vh-6rem)] max-w-full w-auto mx-auto block rounded object-contain" />
           </DialogContent>
         </Dialog>

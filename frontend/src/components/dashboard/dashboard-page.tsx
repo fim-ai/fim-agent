@@ -199,6 +199,38 @@ export function DashboardPage() {
       .finally(() => setLoading(false))
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // My Agents (by usage)
+  const sortedAgents = useMemo(
+    () => [...(stats?.top_agents ?? [])].sort((a, b) => b.conversation_count - a.conversation_count).slice(0, 6),
+    [stats?.top_agents]
+  )
+
+  // Workflows (by recency)
+  const sortedWorkflows = useMemo(
+    () => [...(workflows ?? [])].sort((a, b) => {
+      const timeA = new Date(a.updated_at || a.created_at).getTime()
+      const timeB = new Date(b.updated_at || b.created_at).getTime()
+      return timeB - timeA
+    }).slice(0, 4),
+    [workflows]
+  )
+
+  // Connectors (by activity & status)
+  const sortedConnectors = useMemo(
+    () => [...(stats?.connector_health ?? [])].sort((a, b) => {
+      if (a.status === "active" && b.status !== "active") return -1
+      if (a.status !== "active" && b.status === "active") return 1
+      return b.call_count_today - a.call_count_today
+    }).slice(0, 4),
+    [stats?.connector_health]
+  )
+
+  // KB (by document count)
+  const sortedKBs = useMemo(
+    () => [...(stats?.top_kbs ?? [])].sort((a, b) => b.document_count - a.document_count).slice(0, 4),
+    [stats?.top_kbs]
+  )
+
   // While auth is resolving or user is not available
   if (authLoading || !user) return null
 
@@ -245,38 +277,6 @@ export function DashboardPage() {
       </div>
     )
   }
-
-  // My Agents (by usage)
-  const sortedAgents = useMemo(
-    () => [...(stats?.top_agents ?? [])].sort((a, b) => b.conversation_count - a.conversation_count).slice(0, 6),
-    [stats?.top_agents]
-  )
-
-  // Workflows (by recency)
-  const sortedWorkflows = useMemo(
-    () => [...(workflows ?? [])].sort((a, b) => {
-      const timeA = new Date(a.updated_at || a.created_at).getTime()
-      const timeB = new Date(b.updated_at || b.created_at).getTime()
-      return timeB - timeA
-    }).slice(0, 4),
-    [workflows]
-  )
-
-  // Connectors (by activity & status)
-  const sortedConnectors = useMemo(
-    () => [...(stats?.connector_health ?? [])].sort((a, b) => {
-      if (a.status === "active" && b.status !== "active") return -1
-      if (a.status !== "active" && b.status === "active") return 1
-      return b.call_count_today - a.call_count_today
-    }).slice(0, 4),
-    [stats?.connector_health]
-  )
-
-  // KB (by document count)
-  const sortedKBs = useMemo(
-    () => [...(stats?.top_kbs ?? [])].sort((a, b) => b.document_count - a.document_count).slice(0, 4),
-    [stats?.top_kbs]
-  )
 
   // Stat card config
   const statCards = [

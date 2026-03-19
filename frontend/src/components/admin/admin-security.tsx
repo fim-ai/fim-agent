@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useTranslations, useLocale } from "next-intl"
-import { Shield, Plus, Loader2, MoreHorizontal, Power, Trash2 } from "lucide-react"
+import { Plus, Loader2, MoreHorizontal, Power, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"

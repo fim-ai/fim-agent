@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -534,8 +534,6 @@ function SensitiveWordsSection() {
 // ---- Main Component ----
 
 export function AdminContent() {
-  const t = useTranslations("admin.content")
-
   return (
     <div className="space-y-6">
       <SensitiveWordsSection />

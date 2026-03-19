@@ -116,6 +116,7 @@ export default function SetupPage() {
 
         {/* Top -- logo */}
         <div className="relative z-10 flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/fim-mark.svg"
             alt="FIM"
@@ -157,7 +158,9 @@ export default function SetupPage() {
         <div className="w-full max-w-sm">
           {/* Mobile-only logo (< lg) */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/fim-mark-light.svg" alt="FIM" className="h-8 w-auto dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/fim-mark.svg" alt="FIM" className="h-8 w-auto hidden dark:block" />
             <span
               className="text-lg font-bold"

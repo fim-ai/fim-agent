@@ -13,7 +13,6 @@ import {
   Plug,
   Calendar,
   Shield,
-  Zap,
   Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -27,12 +26,6 @@ const PAGE_SIZE = 20
 
 type SubView = "events" | "config"
 
-const EVENT_ICONS: Record<string, React.ElementType> = {
-  quota_hit: AlertTriangle,
-  connector_failure: Plug,
-  schedule_failure: Calendar,
-  login_anomaly: Shield,
-}
 
 export function AdminNotifications() {
   const t = useTranslations("admin.notifications")
@@ -126,7 +119,6 @@ export function AdminNotifications() {
   }
 
   const getEventTypeBadge = (type: string) => {
-    const typeKey = type as keyof typeof EVENT_ICONS
     const label = t(`type${type.charAt(0).toUpperCase() + type.slice(1).replace(/_([a-z])/g, (_, c) => c.toUpperCase())}` as Parameters<typeof t>[0])
     const colors: Record<string, string> = {
       quota_hit: "border-yellow-500/40 text-yellow-600 dark:text-yellow-400",

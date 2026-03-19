@@ -791,14 +791,14 @@ export default function WorkflowEditorPage() {
       map[n.id] = n.type
     }
     return map
-  }, [blueprintRef.current.nodes])
+  }, [])
 
   // Total node count (excluding start/end for progress display)
   const totalNodeCount = useMemo(() => {
     return blueprintRef.current.nodes.filter(
       (n) => n.type !== "start" && n.type !== "end",
     ).length
-  }, [blueprintRef.current.nodes])
+  }, [])
 
   if (authLoading || !user) return null
 

@@ -112,6 +112,7 @@ export function AdminUsers() {
     } finally {
       setIsLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search])
 
   useEffect(() => {
