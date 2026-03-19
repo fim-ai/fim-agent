@@ -1,7 +1,6 @@
 ---
 title: "Häufig gestellte Fragen"
-description: "Häufig gestellte Fragen zu FIM One — Setup, Funktionen, Lizenzierung und mehr."
-icon: "circle-question"
+description: "Häufig gestellte Fragen zu FIM One — Einrichtung, Funktionen, Lizenzierung und mehr."
 ---
 
 ## Allgemein
@@ -11,7 +10,7 @@ icon: "circle-question"
     FIM One funktioniert mit **jedem OpenAI-kompatiblen LLM-Anbieter**. Dies umfasst:
 
     - **Kommerzielle APIs** — OpenAI, DeepSeek, Anthropic (Claude), Alibaba Qwen, Google Gemini und alle Anbieter, die einen `/v1/chat/completions`-Endpunkt bereitstellen.
-    - **Lokal/selbstgehostet** — Ollama, vLLM, LocalAI, LM Studio und jede andere Runtime, die das OpenAI-kompatible API-Format bereitstellt.
+    - **Lokal/selbstgehostet** — Ollama, vLLM, LocalAI, LM Studio und jede andere Laufzeit, die das OpenAI-kompatible API-Format bereitstellt.
 
     Sie konfigurieren Ihren Anbieter über drei Umgebungsvariablen in `.env`:
 
@@ -21,24 +20,24 @@ icon: "circle-question"
     LLM_MODEL=gpt-4o                         # change for other models
     ```
 
-    Siehe die [Quick Start](/quickstart)-Anleitung für anbieterspezifische Beispiele.
+    Siehe das [Quick Start](/quickstart)-Handbuch für anbieterspezifische Beispiele.
   </Accordion>
 
   <Accordion title="Kann ich lokale oder selbstgehostete Modelle verwenden?">
     Ja. FIM One verbindet sich mit jedem Endpunkt, der das OpenAI-kompatible API-Format implementiert. Beliebte selbstgehostete Optionen sind:
 
-    | Runtime | Basis-URL | Beispielmodell |
+    | Laufzeit | Basis-URL | Beispielmodell |
     |---------|----------|---------------|
     | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
     | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
     | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
     | **LM Studio** | `http://localhost:1234/v1` | (whatever you load) |
 
-    Setzen Sie `LLM_API_KEY` auf einen beliebigen nicht-leeren String (z. B. `ollama`), wenn der Anbieter keine Authentifizierung erfordert. Alle Agent-Funktionen — ReAct-Reasoning, DAG-Planung, Tool-Aufrufe — funktionieren identisch, unabhängig davon, ob das Modell lokal oder in der Cloud gehostet wird.
+    Setzen Sie `LLM_API_KEY` auf eine beliebige nicht-leere Zeichenkette (z. B. `ollama`), wenn der Anbieter keine Authentifizierung erfordert. Alle Agenten-Features — ReAct-Reasoning, DAG-Planung, Tool-Aufrufe — funktionieren identisch, unabhängig davon, ob das Modell lokal oder in der Cloud gehostet ist.
   </Accordion>
 
   <Accordion title="Ist FIM One Open Source?">
-    FIM One wird unter einer **Source Available License** veröffentlicht. Dies ist keine OSI-zertifizierte Open-Source-Lizenz, bietet aber umfangreiche Freiheiten für die meisten Anwendungsfälle:
+    FIM One wird unter einer **Source Available License** veröffentlicht. Dies ist keine OSI-genehmigte Open-Source-Lizenz, bietet aber umfangreiche Freiheiten für die meisten Anwendungsfälle:
 
     **Erlaubt:**
     - Interne Nutzung innerhalb Ihrer Organisation
@@ -48,18 +47,21 @@ icon: "circle-question"
 
     **Eingeschränkt:**
     - Multi-Tenant-SaaS-Angebote
-    - Konkurrierende Agent-Plattformen
+    - Konkurrierende Agenten-Plattformen
     - White-Labeling oder Entfernung von Branding
 
-    Für Anfragen zur kommerziellen Lizenzierung öffnen Sie bitte ein Issue auf [GitHub](https://github.com/fim-ai/fim-one). Siehe die vollständige [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE) für vollständige Bedingungen.
+    Für kommerzielle Lizenzanfragen öffnen Sie bitte ein Issue auf [GitHub](https://github.com/fim-ai/fim-one). Siehe die vollständige [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE) für vollständige Bedingungen.
   </Accordion>
 
   <Accordion title="Wie melde ich Sicherheitslücken?">
-    Für **unkritische Probleme** öffnen Sie ein GitHub-Issue mit dem Tag `[SECURITY]` im Titel. Fügen Sie Reproduktionsschritte, betroffene Versionen und die mögliche Auswirkung ein.
+    **Öffnen Sie KEIN öffentliches GitHub-Issue für sensible Sicherheitslücken.**
 
-    Für **kritische Sicherheitslücken** (z. B. Anmeldedaten-Offenlegung, Authentifizierungsumgehung) senden Sie bitte eine E-Mail direkt an das Team, anstatt ein öffentliches Issue einzureichen. Kontaktinformationen finden Sie im Projekt-Repository.
+    - **Sensible Berichte** (Anmeldedaten-Exposure, Auth-Bypass, Injection usw.) — verwenden Sie [GitHub Security Advisories](https://github.com/fim-ai/fim-one/security/advisories/new) oder senden Sie eine E-Mail an **security@fim.ai**.
+    - **Probleme mit niedriger Schweregrad** (fehlende Header, Informationsoffenlegung) — öffnen Sie ein reguläres GitHub-Issue mit dem Label `security`.
 
-    Alle Sicherheitsberichte werden an Geschäftstagen innerhalb von 48 Stunden bearbeitet.
+    Alle Berichte werden innerhalb von 48 Stunden (Geschäftstage) bestätigt. Kritische Probleme werden so schnell wie möglich behoben; andere werden mit der nächsten Version ausgeliefert.
+
+    Siehe die vollständige [Security Policy](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md) für Umfang, Reaktionszeitpläne und Best Practices für selbstgehostete Systeme.
   </Accordion>
 </AccordionGroup>
 

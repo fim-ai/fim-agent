@@ -1,7 +1,6 @@
 ---
 title: "자주 묻는 질문"
 description: "FIM One 설정, 기능, 라이선싱 등에 대한 자주 묻는 질문입니다."
-icon: "circle-question"
 ---
 
 ## 일반
@@ -25,41 +24,44 @@ icon: "circle-question"
   </Accordion>
 
   <Accordion title="로컬 또는 자체 호스팅 모델을 사용할 수 있나요?">
-    예. FIM One은 OpenAI 호환 API 형식을 구현하는 모든 엔드포인트에 연결됩니다. 인기 있는 자체 호스팅 옵션은 다음과 같습니다:
+    네. FIM One은 OpenAI 호환 API 형식을 구현하는 모든 엔드포인트에 연결됩니다. 인기 있는 자체 호스팅 옵션은 다음과 같습니다:
 
     | 런타임 | 기본 URL | 예제 모델 |
     |---------|----------|---------------|
     | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
     | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
     | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
-    | **LM Studio** | `http://localhost:1234/v1` | (로드한 모델) |
+    | **LM Studio** | `http://localhost:1234/v1` | (whatever you load) |
 
     제공자가 인증을 요구하지 않을 때 `LLM_API_KEY`를 비어있지 않은 문자열(예: `ollama`)로 설정합니다. 모든 에이전트 기능 — ReAct 추론, DAG 계획, 도구 호출 — 은 모델이 로컬인지 클라우드 호스팅인지에 관계없이 동일하게 작동합니다.
   </Accordion>
 
   <Accordion title="FIM One은 오픈 소스인가요?">
-    FIM One은 **소스 사용 가능 라이선스** 하에 릴리스됩니다. 이는 OSI 승인 오픈 소스 라이선스가 아니지만 대부분의 사용 사례에 광범위한 자유를 제공합니다:
+    FIM One은 **Source Available License** 하에 릴리스됩니다. 이는 OSI 승인 오픈 소스 라이선스는 아니지만 대부분의 사용 사례에 광범위한 자유를 제공합니다:
 
     **허용됨:**
     - 조직 내 내부 사용
     - 수정 및 사용자 정의 개발
-    - 라이선스를 유지한 상태로 배포
-    - 자신의 (경쟁하지 않는) 애플리케이션에 임베딩
+    - 라이선스 유지와 함께 배포
+    - 자신의 (경쟁하지 않는) 애플리케이션에 포함
 
     **제한됨:**
     - 다중 테넌트 SaaS 제공
     - 경쟁 에이전트 플랫폼
     - 화이트 라벨링 또는 브랜딩 제거
 
-    상용 라이선싱 문의는 [GitHub](https://github.com/fim-ai/fim-one)에서 이슈를 열어주세요. 전체 약관은 [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE)를 참조하세요.
+    상용 라이선싱 문의는 [GitHub](https://github.com/fim-ai/fim-one)에서 이슈를 열어주세요. 전체 [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE)에서 완전한 약관을 참조하세요.
   </Accordion>
 
   <Accordion title="보안 취약점을 어떻게 보고하나요?">
-    **민감하지 않은 문제**의 경우 제목에 `[SECURITY]` 태그를 포함하여 GitHub 이슈를 열어주세요. 재현 단계, 영향을 받는 버전 및 잠재적 영향을 포함하세요.
+    **민감한 취약점에 대해 공개 GitHub 이슈를 열지 마세요.**
 
-    **민감한 취약점**(예: 자격증명 노출, 인증 우회)의 경우 공개 이슈를 제출하는 대신 팀에 직접 이메일을 보내주세요. 연락처 정보는 프로젝트 저장소에서 확인할 수 있습니다.
+    - **민감한 보고** (자격증명 노출, 인증 우회, 주입 등) — [GitHub Security Advisories](https://github.com/fim-ai/fim-one/security/advisories/new)를 사용하거나 **security@fim.ai**로 이메일을 보내세요.
+    - **낮은 심각도 문제** (누락된 헤더, 정보 공개) — `security` 라벨과 함께 일반 GitHub 이슈를 열어주세요.
 
-    모든 보안 보고는 업무일 기준 48시간 내에 분류됩니다.
+    모든 보고는 48시간(업무일) 내에 승인됩니다. 중요한 문제는 최대한 빨리 패치되며, 기타 문제는 다음 릴리스와 함께 제공됩니다.
+
+    범위, 응답 타임라인 및 자체 호스팅 모범 사례에 대한 전체 [보안 정책](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md)을 참조하세요.
   </Accordion>
 </AccordionGroup>
 

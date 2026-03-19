@@ -1,7 +1,6 @@
 ---
 title: "FAQ"
 description: "Frequently asked questions about FIM One — setup, features, licensing, and more."
-icon: "circle-question"
 ---
 
 ## General
@@ -55,11 +54,14 @@ icon: "circle-question"
   </Accordion>
 
   <Accordion title="How do I report security vulnerabilities?">
-    For **non-sensitive issues**, open a GitHub issue with the `[SECURITY]` tag in the title. Include reproduction steps, affected versions, and the potential impact.
+    **Do NOT open a public GitHub issue for sensitive vulnerabilities.**
 
-    For **sensitive vulnerabilities** (e.g., credential exposure, authentication bypass), please email the team directly rather than filing a public issue. Contact information is available in the project repository.
+    - **Sensitive reports** (credential exposure, auth bypass, injection, etc.) — use [GitHub Security Advisories](https://github.com/fim-ai/fim-one/security/advisories/new) or email **security@fim.ai**.
+    - **Low-severity issues** (missing headers, informational disclosures) — open a regular GitHub issue with the `security` label.
 
-    All security reports are triaged within 48 hours on business days.
+    All reports are acknowledged within 48 hours (business days). Critical issues are patched as soon as possible; others ship with the next release.
+
+    See the full [Security Policy](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md) for scope, response timelines, and self-hosting best practices.
   </Accordion>
 </AccordionGroup>
 

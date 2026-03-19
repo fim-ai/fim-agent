@@ -1,16 +1,15 @@
 ---
 title: "FAQ"
 description: "Questions fréquemment posées sur FIM One — configuration, fonctionnalités, licences, et plus."
-icon: "circle-question"
 ---
 
 ## Général
 
 <AccordionGroup>
-  <Accordion title="Quels fournisseurs LLM sont supportés ?">
+  <Accordion title="Quels fournisseurs LLM sont pris en charge ?">
     FIM One fonctionne avec **n'importe quel fournisseur LLM compatible OpenAI**. Cela inclut :
 
-    - **APIs commerciales** — OpenAI, DeepSeek, Anthropic (Claude), Alibaba Qwen, Google Gemini, et tout fournisseur qui expose un endpoint `/v1/chat/completions`.
+    - **APIs commerciales** — OpenAI, DeepSeek, Anthropic (Claude), Alibaba Qwen, Google Gemini, et tout fournisseur qui expose un point de terminaison `/v1/chat/completions`.
     - **Local/auto-hébergé** — Ollama, vLLM, LocalAI, LM Studio, et tout autre runtime qui sert le format API compatible OpenAI.
 
     Vous configurez votre fournisseur via trois variables d'environnement dans `.env` :
@@ -21,20 +20,20 @@ icon: "circle-question"
     LLM_MODEL=gpt-4o                         # change for other models
     ```
 
-    Consultez le guide [Quick Start](/quickstart) pour des exemples spécifiques à chaque fournisseur.
+    Consultez le guide [Démarrage rapide](/quickstart) pour des exemples spécifiques à chaque fournisseur.
   </Accordion>
 
   <Accordion title="Puis-je utiliser des modèles locaux ou auto-hébergés ?">
-    Oui. FIM One se connecte à n'importe quel endpoint qui implémente le format API compatible OpenAI. Les options auto-hébergées populaires incluent :
+    Oui. FIM One se connecte à n'importe quel point de terminaison qui implémente le format API compatible OpenAI. Les options auto-hébergées populaires incluent :
 
-    | Runtime | Base URL | Modèle exemple |
+    | Runtime | URL de base | Modèle exemple |
     |---------|----------|---------------|
     | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
     | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
     | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
-    | **LM Studio** | `http://localhost:1234/v1` | (whatever you load) |
+    | **LM Studio** | `http://localhost:1234/v1` | (ce que vous chargez) |
 
-    Définissez `LLM_API_KEY` à n'importe quelle chaîne non vide (par ex., `ollama`) lorsque le fournisseur ne nécessite pas d'authentification. Toutes les fonctionnalités d'agent — raisonnement ReAct, planification DAG, appel d'outils — fonctionnent de manière identique que le modèle soit local ou hébergé dans le cloud.
+    Définissez `LLM_API_KEY` sur n'importe quelle chaîne non vide (par exemple, `ollama`) lorsque le fournisseur ne nécessite pas d'authentification. Toutes les fonctionnalités d'agent — raisonnement ReAct, planification DAG, appel d'outils — fonctionnent de manière identique, que le modèle soit local ou hébergé dans le cloud.
   </Accordion>
 
   <Accordion title="FIM One est-il open source ?">
@@ -49,17 +48,20 @@ icon: "circle-question"
     **Restreint :**
     - Offres SaaS multi-locataires
     - Plateformes d'agents concurrentes
-    - White-labeling ou suppression de branding
+    - White-labeling ou suppression de la marque
 
-    Pour les demandes de licences commerciales, veuillez ouvrir un problème sur [GitHub](https://github.com/fim-ai/fim-one). Consultez la [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE) complète pour les conditions complètes.
+    Pour les demandes de licences commerciales, veuillez ouvrir un problème sur [GitHub](https://github.com/fim-ai/fim-one). Consultez la [LICENCE](https://github.com/fim-ai/fim-one/blob/master/LICENSE) complète pour les conditions complètes.
   </Accordion>
 
   <Accordion title="Comment signaler les vulnérabilités de sécurité ?">
-    Pour les **problèmes non sensibles**, ouvrez un problème GitHub avec le tag `[SECURITY]` dans le titre. Incluez les étapes de reproduction, les versions affectées et l'impact potentiel.
+    **N'ouvrez PAS de problème GitHub public pour les vulnérabilités sensibles.**
 
-    Pour les **vulnérabilités sensibles** (par ex., exposition de credentials, contournement d'authentification), veuillez envoyer un email directement à l'équipe plutôt que de déposer un problème public. Les informations de contact sont disponibles dans le dépôt du projet.
+    - **Rapports sensibles** (exposition de credentials, contournement d'authentification, injection, etc.) — utilisez [GitHub Security Advisories](https://github.com/fim-ai/fim-one/security/advisories/new) ou envoyez un email à **security@fim.ai**.
+    - **Problèmes de faible gravité** (en-têtes manquants, divulgations informationnelles) — ouvrez un problème GitHub régulier avec l'étiquette `security`.
 
-    Tous les rapports de sécurité sont triés dans les 48 heures les jours ouvrables.
+    Tous les rapports sont reconnus dans les 48 heures (jours ouvrables). Les problèmes critiques sont corrigés dès que possible ; les autres sont livrés avec la prochaine version.
+
+    Consultez la [Politique de sécurité](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md) complète pour la portée, les délais de réponse et les meilleures pratiques d'auto-hébergement.
   </Accordion>
 </AccordionGroup>
 
