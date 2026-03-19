@@ -824,6 +824,86 @@ def all_en_mdx_files() -> list[Path]:
     return sorted(results)
 
 
+def sync_docs_navigation() -> bool:
+    """Sync docs.json navigation: ensure every locale mirrors the EN page list.
+
+    For each EN page entry (e.g. "faq"), checks that "{locale}/faq" exists in the
+    corresponding locale group. Missing entries are inserted at the same position.
+
+    Returns True if docs.json was modified.
+    """
+    docs_json_path = ROOT / "docs" / "docs.json"
+    if not docs_json_path.exists():
+        return False
+
+    try:
+        data = json.loads(docs_json_path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+
+    languages = data.get("navigation", {}).get("languages", [])
+    if not languages:
+        return False
+
+    # Find the EN language block (source of truth)
+    en_block = None
+    locale_blocks: list[tuple[str, dict]] = []
+    for lang in languages:
+        lang_code = lang.get("language", "")
+        if lang_code == "en":
+            en_block = lang
+        else:
+            locale_blocks.append((lang_code, lang))
+
+    if en_block is None or not locale_blocks:
+        return False
+
+    modified = False
+    en_tabs = en_block.get("tabs", [])
+
+    for locale, locale_lang in locale_blocks:
+        locale_tabs = locale_lang.get("tabs", [])
+        # Match tabs by index (EN and locale tabs are in the same order)
+        for tab_idx, en_tab in enumerate(en_tabs):
+            if tab_idx >= len(locale_tabs):
+                break
+            en_groups = en_tab.get("groups", [])
+            locale_groups = locale_tabs[tab_idx].get("groups", [])
+            for group_idx, en_group in enumerate(en_groups):
+                if group_idx >= len(locale_groups):
+                    break
+                en_pages = en_group.get("pages", [])
+                locale_pages = locale_groups[group_idx].get("pages", [])
+                locale_page_set = set(locale_pages)
+
+                # Build expected locale pages from EN pages
+                new_pages: list[str] = []
+                for en_page in en_pages:
+                    locale_page = f"{locale}/{en_page}"
+                    new_pages.append(locale_page)
+                    if locale_page not in locale_page_set:
+                        tprint(f"  [docs.json] {locale}: adding missing page '{locale_page}'")
+                        modified = True
+
+                # Also detect extra pages in locale that are no longer in EN
+                en_page_set = {f"{locale}/{p}" for p in en_pages}
+                for lp in locale_pages:
+                    if lp not in en_page_set:
+                        tprint(f"  [docs.json] {locale}: removing stale page '{lp}'")
+                        modified = True
+
+                if new_pages != locale_pages:
+                    locale_groups[group_idx]["pages"] = new_pages
+
+    if modified:
+        docs_json_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        tprint(f"  [docs.json] navigation synced")
+
+    return modified
+
+
 def resolve_explicit_files(file_args: list[str]) -> list[Path]:
     results: list[Path] = []
     for f in file_args:
@@ -925,6 +1005,16 @@ def main() -> None:
                     output_files.append(out)
             except Exception as exc:
                 tprint(f"  [{locale}] {src.name}: UNEXPECTED ERROR — {exc}")
+
+    # Sync docs.json navigation (ensure all locales mirror EN page list)
+    docs_json_path = ROOT / "docs" / "docs.json"
+    nav_modified = sync_docs_navigation()
+    if nav_modified and git_hook:
+        try:
+            subprocess.run(["git", "add", "--", str(docs_json_path)], check=True, cwd=ROOT)
+            tprint("  [docs.json] staged")
+        except subprocess.CalledProcessError:
+            pass
 
     # Flush cache to disk once at the end
     _flush_cache()

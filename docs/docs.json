@@ -125,7 +125,8 @@
                 "pages": [
                   "zh/index",
                   "zh/why",
-                  "zh/quickstart"
+                  "zh/quickstart",
+                  "zh/faq"
                 ]
               },
               {
@@ -228,7 +229,8 @@
                 "pages": [
                   "ja/index",
                   "ja/why",
-                  "ja/quickstart"
+                  "ja/quickstart",
+                  "ja/faq"
                 ]
               },
               {
@@ -331,7 +333,8 @@
                 "pages": [
                   "ko/index",
                   "ko/why",
-                  "ko/quickstart"
+                  "ko/quickstart",
+                  "ko/faq"
                 ]
               },
               {
@@ -434,7 +437,8 @@
                 "pages": [
                   "de/index",
                   "de/why",
-                  "de/quickstart"
+                  "de/quickstart",
+                  "de/faq"
                 ]
               },
               {
@@ -537,7 +541,8 @@
                 "pages": [
                   "fr/index",
                   "fr/why",
-                  "fr/quickstart"
+                  "fr/quickstart",
+                  "fr/faq"
                 ]
               },
               {
