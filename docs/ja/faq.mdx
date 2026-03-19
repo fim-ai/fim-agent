@@ -1,0 +1,228 @@
+---
+title: "よくある質問"
+description: "FIM One のセットアップ、機能、ライセンス、その他についてのよくある質問。"
+icon: "circle-question"
+---
+
+## 一般
+
+<AccordionGroup>
+  <Accordion title="どのLLMプロバイダーがサポートされていますか？">
+    FIM One は**OpenAI互換のあらゆるLLMプロバイダー**で動作します。これには以下が含まれます：
+
+    - **商用API** — OpenAI、DeepSeek、Anthropic (Claude)、Alibaba Qwen、Google Gemini、および `/v1/chat/completions` エンドポイントを公開しているあらゆるプロバイダー。
+    - **ローカル/自己ホスト型** — Ollama、vLLM、LocalAI、LM Studio、およびOpenAI互換API形式を提供するその他のランタイム。
+
+    プロバイダーは `.env` の3つの環境変数で設定します：
+
+    ```bash
+    LLM_API_KEY=sk-your-key
+    LLM_BASE_URL=https://api.openai.com/v1   # change for other providers
+    LLM_MODEL=gpt-4o                         # change for other models
+    ```
+
+    プロバイダー固有の例については、[クイックスタート](/quickstart)ガイドを参照してください。
+  </Accordion>
+
+  <Accordion title="ローカルまたは自己ホスト型モデルを使用できますか？">
+    はい。FIM One はOpenAI互換API形式を実装するあらゆるエンドポイントに接続します。一般的な自己ホスト型オプションは以下の通りです：
+
+    | ランタイム | ベースURL | モデル例 |
+    |---------|----------|---------------|
+    | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
+    | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
+    | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
+    | **LM Studio** | `http://localhost:1234/v1` | (読み込んだもの) |
+
+    プロバイダーが認証を必要としない場合、`LLM_API_KEY` を空でない文字列（例：`ollama`）に設定してください。すべてのエージェント機能（ReAct推論、DAG計画、ツール呼び出し）は、モデルがローカルかクラウドホスト型かに関わらず同じように動作します。
+  </Accordion>
+
+  <Accordion title="FIM One はオープンソースですか？">
+    FIM One は**ソース利用可能ライセンス**の下でリリースされています。これはOSI承認のオープンソースライセンスではありませんが、ほとんどのユースケースに対して広範な自由を提供します：
+
+    **許可される用途：**
+    - 組織内での内部使用
+    - 修正とカスタム開発
+    - ライセンスを保持した配布
+    - 独自の（競合しない）アプリケーションへの組み込み
+
+    **制限される用途：**
+    - マルチテナントSaaS提供
+    - 競合するエージェントプラットフォーム
+    - ホワイトラベリングまたはブランディングの削除
+
+    商用ライセンスについてのお問い合わせは、[GitHub](https://github.com/fim-ai/fim-one)でissueを開いてください。完全な条件については、[LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE)を参照してください。
+  </Accordion>
+
+  <Accordion title="セキュリティの脆弱性をどのように報告しますか？">
+    **機密性の低い問題**については、タイトルに `[SECURITY]` タグを付けてGitHub issueを開いてください。再現手順、影響を受けるバージョン、および潜在的な影響を含めてください。
+
+    **機密性の高い脆弱性**（例：認証情報の露出、認証バイパス）については、公開issueを提出するのではなく、チームに直接メールを送信してください。連絡先情報はプロジェクトリポジトリで利用できます。
+
+    すべてのセキュリティレポートは営業日内48時間以内にトリアージされます。
+  </Accordion>
+</AccordionGroup>
+
+## デプロイ
+
+<AccordionGroup>
+  <Accordion title="システム要件は何ですか？">
+    **最小要件：**
+
+    | リソース | 要件 |
+    |----------|-------------|
+    | **Python** | 3.11+ |
+    | **RAM** | 最小 2 GB |
+    | **ディスク** | 1 GB 空き容量（アップロードされたドキュメントとベクトルストア用の追加容量） |
+    | **Node.js** | 18+（ローカル開発用） |
+
+    **本番環境での推奨構成：**
+
+    | リソース | 推奨 |
+    |----------|----------------|
+    | **RAM** | 4 GB 以上（特に埋め込みモデルをローカルで実行する場合） |
+    | **CPU** | 2 コア以上 |
+    | **データベース** | マルチワーカーデプロイメント用の PostgreSQL |
+
+    **Docker の代替案：** Docker 20+ および Docker Compose v2。ローカルの Python や Node.js は不要です。すべてコンテナ内でビルドされます。
+  </Accordion>
+
+  <Accordion title="FIM One は ARM / Apple Silicon で動作しますか？">
+    はい。Docker とローカル開発の両方が ARM アーキテクチャで動作します。Apple Silicon（M1/M2/M3/M4）Mac も含まれます。Docker イメージは `linux/arm64` 用にネイティブにビルドされ、すべての Python および Node.js 依存関係は ARM 互換のホイールまたはフォールバックを備えています。
+  </Accordion>
+
+  <Accordion title="どのデータベースがサポートされていますか？">
+    FIM One はデータベースを 2 つの異なる方法で使用します：
+
+    **1. 内部データベース（FIM One 自体のデータ）：**
+    - **SQLite** — ゼロコンフィグのデフォルト。開発とシングルワーカーデプロイメントに最適です。
+    - **PostgreSQL** — 本番環境で推奨。マルチワーカーセットアップ（`WORKERS > 1`）に必須です。
+
+    **2. コネクタターゲット（接続するシステム）：**
+
+    FIM One はデータベースコネクタを介して外部データベースをデータソースとして接続できます：
+
+    | データベース | ステータス |
+    |----------|--------|
+    | PostgreSQL | サポート |
+    | MySQL | サポート |
+    | Oracle | サポート |
+    | SQL Server | サポート |
+    | DM（Dameng） | サポート |
+    | KingbaseES | サポート |
+    | GBase | サポート |
+    | Highgo | サポート |
+
+    各データベースコネクタは 3 つのツール（`list_tables`、`describe_table`、`query`）を自動生成します。スキーマイントロスペクション、AI 駆動の注釈付け、読み取り専用クエリ実行がデフォルトで含まれています。
+  </Accordion>
+
+  <Accordion title="複数のユーザーが同じインスタンスを共有できますか？">
+    はい。FIM One は最初からマルチテナントデプロイメント向けに構築されています：
+
+    - **JWT 認証** — トークンベースの認証とユーザーごとのセッション分離。
+    - **組織の分離** — リソース（エージェント、コネクタ、ナレッジベース）は組織にスコープされます。
+    - **ロールベースのアクセス** — 適切なアクセス権限を持つ管理者ユーザーロール。
+    - **リソース所有権** — 会話と構成はユーザーごとに分離されます。
+
+    マルチユーザー本番環境デプロイメントの場合、内部データベースとして PostgreSQL を使用し、`WORKERS` を予想される同時実行数に合わせて設定してください。
+  </Accordion>
+</AccordionGroup>
+
+## 機能
+
+<AccordionGroup>
+  <Accordion title="ReActとDAGモードの違いは何ですか？">
+    FIM Oneは2つの実行エンジンを提供し、それぞれ異なるタスクタイプに適しています：
+
+    | | ReAct（標準） | DAG（プランナー） |
+    |---|---|---|
+    | **動作方法** | 単一の推論ループ：推論、実行、観察、繰り返し | LLMが目標を依存グラフに分解し、独立したステップが並列実行 |
+    | **最適な用途** | 焦点を絞ったクエリ、単一システムの検索、会話タスク | 複数ステップのタスク、クロスシステムオーケストレーション、並列データ収集 |
+    | **並行処理** | 順序実行（一度に1つのツール） | 並行実行（独立したステップがasyncioで同時実行） |
+    | **再計画** | N/A | 目標が達成されない場合、最大3ラウンドの自動再計画 |
+
+    **自動モード**（デフォルト）は高速LLM分類器を使用して各受信クエリを分析し、最適なエンジンに自動的にルーティングします。チャットUIの3方向トグル（自動/標準/プランナー）を使用して手動でモードを選択することもできます。
+
+    詳細については、[実行モード](/concepts/execution-modes)を参照してください。
+  </Accordion>
+
+  <Accordion title="新しいコネクタを追加するにはどうしますか？">
+    FIM Oneは、Pythonコードを必要としない3つの方法でコネクタを作成できます：
+
+    **1. OpenAPI仕様をインポート** — YAML、JSON、またはOpenAPI仕様を指すURLをアップロードします。FIM Oneは仕様を解析し、すべてのアクションを自動的に生成します。
+
+    **2. AIチャットビルダー** — 接続したいAPIを自然言語で説明します。AIは設定、アクション、テスト、エージェント配線用の10個の専門ビルダーツールを使用して、会話でコネクタ設定を生成および反復します。
+
+    **3. MCPプロトコル** — 任意のMCP（Model Context Protocol）サーバーを直接接続します。サードパーティのMPエコシステムがそのまま動作します。
+
+    データベースコネクタの場合、接続詳細（ホスト、ポート、認証情報）を設定すると、FIM Oneがスキーマイントロスペクションとクエリツールを自動生成します。
+
+    [AIビルダー](/concepts/ai-builder)ドキュメントと[拡張ガイド](/extension-guide)を参照して、ステップバイステップの手順を確認してください。
+  </Accordion>
+
+  <Accordion title="FIM Oneを既存システムに埋め込むことはできますか？">
+    はい。FIM Oneの**コパイロットモード**は、ホストシステムへの埋め込みのために特別に設計されています。以下の方法で統合できます：
+
+    - **iframe** — FIM Oneチャットインターフェースを任意のWebページに直接埋め込みます。
+    - **ウィジェット** — 既存UIにオーバーレイする軽量チャットウィジェット。
+    - **API** — FastAPIバックエンドを直接使用して、完全にカスタマイズされた統合を実現します。
+
+    コパイロットモードでは、AIはユーザーの使い慣れたインターフェース内でユーザーと協力して動作し、データをクエリし、レポートを生成し、アクションをオーケストレーションします。ユーザーがアプリケーションを切り替える必要はありません。
+
+    スタンドアロン、コパイロット、ハブ配信モードの設定詳細については、[実行モード](/concepts/execution-modes)を参照してください。
+  </Accordion>
+
+  <Accordion title="翻訳システムはどのように機能しますか？">
+    FIM Oneは6言語（英語、中国語、日本語、韓国語、ドイツ語、フランス語）をサポートし、完全に自動化された翻訳パイプラインを備えています：
+
+    1. **英語ソースファイルのみを編集** — `frontend/messages/en/*.json`のUIストリング、`docs/*.mdx`（ルートレベル）のドキュメント、および`README.md`。
+    2. **コミット時に自動翻訳** — プリコミットフックが英語ファイルへの変更を検出し、プロジェクトの高速LLMを使用して翻訳します。翻訳は増分的です：新規、変更、または削除されたコンテンツのみが処理されます。
+    3. **翻訳されたファイルを手動で編集しない** — `messages/zh/`、`messages/ja/`、`docs/zh/`、`docs/ja/`などのファイルはすべて自動生成され、上書きされます。
+
+    クローン後に翻訳フックを設定するには：
+    ```bash
+    bash scripts/setup-hooks.sh
+    ```
+
+    完全な再翻訳を強制するには：
+    ```bash
+    uv run scripts/translate.py --all
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## 貢献
+
+<AccordionGroup>
+  <Accordion title="FIM Oneにどのように貢献できますか？">
+    FIM Oneは、コード、ドキュメント、翻訳、バグレポート、機能提案など、あらゆる種類の貢献を歓迎しています。
+
+    **はじめ方：**
+    1. [貢献ガイド](https://github.com/fim-ai/fim-one/blob/master/CONTRIBUTING.md)を読んで、セットアップ手順、コーディング規約、PRプロセスを確認してください。
+    2. [Good First Issues](https://github.com/fim-ai/fim-one/labels/good%20first%20issue)を参照して、初心者向けの厳選されたタスクを探してください。
+    3. [Open Issues](https://github.com/fim-ai/fim-one/issues)でバグと機能リクエストを確認してください。
+
+    **パイオニアプログラム：** PRがマージされた最初の100人の貢献者は、**創設貢献者**として認識され、永続的なクレジット、プロフィールバッジ、優先的なイシューサポートが付与されます。
+  </Accordion>
+
+  <Accordion title="技術スタックは何ですか？">
+    | レイヤー | テクノロジー |
+    |-------|-----------|
+    | **バックエンド** | Python 3.11+, FastAPI, SQLAlchemy, Alembic, asyncio |
+    | **フロントエンド** | Next.js, React, TypeScript, Tailwind CSS, shadcn/ui |
+    | **LLM統合** | OpenAI互換API（プロバイダー非依存） |
+    | **ベクトル検索** | LanceDB + Jina embeddings |
+    | **データベース** | SQLite（開発環境）/ PostgreSQL（本番環境） |
+    | **パッケージマネージャー** | uv（Python）、pnpm（Node.js） |
+    | **デプロイメント** | Docker Compose、シングルプロセススクリプト |
+
+    コードベースは、非同期ファースト、プロトコルファーストのアーキテクチャに従い、ベンダーロックインはありません。
+  </Accordion>
+
+  <Accordion title="ヘルプはどこで受けられますか？">
+    - **ドキュメント** — ここです。[ガイド](/quickstart)、[コンセプト](/architecture/system-overview)、[設定](/configuration/environment-variables)セクションを参照してください。
+    - **Discord** — [FIM One Discord](https://discord.gg/z64czxdC7z)に参加して、リアルタイムサポートとコミュニティディスカッションを利用してください。
+    - **GitHub Issues** — [GitHub](https://github.com/fim-ai/fim-one/issues)でバグレポートと機能リクエストを報告してください。
+    - **Twitter/X** — [@FIM_One](https://x.com/FIM_One)をフォローして、更新とお知らせを受け取ってください。
+  </Accordion>
+</AccordionGroup>

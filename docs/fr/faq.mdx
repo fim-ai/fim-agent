@@ -1,0 +1,228 @@
+---
+title: "FAQ"
+description: "Questions fréquemment posées sur FIM One — configuration, fonctionnalités, licences, et plus."
+icon: "circle-question"
+---
+
+## Général
+
+<AccordionGroup>
+  <Accordion title="Quels fournisseurs LLM sont supportés ?">
+    FIM One fonctionne avec **n'importe quel fournisseur LLM compatible OpenAI**. Cela inclut :
+
+    - **APIs commerciales** — OpenAI, DeepSeek, Anthropic (Claude), Alibaba Qwen, Google Gemini, et tout fournisseur qui expose un endpoint `/v1/chat/completions`.
+    - **Local/auto-hébergé** — Ollama, vLLM, LocalAI, LM Studio, et tout autre runtime qui sert le format API compatible OpenAI.
+
+    Vous configurez votre fournisseur via trois variables d'environnement dans `.env` :
+
+    ```bash
+    LLM_API_KEY=sk-your-key
+    LLM_BASE_URL=https://api.openai.com/v1   # change for other providers
+    LLM_MODEL=gpt-4o                         # change for other models
+    ```
+
+    Consultez le guide [Quick Start](/quickstart) pour des exemples spécifiques à chaque fournisseur.
+  </Accordion>
+
+  <Accordion title="Puis-je utiliser des modèles locaux ou auto-hébergés ?">
+    Oui. FIM One se connecte à n'importe quel endpoint qui implémente le format API compatible OpenAI. Les options auto-hébergées populaires incluent :
+
+    | Runtime | Base URL | Modèle exemple |
+    |---------|----------|---------------|
+    | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
+    | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
+    | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
+    | **LM Studio** | `http://localhost:1234/v1` | (whatever you load) |
+
+    Définissez `LLM_API_KEY` à n'importe quelle chaîne non vide (par ex., `ollama`) lorsque le fournisseur ne nécessite pas d'authentification. Toutes les fonctionnalités d'agent — raisonnement ReAct, planification DAG, appel d'outils — fonctionnent de manière identique que le modèle soit local ou hébergé dans le cloud.
+  </Accordion>
+
+  <Accordion title="FIM One est-il open source ?">
+    FIM One est publié sous une **Licence Source Available**. Ce n'est pas une licence open source approuvée par l'OSI, mais elle offre de larges libertés pour la plupart des cas d'usage :
+
+    **Autorisé :**
+    - Utilisation interne au sein de votre organisation
+    - Modification et développement personnalisé
+    - Distribution avec la licence intacte
+    - Intégration dans vos propres applications (non concurrentes)
+
+    **Restreint :**
+    - Offres SaaS multi-locataires
+    - Plateformes d'agents concurrentes
+    - White-labeling ou suppression de branding
+
+    Pour les demandes de licences commerciales, veuillez ouvrir un problème sur [GitHub](https://github.com/fim-ai/fim-one). Consultez la [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE) complète pour les conditions complètes.
+  </Accordion>
+
+  <Accordion title="Comment signaler les vulnérabilités de sécurité ?">
+    Pour les **problèmes non sensibles**, ouvrez un problème GitHub avec le tag `[SECURITY]` dans le titre. Incluez les étapes de reproduction, les versions affectées et l'impact potentiel.
+
+    Pour les **vulnérabilités sensibles** (par ex., exposition de credentials, contournement d'authentification), veuillez envoyer un email directement à l'équipe plutôt que de déposer un problème public. Les informations de contact sont disponibles dans le dépôt du projet.
+
+    Tous les rapports de sécurité sont triés dans les 48 heures les jours ouvrables.
+  </Accordion>
+</AccordionGroup>
+
+## Déploiement
+
+<AccordionGroup>
+  <Accordion title="Quelles sont les exigences système ?">
+    **Exigences minimales :**
+
+    | Ressource | Exigence |
+    |----------|---------|
+    | **Python** | 3.11+ |
+    | **RAM** | 2 GB minimum |
+    | **Disque** | 1 GB libre (plus d'espace pour les documents téléchargés et le magasin vectoriel) |
+    | **Node.js** | 18+ (pour le développement local) |
+
+    **Recommandé pour la production :**
+
+    | Ressource | Recommandation |
+    |----------|----------------|
+    | **RAM** | 4 GB+ (surtout si vous exécutez des modèles d'embedding localement) |
+    | **CPU** | 2+ cœurs |
+    | **Base de données** | PostgreSQL pour les déploiements multi-workers |
+
+    **Alternative Docker :** Docker 20+ et Docker Compose v2. Aucun Python ou Node.js local requis — tout est construit à l'intérieur du conteneur.
+  </Accordion>
+
+  <Accordion title="FIM One fonctionne-t-il sur ARM / Apple Silicon ?">
+    Oui. Docker et le développement local fonctionnent tous deux sur les architectures ARM, y compris Apple Silicon (M1/M2/M3/M4) Macs. L'image Docker se construit nativement pour `linux/arm64`, et toutes les dépendances Python et Node.js disposent de wheels compatibles ARM ou de solutions de secours.
+  </Accordion>
+
+  <Accordion title="Quelles bases de données sont supportées ?">
+    FIM One utilise les bases de données de deux façons distinctes :
+
+    **1. Base de données interne (données propres de FIM One) :**
+    - **SQLite** — zéro configuration par défaut, idéal pour le développement et les déploiements single-worker.
+    - **PostgreSQL** — recommandé pour la production, requis pour les configurations multi-workers (`WORKERS > 1`).
+
+    **2. Cibles des connecteurs (systèmes auxquels vous vous connectez) :**
+
+    FIM One peut se connecter à des bases de données externes en tant que sources de données via des Connecteurs de Base de Données :
+
+    | Base de données | Statut |
+    |----------|--------|
+    | PostgreSQL | Supportée |
+    | MySQL | Supportée |
+    | Oracle | Supportée |
+    | SQL Server | Supportée |
+    | DM (Dameng) | Supportée |
+    | KingbaseES | Supportée |
+    | GBase | Supportée |
+    | Highgo | Supportée |
+
+    Chaque connecteur de base de données génère automatiquement trois outils : `list_tables`, `describe_table` et `query`. L'introspection de schéma, l'annotation alimentée par l'IA et l'exécution de requêtes en lecture seule sont incluses par défaut.
+  </Accordion>
+
+  <Accordion title="Plusieurs utilisateurs peuvent-ils partager la même instance ?">
+    Oui. FIM One est construit pour les déploiements multi-locataires dès le départ :
+
+    - **Authentification JWT** — authentification basée sur les jetons avec isolation de session par utilisateur.
+    - **Isolation organisationnelle** — les ressources (agents, connecteurs, bases de connaissances) sont limitées aux organisations.
+    - **Accès basé sur les rôles** — rôles administrateur et utilisateur avec des limites de permissions appropriées.
+    - **Propriété des ressources** — les conversations et configurations sont isolées par utilisateur.
+
+    Pour les déploiements multi-utilisateurs en production, utilisez PostgreSQL comme base de données interne et définissez `WORKERS` pour correspondre à votre concurrence attendue.
+  </Accordion>
+</AccordionGroup>
+
+## Fonctionnalités
+
+<AccordionGroup>
+  <Accordion title="Quelle est la différence entre le mode ReAct et le mode DAG ?">
+    FIM One offre deux moteurs d'exécution, chacun adapté à différents types de tâches :
+
+    | | ReAct (Standard) | DAG (Planner) |
+    |---|---|---|
+    | **Fonctionnement** | Boucle de raisonnement unique : Raisonner, Agir, Observer, répéter | L'LLM décompose l'objectif en un graphe de dépendances ; les étapes indépendantes s'exécutent en parallèle |
+    | **Idéal pour** | Requêtes ciblées, recherches sur un seul système, tâches conversationnelles | Tâches multi-étapes, orchestration inter-systèmes, collecte de données en parallèle |
+    | **Concurrence** | Séquentielle (un outil à la fois) | Concurrente (les étapes indépendantes s'exécutent simultanément via asyncio) |
+    | **Re-planification** | N/A | Jusqu'à 3 cycles de re-planification automatique si les objectifs ne sont pas atteints |
+
+    Le mode **Auto** (par défaut) utilise un classificateur LLM rapide pour analyser chaque requête entrante et l'acheminer automatiquement vers le moteur optimal. Vous pouvez également sélectionner manuellement le mode via le commutateur à trois positions dans l'interface de chat (Auto / Standard / Planner).
+
+    Pour une analyse approfondie, consultez [Modes d'exécution](/concepts/execution-modes).
+  </Accordion>
+
+  <Accordion title="Comment ajouter un nouveau connecteur ?">
+    FIM One propose trois façons de créer des connecteurs — aucun code Python requis :
+
+    **1. Importer une spécification OpenAPI** — Téléchargez un fichier YAML, JSON ou une URL pointant vers une spécification OpenAPI. FIM One analyse la spécification et génère automatiquement des connecteurs avec toutes les actions.
+
+    **2. Générateur de chat IA** — Décrivez l'API que vous souhaitez connecter en langage naturel. L'IA génère et itère sur la configuration du connecteur dans la conversation, en utilisant 10 outils de générateur spécialisés pour les paramètres, les actions, les tests et le câblage des agents.
+
+    **3. Protocole MCP** — Connectez directement n'importe quel serveur MCP (Model Context Protocol). L'écosystème MCP tiers fonctionne immédiatement.
+
+    Pour les connecteurs de base de données, configurez les détails de connexion (hôte, port, identifiants) et FIM One génère automatiquement les outils d'introspection de schéma et de requête.
+
+    Consultez la documentation [Générateur IA](/concepts/ai-builder) et le [Guide d'extension](/extension-guide) pour des instructions étape par étape.
+  </Accordion>
+
+  <Accordion title="Puis-je intégrer FIM One dans mon système existant ?">
+    Oui. Le mode **Copilot** de FIM One est spécifiquement conçu pour l'intégration dans des systèmes hôtes. Vous pouvez l'intégrer via :
+
+    - **iframe** — Intégrez l'interface de chat FIM One directement dans n'importe quelle page web.
+    - **Widget** — Un widget de chat léger qui se superpose à votre interface existante.
+    - **API** — Utilisez directement le backend FastAPI pour des intégrations entièrement personnalisées.
+
+    En mode Copilot, l'IA travaille aux côtés des utilisateurs dans leur interface familière — interrogeant les données, générant des rapports et orchestrant les actions sans forcer les utilisateurs à changer d'application.
+
+    Consultez [Modes d'exécution](/concepts/execution-modes) pour les détails de configuration des modes de livraison Standalone, Copilot et Hub.
+  </Accordion>
+
+  <Accordion title="Comment fonctionne le système de traduction ?">
+    FIM One prend en charge 6 langues (anglais, chinois, japonais, coréen, allemand, français) avec un pipeline de traduction entièrement automatisé :
+
+    1. **Modifiez uniquement les fichiers sources en anglais** — Les chaînes d'interface utilisateur dans `frontend/messages/en/*.json`, la documentation dans `docs/*.mdx` (au niveau racine) et `README.md`.
+    2. **Traduction automatique lors de la validation** — Un hook de pré-validation détecte les modifications apportées aux fichiers anglais et les traduit via l'LLM rapide du projet. Les traductions sont incrémentielles : seul le contenu nouveau, modifié ou supprimé est traité.
+    3. **Ne modifiez jamais manuellement les fichiers traduits** — Les fichiers dans `messages/zh/`, `messages/ja/`, `docs/zh/`, `docs/ja/`, etc. sont tous générés automatiquement et seront écrasés.
+
+    Pour configurer le hook de traduction après le clonage :
+    ```bash
+    bash scripts/setup-hooks.sh
+    ```
+
+    Pour forcer une retraduction complète :
+    ```bash
+    uv run scripts/translate.py --all
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Contribution
+
+<AccordionGroup>
+  <Accordion title="Comment puis-je contribuer à FIM One ?">
+    FIM One accueille les contributions de toutes sortes — code, documentation, traductions, rapports de bugs et idées de fonctionnalités.
+
+    **Pour commencer :**
+    1. Lisez le [Guide de contribution](https://github.com/fim-ai/fim-one/blob/master/CONTRIBUTING.md) pour les instructions de configuration, les conventions de codage et le processus de PR.
+    2. Parcourez les [Bons premiers problèmes](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) pour trouver des tâches adaptées aux nouveaux contributeurs.
+    3. Consultez les [Problèmes ouverts](https://github.com/fim-ai/fim-one/issues) pour les bugs et les demandes de fonctionnalités.
+
+    **Programme Pioneer :** Les 100 premiers contributeurs dont la PR est fusionnée sont reconnus comme **Contributeurs fondateurs** avec des crédits permanents, un badge de profil et un support prioritaire des problèmes.
+  </Accordion>
+
+  <Accordion title="Quelle est la pile technologique ?">
+    | Couche | Technologie |
+    |-------|-----------|
+    | **Backend** | Python 3.11+, FastAPI, SQLAlchemy, Alembic, asyncio |
+    | **Frontend** | Next.js, React, TypeScript, Tailwind CSS, shadcn/ui |
+    | **Intégration LLM** | API compatible OpenAI (agnostique du fournisseur) |
+    | **Recherche vectorielle** | LanceDB + embeddings Jina |
+    | **Base de données** | SQLite (dev) / PostgreSQL (production) |
+    | **Gestionnaires de paquets** | uv (Python), pnpm (Node.js) |
+    | **Déploiement** | Docker Compose, script mono-processus |
+
+    La base de code suit une architecture async-first, protocol-first sans verrouillage fournisseur.
+  </Accordion>
+
+  <Accordion title="Où puis-je obtenir de l'aide ?">
+    - **Documentation** — Vous êtes ici. Parcourez les sections [Guides](/quickstart), [Concepts](/architecture/system-overview) et [Configuration](/configuration/environment-variables).
+    - **Discord** — Rejoignez le [Discord FIM One](https://discord.gg/z64czxdC7z) pour obtenir de l'aide en temps réel et des discussions communautaires.
+    - **Problèmes GitHub** — Signalez les bugs et demandes de fonctionnalités sur [GitHub](https://github.com/fim-ai/fim-one/issues).
+    - **Twitter/X** — Suivez [@FIM_One](https://x.com/FIM_One) pour les mises à jour et annonces.
+  </Accordion>
+</AccordionGroup>

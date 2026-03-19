@@ -1,0 +1,228 @@
+---
+title: "常见问题"
+description: "关于 FIM One 的常见问题 — 设置、功能、许可等。"
+icon: "circle-question"
+---
+
+## 常见问题
+
+<AccordionGroup>
+  <Accordion title="支持哪些 LLM 提供商？">
+    FIM One 可与**任何 OpenAI 兼容的 LLM 提供商**配合使用。这包括：
+
+    - **商业 API** — OpenAI、DeepSeek、Anthropic (Claude)、阿里巴巴通义千问、Google Gemini，以及任何公开 `/v1/chat/completions` 端点的提供商。
+    - **本地/自托管** — Ollama、vLLM、LocalAI、LM Studio，以及任何提供 OpenAI 兼容 API 格式的其他运行时。
+
+    您可以通过 `.env` 中的三个环境变量配置您的提供商：
+
+    ```bash
+    LLM_API_KEY=sk-your-key
+    LLM_BASE_URL=https://api.openai.com/v1   # change for other providers
+    LLM_MODEL=gpt-4o                         # change for other models
+    ```
+
+    请参阅[快速开始](/quickstart)指南了解提供商特定的示例。
+  </Accordion>
+
+  <Accordion title="我可以使用本地或自托管模型吗？">
+    可以。FIM One 连接到任何实现 OpenAI 兼容 API 格式的端点。流行的自托管选项包括：
+
+    | 运行时 | 基础 URL | 示例模型 |
+    |---------|----------|---------------|
+    | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
+    | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
+    | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
+    | **LM Studio** | `http://localhost:1234/v1` | (您加载的任何模型) |
+
+    当提供商不需要身份验证时，将 `LLM_API_KEY` 设置为任何非空字符串（例如 `ollama`）。所有智能体功能 — ReAct 推理、DAG 规划、工具调用 — 无论模型是本地还是云托管，都以相同方式工作。
+  </Accordion>
+
+  <Accordion title="FIM One 是开源的吗？">
+    FIM One 在**源代码可用许可证**下发布。这不是 OSI 认可的开源许可证，但为大多数用例提供了广泛的自由：
+
+    **允许：**
+    - 在您的组织内部使用
+    - 修改和自定义开发
+    - 保持许可证完整的分发
+    - 嵌入到您自己的（非竞争性）应用程序中
+
+    **限制：**
+    - 多租户 SaaS 产品
+    - 竞争性智能体平台
+    - 白标或移除品牌
+
+    如有商业许可查询，请在 [GitHub](https://github.com/fim-ai/fim-one) 上提交 issue。完整条款请参阅[许可证](https://github.com/fim-ai/fim-one/blob/master/LICENSE)。
+  </Accordion>
+
+  <Accordion title="我如何报告安全漏洞？">
+    对于**非敏感问题**，请使用标题中的 `[SECURITY]` 标签打开 GitHub issue。包括复现步骤、受影响的版本和潜在影响。
+
+    对于**敏感漏洞**（例如凭证泄露、身份验证绕过），请直接通过电子邮件联系团队，而不是提交公开 issue。联系信息可在项目仓库中找到。
+
+    所有安全报告在工作日内 48 小时内进行分类。
+  </Accordion>
+</AccordionGroup>
+
+## 部署
+
+<AccordionGroup>
+  <Accordion title="系统要求是什么？">
+    **最低要求：**
+
+    | 资源 | 要求 |
+    |----------|-------------|
+    | **Python** | 3.11+ |
+    | **RAM** | 最少 2 GB |
+    | **磁盘** | 1 GB 可用空间（加上上传文档和向量存储的空间） |
+    | **Node.js** | 18+（用于本地开发） |
+
+    **生产环境推荐配置：**
+
+    | 资源 | 推荐 |
+    |----------|----------------|
+    | **RAM** | 4 GB+（特别是在本地运行嵌入模型时） |
+    | **CPU** | 2+ 核心 |
+    | **数据库** | PostgreSQL（用于多工作进程部署） |
+
+    **Docker 替代方案：** Docker 20+ 和 Docker Compose v2。无需本地 Python 或 Node.js — 所有内容都在容器内构建。
+  </Accordion>
+
+  <Accordion title="FIM One 支持 ARM / Apple Silicon 吗？">
+    支持。Docker 和本地开发都支持 ARM 架构，包括 Apple Silicon（M1/M2/M3/M4）Mac。Docker 镜像原生构建 `linux/arm64`，所有 Python 和 Node.js 依赖都有 ARM 兼容的 wheels 或备选方案。
+  </Accordion>
+
+  <Accordion title="支持哪些数据库？">
+    FIM One 以两种不同的方式使用数据库：
+
+    **1. 内部数据库（FIM One 自身数据）：**
+    - **SQLite** — 零配置默认选项，适合开发和单工作进程部署。
+    - **PostgreSQL** — 生产环境推荐，多工作进程设置必需（`WORKERS > 1`）。
+
+    **2. 连接器目标（您连接的系统）：**
+
+    FIM One 可以通过数据库连接器连接到外部数据库作为数据源：
+
+    | 数据库 | 状态 |
+    |----------|--------|
+    | PostgreSQL | 支持 |
+    | MySQL | 支持 |
+    | Oracle | 支持 |
+    | SQL Server | 支持 |
+    | DM (Dameng) | 支持 |
+    | KingbaseES | 支持 |
+    | GBase | 支持 |
+    | Highgo | 支持 |
+
+    每个数据库连接器自动生成三个工具：`list_tables`、`describe_table` 和 `query`。默认包含架构内省、AI 驱动的注释和只读查询执行。
+  </Accordion>
+
+  <Accordion title="多个用户可以共享同一个实例吗？">
+    可以。FIM One 从一开始就为多租户部署而构建：
+
+    - **JWT 身份验证** — 基于令牌的身份验证，具有按用户会话隔离。
+    - **组织隔离** — 资源（智能体、连接器、知识库）按组织范围划分。
+    - **基于角色的访问** — 管理员和用户角色，具有适当的权限边界。
+    - **资源所有权** — 对话和配置按用户隔离。
+
+    对于多用户生产部署，使用 PostgreSQL 作为内部数据库，并将 `WORKERS` 设置为与预期并发相匹配。
+  </Accordion>
+</AccordionGroup>
+
+## 功能
+
+<AccordionGroup>
+  <Accordion title="ReAct 和 DAG 模式有什么区别？">
+    FIM One 提供两个执行引擎，各自适合不同的任务类型：
+
+    | | ReAct（标准） | DAG（规划器） |
+    |---|---|---|
+    | **工作原理** | 单一推理循环：推理、行动、观察、重复 | LLM 将目标分解为依赖图；独立步骤并行运行 |
+    | **最适合** | 聚焦查询、单系统查询、对话任务 | 多步骤任务、跨系统编排、并行数据收集 |
+    | **并发性** | 顺序执行（一次一个工具） | 并发执行（独立步骤通过 asyncio 同时运行） |
+    | **重新规划** | 不适用 | 如果目标未达成，最多 3 轮自动重新规划 |
+
+    **自动模式**（默认模式）使用快速 LLM 分类器分析每个传入查询，并自动将其路由到最优引擎。您也可以通过聊天 UI 中的三向切换开关手动选择模式（自动/标准/规划器）。
+
+    如需深入了解，请参阅[执行模式](/concepts/execution-modes)。
+  </Accordion>
+
+  <Accordion title="如何添加新的连接器？">
+    FIM One 提供三种创建连接器的方式——无需 Python 代码：
+
+    **1. 导入 OpenAPI 规范** — 上传 YAML、JSON 或指向 OpenAPI 规范的 URL。FIM One 解析规范并自动生成包含所有操作的连接器。
+
+    **2. AI 聊天构建器** — 用自然语言描述您想要连接的 API。AI 在对话中生成并迭代连接器配置，使用 10 个专门的构建器工具进行设置、操作、测试和智能体接线。
+
+    **3. MCP 协议** — 直接连接任何 MCP（模型上下文协议）服务器。第三方 MCP 生态系统开箱即用。
+
+    对于数据库连接器，配置连接详情（主机、端口、凭证），FIM One 会自动生成模式内省和查询工具。
+
+    请参阅 [AI 构建器](/concepts/ai-builder)文档和[扩展指南](/extension-guide)获取分步说明。
+  </Accordion>
+
+  <Accordion title="我可以将 FIM One 嵌入到现有系统中吗？">
+    可以。FIM One 的**副驾驶模式**专门为嵌入主机系统而设计。您可以通过以下方式集成：
+
+    - **iframe** — 将 FIM One 聊天界面直接嵌入任何网页。
+    - **小部件** — 轻量级聊天小部件，覆盖在现有 UI 上。
+    - **API** — 直接使用 FastAPI 后端进行完全自定义集成。
+
+    在副驾驶模式下，AI 在用户熟悉的界面中与用户协作——查询数据、生成报告和编排操作，无需强制用户切换应用程序。
+
+    请参阅[执行模式](/concepts/execution-modes)了解独立、副驾驶和中心交付模式的配置详情。
+  </Accordion>
+
+  <Accordion title="翻译系统如何工作？">
+    FIM One 支持 6 种语言（英语、中文、日语、韩语、德语、法语），采用完全自动化的翻译管道：
+
+    1. **仅编辑英文源文件** — `frontend/messages/en/*.json` 中的 UI 字符串、`docs/*.mdx`（根级别）中的文档和 `README.md`。
+    2. **提交时自动翻译** — 预提交钩子检测对英文文件的更改，并通过项目的快速 LLM 进行翻译。翻译是增量的：仅处理新增、修改或删除的内容。
+    3. **切勿手动编辑翻译文件** — `messages/zh/`、`messages/ja/`、`docs/zh/`、`docs/ja/` 等中的文件都是自动生成的，将被覆盖。
+
+    克隆后设置翻译钩子：
+    ```bash
+    bash scripts/setup-hooks.sh
+    ```
+
+    强制完全重新翻译：
+    ```bash
+    uv run scripts/translate.py --all
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## 贡献
+
+<AccordionGroup>
+  <Accordion title="我如何为 FIM One 做出贡献？">
+    FIM One 欢迎各种形式的贡献 — 代码、文档、翻译、错误报告和功能建议。
+
+    **快速开始：**
+    1. 阅读[贡献指南](https://github.com/fim-ai/fim-one/blob/master/CONTRIBUTING.md)了解设置说明、编码规范和 PR 流程。
+    2. 浏览[好的第一个问题](https://github.com/fim-ai/fim-one/labels/good%20first%20issue)查找适合新手的精选任务。
+    3. 查看[开放问题](https://github.com/fim-ai/fim-one/issues)了解错误和功能请求。
+
+    **先驱计划：** 前 100 位获得 PR 合并的贡献者将被认可为**创始贡献者**，获得永久署名、个人资料徽章和优先问题支持。
+  </Accordion>
+
+  <Accordion title="技术栈是什么？">
+    | 层级 | 技术 |
+    |-------|-----------|
+    | **后端** | Python 3.11+、FastAPI、SQLAlchemy、Alembic、asyncio |
+    | **前端** | Next.js、React、TypeScript、Tailwind CSS、shadcn/ui |
+    | **LLM 集成** | OpenAI 兼容 API（提供商无关） |
+    | **向量搜索** | LanceDB + Jina embeddings |
+    | **数据库** | SQLite（开发）/ PostgreSQL（生产） |
+    | **包管理器** | uv（Python）、pnpm（Node.js） |
+    | **部署** | Docker Compose、单进程脚本 |
+
+    代码库遵循异步优先、协议优先的架构，零供应商锁定。
+  </Accordion>
+
+  <Accordion title="我在哪里可以获得帮助？">
+    - **文档** — 您正在这里。浏览[指南](/quickstart)、[概念](/architecture/system-overview)和[配置](/configuration/environment-variables)部分。
+    - **Discord** — 加入 [FIM One Discord](https://discord.gg/z64czxdC7z) 获取实时帮助和社区讨论。
+    - **GitHub Issues** — 在 [GitHub](https://github.com/fim-ai/fim-one/issues) 上提交错误报告和功能请求。
+    - **Twitter/X** — 关注 [@FIM_One](https://x.com/FIM_One) 获取更新和公告。
+  </Accordion>
+</AccordionGroup>

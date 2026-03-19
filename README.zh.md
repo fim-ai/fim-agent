@@ -22,37 +22,19 @@
 
 ---
 
-## 目录
-
-- [概述](#overview)
-- [使用场景](#use-cases)
-- [为什么选择 FIM One](#why-fim-one)
-- [FIM One 的定位](#where-fim-one-sits)
-- [主要功能](#key-features)
-- [架构](#architecture)
-- [快速开始](#quick-start)（Docker / 本地 / 生产环境）
-- [配置](#configuration)
-- [开发](#development)
-- [路线图](#roadmap)
-- [贡献](#contributing)
-- [Star 历史](#star-history)
-- [活动](#activity)
-- [贡献者](#contributors)
-- [许可证](#license)
-
 ## 概述
 
-每家公司都有互不通信的系统——ERP、CRM、OA、财务、HR、自定义数据库。每个厂商的 AI 在自己的领地内很聪明，但对其他一切都一无所知。FIM One 是**外部第三方枢纽**，通过 AI 将它们全部连接起来——无需修改现有基础设施。三种交付模式，一个智能体核心：
+每个公司都有相互不连接的系统——ERP、CRM、OA、财务、HR、自定义数据库。FIM One 是**AI 驱动的中枢**，可以连接它们所有系统，而无需修改现有基础设施。
 
-| 模式           | 功能描述                                                                       | 访问方式                       |
-| -------------- | -------------------------------------------------------------------------------- | --------------------------------------- |
-| **独立版** | 通用 AI 助手——搜索、代码、知识库                      | 门户网站                                  |
-| **副驾驶**    | 嵌入宿主系统的 AI——在用户现有 UI 中与用户协作        | iframe / 组件 / 嵌入宿主页面 |
-| **枢纽**        | 中央 AI 编排——所有系统互联，跨系统智能 | 门户网站 / API                            |
+| 模式           | 说明                                              | 访问方式                  |
+| -------------- | ------------------------------------------------------- | ----------------------- |
+| **独立模式** | 通用 AI 助手——搜索、代码、知识库         | 门户网站                  |
+| **副驾驶模式**    | 嵌入在主机系统 UI 中的 AI                       | iframe / widget / embed |
+| **中枢模式**    | 跨所有连接系统的中央 AI 编排   | 门户网站 / API            |
 
 ```mermaid
 graph LR
-    ERP --> Hub["FIM One Hub<br/>(AI orchestration)"]
+    ERP --> Hub["FIM One Hub"]
     Database --> Hub
     Lark --> Hub
     CRM --> Hub
@@ -60,416 +42,188 @@ graph LR
     API[Custom API] --> Hub
 ```
 
-核心始终相同：ReAct 推理循环、支持并发执行的动态 DAG 规划、可插拔工具，以及协议优先架构，零供应商锁定。
+### 截图
 
-### 使用智能体
+**仪表板** — 统计数据、活动趋势、令牌使用情况以及对智能体和对话的快速访问。
+
+![Dashboard](./assets/screenshot-dashboard.png)
+
+**智能体聊天** — 针对连接的数据库进行 ReAct 推理和多步工具调用。
+
+![Agent Chat](./assets/screenshot-agent-chat.png)
+
+**DAG 规划器** — LLM 生成的执行计划，支持并行步骤和实时状态跟踪。
+
+![DAG Planner](./assets/screenshot-dag-planner.png)
+
+### 演示
+
+**使用智能体**
 
 ![Using Agents](https://github.com/user-attachments/assets/b03d7750-eae6-4b16-9242-4c500d53d6cf)
 
-### 使用规划器模式
+**使用规划器模式**
 
 ![Using Planner Mode](https://github.com/user-attachments/assets/2b630496-2e62-4e14-bbdf-b8c707258390)
 
-## 用例
-
-企业数据和工作流被锁定在 OA、ERP、财务和审批系统中。FIM One 让 AI 智能体读写这些系统 — 在不修改现有基础设施的情况下自动化跨系统流程。
-
-| 场景                  | 推荐起点 | 自动化内容                                                                                                |
-| ------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **法律与合规**    | Copilot → Hub     | 合同条款提取、版本对比、风险标记及来源引用、自动触发 OA 审批          |
-| **IT 运维**         | Hub               | 告警触发 → 日志拉取 → 根本原因分析 → 修复派发至 Lark/Slack — 一个完整闭环                 |
-| **业务运营**   | Copilot           | 定时数据摘要推送至团队频道；针对实时数据库的即席自然语言查询         |
-| **财务自动化**    | Hub               | 发票验证、费用审批路由、ERP 和会计系统间的账簿对账          |
-| **采购**           | Copilot → Hub     | 需求 → 供应商对比 → 合同草稿 → 审批 — 智能体处理跨系统交接           |
-| **开发者集成** | API               | 导入 OpenAPI 规范或在聊天中描述 API — 连接器在数分钟内创建，自动注册为智能体工具 |
-
-I'd be happy to help translate this section, but I notice you've only provided the heading "## Why FIM One" without the actual content that follows it.
-
-Could you please provide the complete section including:
-- The paragraph(s) explaining why FIM One
-- Any bullet points, lists, or additional content under this heading
-
-Once you share the full content, I'll translate it to Chinese following all the strict rules you've outlined.
-
-### 逐步扩展
-
-从在一个系统中嵌入一个**副驾驶**开始——比如你的 ERP。用户可以直接在熟悉的界面中与 AI 交互：查询财务数据、生成报告、获取答案，无需离开页面。
-
-当价值得到验证后，建立一个**中枢**——一个连接所有系统的中央门户。ERP 副驾驶继续运行嵌入式功能；中枢添加跨系统编排能力：在 CRM 中查询合同、在 OA 中检查审批、在 Lark 上通知利益相关者——所有操作都可以在一个地方完成。
-
-副驾驶在单个系统中证明价值。中枢在所有系统中释放价值。
-
-### FIM One 不做的事情
-
-FIM One 不复制目标系统中已存在的工作流逻辑：
-
-- **无 BPM/FSM 引擎** — 审批链、路由、升级和状态机是目标系统的责任。这些系统花费多年构建这些逻辑。
-- **无 BPM/FSM 工作流引擎** — FIM One 的工作流蓝图是自动化模板（LLM 调用、条件分支、连接器操作），而不是业务流程管理。审批链、路由规则和状态机应该在目标系统中。
-- **连接器 = API 调用** — 从连接器的角度来看，"转移审批" = 一个 API 调用，"拒绝并说明原因" = 一个 API 调用。所有复杂的工作流操作都归结为 HTTP 请求。FIM One 调用 API；目标系统管理状态。
-
-这是一个刻意的架构边界，而不是能力差距。
-
-### 竞争定位
-
-|                        | Dify                       | Manus            | Coze                  | FIM One                      |
-| ---------------------- | -------------------------- | ---------------- | --------------------- | ---------------------------- |
-| **方法**           | 可视化工作流构建器    | 自主智能体 | 构建器 + 智能体空间 | AI 连接器中心             |
-| **规划**           | 人工设计的静态 DAG | 多智能体 CoT  | 静态 + 动态      | LLM DAG 规划 + ReAct     |
-| **跨系统**       | API 节点（手动）         | 否               | 插件市场    | 中心模式（N:N 编排） |
-| **人工确认** | 否                         | 否               | 否                    | 是（执行前门控）     |
-| **自托管**        | 是（Docker 堆栈）         | 否               | 是（Coze Studio）     | 是（单进程）         |
-
-> 深入了解：[Philosophy](https://docs.fim.ai/architecture/philosophy) | [Execution Modes](https://docs.fim.ai/concepts/execution-modes) | [Competitive Landscape](https://docs.fim.ai/strategy/competitive-landscape)
-
-### FIM One 的定位
-
-```
-                Static Execution          Dynamic Execution
-            ┌──────────────────────┬──────────────────────┐
- Static     │ BPM / Workflow       │ ACM                  │
- Planning   │ Camunda, Activiti    │ (Salesforce Case)    │
-            │ Dify, n8n, Coze     │                      │
-            ├──────────────────────┼──────────────────────┤
- Dynamic    │ (transitional —      │ Autonomous Agent     │
- Planning   │  unstable quadrant)  │ AutoGPT, Manus       │
-            │                      │ ★ FIM One (bounded)│
-            └──────────────────────┴──────────────────────┘
-```
-
-Dify/n8n 属于**静态规划 + 静态执行** — 人类在可视化画布上设计 DAG，节点执行固定操作。FIM One 属于**动态规划 + 动态执行** — LLM 在运行时生成 DAG，每个节点运行 ReAct 循环，当目标未达成时进行重新规划。但受限制（最多 3 轮重新规划、令牌预算、确认门控），因此比 AutoGPT 更可控。
-
-FIM One 不处理 BPM/FSM — 工作流逻辑属于目标系统，连接器只是调用 API。
-
-> 完整说明：[Philosophy](https://docs.fim.ai/architecture/philosophy)
-
-## 主要功能
-
-#### 连接器平台（核心）
-- **连接器中心架构** — 独立助手、嵌入式 Copilot 或中央中心 — 相同的智能体核心，不同的交付方式。
-- **任何系统，统一模式** — 连接 API、数据库和消息总线。操作自动注册为智能体工具，并注入身份验证（Bearer、API Key、Basic）。
-- **数据库连接器** — 直接 SQL 访问 PostgreSQL、MySQL、Oracle、SQL Server 和中国国产数据库（DM、KingbaseES、GBase、Highgo）。架构内省、AI 驱动的注解、只读查询执行和静态加密凭证。每个数据库连接器自动生成 3 个工具（`list_tables`、`describe_table`、`query`）。
-- **三种构建连接器的方式：**
-  - *导入 OpenAPI 规范* — 上传 YAML/JSON/URL；连接器和所有操作自动生成。
-  - *AI 聊天构建器* — 用自然语言描述 API；AI 在对话中生成和迭代操作配置。10 个专业构建器工具处理连接器设置、操作、测试和智能体接线。
-  - *MCP 生态系统* — 直接连接任何 MCP 服务器；第三方 MCP 社区开箱即用。
-
-#### 智能规划与执行
-- **动态 DAG 规划** — LLM 在运行时将目标分解为依赖图。无硬编码工作流。
-- **并发执行** — 独立步骤通过 asyncio 并行运行。
-- **DAG 重新规划** — 当目标未达成时，自动修订计划最多 3 轮。
-- **ReAct 智能体** — 结构化的推理和行动循环，具有自动错误恢复。
-- **自动路由** — 自动分类查询，将每个请求路由到最优执行模式（ReAct 或 DAG）。前端支持三向切换（自动/标准/规划器）。可通过 `AUTO_ROUTING` 配置。
-- **扩展思考** — 为支持的模型（OpenAI o 系列、Gemini 2.5+、Claude）启用思维链推理，通过 `LLM_REASONING_EFFORT` 配置。模型的推理过程在 UI "thinking" 步骤中显示。
-
-#### 工作流蓝图
-- **可视化工作流编辑器** — 使用基于 React Flow v12 的拖放画布设计多步骤自动化蓝图。12 种节点类型：Start、End、LLM、Condition Branch、Question Classifier、Agent、Knowledge Retrieval、Connector、HTTP Request、Variable Assign、Template Transform、Code Execution。
-- **拓扑执行引擎** — 工作流按依赖顺序执行节点，支持条件分支、跨节点变量传递和实时 SSE 状态流。
-- **导入/导出** — 将工作流蓝图共享为 JSON。加密环境变量以确保凭证安全处理。
-
-#### 工具与集成
-- **可插拔工具系统** — 自动发现；内置 Python 执行器、Node.js 执行器、计算器、网页搜索/获取、HTTP 请求、Shell 执行等。
-- **可插拔沙箱** — `python_exec` / `node_exec` / `shell_exec` 在本地或 Docker 模式（`CODE_EXEC_BACKEND=docker`）下运行，实现操作系统级隔离（`--network=none`、`--memory=256m`）。适合 SaaS 和多租户部署。
-- **MCP 协议** — 将任何 MCP 服务器连接为工具。第三方 MCP 生态开箱即用。
-- **工具产物系统** — 工具生成丰富的输出（HTML 预览、生成的文件），支持聊天内渲染和下载。HTML 产物在沙箱 iframe 中渲染；文件产物显示下载芯片。
-- **OpenAI 兼容** — 适用于任何 `/v1/chat/completions` 提供商（OpenAI、DeepSeek、Qwen、Ollama、vLLM…）。
-
-#### RAG & 知识库
-- **完整 RAG 管道** — Jina embedding + LanceDB + FTS + RRF 混合检索 + reranker。支持 PDF、DOCX、Markdown、HTML、CSV。
-- **有根据的生成** — 证据锚定的 RAG，支持内联 `[N]` 引用、冲突检测和可解释的置信度分数。
-- **知识库文档管理** — 块级 CRUD、跨块文本搜索、失败文档重试和自动迁移向量存储架构。
-
-#### Portal & UX
-- **Real-time Streaming (SSE v2)** — Split event protocol (`done` / `suggestions` / `title` / `end`) with streaming dot-pulse cursor, KaTeX math rendering, and tool step folding.
-- **DAG Visualization** — Interactive flow graph with live status, dependency edges, click-to-scroll, and re-plan round snapshots as collapsible cards.
-- **Conversational Interrupt** — 在智能体运行时发送后续消息；在下一个迭代边界处注入。
-- **Dark / Light / System Theme** — 完整的主题支持，包含系统偏好检测。
-- **Command Palette** — 对话搜索、收藏、批量操作和标题重命名。
-
-#### 平台与多租户
-- **JWT 认证** — 基于令牌的 SSE 认证、对话所有权、按用户资源隔离。
-- **智能体管理** — 创建、配置和发布绑定了模型、工具和指令的智能体。按智能体执行模式（标准/规划器）和温度控制。可选的 `discoverable` 标志启用 LLM 通过 CallAgentTool 自动发现。
-- **全局技能（SOP）** — 技能是可重用的标准操作流程，全局应用——根据可见性（个人/组织/市场）为每个用户加载，不受智能体选择影响。在渐进模式（默认）下，系统提示包含紧凑的存根；LLM 按需调用 `read_skill(name)` 加载完整内容，将令牌成本降低约 80%。如果技能的 SOP 引用了智能体，LLM 可以通过 `call_agent` 进行委托。
-- **市场（影子市场组织）** — 内置市场组织作为资源共享的隐形后端实体。资源通过市场浏览发现并显式订阅（拉取模式）——无自动加入成员资格。发布到市场始终需要审核。
-- **资源订阅** — 用户浏览市场中的共享资源并订阅。通过 UI 或 API 订阅/取消订阅。所有资源类型（智能体、连接器、知识库、MCP 服务器、技能、工作流）都支持市场发布和订阅管理。
-- **管理面板** — 系统统计仪表板（用户、对话、令牌、模型使用图表、按智能体的令牌分解）、连接器调用指标（成功率、延迟、调用计数）、用户管理（搜索/分页）、角色切换、密码重置、账户启用/禁用，以及按工具启用/禁用控制。
-- **首次运行设置向导** — 首次启动时，门户引导您创建管理员账户（用户名、密码、电子邮件）。这个一次性设置成为您的登录凭证——无需配置文件。
-- **个人中心** — 按用户的全局系统指令，应用于所有对话。
-- **语言偏好** — 按用户的语言设置（自动/en/zh），指导所有 LLM 响应使用所选语言。
-
-#### 上下文与内存
-- **LLM 紧凑模式** — 自动 LLM 驱动的摘要总结，保持在 token 预算范围内。
-- **ContextGuard + 固定消息** — Token 预算管理器；固定消息受保护，不会被压缩。
-- **双数据库支持** — SQLite（零配置默认选项）可在几秒内快速启动；PostgreSQL 用于生产环境和多工作进程部署。Docker Compose 自动配置 PostgreSQL 并进行健康检查。`docker compose up` 即可启动。
-
-## 架构
-
-### 系统概览
-
-```mermaid
-graph TB
-    subgraph app["Application & Interaction Layer"]
-        a["Portal · API · iframe · Lark/Slack Bot · Webhook · WeCom/DingTalk"]
-    end
-    subgraph mid["FIM One Middleware"]
-        direction LR
-        m1["Connectors<br/>+ MCP Hub"] ~~~ m2["Orch Engine<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>Knowledge"] ~~~ m4["Auth /<br/>Admin"]
-    end
-    subgraph biz["Business Systems & Data Layer"]
-        b["ERP · CRM · OA · Finance · Databases · Custom APIs<br/>Lark · DingTalk · WeCom · Slack · Email · Webhook"]
-    end
-    app --> mid --> biz
-```
-
-### 连接器中心
-
-```mermaid
-graph LR
-    ERP["ERP<br/>(SAP/Kingdee)"] --> A
-    CRM["CRM<br/>(Salesforce)"] --> B
-    OA["OA<br/>(Seeyon/Weaver)"] --> C
-    DB["Custom DB<br/>(PG/MySQL)"] --> D
-    subgraph Hub["FIM One Hub"]
-        A["Agent A: Finance Audit"]
-        B["Agent B: Contract Review"]
-        C["Agent C: Approval Assist"]
-        D["Agent D: Data Reporting"]
-    end
-    A --> O1["Lark / Slack"]
-    B --> O2["Email / WeCom"]
-    C --> O3["Teams / Webhook"]
-    D --> O4["Any API"]
-```
-
-*Portal / API / iframe*
-
-每个连接器都是一个标准化的桥接——智能体不需要知道或关心它是在与 SAP 还是自定义 PostgreSQL 数据库通信。详见 [连接器架构](https://docs.fim.ai/architecture/connector-architecture)。
-
-### 内部执行
-
-FIM One 提供两种执行模式，具有自动路由功能：
-
-| 模式         | 最适用于                  | 工作原理                                                       |
-| ------------ | ------------------------- | ------------------------------------------------------------------ |
-| Auto         | 所有查询（默认）     | 快速 LLM 对查询进行分类并路由到 ReAct 或 DAG           |
-| ReAct        | 单个复杂查询    | 推理 → 行动 → 观察循环与工具                             |
-| DAG Planning | 多步骤并行任务 | LLM 生成依赖图，独立步骤并发运行 |
-
-```mermaid
-graph TB
-    Q[User Query] --> P["DAG Planner<br/>LLM decomposes the goal into steps + dependency edges"]
-    P --> E["DAG Executor<br/>Launches independent steps concurrently via asyncio<br/>Each step is handled by a ReAct Agent"]
-    E --> R1["ReAct Agent 1 → Tools<br/>(python_exec, custom, ...)"]
-    E --> R2["ReAct Agent 2 → RAG<br/>(retriever interface)"]
-    E --> RN["ReAct Agent N → ..."]
-    R1 & R2 & RN --> An["Plan Analyzer<br/>LLM evaluates results · re-plans if goal not met"]
-    An --> F[Final Answer]
-```
-
 ## 快速开始
 
-### 选项 A：Docker（推荐）
-
-无需本地 Python 或 Node.js — 所有内容都在容器内构建。
+### Docker（推荐）
 
 ```bash
 git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
 
-# 配置 — 仅需 LLM_API_KEY
 cp example.env .env
-# 编辑 .env：设置 LLM_API_KEY（可选设置 LLM_BASE_URL、LLM_MODEL）
+# Edit .env: set LLM_API_KEY (and optionally LLM_BASE_URL, LLM_MODEL)
 
-# 构建并运行（首次运行或拉取新代码后）
 docker compose up --build -d
 ```
 
-打开 http://localhost:3000 — 首次启动时，系统会引导你创建管理员账户。就这么简单。
-
-初始构建后，后续启动仅需：
+打开 http://localhost:3000 — 首次启动时，你需要创建一个管理员账户。就这么简单。
 
 ```bash
-docker compose up -d          # 启动（如果镜像未变更则跳过重建）
-docker compose down           # 停止
-docker compose logs -f        # 查看日志
+docker compose up -d          # start
+docker compose down           # stop
+docker compose logs -f        # view logs
 ```
 
-数据通过 Docker 命名卷（`fim-data`、`fim-uploads`）持久化，容器重启后数据保留。
-
-> **注意：** Docker 模式不支持热重载。代码更改需要重建镜像（`docker compose up --build -d`）。如需进行活跃开发并使用实时重载，请使用下方的**选项 B**。
-
-### 选项 B：本地开发
+### 本地开发
 
 前置条件：Python 3.11+、[uv](https://docs.astral.sh/uv/)、Node.js 18+、pnpm。
 
 ```bash
-git clone https://github.com/fim-ai/fim-one.git
-cd fim-one
+git clone https://github.com/fim-ai/fim-one.git && cd fim-one
 
-cp example.env .env
-# 编辑 .env：设置 LLM_API_KEY
+cp example.env .env           # Edit: set LLM_API_KEY
 
-# 安装
 uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
-# 启动（带热重载）
-./start.sh dev
+./start.sh dev                # hot reload: Python --reload + Next.js HMR
 ```
 
-| 命令             | 启动内容                                                | URL                                      |
-| ---------------- | ------------------------------------------------------- | ---------------------------------------- |
-| `./start.sh`     | Next.js + FastAPI                                       | http://localhost:3000 (UI) + :8000 (API) |
-| `./start.sh dev` | 相同，带热重载（Python `--reload` + Next.js HMR）      | 相同                                     |
-| `./start.sh api` | 仅 FastAPI（无头模式，用于集成或测试）                 | http://localhost:8000/api                |
+| 命令             | 启动内容                          | URL                            |
+| ---------------- | --------------------------------- | ------------------------------ |
+| `./start.sh`     | Next.js + FastAPI                 | localhost:3000 (UI) + :8000    |
+| `./start.sh dev` | 相同，带热重载                    | 相同                           |
+| `./start.sh api` | 仅 FastAPI（无头模式）            | localhost:8000/api             |
 
-### 生产部署
+> 关于生产部署（Docker、反向代理、零停机更新），请参阅[部署指南](https://docs.fim.ai/quickstart#production-deployment)。
 
-两种方法都适用于生产环境：
+## 主要功能
 
-| 方法       | 命令                   | 最适合                                      |
-| ---------- | ---------------------- | ------------------------------------------- |
-| **Docker** | `docker compose up -d` | 无需手动干预的部署，易于更新                |
-| **脚本**   | `./start.sh`           | 裸机服务器，自定义进程管理器                |
+#### 连接器中心
+- **三种交付模式** — 独立助手、嵌入式 Copilot 或中央 Hub；相同的智能体核心。
+- **任何系统，统一模式** — 连接 API、数据库、MCP 服务器。操作自动注册为智能体工具，并注入身份验证。
+- **数据库连接器** — PostgreSQL、MySQL、Oracle、SQL Server，以及国产遗留数据库（DM、KingbaseES、GBase、Highgo）。模式内省和 AI 驱动的注释。
+- **三种构建方式** — 导入 OpenAPI 规范、AI 聊天构建器或直接连接 MCP 服务器。
 
-对于任一方法，在前面放置 Nginx 反向代理以支持 HTTPS 和自定义域名：
+#### 规划与执行
+- **动态 DAG 规划** — LLM 在运行时将目标分解为依赖图。无硬编码工作流。
+- **并发执行** — 独立步骤通过 asyncio 并行运行；自动重新规划最多 3 轮。
+- **ReAct 智能体** — 具有自动错误恢复的结构化推理和行动循环。
+- **自动路由** — 分类查询并路由到最优模式（ReAct 或 DAG）。可通过 `AUTO_ROUTING` 配置。
+- **扩展思维** — OpenAI o 系列、Gemini 2.5+、Claude 的思维链。
 
+#### 工作流与工具
+- **可视化工作流编辑器** — 12 种节点类型、拖拽画布 (React Flow v12)、JSON 格式导入/导出。
+- **可插拔工具** — Python、Node.js、shell 执行，支持可选的 Docker 沙箱 (`CODE_EXEC_BACKEND=docker`)。
+- **完整 RAG 管道** — Jina 嵌入 + LanceDB + 混合检索 + 重排器 + 内联 `[N]` 引用。
+- **工具产物** — 丰富的输出 (HTML 预览、文件) 在聊天中呈现。
+
+#### 平台
+- **多租户** — JWT 认证、组织隔离、管理面板（包含使用分析和连接器指标）。
+- **应用市场** — 发布和订阅智能体、连接器、知识库、技能、工作流。
+- **全局技能（SOP）** — 为每个用户加载的可复用操作流程；渐进模式可减少约 80% 的 token 消耗。
+- **6 种语言** — EN、ZH、JA、KO、DE、FR。翻译[完全自动化](https://docs.fim.ai/quickstart#internationalization)。
+- **首次运行设置向导**、深色/浅色主题、命令面板、流式 SSE、DAG 可视化。
+
+> 深入了解：[架构](https://docs.fim.ai/architecture/system-overview) · [执行模式](https://docs.fim.ai/concepts/execution-modes) · [为什么选择 FIM One](https://docs.fim.ai/why) · [竞争格局](https://docs.fim.ai/strategy/competitive-landscape)
+
+## 架构
+
+```mermaid
+graph TB
+    subgraph app["Application Layer"]
+        a["Portal · API · iframe · Lark/Slack Bot · Webhook · WeCom/DingTalk"]
+    end
+    subgraph mid["FIM One"]
+        direction LR
+        m1["Connectors<br/>+ MCP Hub"] ~~~ m2["Orch Engine<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>Knowledge"] ~~~ m4["Auth /<br/>Admin"]
+    end
+    subgraph biz["Business Systems"]
+        b["ERP · CRM · OA · Finance · Databases · Custom APIs"]
+    end
+    app --> mid --> biz
 ```
-User → Nginx (443/HTTPS) → localhost:3000
-```
 
-API 在内部运行在 8000 端口 — Next.js 自动代理 `/api/*` 请求。只需暴露 3000 端口。
-
-**更新运行中的部署**（零停机时间）：
-
-```bash
-cd /path/to/fim-one \
-  && git pull origin master \
-  && sudo docker compose build \
-  && sudo docker compose up -d \
-  && sudo docker image prune -f
-```
-
-`build` 先运行，旧容器继续提供流量。`up -d` 然后仅替换镜像已更改的容器 — 停机时间约 10 秒而非数分钟。
-
-如果使用代码执行沙箱（`CODE_EXEC_BACKEND=docker`），挂载 Docker socket：
-
-```yaml
-# docker-compose.yml
-volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
-```
+每个连接器都是一个标准化的桥接——智能体不需要知道或关心它是在与 SAP 还是自定义数据库通信。详见 [连接器架构](https://docs.fim.ai/architecture/connector-architecture)。
 
 ## 配置
 
-### 推荐设置
+FIM One 支持**任何 OpenAI 兼容的提供商**：
 
-FIM One 适用于**任何与 OpenAI 兼容的 LLM 提供商** — OpenAI、DeepSeek、Anthropic、Qwen、Ollama、vLLM 等。选择你喜欢的任何一个：
-
-| 提供商             | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
-| ------------------ | ------------- | ------------------------------ | ------------------- |
-| **OpenAI**         | `sk-...`      | *(默认)*                       | `gpt-4o`            |
-| **DeepSeek**       | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`     |
-| **Anthropic**      | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
-| **Ollama** (本地)  | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`       |
-
-**[Jina AI](https://jina.ai/)** 解锁网页搜索/获取、嵌入和完整的 RAG 管道（提供免费层级）。
+| 提供商           | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
+| ------------------ | ------------- | ------------------------------ | -------------------- |
+| **OpenAI**         | `sk-...`      | *(默认)*                    | `gpt-4o`             |
+| **DeepSeek**       | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`      |
+| **Anthropic**      | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6`  |
+| **Ollama** (本地) | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`        |
 
 最小化 `.env`：
 
 ```bash
 LLM_API_KEY=sk-your-key
-# LLM_BASE_URL=https://api.openai.com/v1   # default — change for other providers
-# LLM_MODEL=gpt-4o                         # default — change for other models
-
+# LLM_BASE_URL=https://api.openai.com/v1   # default
+# LLM_MODEL=gpt-4o                         # default
 JINA_API_KEY=jina_...                       # unlocks web tools + RAG
 ```
 
-### 所有变量
+> 完整参考：[环境变量](https://docs.fim.ai/configuration/environment-variables)
 
-查看完整的[环境变量](https://docs.fim.ai/configuration/environment-variables)参考文档，了解所有配置选项（LLM、智能体执行、网页工具、RAG、代码执行、图像生成、连接器、平台、OAuth）。
+## 技术栈
+
+| 层级       | 技术                                                          |
+| ----------- | ------------------------------------------------------------------- |
+| 后端     | Python 3.11+, FastAPI, SQLAlchemy, Alembic, asyncio                 |
+| 前端    | Next.js 14, React 18, Tailwind CSS, shadcn/ui, React Flow v12      |
+| AI / RAG    | OpenAI-compatible LLMs, Jina AI (embed + search), LanceDB          |
+| 数据库    | SQLite (dev) / PostgreSQL (prod)                                    |
+| 基础设施       | Docker, uv, pnpm, SSE streaming                                    |
 
 ## 开发
 
 ```bash
-# Install all dependencies (including dev extras)
-uv sync --all-extras
-
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov=fim_one --cov-report=term-missing
-
-# Lint
-ruff check src/ tests/
-
-# Type check
-mypy src/
-
-# Install git hooks (run once after clone — enables auto i18n translation on commit)
-bash scripts/setup-hooks.sh
+uv sync --all-extras          # install dependencies
+pytest                         # run tests
+pytest --cov=fim_one           # with coverage
+ruff check src/ tests/         # lint
+mypy src/                      # type check
+bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 ```
-
-## 国际化 (i18n)
-
-FIM One 支持 **6 种语言**：英文、中文、日文、韩文、德文和法文。翻译完全自动化 — 你只需编辑英文源文件。
-
-**支持的语言**: `en` `zh` `ja` `ko` `de` `fr`
-
-| 内容 | 源文件（编辑此处） | 自动生成（勿编辑） |
-|------|--------------------|-----------------------------|
-| UI 字符串 | `frontend/messages/en/*.json` | `frontend/messages/{locale}/*.json` |
-| 文档 | `docs/*.mdx` | `docs/{locale}/*.mdx` |
-| README | `README.md` | `README.{locale}.md` |
-
-**工作原理**：提交前钩子检测英文文件的更改，并通过项目的 Fast LLM 进行翻译。翻译是增量式的 — 仅处理新增、修改或删除的内容。
-
-```bash
-# 设置（克隆后运行一次）
-bash scripts/setup-hooks.sh
-
-# 完整翻译（首次或添加新语言后）
-uv run scripts/translate.py --all
-
-# 翻译特定文件
-uv run scripts/translate.py --files frontend/messages/en/common.json
-
-# 覆盖目标语言
-uv run scripts/translate.py --all --locale ja ko
-
-# 增加并行 API 调用（默认值：3，如果你的 API 允许可提高）
-uv run scripts/translate.py --all --concurrency 10
-
-# 日常工作流：只需提交 — 钩子自动处理一切
-git add frontend/messages/en/common.json
-git commit -m "feat(i18n): add new strings"  # 钩子自动翻译
-```
-
-| 标志 | 默认值 | 描述 |
-|------|---------|-------------|
-| `--all` | — | 重新翻译所有内容（忽略缓存） |
-| `--files` | — | 仅翻译特定文件 |
-| `--locale` | 自动发现 | 覆盖目标语言 |
-| `--concurrency` | 3 | 最大并行 LLM API 调用数 |
-| `--force` | — | 强制重新翻译所有 JSON 键 |
-
-**添加新语言**：`mkdir frontend/messages/{locale}` → 运行 `--all` → 在 `frontend/src/i18n/request.ts` 中的 `SUPPORTED_LOCALES` 添加语言代码。
 
 ## 路线图
 
-查看完整的[路线图](https://docs.fim.ai/roadmap)了解版本历史和后续计划。
+查看完整的[路线图](https://docs.fim.ai/roadmap)了解版本历史和计划功能。
+
+## 常见问题
+
+关于部署、LLM 提供商、系统要求等常见问题 — 请查看 [常见问题](https://docs.fim.ai/faq)。
 
 ## 贡献
 
 我们欢迎各种形式的贡献 — 代码、文档、翻译、错误报告和想法。
 
-> **先锋计划**：前 100 位成功合并 PR 的贡献者将被认可为**创始贡献者**，获得项目中的永久致谢、个人资料徽章和优先问题支持。[了解更多 &rarr;](CONTRIBUTING.md#-pioneer-program)
+> **先锋计划**：前 100 位获得 PR 合并的贡献者将被认可为**创始贡献者**，获得永久致谢、徽章和优先问题支持。[了解更多 &rarr;](CONTRIBUTING.md#-pioneer-program)
 
 **快速链接：**
 
 - [**贡献指南**](CONTRIBUTING.md) — 设置、约定、PR 流程
 - [**好的首个问题**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — 为新手精选
 - [**开放问题**](https://github.com/fim-ai/fim-one/issues) — 错误和功能请求
+
+**安全性：** 要报告漏洞，请打开一个带有 `[SECURITY]` 标签的 [GitHub issue](https://github.com/fim-ai/fim-one/issues)。对于敏感披露，请通过 Discord DM 与我们联系。
 
 ## Star History
 
@@ -504,11 +258,11 @@ git commit -m "feat(i18n): add new strings"  # 钩子自动翻译
 
 FIM One 源代码可用许可证。这**不是** OSI 批准的开源许可证。
 
-**允许**：内部使用、修改、保持许可证完整的分发、嵌入到您自己的（非竞争性）应用程序中。
+**允许**：内部使用、修改、保持许可证完整的分发、嵌入到非竞争应用中。
 
 **限制**：多租户 SaaS、竞争性智能体平台、白标、移除品牌标识。
 
-如有商业许可咨询，请在 [GitHub](https://github.com/fim-ai/fim-one) 上提出问题。
+如有商业许可咨询，请在 [GitHub](https://github.com/fim-ai/fim-one) 上提交 issue。
 
 完整条款见 [LICENSE](LICENSE)。
 

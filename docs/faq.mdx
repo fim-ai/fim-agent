@@ -1,0 +1,228 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about FIM One — setup, features, licensing, and more."
+icon: "circle-question"
+---
+
+## General
+
+<AccordionGroup>
+  <Accordion title="What LLM providers are supported?">
+    FIM One works with **any OpenAI-compatible LLM provider**. This includes:
+
+    - **Commercial APIs** — OpenAI, DeepSeek, Anthropic (Claude), Alibaba Qwen, Google Gemini, and any provider that exposes a `/v1/chat/completions` endpoint.
+    - **Local/self-hosted** — Ollama, vLLM, LocalAI, LM Studio, and any other runtime that serves the OpenAI-compatible API format.
+
+    You configure your provider via three environment variables in `.env`:
+
+    ```bash
+    LLM_API_KEY=sk-your-key
+    LLM_BASE_URL=https://api.openai.com/v1   # change for other providers
+    LLM_MODEL=gpt-4o                         # change for other models
+    ```
+
+    See the [Quick Start](/quickstart) guide for provider-specific examples.
+  </Accordion>
+
+  <Accordion title="Can I use local or self-hosted models?">
+    Yes. FIM One connects to any endpoint that implements the OpenAI-compatible API format. Popular self-hosted options include:
+
+    | Runtime | Base URL | Example model |
+    |---------|----------|---------------|
+    | **Ollama** | `http://localhost:11434/v1` | `qwen2.5:14b` |
+    | **vLLM** | `http://localhost:8000/v1` | `Qwen/Qwen2.5-72B-Instruct` |
+    | **LocalAI** | `http://localhost:8080/v1` | `llama3` |
+    | **LM Studio** | `http://localhost:1234/v1` | (whatever you load) |
+
+    Set `LLM_API_KEY` to any non-empty string (e.g., `ollama`) when the provider does not require authentication. All agent features — ReAct reasoning, DAG planning, tool calling — work identically regardless of whether the model is local or cloud-hosted.
+  </Accordion>
+
+  <Accordion title="Is FIM One open source?">
+    FIM One is released under a **Source Available License**. This is not an OSI-approved open source license, but it provides broad freedoms for most use cases:
+
+    **Permitted:**
+    - Internal use within your organization
+    - Modification and custom development
+    - Distribution with the license intact
+    - Embedding in your own (non-competing) applications
+
+    **Restricted:**
+    - Multi-tenant SaaS offerings
+    - Competing agent platforms
+    - White-labeling or removing branding
+
+    For commercial licensing inquiries, please open an issue on [GitHub](https://github.com/fim-ai/fim-one). See the full [LICENSE](https://github.com/fim-ai/fim-one/blob/master/LICENSE) for complete terms.
+  </Accordion>
+
+  <Accordion title="How do I report security vulnerabilities?">
+    For **non-sensitive issues**, open a GitHub issue with the `[SECURITY]` tag in the title. Include reproduction steps, affected versions, and the potential impact.
+
+    For **sensitive vulnerabilities** (e.g., credential exposure, authentication bypass), please email the team directly rather than filing a public issue. Contact information is available in the project repository.
+
+    All security reports are triaged within 48 hours on business days.
+  </Accordion>
+</AccordionGroup>
+
+## Deployment
+
+<AccordionGroup>
+  <Accordion title="What are the system requirements?">
+    **Minimum requirements:**
+
+    | Resource | Requirement |
+    |----------|-------------|
+    | **Python** | 3.11+ |
+    | **RAM** | 2 GB minimum |
+    | **Disk** | 1 GB free (plus space for uploaded documents and vector store) |
+    | **Node.js** | 18+ (for local development) |
+
+    **Recommended for production:**
+
+    | Resource | Recommendation |
+    |----------|----------------|
+    | **RAM** | 4 GB+ (especially if running embedding models locally) |
+    | **CPU** | 2+ cores |
+    | **Database** | PostgreSQL for multi-worker deployments |
+
+    **Docker alternative:** Docker 20+ and Docker Compose v2. No local Python or Node.js required — everything is built inside the container.
+  </Accordion>
+
+  <Accordion title="Does FIM One work on ARM / Apple Silicon?">
+    Yes. Both Docker and local development work on ARM architectures, including Apple Silicon (M1/M2/M3/M4) Macs. The Docker image builds natively for `linux/arm64`, and all Python and Node.js dependencies have ARM-compatible wheels or fallbacks.
+  </Accordion>
+
+  <Accordion title="What databases are supported?">
+    FIM One uses databases in two distinct ways:
+
+    **1. Internal database (FIM One's own data):**
+    - **SQLite** — zero-config default, great for development and single-worker deployments.
+    - **PostgreSQL** — recommended for production, required for multi-worker setups (`WORKERS > 1`).
+
+    **2. Connector targets (systems you connect to):**
+
+    FIM One can connect to external databases as data sources via Database Connectors:
+
+    | Database | Status |
+    |----------|--------|
+    | PostgreSQL | Supported |
+    | MySQL | Supported |
+    | Oracle | Supported |
+    | SQL Server | Supported |
+    | DM (Dameng) | Supported |
+    | KingbaseES | Supported |
+    | GBase | Supported |
+    | Highgo | Supported |
+
+    Each database connector auto-generates three tools: `list_tables`, `describe_table`, and `query`. Schema introspection, AI-powered annotation, and read-only query execution are included by default.
+  </Accordion>
+
+  <Accordion title="Can multiple users share the same instance?">
+    Yes. FIM One is built for multi-tenant deployments from the ground up:
+
+    - **JWT authentication** — token-based auth with per-user session isolation.
+    - **Organization isolation** — resources (agents, connectors, knowledge bases) are scoped to organizations.
+    - **Role-based access** — admin and user roles with appropriate permission boundaries.
+    - **Resource ownership** — conversations and configurations are isolated per user.
+
+    For multi-user production deployments, use PostgreSQL as the internal database and set `WORKERS` to match your expected concurrency.
+  </Accordion>
+</AccordionGroup>
+
+## Features
+
+<AccordionGroup>
+  <Accordion title="What is the difference between ReAct and DAG mode?">
+    FIM One offers two execution engines, each suited to different task types:
+
+    | | ReAct (Standard) | DAG (Planner) |
+    |---|---|---|
+    | **How it works** | Single reasoning loop: Reason, Act, Observe, repeat | LLM decomposes the goal into a dependency graph; independent steps run in parallel |
+    | **Best for** | Focused queries, single-system lookups, conversational tasks | Multi-step tasks, cross-system orchestration, parallel data gathering |
+    | **Concurrency** | Sequential (one tool at a time) | Concurrent (independent steps run simultaneously via asyncio) |
+    | **Re-planning** | N/A | Up to 3 rounds of automatic re-planning if goals are not met |
+
+    **Auto mode** (the default) uses a fast LLM classifier to analyze each incoming query and routes it to the optimal engine automatically. You can also manually select the mode via the three-way toggle in the chat UI (Auto / Standard / Planner).
+
+    For a deep dive, see [Execution Modes](/concepts/execution-modes).
+  </Accordion>
+
+  <Accordion title="How do I add a new connector?">
+    FIM One provides three ways to create connectors — no Python code required:
+
+    **1. Import an OpenAPI spec** — Upload a YAML, JSON, or URL pointing to an OpenAPI specification. FIM One parses the spec and generates connectors with all actions automatically.
+
+    **2. AI chat builder** — Describe the API you want to connect in natural language. The AI generates and iterates on the connector configuration in conversation, using 10 specialized builder tools for settings, actions, testing, and agent wiring.
+
+    **3. MCP protocol** — Connect any MCP (Model Context Protocol) server directly. The third-party MCP ecosystem works out of the box.
+
+    For database connectors, configure the connection details (host, port, credentials) and FIM One auto-generates schema introspection and query tools.
+
+    See the [AI Builder](/concepts/ai-builder) documentation and the [Extension Guide](/extension-guide) for step-by-step instructions.
+  </Accordion>
+
+  <Accordion title="Can I embed FIM One into my existing system?">
+    Yes. FIM One's **Copilot mode** is specifically designed for embedding into host systems. You can integrate it via:
+
+    - **iframe** — Embed the FIM One chat interface directly into any web page.
+    - **Widget** — A lightweight chat widget that overlays on your existing UI.
+    - **API** — Use the FastAPI backend directly for fully custom integrations.
+
+    In Copilot mode, the AI works alongside users in their familiar interface — querying data, generating reports, and orchestrating actions without forcing users to switch applications.
+
+    See [Execution Modes](/concepts/execution-modes) for configuration details on Standalone, Copilot, and Hub delivery modes.
+  </Accordion>
+
+  <Accordion title="How does the translation system work?">
+    FIM One supports 6 languages (English, Chinese, Japanese, Korean, German, French) with a fully automated translation pipeline:
+
+    1. **Only edit English source files** — UI strings in `frontend/messages/en/*.json`, documentation in `docs/*.mdx` (root level), and `README.md`.
+    2. **Auto-translate on commit** — A pre-commit hook detects changes to English files and translates them via the project's Fast LLM. Translations are incremental: only new, modified, or deleted content is processed.
+    3. **Never manually edit translated files** — Files in `messages/zh/`, `messages/ja/`, `docs/zh/`, `docs/ja/`, etc. are all auto-generated and will be overwritten.
+
+    To set up the translation hook after cloning:
+    ```bash
+    bash scripts/setup-hooks.sh
+    ```
+
+    To force a full retranslation:
+    ```bash
+    uv run scripts/translate.py --all
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Contributing
+
+<AccordionGroup>
+  <Accordion title="How can I contribute to FIM One?">
+    FIM One welcomes contributions of all kinds — code, documentation, translations, bug reports, and feature ideas.
+
+    **Getting started:**
+    1. Read the [Contributing Guide](https://github.com/fim-ai/fim-one/blob/master/CONTRIBUTING.md) for setup instructions, coding conventions, and the PR process.
+    2. Browse [Good First Issues](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) for curated tasks suitable for newcomers.
+    3. Check [Open Issues](https://github.com/fim-ai/fim-one/issues) for bugs and feature requests.
+
+    **Pioneer Program:** The first 100 contributors who get a PR merged are recognized as **Founding Contributors** with permanent credits, a profile badge, and priority issue support.
+  </Accordion>
+
+  <Accordion title="What is the tech stack?">
+    | Layer | Technology |
+    |-------|-----------|
+    | **Backend** | Python 3.11+, FastAPI, SQLAlchemy, Alembic, asyncio |
+    | **Frontend** | Next.js, React, TypeScript, Tailwind CSS, shadcn/ui |
+    | **LLM integration** | OpenAI-compatible API (provider-agnostic) |
+    | **Vector search** | LanceDB + Jina embeddings |
+    | **Database** | SQLite (dev) / PostgreSQL (production) |
+    | **Package managers** | uv (Python), pnpm (Node.js) |
+    | **Deployment** | Docker Compose, single-process script |
+
+    The codebase follows an async-first, protocol-first architecture with zero vendor lock-in.
+  </Accordion>
+
+  <Accordion title="Where can I get help?">
+    - **Documentation** — You are here. Browse the [Guides](/quickstart), [Concepts](/architecture/system-overview), and [Configuration](/configuration/environment-variables) sections.
+    - **Discord** — Join the [FIM One Discord](https://discord.gg/z64czxdC7z) for real-time help and community discussions.
+    - **GitHub Issues** — File bug reports and feature requests on [GitHub](https://github.com/fim-ai/fim-one/issues).
+    - **Twitter/X** — Follow [@FIM_One](https://x.com/FIM_One) for updates and announcements.
+  </Accordion>
+</AccordionGroup>

@@ -22,37 +22,19 @@
 
 ---
 
-## Inhaltsverzeichnis
-
-- [Übersicht](#overview)
-- [Anwendungsfälle](#use-cases)
-- [Warum FIM One](#why-fim-one)
-- [Wo FIM One einzuordnen ist](#where-fim-one-sits)
-- [Hauptfunktionen](#key-features)
-- [Architektur](#architecture)
-- [Schnelleinstieg](#quick-start) (Docker / Lokal / Produktion)
-- [Konfiguration](#configuration)
-- [Entwicklung](#development)
-- [Roadmap](#roadmap)
-- [Beitragen](#contributing)
-- [Star-Verlauf](#star-history)
-- [Aktivität](#activity)
-- [Mitwirkende](#contributors)
-- [Lizenz](#license)
-
 ## Übersicht
 
-Jedes Unternehmen hat Systeme, die nicht miteinander kommunizieren — ERP, CRM, OA, Finanzen, HR, benutzerdefinierte Datenbanken. Die KI jedes Anbieters ist intelligent innerhalb ihrer eigenen Mauern, aber blind für alles andere. FIM One ist der **externe, unabhängige Hub**, der sie alle durch KI verbindet — ohne Ihre bestehende Infrastruktur zu verändern. Drei Liefermodi, ein Agent-Kern:
+Jedes Unternehmen hat Systeme, die nicht miteinander kommunizieren — ERP, CRM, OA, Finanzen, HR, benutzerdefinierte Datenbanken. FIM One ist der **KI-gestützte Hub**, der sie alle verbindet, ohne Ihre bestehende Infrastruktur zu ändern.
 
-| Modus           | Was es ist                                                                       | Wie Sie darauf zugreifen                       |
-| -------------- | -------------------------------------------------------------------------------- | --------------------------------------- |
-| **Standalone** | Universeller KI-Assistent — Suche, Code, Wissensdatenbank                      | Portal                                  |
-| **Copilot**    | KI eingebettet in ein Host-System — funktioniert neben Benutzern in ihrer bestehenden UI        | iframe / Widget / Einbettung in Host-Seiten |
-| **Hub**        | Zentrale KI-Orchestrierung — alle Ihre Systeme verbunden, systemübergreifende Intelligenz | Portal / API                            |
+| Modus          | Was es ist                                              | Zugriff                 |
+| -------------- | ------------------------------------------------------- | ----------------------- |
+| **Standalone** | Universeller KI-Assistent — Suche, Code, Wissensdatenbank | Portal                  |
+| **Copilot**    | KI eingebettet in die Benutzeroberfläche eines Host-Systems | iframe / Widget / Embed |
+| **Hub**        | Zentrale KI-Orchestrierung über alle verbundenen Systeme | Portal / API            |
 
 ```mermaid
 graph LR
-    ERP --> Hub["FIM One Hub<br/>(AI orchestration)"]
+    ERP --> Hub["FIM One Hub"]
     Database --> Hub
     Lark --> Hub
     CRM --> Hub
@@ -60,410 +42,188 @@ graph LR
     API[Custom API] --> Hub
 ```
 
-Der Kern ist immer gleich: ReAct-Reasoning-Schleifen, dynamische DAG-Planung mit gleichzeitiger Ausführung, austauschbare Tools und eine protokollgestützte Architektur ohne Vendor Lock-in.
+### Screenshots
 
-### Agenten verwenden
+**Dashboard** — Statistiken, Aktivitätstrends, Token-Nutzung und schneller Zugriff auf Agenten und Gespräche.
+
+![Dashboard](./assets/screenshot-dashboard.png)
+
+**Agent Chat** — ReAct-Reasoning mit mehrstufigen Tool-Aufrufen gegen eine verbundene Datenbank.
+
+![Agent Chat](./assets/screenshot-agent-chat.png)
+
+**DAG Planner** — LLM-generierter Ausführungsplan mit parallelen Schritten und Live-Statusverfolgung.
+
+![DAG Planner](./assets/screenshot-dag-planner.png)
+
+### Demo
+
+**Agenten verwenden**
 
 ![Using Agents](https://github.com/user-attachments/assets/b03d7750-eae6-4b16-9242-4c500d53d6cf)
 
-### Planner-Modus verwenden
+**Planer-Modus verwenden**
 
 ![Using Planner Mode](https://github.com/user-attachments/assets/2b630496-2e62-4e14-bbdf-b8c707258390)
 
-## Anwendungsfälle
-
-Unternehmensdaten und Workflows sind in OA-, ERP-, Finanz- und Genehmigungssystemen gesperrt. FIM One ermöglicht es KI-Agenten, diese Systeme zu lesen und zu schreiben – und automatisiert systemübergreifende Prozesse, ohne Ihre bestehende Infrastruktur zu ändern.
-
-| Szenario                  | Empfohlener Start | Was wird automatisiert                                                                                                |
-| ------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Recht & Compliance**    | Copilot → Hub     | Vertragsklausel-Extraktion, Versionsdiff, Risikoflagging mit Quellenangaben, automatische OA-Genehmigung auslösen          |
-| **IT-Betrieb**         | Hub               | Warnung wird ausgelöst → Logs abgerufen → Grundursache analysiert → Fix an Lark/Slack versendet — eine geschlossene Schleife                 |
-| **Geschäftsbetrieb**   | Copilot           | Geplante Datenzusammenfassungen an Team-Kanäle gepusht; Ad-hoc-Abfragen in natürlicher Sprache gegen Live-Datenbanken         |
-| **Finanzautomation**    | Hub               | Rechnungsverifizierung, Spesenfreigabe-Routing, Ledger-Abstimmung über ERP- und Buchhaltungssysteme          |
-| **Beschaffung**           | Copilot → Hub     | Anforderungen → Lieferantenvergleich → Vertragsentwurf → Genehmigung — Agent verwaltet die systemübergreifenden Handoffs           |
-| **Entwickler-Integration** | API               | OpenAPI-Spec importieren oder API im Chat beschreiben – Connector wird in Minuten erstellt, automatisch als Agent-Tools registriert |
-
-## Warum FIM One
-
-### Land and Expand
-
-Beginnen Sie damit, einen **Copilot** in ein System einzubetten — beispielsweise in Ihr ERP. Benutzer interagieren mit KI direkt in ihrer vertrauten Oberfläche: Finanzielle Daten abfragen, Berichte generieren, Antworten erhalten, ohne die Seite zu verlassen.
-
-Wenn der Nutzen nachgewiesen ist, richten Sie einen **Hub** ein — ein zentrales Portal, das alle Ihre Systeme verbindet. Der ERP-Copilot läuft weiterhin eingebettet; der Hub fügt systemübergreifende Orchestrierung hinzu: Verträge im CRM abfragen, Genehmigungen in OA prüfen, Stakeholder auf Lark benachrichtigen — alles von einem Ort aus.
-
-Copilot beweist seinen Wert innerhalb eines Systems. Hub erschließt Wert über alle Systeme hinweg.
-
-### Was FIM One NICHT tut
-
-FIM One repliziert keine Workflow-Logik, die bereits in Ihren Zielsystemen vorhanden ist:
-
-- **Keine BPM/FSM-Engine** — Genehmigungsketten, Routing, Eskalation und State Machines sind Aufgabe des Zielsystems. Diese Systeme haben Jahre damit verbracht, diese Logik aufzubauen.
-- **Keine BPM/FSM-Workflow-Engine** — FIM One's Workflow Blueprints sind Automatisierungsvorlagen (LLM-Aufrufe, Bedingungsverzweigungen, Connector-Aktionen), keine Business-Process-Management. Genehmigungsketten, Routing-Regeln und State Machines gehören ins Zielsystem.
-- **Connector = API-Aufruf** — Aus der Perspektive des Connectors ist „Genehmigung übertragen" = ein API-Aufruf, „mit Grund ablehnen" = ein API-Aufruf. Alle komplexen Workflow-Operationen reduzieren sich auf HTTP-Anfragen. FIM One ruft die API auf; das Zielsystem verwaltet den Zustand.
-
-Dies ist eine bewusste architektonische Grenze, keine Funktionslücke.
-
-### Wettbewerbspositionierung
-
-|                        | Dify                       | Manus            | Coze                  | FIM One                      |
-| ---------------------- | -------------------------- | ---------------- | --------------------- | ---------------------------- |
-| **Ansatz**           | Visual-Workflow-Builder    | Autonomer Agent | Builder + Agent-Bereich | AI-Connector-Hub             |
-| **Planung**           | Von Menschen entworfene statische DAGs | Multi-Agent CoT  | Statisch + dynamisch      | LLM-DAG-Planung + ReAct     |
-| **Systemübergreifend**       | API-Knoten (manuell)         | Nein               | Plugin-Marketplace    | Hub-Modus (N:N-Orchestrierung) |
-| **Menschliche Bestätigung** | Nein                         | Nein               | Nein                    | Ja (Pre-Execution-Gate)     |
-| **Selbst gehostet**        | Ja (Docker-Stack)         | Nein               | Ja (Coze Studio)     | Ja (einzelner Prozess)         |
-
-> Tiefergehende Informationen: [Philosophie](https://docs.fim.ai/architecture/philosophy) | [Ausführungsmodi](https://docs.fim.ai/concepts/execution-modes) | [Wettbewerbslandschaft](https://docs.fim.ai/strategy/competitive-landscape)
-
-### Wo FIM One sich einordnet
-
-```
-                Static Execution          Dynamic Execution
-            ┌──────────────────────┬──────────────────────┐
- Static     │ BPM / Workflow       │ ACM                  │
- Planning   │ Camunda, Activiti    │ (Salesforce Case)    │
-            │ Dify, n8n, Coze     │                      │
-            ├──────────────────────┼──────────────────────┤
- Dynamic    │ (transitional —      │ Autonomous Agent     │
- Planning   │  unstable quadrant)  │ AutoGPT, Manus       │
-            │                      │ ★ FIM One (bounded)│
-            └──────────────────────┴──────────────────────┘
-```
-
-Dify/n8n sind **Static Planning + Static Execution** — Menschen entwerfen den DAG auf einer visuellen Leinwand, Knoten führen feste Operationen aus. FIM One ist **Dynamic Planning + Dynamic Execution** — das LLM generiert den DAG zur Laufzeit, jeder Knoten führt eine ReAct-Schleife aus, mit Neuplanung, wenn Ziele nicht erreicht werden. Aber begrenzt (max. 3 Neuplanungsrunden, Token-Budgets, Bestätigungsgates), daher kontrollierter als AutoGPT.
-
-FIM One führt keine BPM/FSM durch — die Workflow-Logik gehört zum Zielsystem, Konnektoren rufen nur APIs auf.
-
-> Vollständige Erklärung: [Philosophy](https://docs.fim.ai/architecture/philosophy)
-
-## Hauptfunktionen
-
-#### Connector-Plattform (der Kern)
-- **Connector Hub Architektur** — Eigenständiger Assistent, eingebetteter Copilot oder zentraler Hub — gleicher Agent-Kern, unterschiedliche Bereitstellung.
-- **Jedes System, ein Muster** — Verbinden Sie APIs, Datenbanken und Message Buses. Aktionen registrieren sich automatisch als Agent-Tools mit Auth-Injection (Bearer, API Key, Basic).
-- **Datenbank-Connectoren** — Direkter SQL-Zugriff auf PostgreSQL, MySQL, Oracle, SQL Server und chinesische Legacy-Datenbanken (DM, KingbaseES, GBase, Highgo). Schema-Introspection, KI-gestützte Annotation, schreibgeschützte Abfrageausführung und verschlüsselte Anmeldedaten im Ruhezustand. Jeder DB-Connector generiert automatisch 3 Tools (`list_tables`, `describe_table`, `query`).
-- **Drei Möglichkeiten zum Erstellen von Connectoren:**
-  - *OpenAPI-Spezifikation importieren* — YAML/JSON/URL hochladen; Connectoren und alle Aktionen werden automatisch generiert.
-  - *KI-Chat-Builder* — Beschreiben Sie die API in natürlicher Sprache; KI generiert und iteriert die Aktionskonfiguration im Gespräch. 10 spezialisierte Builder-Tools verwalten Connector-Einstellungen, Aktionen, Tests und Agent-Verdrahtung.
-  - *MCP-Ökosystem* — Verbinden Sie jeden MCP-Server direkt; die MCP-Community von Drittanbietern funktioniert sofort.
-
-#### Intelligente Planung & Ausführung
-- **Dynamische DAG-Planung** — LLM zerlegt Ziele zur Laufzeit in Abhängigkeitsgraphen. Keine hartcodierten Workflows.
-- **Parallele Ausführung** — Unabhängige Schritte laufen parallel über asyncio.
-- **DAG-Neuplanung** — Überarbeitet den Plan automatisch bis zu 3 Runden, wenn Ziele nicht erreicht werden.
-- **ReAct-Agent** — Strukturierte Reasoning-and-Acting-Schleife mit automatischer Fehlerwiederherstellung.
-- **Automatisches Routing** — Automatische Abfrageklassifizierung leitet jede Anfrage zum optimalen Ausführungsmodus (ReAct oder DAG). Frontend unterstützt 3-Wege-Umschalter (Auto/Standard/Planner). Konfigurierbar über `AUTO_ROUTING`.
-- **Extended Thinking** — Aktivieren Sie Chain-of-Thought-Reasoning für unterstützte Modelle (OpenAI o-Serie, Gemini 2.5+, Claude) über `LLM_REASONING_EFFORT`. Das Reasoning des Modells wird im UI-Schritt „thinking" angezeigt.
-
-#### Workflow-Blaupausen
-- **Visueller Workflow-Editor** — Entwerfen Sie mehrstufige Automatisierungs-Blaupausen mit einer Drag-and-Drop-Canvas basierend auf React Flow v12. 12 Knotentypen: Start, End, LLM, Condition Branch, Question Classifier, Agent, Knowledge Retrieval, Connector, HTTP Request, Variable Assign, Template Transform, Code Execution.
-- **Topologische Ausführungs-Engine** — Workflows führen Knoten in Abhängigkeitsreihenfolge aus mit Bedingungsverzweigung, knotenübergreifender Variablenübergabe und Echtzeit-SSE-Status-Streaming.
-- **Import/Export** — Teilen Sie Workflow-Blaupausen als JSON. Verschlüsselte Umgebungsvariablen für sichere Anmeldedatenverwaltung.
-
-#### Tools & Integrationen
-- **Steckbares Werkzeugsystem** — Automatische Erkennung; wird mit Python-Executor, Node.js-Executor, Rechner, Websuche/Abruf, HTTP-Anfrage, Shell-Ausführung und mehr ausgeliefert.
-- **Steckbare Sandbox** — `python_exec` / `node_exec` / `shell_exec` laufen im lokalen oder Docker-Modus (`CODE_EXEC_BACKEND=docker`) für Isolation auf Betriebssystemebene (`--network=none`, `--memory=256m`). Sicher für SaaS- und Multi-Tenant-Bereitstellungen.
-- **MCP-Protokoll** — Verbinden Sie jeden MCP-Server als Werkzeuge. Das MCP-Ökosystem von Drittanbietern funktioniert sofort.
-- **Werkzeugartefakt-System** — Werkzeuge erzeugen umfangreiche Ausgaben (HTML-Vorschau, generierte Dateien) mit In-Chat-Rendering und Download. HTML-Artefakte werden in Sandbox-iframes gerendert; Datei-Artefakte zeigen Download-Chips.
-- **OpenAI-kompatibel** — Funktioniert mit jedem `/v1/chat/completions`-Anbieter (OpenAI, DeepSeek, Qwen, Ollama, vLLM…).
-
-#### RAG & Wissensdatenbank
-- **Vollständige RAG-Pipeline** — Jina Embedding + LanceDB + FTS + RRF Hybrid-Retrieval + Reranker. Unterstützt PDF, DOCX, Markdown, HTML, CSV.
-- **Begründete Generierung** — Evidenzgestützte RAG mit Inline-`[N]`-Zitaten, Konflikt­erkennung und erklärbaren Konfidenzwerten.
-- **KB-Dokumentverwaltung** — Chunk-Level CRUD, Textsuche über Chunks, Wiederholung fehlgeschlagener Dokumente und automatische Migration des Vektorspei­cher-Schemas.
-
-#### Portal & UX
-- **Real-time Streaming (SSE v2)** — Split event protocol (`done` / `suggestions` / `title` / `end`) mit Streaming-Punkt-Puls-Cursor, KaTeX-Mathematik-Rendering und Tool-Schritt-Faltung.
-- **DAG Visualization** — Interaktiver Flussdiagramm mit Live-Status, Abhängigkeitskanten, Klick-zum-Scrollen und Re-Plan-Runden-Snapshots als zusammenklappbare Karten.
-- **Conversational Interrupt** — Senden Sie Folgefragen, während der Agent läuft; eingefügt an der nächsten Iterationsgrenze.
-- **Dark / Light / System Theme** — Vollständige Theme-Unterstützung mit Systemeinstellungserkennung.
-- **Command Palette** — Konversationssuche, Favoriten, Batch-Operationen und Titel-Umbenennung.
-
-#### Plattform & Multi-Mandanten
-- **JWT Auth** — Token-basierte SSE-Authentifizierung, Gesprächseigentümerschaft, Ressourcenisolation pro Benutzer.
-- **Agent-Verwaltung** — Erstellen, konfigurieren und veröffentlichen Sie Agenten mit gebundenen Modellen, Tools und Anweisungen. Ausführungsmodus pro Agent (Standard/Planner) und Temperaturkontrolle. Das optionale Flag `discoverable` ermöglicht die automatische LLM-Erkennung über CallAgentTool.
-- **Globale Skills (SOPs)** — Skills sind wiederverwendbare Standard Operating Procedures, die global gelten — werden für jeden Benutzer geladen, unabhängig von der Agent-Auswahl, basierend auf der Sichtbarkeit (persönlich/org/Marketplace). Im progressiven Modus (Standard) enthält der System-Prompt kompakte Stubs; das LLM ruft `read_skill(name)` auf, um vollständige Inhalte bei Bedarf zu laden und die Token-Kosten um ~80% zu reduzieren. Wenn ein Skill-SOP auf einen Agent verweist, kann das LLM über `call_agent` delegieren.
-- **Marketplace (Shadow Market Org)** — Die integrierte Market-Org fungiert als unsichtbare Backend-Entität für Ressourcenfreigabe. Ressourcen werden durch Marketplace-Browsing erkannt und explizit abonniert (Pull-Modell) — keine automatische Mitgliedschaft. Die Veröffentlichung im Marketplace erfordert immer eine Überprüfung.
-- **Ressourcen-Abonnements** — Benutzer durchsuchen und abonnieren gemeinsame Ressourcen aus dem Marketplace. Abonnieren/Abmelden über UI oder API. Alle Ressourcentypen (Agenten, Konnektoren, Wissensdatenbanken, MCP-Server, Skills, Workflows) unterstützen Marketplace-Veröffentlichung und Abonnementverwaltung.
-- **Admin-Panel** — System-Statistik-Dashboard (Benutzer, Gespräche, Token, Modellnutzungsdiagramme, Token-nach-Agent-Aufschlüsselung), Konnektoren-Aufrufsmetriken (Erfolgsquote, Latenz, Aufrufe), Benutzerverwaltung mit Suche/Paginierung, Rollenwechsel, Passwort-Zurücksetzen, Konto aktivieren/deaktivieren und Kontrollen zum Aktivieren/Deaktivieren pro Tool.
-- **First-Run Setup Wizard** — Beim ersten Start führt das Portal Sie durch die Erstellung eines Admin-Kontos (Benutzername, Passwort, E-Mail). Dieses einmalige Setup wird zu Ihren Login-Anmeldedaten — keine Konfigurationsdateien erforderlich.
-- **Personal Center** — Globale Systemanweisungen pro Benutzer, angewendet auf alle Gespräche.
-- **Spracheinstellung** — Spracheinstellung pro Benutzer (auto/en/zh), die alle LLM-Antworten in die gewählte Sprache lenkt.
-
-#### Kontext & Speicher
-- **LLM Compact** — Automatische LLM-gestützte Zusammenfassung, um innerhalb von Token-Budgets zu bleiben.
-- **ContextGuard + Pinned Messages** — Token-Budget-Manager; angeheftete Nachrichten sind vor Komprimierung geschützt.
-- **Dual Database Support** — SQLite (standardmäßig ohne Konfiguration) für schnelle Inbetriebnahme in Sekunden; PostgreSQL für Produktionsumgebungen und Multi-Worker-Bereitstellungen. Docker Compose stellt PostgreSQL automatisch mit Health Checks bereit. `docker compose up` und Sie sind live.
-
-## Architektur
-
-### Systemübersicht
-
-```mermaid
-graph TB
-    subgraph app["Application & Interaction Layer"]
-        a["Portal · API · iframe · Lark/Slack Bot · Webhook · WeCom/DingTalk"]
-    end
-    subgraph mid["FIM One Middleware"]
-        direction LR
-        m1["Connectors<br/>+ MCP Hub"] ~~~ m2["Orch Engine<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>Knowledge"] ~~~ m4["Auth /<br/>Admin"]
-    end
-    subgraph biz["Business Systems & Data Layer"]
-        b["ERP · CRM · OA · Finance · Databases · Custom APIs<br/>Lark · DingTalk · WeCom · Slack · Email · Webhook"]
-    end
-    app --> mid --> biz
-```
-
-### Connector-Hub
-
-```mermaid
-graph LR
-    ERP["ERP<br/>(SAP/Kingdee)"] --> A
-    CRM["CRM<br/>(Salesforce)"] --> B
-    OA["OA<br/>(Seeyon/Weaver)"] --> C
-    DB["Custom DB<br/>(PG/MySQL)"] --> D
-    subgraph Hub["FIM One Hub"]
-        A["Agent A: Finance Audit"]
-        B["Agent B: Contract Review"]
-        C["Agent C: Approval Assist"]
-        D["Agent D: Data Reporting"]
-    end
-    A --> O1["Lark / Slack"]
-    B --> O2["Email / WeCom"]
-    C --> O3["Teams / Webhook"]
-    D --> O4["Any API"]
-```
-
-*Portal / API / iframe*
-
-Jeder Connector ist eine standardisierte Brücke — der Agent weiß nicht und kümmert sich nicht darum, ob er mit SAP oder einer benutzerdefinierten PostgreSQL-Datenbank kommuniziert. Weitere Informationen finden Sie unter [Connector-Architektur](https://docs.fim.ai/architecture/connector-architecture).
-
-### Interne Ausführung
-
-FIM One bietet zwei Ausführungsmodi mit automatischem Routing zwischen ihnen:
-
-| Modus        | Am besten für             | Funktionsweise                                                     |
-| ------------ | ------------------------- | ------------------------------------------------------------------ |
-| Auto         | Alle Abfragen (Standard)  | Schnelles LLM klassifiziert die Abfrage und leitet zu ReAct oder DAG weiter |
-| ReAct        | Einzelne komplexe Abfragen | Reason → Act → Observe-Schleife mit Tools                          |
-| DAG Planning | Multi-Step parallele Tasks | LLM generiert Abhängigkeitsgraph, unabhängige Schritte laufen parallel |
-
-```mermaid
-graph TB
-    Q[User Query] --> P["DAG Planner<br/>LLM decomposes the goal into steps + dependency edges"]
-    P --> E["DAG Executor<br/>Launches independent steps concurrently via asyncio<br/>Each step is handled by a ReAct Agent"]
-    E --> R1["ReAct Agent 1 → Tools<br/>(python_exec, custom, ...)"]
-    E --> R2["ReAct Agent 2 → RAG<br/>(retriever interface)"]
-    E --> RN["ReAct Agent N → ..."]
-    R1 & R2 & RN --> An["Plan Analyzer<br/>LLM evaluates results · re-plans if goal not met"]
-    An --> F[Final Answer]
-```
-
 ## Schnelleinstieg
 
-### Option A: Docker (empfohlen)
-
-Keine lokale Python- oder Node.js-Installation erforderlich — alles wird im Container erstellt.
+### Docker (empfohlen)
 
 ```bash
 git clone https://github.com/fim-ai/fim-one.git
 cd fim-one
 
-# Configure — only LLM_API_KEY is required
 cp example.env .env
 # Edit .env: set LLM_API_KEY (and optionally LLM_BASE_URL, LLM_MODEL)
 
-# Build and run (first time, or after pulling new code)
 docker compose up --build -d
 ```
 
-Öffnen Sie http://localhost:3000 — beim ersten Start werden Sie durch die Erstellung eines Admin-Kontos geführt. Das war's.
-
-Nach dem ersten Build benötigen nachfolgende Starts nur noch:
+Öffnen Sie http://localhost:3000 — beim ersten Start erstellen Sie ein Admin-Konto. Das war's.
 
 ```bash
-docker compose up -d          # start (skip rebuild if image unchanged)
+docker compose up -d          # start
 docker compose down           # stop
 docker compose logs -f        # view logs
 ```
 
-Daten werden in Docker-benannten Volumes (`fim-data`, `fim-uploads`) persistent gespeichert und bleiben nach Container-Neustarts erhalten.
-
-> **Hinweis:** Der Docker-Modus unterstützt kein Hot Reload. Code-Änderungen erfordern ein Neuerstellen des Images (`docker compose up --build -d`). Für aktive Entwicklung mit Live Reload verwenden Sie **Option B** unten.
-
-### Option B: Lokale Entwicklung
+### Lokale Entwicklung
 
 Voraussetzungen: Python 3.11+, [uv](https://docs.astral.sh/uv/), Node.js 18+, pnpm.
 
 ```bash
-git clone https://github.com/fim-ai/fim-one.git
-cd fim-one
+git clone https://github.com/fim-ai/fim-one.git && cd fim-one
 
-cp example.env .env
-# Edit .env: set LLM_API_KEY
+cp example.env .env           # Edit: set LLM_API_KEY
 
-# Install
 uv sync --all-extras
 cd frontend && pnpm install && cd ..
 
-# Launch (with hot reload)
-./start.sh dev
+./start.sh dev                # hot reload: Python --reload + Next.js HMR
 ```
 
-| Befehl           | Was wird gestartet                                      | URL                                      |
-| ---------------- | ------------------------------------------------------- | ---------------------------------------- |
-| `./start.sh`     | Next.js + FastAPI                                       | http://localhost:3000 (UI) + :8000 (API) |
-| `./start.sh dev` | Dasselbe, mit Hot Reload (Python `--reload` + Next.js HMR) | Dasselbe                                 |
-| `./start.sh api` | Nur FastAPI (headless, für Integration oder Tests)      | http://localhost:8000/api                |
+| Befehl           | Was wird gestartet                | URL                            |
+| ---------------- | --------------------------------- | ------------------------------ |
+| `./start.sh`     | Next.js + FastAPI                 | localhost:3000 (UI) + :8000    |
+| `./start.sh dev` | Dasselbe, mit Hot Reload          | Dasselbe                       |
+| `./start.sh api` | Nur FastAPI (headless)            | localhost:8000/api             |
 
-### Produktionsbereitstellung
+> Für die Produktionsbereitstellung (Docker, Reverse Proxy, unterbrechungsfreie Updates) siehe das [Deployment-Handbuch](https://docs.fim.ai/quickstart#production-deployment).
 
-Beide Optionen funktionieren in der Produktion:
+## Hauptfunktionen
 
-| Methode    | Befehl                 | Am besten für                                      |
-| ---------- | ---------------------- | -------------------------------------------------- |
-| **Docker** | `docker compose up -d` | Wartungsfreie Bereitstellung, einfache Updates     |
-| **Script** | `./start.sh`           | Bare-Metal-Server, benutzerdefinierte Prozessmanager |
+#### Connector-Hub
+- **Drei Bereitstellungsmodi** — Eigenständiger Assistent, eingebetteter Copilot oder zentraler Hub; gleicher Agent-Kern.
+- **Jedes System, ein Muster** — Verbinden Sie APIs, Datenbanken, MCP-Server. Aktionen werden automatisch als Agent-Tools mit Authentifizierungsinjektion registriert.
+- **Datenbank-Konnektoren** — PostgreSQL, MySQL, Oracle, SQL Server, plus chinesische Legacy-Datenbanken (DM, KingbaseES, GBase, Highgo). Schema-Introspection und KI-gestützte Annotation.
+- **Drei Wege zum Erstellen** — OpenAPI-Spezifikation importieren, KI-Chat-Builder oder MCP-Server direkt verbinden.
 
-Setzen Sie für beide Methoden einen Nginx-Reverse-Proxy davor für HTTPS und benutzerdefinierte Domain:
+#### Planung & Ausführung
+- **Dynamische DAG-Planung** — LLM zerlegt Ziele zur Laufzeit in Abhängigkeitsgraphen. Keine hartcodierten Workflows.
+- **Parallele Ausführung** — Unabhängige Schritte laufen parallel über asyncio; automatische Neuplanung bis zu 3 Runden.
+- **ReAct-Agent** — Strukturierte Reasoning-and-Acting-Schleife mit automatischer Fehlerwiederherstellung.
+- **Automatisches Routing** — Klassifiziert Anfragen und leitet sie zum optimalen Modus weiter (ReAct oder DAG). Konfigurierbar über `AUTO_ROUTING`.
+- **Extended Thinking** — Chain-of-Thought für OpenAI o-Serie, Gemini 2.5+, Claude.
 
+#### Workflow & Tools
+- **Visual workflow editor** — 12 node types, drag-and-drop canvas (React Flow v12), import/export as JSON.
+- **Pluggable tools** — Python, Node.js, shell exec with optional Docker sandbox (`CODE_EXEC_BACKEND=docker`).
+- **Full RAG pipeline** — Jina embedding + LanceDB + hybrid retrieval + reranker + inline `[N]` citations.
+- **Tool artifacts** — Rich outputs (HTML previews, files) rendered in-chat.
+
+#### Plattform
+- **Multi-Mandant** — JWT-Authentifizierung, Organisationsisolation, Admin-Panel mit Nutzungsanalysen und Connector-Metriken.
+- **Marketplace** — Veröffentlichen und Abonnieren von Agenten, Connectoren, Wissensdatenbanken, Skills und Workflows.
+- **Globale Skills (SOPs)** — Wiederverwendbare Betriebsverfahren, die für jeden Benutzer geladen werden; progressiver Modus reduziert Token um ~80%.
+- **6 Sprachen** — EN, ZH, JA, KO, DE, FR. Übersetzungen sind [vollständig automatisiert](https://docs.fim.ai/quickstart#internationalization).
+- **Einrichtungsassistent beim ersten Start**, dunkles/helles Design, Befehlspalette, Streaming SSE, DAG-Visualisierung.
+
+> Tiefergehende Informationen: [Architektur](https://docs.fim.ai/architecture/system-overview) · [Ausführungsmodi](https://docs.fim.ai/concepts/execution-modes) · [Warum FIM One](https://docs.fim.ai/why) · [Wettbewerbslandschaft](https://docs.fim.ai/strategy/competitive-landscape)
+
+## Architektur
+
+```mermaid
+graph TB
+    subgraph app["Application Layer"]
+        a["Portal · API · iframe · Lark/Slack Bot · Webhook · WeCom/DingTalk"]
+    end
+    subgraph mid["FIM One"]
+        direction LR
+        m1["Connectors<br/>+ MCP Hub"] ~~~ m2["Orch Engine<br/>ReAct / DAG"] ~~~ m3["RAG /<br/>Knowledge"] ~~~ m4["Auth /<br/>Admin"]
+    end
+    subgraph biz["Business Systems"]
+        b["ERP · CRM · OA · Finance · Databases · Custom APIs"]
+    end
+    app --> mid --> biz
 ```
-User → Nginx (443/HTTPS) → localhost:3000
-```
 
-Die API läuft intern auf Port 8000 — Next.js leitet `/api/*`-Anfragen automatisch weiter. Nur Port 3000 muss freigegeben werden.
-
-**Aktualisierung einer laufenden Bereitstellung** (ohne Ausfallzeit):
-
-```bash
-cd /path/to/fim-one \
-  && git pull origin master \
-  && sudo docker compose build \
-  && sudo docker compose up -d \
-  && sudo docker image prune -f
-```
-
-`build` wird zuerst ausgeführt, während alte Container weiterhin Traffic bedienen. `up -d` ersetzt dann nur die Container, deren Image sich geändert hat — die Ausfallzeit beträgt etwa 10 Sekunden statt Minuten.
-
-Wenn Sie die Code-Ausführungs-Sandbox verwenden (`CODE_EXEC_BACKEND=docker`), mounten Sie den Docker-Socket:
-
-```yaml
-# docker-compose.yml
-volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
-```
+Jeder Konnektor ist eine standardisierte Schnittstelle — der Agent muss nicht wissen oder sich darum kümmern, ob er mit SAP oder einer benutzerdefinierten Datenbank kommuniziert. Weitere Details finden Sie unter [Konnektor-Architektur](https://docs.fim.ai/architecture/connector-architecture).
 
 ## Konfiguration
 
-### Empfohlenes Setup
-
-FIM One funktioniert mit **jedem OpenAI-kompatiblen LLM-Anbieter** — OpenAI, DeepSeek, Anthropic, Qwen, Ollama, vLLM und mehr. Wählen Sie den aus, der Ihnen am besten gefällt:
+FIM One funktioniert mit **jedem OpenAI-kompatiblen Anbieter**:
 
 | Anbieter           | `LLM_API_KEY` | `LLM_BASE_URL`                 | `LLM_MODEL`         |
-| ------------------ | ------------- | ------------------------------ | ------------------- |
-| **OpenAI**         | `sk-...`      | *(Standard)*                   | `gpt-4o`            |
-| **DeepSeek**       | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`     |
-| **Anthropic**      | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6` |
-| **Ollama** (lokal) | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`       |
-
-**[Jina AI](https://jina.ai/)** ermöglicht Websuche/Abruf, Einbettung und die vollständige RAG-Pipeline (kostenlose Stufe verfügbar).
+| ------------------ | ------------- | ------------------------------ | -------------------- |
+| **OpenAI**         | `sk-...`      | *(Standard)*                   | `gpt-4o`             |
+| **DeepSeek**       | `sk-...`      | `https://api.deepseek.com/v1`  | `deepseek-chat`      |
+| **Anthropic**      | `sk-ant-...`  | `https://api.anthropic.com/v1` | `claude-sonnet-4-6`  |
+| **Ollama** (lokal) | `ollama`      | `http://localhost:11434/v1`    | `qwen2.5:14b`        |
 
 Minimale `.env`:
 
 ```bash
 LLM_API_KEY=sk-your-key
-# LLM_BASE_URL=https://api.openai.com/v1   # default — change for other providers
-# LLM_MODEL=gpt-4o                         # default — change for other models
-
+# LLM_BASE_URL=https://api.openai.com/v1   # default
+# LLM_MODEL=gpt-4o                         # default
 JINA_API_KEY=jina_...                       # unlocks web tools + RAG
 ```
 
-### Alle Variablen
+> Vollständige Referenz: [Umgebungsvariablen](https://docs.fim.ai/configuration/environment-variables)
 
-Siehe die vollständige [Environment Variables](https://docs.fim.ai/configuration/environment-variables) Referenz für alle Konfigurationsoptionen (LLM, Agent-Ausführung, Web-Tools, RAG, Code-Ausführung, Bildgenerierung, Konnektoren, Plattform, OAuth).
+## Tech-Stack
+
+| Layer       | Technologie                                                         |
+| ----------- | ------------------------------------------------------------------- |
+| Backend     | Python 3.11+, FastAPI, SQLAlchemy, Alembic, asyncio                 |
+| Frontend    | Next.js 14, React 18, Tailwind CSS, shadcn/ui, React Flow v12      |
+| AI / RAG    | OpenAI-kompatible LLMs, Jina AI (embed + search), LanceDB           |
+| Datenbank   | SQLite (dev) / PostgreSQL (prod)                                    |
+| Infra       | Docker, uv, pnpm, SSE streaming                                    |
 
 ## Entwicklung
 
 ```bash
-# Install all dependencies (including dev extras)
-uv sync --all-extras
-
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov=fim_one --cov-report=term-missing
-
-# Lint
-ruff check src/ tests/
-
-# Type check
-mypy src/
-
-# Install git hooks (run once after clone — enables auto i18n translation on commit)
-bash scripts/setup-hooks.sh
+uv sync --all-extras          # install dependencies
+pytest                         # run tests
+pytest --cov=fim_one           # with coverage
+ruff check src/ tests/         # lint
+mypy src/                      # type check
+bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 ```
-
-## Internationalisierung (i18n)
-
-FIM One unterstützt **6 Sprachen**: Englisch, Chinesisch, Japanisch, Koreanisch, Deutsch und Französisch. Übersetzungen sind vollständig automatisiert — Sie müssen nur englische Quelldateien bearbeiten.
-
-**Unterstützte Sprachen**: `en` `zh` `ja` `ko` `de` `fr`
-
-| Was | Quelle (bearbeiten Sie dies) | Automatisch generiert (nicht bearbeiten) |
-|------|--------------------|-----------------------------|
-| UI-Strings | `frontend/messages/en/*.json` | `frontend/messages/{locale}/*.json` |
-| Dokumentation | `docs/*.mdx` | `docs/{locale}/*.mdx` |
-| README | `README.md` | `README.{locale}.md` |
-
-**Funktionsweise**: Ein Pre-Commit-Hook erkennt Änderungen an englischen Dateien und übersetzt sie über das Fast LLM des Projekts. Übersetzungen sind inkrementell — nur neue, geänderte oder gelöschte Inhalte werden verarbeitet.
-
-```bash
-# Setup (einmalig nach dem Klonen ausführen)
-bash scripts/setup-hooks.sh
-
-# Vollständige Übersetzung (beim ersten Mal oder nach dem Hinzufügen eines neuen Gebietsschemas)
-uv run scripts/translate.py --all
-
-# Spezifische Dateien übersetzen
-uv run scripts/translate.py --files frontend/messages/en/common.json
-
-# Zielgebietsschemas überschreiben
-uv run scripts/translate.py --all --locale ja ko
-
-# Parallele API-Aufrufe erhöhen (Standard: 3, erhöhen Sie, wenn Ihre API dies zulässt)
-uv run scripts/translate.py --all --concurrency 10
-
-# Täglicher Arbeitsablauf: einfach committen — der Hook erledigt alles automatisch
-git add frontend/messages/en/common.json
-git commit -m "feat(i18n): add new strings"  # Hook übersetzt automatisch
-```
-
-| Flag | Standard | Beschreibung |
-|------|---------|-------------|
-| `--all` | — | Alles neu übersetzen (Cache ignorieren) |
-| `--files` | — | Nur spezifische Dateien übersetzen |
-| `--locale` | automatische Erkennung | Zielgebietsschemas überschreiben |
-| `--concurrency` | 3 | Max. parallele LLM API-Aufrufe |
-| `--force` | — | Neuübersetzung aller JSON-Schlüssel erzwingen |
-
-**Neue Sprache hinzufügen**: `mkdir frontend/messages/{locale}` → `--all` ausführen → Gebietsschema zu `frontend/src/i18n/request.ts` `SUPPORTED_LOCALES` hinzufügen.
 
 ## Roadmap
 
-Siehe die vollständige [Roadmap](https://docs.fim.ai/roadmap) für die Versionsverlauf und zukünftige Pläne.
+Siehe die vollständige [Roadmap](https://docs.fim.ai/roadmap) für Versionshistorie und geplante Funktionen.
+
+## Häufig gestellte Fragen
+
+Häufig gestellte Fragen zu Bereitstellung, LLM-Anbietern, Systemanforderungen und mehr – siehe [Häufig gestellte Fragen](https://docs.fim.ai/faq).
 
 ## Beitragen
 
-Wir freuen uns über Beiträge aller Art — Code, Dokumentation, Übersetzungen, Fehlerberichte und Ideen.
+Wir freuen uns über Beiträge aller Art — Code, Dokumentation, Übersetzungen, Fehlermeldungen und Ideen.
 
-> **Pioneer Program**: Die ersten 100 Mitwirkenden, deren PR zusammengeführt wird, werden als **Gründungsbeiträger** mit permanenten Credits im Projekt, einem Badge auf ihrem Profil und priorisierter Issue-Unterstützung anerkannt. [Mehr erfahren &rarr;](CONTRIBUTING.md#-pioneer-program)
+> **Pioneer Program**: Die ersten 100 Mitwirkenden, deren PR zusammengeführt wird, werden als **Gründungsbeiträger** mit permanenten Credits, einem Badge und prioritärer Issue-Unterstützung anerkannt. [Mehr erfahren &rarr;](CONTRIBUTING.md#-pioneer-program)
 
 **Schnelllinks:**
 
 - [**Beitragsleitfaden**](CONTRIBUTING.md) — Setup, Konventionen, PR-Prozess
-- [**Gute erste Issues**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — für Anfänger kuratiert
+- [**Gute erste Issues**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — kuratiert für Anfänger
 - [**Offene Issues**](https://github.com/fim-ai/fim-one/issues) — Fehler & Feature-Anfragen
+
+**Sicherheit:** Um eine Sicherheitslücke zu melden, öffnen Sie bitte ein [GitHub Issue](https://github.com/fim-ai/fim-one/issues) mit dem Tag `[SECURITY]`. Für vertrauliche Offenlegungen kontaktieren Sie uns über Discord DM.
 
 ## Stern-Verlauf
 
@@ -498,7 +258,7 @@ Dieses Projekt folgt der [all-contributors](https://allcontributors.org/)-Spezif
 
 FIM One Source Available License. Dies ist **keine** von der OSI genehmigte Open-Source-Lizenz.
 
-**Erlaubt**: interne Nutzung, Änderung, Verteilung mit intakter Lizenz, Einbettung in Ihre eigenen (nicht konkurrierenden) Anwendungen.
+**Erlaubt**: interne Nutzung, Änderung, Verteilung mit intakter Lizenz, Einbettung in nicht konkurrierende Anwendungen.
 
 **Eingeschränkt**: Multi-Tenant-SaaS, konkurrierende Agent-Plattformen, White-Labeling, Entfernung von Branding.
 
