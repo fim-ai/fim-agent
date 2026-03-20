@@ -116,7 +116,7 @@ one of the following two formats:
 {{
   "type": "final_answer",
   "reasoning": "<your step-by-step reasoning>",
-  "answer": "done"
+  "answer": "<concise summary of key findings and results>"
 }}
 
 Available tools:
@@ -131,8 +131,11 @@ different arguments or produce a final answer with the information you have.
 - Be EFFICIENT: try to accomplish as much as possible in each tool call. \
 Write a single comprehensive script rather than making many small calls. \
 For example, generate data AND analyse it in one script when feasible.
-- IMPORTANT: The "answer" field MUST be literally "done". Do NOT write any \
-answer content — a separate synthesis step will produce the full answer.
+- IMPORTANT: In the "answer" field, write a concise summary of the key findings \
+and results you gathered (NOT the full polished answer — a separate synthesis \
+step handles that). Focus on facts, data points, and conclusions. Keep it brief \
+but substantive. Do NOT use python_exec just to print/format results — write \
+the summary directly in the "answer" field instead.
 - Do NOT generate charts, plots, or images (e.g. matplotlib) unless the user \
 explicitly asks for visualisation. Prefer text tables and formatted output.
 - LANGUAGE: By default, respond in the same language as the user's query. \
@@ -158,8 +161,10 @@ Write a single comprehensive script rather than making many small calls.
 - If a tool call fails, analyse the error and decide whether to retry with \
 different arguments or move on with the information you have.
 - When you have gathered enough information to answer, STOP calling tools and \
-respond with just a brief text (e.g. "done"). Do NOT write any answer content \
-— a separate synthesis step will produce the full answer.
+respond with a concise summary of the key findings and results you gathered. \
+Do NOT write the full polished answer — a separate synthesis step handles that. \
+Focus on facts, data points, and conclusions. Do NOT use python_exec just to \
+print/format results — write the summary directly in your response instead.
 - LANGUAGE: By default, respond in the same language as the user's query. \
 However, if an Agent Directive specifies different language behaviour \
 (e.g. a translation agent), follow the Agent Directive instead.
@@ -218,7 +223,7 @@ class ReActAgent:
         tools: ToolRegistry,
         system_prompt: str | None = None,
         extra_instructions: str | None = None,
-        max_iterations: int = 50,
+        max_iterations: int = int(os.getenv("REACT_MAX_ITERATIONS", "50")),
         use_native_tools: bool = True,
         memory: BaseMemory | None = None,
         context_guard: ContextGuard | None = None,
