@@ -4,6 +4,7 @@ export interface FileUploadResponse {
   file_url: string
   size: number
   content_preview: string | null
+  content_length: number | null
   mime_type: string | null
 }
 
@@ -13,5 +14,6 @@ export interface FileListItem {
   file_url: string
   size: number
   content_preview: string | null
+  content_length: number | null
   mime_type: string | null
 }

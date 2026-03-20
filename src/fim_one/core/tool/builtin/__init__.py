@@ -34,6 +34,7 @@ from .json_transform import JsonTransformTool
 from .kb_retrieve import KBRetrieveTool
 from .kb_list import KBListTool
 from .read_skill import ReadSkillTool
+from .read_uploaded_file import ReadUploadedFileTool
 from .node_exec import NodeExecTool
 from .python_exec import PythonExecTool
 from .shell_exec import ShellExecTool
@@ -86,6 +87,7 @@ __all__ = [
     "KBRetrieveTool",
     "KBListTool",
     "ReadSkillTool",
+    "ReadUploadedFileTool",
     "NodeExecTool",
     "PythonExecTool",
     "ShellExecTool",
@@ -153,6 +155,7 @@ _ARTIFACTS_KWARGS: dict[type, str] = {
 _SKIP_AUTO_DISCOVER: set[type] = {
     CallAgentTool,  # requires available_agents list — injected by chat.py for multi-agent setups
     ReadSkillTool,  # requires skill_ids — registered by _resolve_tools()
+    ReadUploadedFileTool,  # requires user_id
     GroundedRetrieveTool,  # requires kb_ids — registered by _resolve_tools()
     EmailSendTool,  # requires SMTP_HOST/SMTP_USER/SMTP_PASS — registered below
     ConnectorListActionsTool,  # builder tools — injected by chat.py for builder agents

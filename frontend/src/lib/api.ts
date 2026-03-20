@@ -559,6 +559,16 @@ export const fileApi = {
     apiFetch<ApiResponse<{ deleted: string }>>(`/api/files/${fileId}`, {
       method: "DELETE",
     }),
+
+  getContent: (fileId: string, offset?: number, limit?: number) => {
+    const params = new URLSearchParams()
+    if (offset !== undefined) params.set("offset", String(offset))
+    if (limit !== undefined) params.set("limit", String(limit))
+    const query = params.toString()
+    return apiFetch<ApiResponse<{ content: string; total_length: number; offset: number; returned_length: number }>>(
+      `/api/files/${fileId}/content${query ? `?${query}` : ""}`,
+    ).then((r) => r.data)
+  },
 }
 
 // --- Knowledge Base API ---

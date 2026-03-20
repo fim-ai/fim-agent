@@ -205,8 +205,12 @@ async def upload_file(
     # Extract text content for preview
     extracted = _extract_content(dest)
     content_preview: str | None = None
+    content_length: int | None = None
     if extracted:
         content_preview = extracted[:500]
+        content_length = len(extracted)
+        content_path = dest.parent / f"{stored_name}.content"
+        content_path.write_text(extracted, encoding="utf-8")
 
     # Update index (locked to prevent concurrent read-modify-write races)
     file_url = f"/uploads/user_{current_user.id}/{stored_name}"
@@ -219,6 +223,7 @@ async def upload_file(
             "file_url": file_url,
             "size": total_size,
             "content_preview": content_preview,
+            "content_length": content_length,
             "mime_type": mime_type,
         }
         _save_index(current_user.id, index)
@@ -230,6 +235,7 @@ async def upload_file(
             "file_url": file_url,
             "size": total_size,
             "content_preview": content_preview,
+            "content_length": content_length,
             "mime_type": mime_type,
         }
     )
@@ -247,11 +253,44 @@ async def list_files(
             "file_url": meta["file_url"],
             "size": meta["size"],
             "content_preview": meta.get("content_preview"),
+            "content_length": meta.get("content_length"),
             "mime_type": meta.get("mime_type", "application/octet-stream"),
         }
         for fid, meta in index.items()
     ]
     return ApiResponse(data=files)
+
+
+@router.get("/{file_id}/content", response_model=ApiResponse)
+async def get_file_content(
+    file_id: str,
+    offset: int = 0,
+    limit: int | None = None,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> ApiResponse:
+    index = _load_index(current_user.id)
+    meta = index.get(file_id)
+    if meta is None:
+        raise AppError("file_not_found", status_code=404)
+
+    content_sidecar = _user_dir(current_user.id) / f"{meta['stored_name']}.content"
+    if not content_sidecar.resolve().is_relative_to(_user_dir(current_user.id).resolve()):
+        raise AppError("file_not_found", status_code=404)
+    if not content_sidecar.exists():
+        raise AppError("content_not_available", status_code=404, detail="No extracted content available for this file")
+
+    full_text = content_sidecar.read_text(encoding="utf-8")
+    total_length = len(full_text)
+    sliced = full_text[offset:] if limit is None else full_text[offset:offset + limit]
+
+    return ApiResponse(
+        data={
+            "content": sliced,
+            "total_length": total_length,
+            "offset": offset,
+            "returned_length": len(sliced),
+        }
+    )
 
 
 @router.get("/{file_id}")
@@ -293,6 +332,8 @@ async def delete_file(
         if not file_path.resolve().is_relative_to(_user_dir(current_user.id).resolve()):
             raise AppError("file_not_found", status_code=404)
         file_path.unlink(missing_ok=True)
+        content_sidecar = file_path.parent / f"{meta['stored_name']}.content"
+        content_sidecar.unlink(missing_ok=True)
 
         # Remove from index
         del index[file_id]

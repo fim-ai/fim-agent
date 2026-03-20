@@ -1086,12 +1086,31 @@ function PlaygroundContent({
         : clipContext
     }
 
-    // Text files: inject content into query (existing behavior)
+    // Text files: smart content injection (three-tier)
+    const INLINE_CONTENT_THRESHOLD = 32000 // chars (~8-10K tokens)
     if (textFiles.length > 0) {
-      const fileContext = textFiles
-        .map((f) => `File: ${f.filename}\n\`\`\`\n${f.content_preview || "[No preview available]"}\n\`\`\``)
-        .join("\n\n")
-      finalQuery = `Uploaded files:\n${fileContext}\n\n${finalQuery}`
+      // Fetch full content for small files in parallel
+      const fileContextParts = await Promise.all(
+        textFiles.map(async (f) => {
+          const contentLength = f.content_length
+          if (contentLength === null || contentLength === undefined || contentLength <= INLINE_CONTENT_THRESHOLD) {
+            // Small file or unknown size: fetch full content
+            try {
+              const { content } = await fileApi.getContent(f.file_id, 0, INLINE_CONTENT_THRESHOLD)
+              return `\n\n--- File: ${f.filename} ---\n${content}\n--- End of file ---`
+            } catch {
+              // Fallback to content_preview (e.g. old uploads without stored content)
+              const preview = f.content_preview || "[No preview available]"
+              return `\n\n--- File: ${f.filename} ---\n${preview}\n--- End of file ---`
+            }
+          } else {
+            // Large file: inject metadata + tool hint
+            const preview = f.content_preview || ""
+            return `\n\n--- File: ${f.filename} (file_id: ${f.file_id}, ${contentLength} chars) ---\n${preview}...\n[Document too large to include inline. Use the read_uploaded_file tool with file_id="${f.file_id}" to read or search this document. You can read sections with offset/limit, or search with query="keyword" to find specific content.]\n--- End of file ---`
+          }
+        }),
+      )
+      finalQuery = finalQuery + fileContextParts.join("")
     }
 
     // Image files: pass as image_ids parameter
