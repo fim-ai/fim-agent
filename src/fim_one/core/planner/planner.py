@@ -19,6 +19,7 @@ from typing import Any
 from fim_one.core.model import BaseLLM, ChatMessage
 from fim_one.core.model.structured import structured_llm_call
 from fim_one.core.model.usage import UsageSummary
+from fim_one.core.utils import extract_json_value
 
 from .types import ExecutionPlan, PlanStep
 
@@ -247,11 +248,33 @@ class DAGPlanner:
         raw_steps = data.get("steps")
         if not isinstance(raw_steps, list):
             # LLM sometimes returns a single step object instead of {"steps": [...]}
-            if "id" in data and "task" in data:
+            if isinstance(raw_steps, dict) and ("id" in raw_steps or "task" in raw_steps):
+                raw_steps = [raw_steps]
+            elif isinstance(raw_steps, str):
+                # Double-encoded JSON string — use extract_json_value which
+                # handles literal newlines inside JSON strings, invalid escape
+                # sequences, and other common LLM serialization quirks.
+                parsed = extract_json_value(raw_steps)
+                if isinstance(parsed, list):
+                    raw_steps = parsed
+                elif isinstance(parsed, dict) and ("id" in parsed or "task" in parsed):
+                    raw_steps = [parsed]
+                else:
+                    logger.error(
+                        "Failed to parse 'steps' string (len=%d): %.500s",
+                        len(raw_steps),
+                        raw_steps,
+                    )
+                    raise ValueError(
+                        f"LLM 'steps' is a string that did not parse to a valid array "
+                        f"(len={len(raw_steps)}). Got: {raw_steps[:200]!r}"
+                    )
+            elif "id" in data and "task" in data:
+                # Entire response is a single step (no "steps" wrapper)
                 raw_steps = [data]
             else:
                 raise ValueError(
-                    "LLM response missing 'steps' array. "
+                    f"LLM 'steps' is not an array (type={type(raw_steps).__name__}). "
                     f"Got keys: {list(data.keys())}"
                 )
 
