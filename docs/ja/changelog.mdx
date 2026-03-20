@@ -9,226 +9,96 @@ description: "FIM One への全ての注目すべき変更。"
 
 ## [未リリース]
 
+## [v0.8] - 2026-03-20
+
 ### 追加
 
-- **ReAct合成におけるエージェント指令** — `ReActAgent`の新しい`agent_directive`パラメータは、エージェントのコア目的（例："中国語を英語に翻訳"）を合成システムプロンプトに注入し、最終的な回答がエージェントのアイデンティティを尊重し、会話的な返信にデフォルト化しないようにします。ReActおよびDAGチャットエンドポイントの両方に配線されています。
+- **ReAct合成におけるエージェント指令** — `ReActAgent`の新しい`agent_directive`パラメータは、エージェントのコア目的（例："中国語を英語に翻訳"）を合成システムプロンプトに注入し、最終回答がエージェントのアイデンティティを尊重し、会話的な返信にデフォルトしないようにします。ReActとDAGチャットエンドポイントの両方に配線されています。
 
-- **マーケットプレイスの再設計 フェーズ1 — ソリューション+コンポーネント二層モデル** — フラットな6タイプのマーケットタブを、構造化された2レベルのナビゲーションに置き換えました：トップレベルカテゴリトグル（ソリューション：エージェント/スキル/ワークフロー；コンポーネント：コネクタ/MCPサーバー）とタイプサブタブ。グローバルマーケットとユーザーの組織を切り替えるスコープセレクタドロップダウンを追加しました。KBはマーケットスコープから削除されました（組織のみ）。組織とマーケット共有を統一：両方とも明示的なサブスクリプションが必要になりました（組織の自動表示はなくなりました）。
+- **マーケットプレイスの再設計 フェーズ1 — ソリューション+コンポーネント2層モデル** — フラットな6タイプのマーケットタブを、構造化された2レベルのナビゲーションに置き換えました：トップレベルカテゴリトグル（ソリューション：エージェント/スキル/ワークフロー；コンポーネント：コネクタ/MCPサーバー）とタイプサブタブ。グローバルマーケットとユーザーの組織を切り替えるスコープセレクタドロップダウンを追加しました。マーケットスコープからKBを削除（組織のみ）。組織とマーケット共有を統一：両方が明示的なサブスクリプションを必要とするようになりました（組織の自動表示なし）。
 
-- **スマートファイルコンテンツインジェクション** — アップロードされた小さいファイル（<32K文字）は自動的に取得されてLLMコンテキストにインライン化されます。大きいファイルはメタデータサマリーとオンデマンド読み取り用のツールヒントを受け取ります。
-
-- **`read_uploaded_file`エージェントツール** — デュアルモードのファイル読み取りツール：順序付きアクセス用のページネーション読み取り（オフセット/リミット）とターゲット化されたコンテンツ抽出用のgrepのような検索（正規表現サポート付きクエリ）。
-
+- **スマートファイルコンテンツ注入** — 小さなアップロードファイル（<32K文字）は自動的に取得されてLLMコンテキストにインライン化されます；大きなファイルはメタデータサマリーとオンデマンド読み取り用のツールヒントを受け取ります。
+- **`read_uploaded_file`エージェントツール** — デュアルモードファイル読み取りツール：シーケンシャルアクセス用のページネーション読み取り（オフセット/リミット）とターゲットコンテンツ抽出用のgrepのような検索（正規表現サポート付きクエリ）。
 - **`GET /api/files/{file_id}/content`エンドポイント** — アップロードされたファイルから抽出された完全なテキストにアクセスするためのページネーション付きテキストコンテンツAPI。
-
 - **`.content`サイドカーファイル** — 完全に抽出されたテキストはアップロードの横にサイドカーファイルとして保存され、再抽出なしで永続的なコンテンツアクセスを可能にします。
-
-- **ファイルAPIレスポンスの`content_length`フィールド** — ファイルアップロードとリストエンドポイントにはテキストコンテンツサイズの可視性のための`content_length`が含まれるようになりました。
-
+- **ファイルAPIレスポンスの`content_length`フィールド** — ファイルアップロードとリストエンドポイントにテキストコンテンツサイズの可視性のための`content_length`が含まれるようになりました。
 - **`fileApi.getContent()`フロントエンドクライアントメソッド** — フロントエンドからページネーション付きファイルコンテンツを取得するための新しいAPIクライアントメソッド。
 
-### 変更
-
-- **サブスクリプションベースの可視性モデル** — `build_visibility_filter()` が 3 段階（own → org-member → subscribed）から 2 段階（own → subscribed）に簡略化されました。データ移行により既存のすべての組織メンバーに対して `ResourceSubscription` 行が自動作成され、アクセスが保持されます。ダッシュボードのコネクタ数と KB 統計にはサブスクライブされたリソースが含まれるようになりました。
-- **Market API スコープとカテゴリパラメータ** — `browse_market()` が `scope`（market または org:{id}）と `category`（solutions または components）クエリパラメータを受け入れるようになりました。`subscribe_resource()` は非マーケット組織サブスクリプションの組織メンバーシップを検証するようになりました。
-
-- **ツールキャッシュホワイトリストリファクタリング** — `ToolCache` のハードコードされたブラックリストをホワイトリストアプローチに置き換えました。`Tool` プロトコルに `cacheable` プロパティを追加（デフォルト `False`）。`cacheable=True` と明示的にマークされたツールのみがキャッシュされます。11 個の読み取り専用ツール（web_search、kb_retrieve、calculator など）がキャッシュ可能とマークされ、すべての副作用ツール（code exec、email、connectors）はデフォルトでキャッシュされません。新しいコネクタツールは追加の設定なしで安全です。
-- **DAG エグゼキューター連鎖障害** — 失敗またはタイムアウトしたステップが依存するステップをブロックするようになりました。`failed_ids` トラッキングが推移的伝播（A→B→C チェーン）を追加しました。依存ステップは自動的に失敗とマークされ、汚染されたコンテキストで実行される代わりに説明的なメッセージが表示されます。
-- **DAG ステップ検証ステータス修正** — ステップ検証の再試行失敗が `"completed"` のままにされるのではなく、正しく `"failed"` とマークされるようになりました。失敗した検証は新しい連鎖障害メカニズムを介してダウンストリームステップに伝播します。
-- **DAG プランナーツール説明** — プランナーが名前だけでなく各ツールの `{name, description}` を受け取るようになり、より正確なステップ対ツールマッピングが可能になり、幻覚的な `tool_hint` 値が減少しました。
-- **DAG 再プランナー完全履歴** — 再計画コンテキストが最後のラウンドだけでなく、すべての前のラウンドの結果を蓄積するようになりました。古いラウンドはより積極的に切り詰められ（200 文字/ステップ）、最新のラウンドは 500 文字/ステップを保持します。
-- **stream_answer 合成品質** — 最終回答を合成する際のツール観測切り詰めが 2000 から 8000 文字に増加し、より多くの構造化データ（JSON テーブル、コード出力）が保持されます。
-- **14 個のエンジン定数をパラメータ化** — ハードコードされた数値定数を ReAct エージェント、DAG プランナー、コンテキストガード、ワークスペース、システムモジュール全体の環境変数に抽出しました。すべての新しい環境変数は `example.env` と `docs/configuration/environment-variables.mdx` に記載されています。
-
-- **エビデンス信頼度 UI 強化** — グラウンディングパイプラインのフロントエンド表示に 3 つの改善：(1) 不十分なエビデンス観測が生の英語テキストではなく i18n 琥珀色の警告カードとしてレンダリングされるようになりました、(2) インライン `[N]` 引用バッジが新しい EvidenceContext を介してソース名、引用抜粋、関連性スコアを含むホバーポップオーバーを表示するようになりました、(3) 参照セクションにエビデンスソースが矛盾する場合に競合警告バナーが表示され、展開可能な並列比較が可能になりました。
-- **Shadow Market 組織** — 組み込みの Platform 組織を shadow Market 組織に変換しました。リソースはマーケットプレイスブラウジングを介して検出され、明示的にサブスクライブされるようになりました（プルモデル）。メンバーシップを介した自動表示（プッシュモデル）ではなくなりました。非管理者ユーザーは登録時に組織に自動参加しなくなります。Market 組織は非表示のバックエンドエンティティとして機能し、ユーザーはマーケットプレイス UI を通じてのみ対話します。
-- **マーケットプレイス公開と必須レビュー** — Market 組織への公開は Market 組織の所有者/管理者を除き、常にレビューが必須になりました。公開ダイアログに「マーケットプレイスに公開」オプションが表示され、必須レビュー通知が表示されます。
-- **スキルとワークフローマーケットプレイスブラウジング** — スキルとワークフローリソースタイプがマーケットプレイスに追加され、すべての 5 つのリソースタイプ（エージェント、コネクタ、ナレッジベース、MCP サーバー、スキル/ワークフロー）のコミュニティ検出とサブスクリプションが可能になりました。
-- **Market 組織公開エンドポイントバイパス** — 6 つのリソース公開エンドポイントが Market 組織のメンバーシップチェックをスキップするようになり、任意のユーザーがメンバーでなくてもマーケットプレイスにリソースを公開できるようになりました。
-- **Platform から Market への移行** — Alembic 移行により Platform 組織が Market に名前変更され、すべての非所有者メンバーシップが削除され、プッシュベースからプルベースのリソース共有への移行が完了しました。
-- **ワークフローバージョン変更サマリー** — `compute_blueprint_diff()` が新しいバージョンを保存する際にブループリント差分から人間が読める形式のサマリーを自動生成し、追加/削除/変更されたノードとエッジを説明します。
-- **ワークフロー実行保持クリーンアップ** — 設定可能な年齢とカウント制限に基づいて古いワークフロー実行をパージするバックグラウンドクリーンアップタスク。ワークフロー単位の保持オーバーライド。手動クリーンアップトリガー用の管理者エンドポイント。新しい環境変数：`WORKFLOW_RUN_MAX_AGE_DAYS`、`WORKFLOW_RUN_MAX_PER_WORKFLOW`、`WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS`。
-- **コネクタサーキットブレーカー** — 3 状態サーキットブレーカー（closed/open/half-open）とコネクタ単位の障害トラッキング。5xx エラーを検出し、失敗したコネクタを一時的に無効化します。サーキットブレーカー状態検査用の監視エンドポイント。
-- **ConnectorMetaTool（段階的開示フェーズ 1-2）** — 単一のメタツールがエージェントプロンプトのアクション単位ツールに置き換わります。システムプロンプトは軽量スタブ（コネクタあたり約 30 トークン対アクションあたり約 250 トークン）を受け取ります。エージェントは `discover(connector)` を呼び出して完全なアクションスキーマをオンデマンドで読み込み、`execute` を呼び出してアクションを実行します。後方互換性のための機能フラグ `CONNECTOR_TOOL_MODE`。
-- **実際の MCP エグゼキューター** — スタブ MCP ノードエグゼキューターを MCP サーバー検出とワークフロー実行内のツール呼び出しをサポートする完全な実装に置き換えました。
-- **エージェント中ループ自己反省** — ReAct ループ（JSON モードとネイティブモードの両方）の 6 ツール呼び出し反復ごとに軽量の目標チェックプロンプトが注入され、長い推論チェーンでの目標ドリフトを防止します。エージェントがまだ軌道上にあるか、アクションを繰り返しているか、最終回答を生成すべきかを尋ねます。
-
-### Changed
-
-- **Real BuiltinTool executor** — Replaced stub BuiltinTool node executor with real implementation using `ToolRegistry` integration for workflow execution.
-- **Semantic schema annotations** — 16 predefined semantic tags (`customer_id`, `email`, `phone`, `amount`, `date`, etc.) for connector schema fields. Each field can carry `semantic_tag`, `description`, and `pii` flags, surfaced in LLM tool descriptions so the エージェント understands field intent without guessing from column names.
-- **Connector import/export/fork UI** — Frontend card actions for exporting connectors as JSON, importing from file picker, and forking (clone + customize) existing connectors.
-- **Connector import/export and fork endpoints** — Backend API: `GET /api/connectors/{id}/export`, `POST /api/connectors/import`, `POST /api/connectors/{id}/fork` with sanitized credential handling to prevent secret leakage.
-- **Workflow templates system** — `WorkflowTemplate` ORM model with admin CRUD and public listing/clone endpoints. 5 seed templates auto-inserted on first startup for quick workflow bootstrapping.
-- **Workflow inline validation badges** — Real-time `ValidationBadge` on canvas nodes displaying per-node errors and warnings with descriptive tooltips, providing immediate visual feedback during blueprint editing.
-- **Workflow execution trace viewer** — Timeline-based trace viewer Sheet for inspecting completed runs. Engine `trace_level` parameter controls detail granularity; variable snapshots captured at each node for step-through debugging.
-- **Workflow per-user rate limiting and global timeout** — `WorkflowRateLimiter` with sliding-window enforcement (10 runs/min, 3 concurrent per user). Default 10-minute (600s) global run timeout applied to all workflow executions.
-- **Admin batch workflow management** — Three batch admin endpoints for workflows: batch delete, batch toggle (active/inactive), and batch publish, all with audit logging.
-- **Workflow palette enhancements** — Recently-used nodes section via `useRecentNodes` hook, search-by-description support, and empty "no results" state in the node palette.
-- **Workflow run replay overlay** — "View on Canvas" button in run history overlays past execution results on the workflow canvas, showing per-node status and output from a completed run without re-executing.
-- **Full SubWorkflow executor** — Upgraded SubWorkflow node from stub to full DB-backed nested execution. Loads target workflow from database, executes with mapped input variables, enforces configurable depth limit to prevent infinite recursion, and returns nested run outputs to the parent workflow.
-- **Admin workflows management tab** — New "Workflows" tab in the admin panel for managing all workflows across users. Features: list all workflows with owner/status/stats, toggle active/inactive, delete workflows with confirmation dialog.
-- **Workflow favorites/pinning** — Star/pin workflows to the top of the list with localStorage persistence. Favorited workflows appear first in the workflow list regardless of sort order.
-- **Workflow run history export** — Export workflow run history as JSON file download. Includes run metadata, per-node results, inputs/outputs, and timing data.
-- **Workflow test-node endpoint** — `POST /api/workflows/{id}/test-node` for isolated single-node execution with mock VariableStore, 30s timeout, START/END rejection. Frontend `TestNodeDialog` sheet with key-value variable input, env vars section, JSON result viewer. Integrated into node config panel (Test button) and editor context menu. 23 tests.
-- **Workflow version diff dialog** — Side-by-side comparison of two blueprint versions showing added/removed/modified nodes and edges. Color-coded indicators (emerald=added, destructive=removed, amber=modified). Integrated into version history sheet with "Compare" button per version.
-- **35 end-to-end lifecycle tests** — Comprehensive workflow lifecycle testing covering create, edit, validate, run, version, restore, delete flows.
-- **Workflow run stats on list and cards** — Backend batch-fetches run counts and success rates via GROUP BY subquery; frontend displays stats on workflow cards with color-coded success rate indicators.
-- **Workflow scheduler daemon** — Background async service polling every 60 seconds for due cron-based workflows. Croniter timezone support, semaphore-based concurrency control, `last_scheduled_at` tracking, and webhook delivery for scheduled run results. 14 scheduler daemon tests.
-- **Workflow import conflict resolver** — Detects unresolved エージェント/コネクタ/KB/MCP references during workflow import. Batch DB queries with visibility filtering; frontend displays toast warnings for missing external dependencies. 17 import conflict resolver tests.
-- **Workflow delete-run and clear-runs endpoints** — `DELETE /api/workflows/{id}/runs/{run_id}` for individual run deletion; `DELETE /api/workflows/{id}/runs` to clear all completed runs. Frontend confirmation dialogs for both actions.
-- **56 workflow validation warning tests** — Comprehensive coverage of Phase 2 node validation warnings.
-- **137 workflow Phase 2 node executor tests** — Full test coverage for all Phase 2 node type executors.
-- **Scheduled triggers** — Cron configuration per workflow with timezone selection, default inputs, and next-run-at calculation. Frontend dialog with preset cron buttons (every 5 min / hourly / daily / weekly / monthly).
-- **Public API trigger endpoint** — Per-workflow API keys (`wf_` prefix) for external execution without user auth, with rate limiting.
-- **API key management dialog** — Generate, regenerate, and revoke workflow API keys with copy button, trigger URL display, and cURL/JavaScript usage examples.
-- **Real-time execution log viewer** — Chronological SSE event stream in the run panel with timestamps, color-coded event type badges, and filter toggles per event type.
-- **Batch run dialog** — Run workflows with multiple input sets (JSON editor), configurable parallelism (1-10), collapsible per-item results, and JSON export.
-- **30 scheduled trigger tests** — Cron validation, schema handling, and timezone support.
-- **14 batch execution tests** — Schema validation and concurrent engine execution.
-- **Workflow-level timeout** — New `workflow_timeout_ms` parameter in the engine cancels all pending/running nodes when exceeded, with bounded async wait for responsive timeout detection.
-- **Re-run with last inputs** — "Run Again" button pre-fills the input form with values from the previous run.
-- **Run history status filter** — Dropdown to filter workflow runs by Completed/Failed/Cancelled/Running.
-- **Workflow version history** — Auto-versioning on blueprint save with list/get/restore API endpoints for reverting to previous versions.
-- **Validate endpoint** — `POST /validate` for structural blueprint validation without execution.
-- **Dry-run mode** — `POST /run` with `dry_run=true` returns the execution plan as JSON without executing.
-- **13 condition branch routing tests** — Comprehensive coverage for branching, merging, nesting, and classifier routing.
-- **Per-node execution statistics panel** — New stats panel (`node-stats-panel.tsx`) showing per-node success rates, average durations, and failure counts sorted worst-first. Integrated into the workflow toolbar. New `getNodeStats` API client method and `NodeStatEntry` type for frontend consumption.
-- **Phase 3 nodes: SubWorkflow and ENV** — Two new node types with backend executors, parser validation, and 14 new tests (total: 304 → 306):
-  - **SubWorkflow**: Stub executor for nested workflow orchestration — select a target workflow and map input/output variables.
-  - **ENV**: Reads encrypted environment variables at runtime with key selection and fallback defaults.
-- **SubWorkflow and ENV frontend components** — Full frontend integration: `sub-workflow-node.tsx` and `env-node.tsx` with config forms, palette entries, minimap colors, and node type record entries across all type maps.
-- **Two new workflow templates (14 total)** — "Secure API Integration" (ENV → HTTP with auth headers) and "Sub-Workflow Orchestration" (LLM → SubWorkflow → summarize).
-- **Keyboard shortcuts dialog** — Press `?` to view all available keyboard shortcuts in a dialog overlay.
-- **Node input preview capture** — Execution events now include truncated JSON of predecessor outputs for debugging.
-- **Workflow analytics endpoint** — `GET /analytics` returns total runs, status distribution, success rate, p50/p95/p99 duration percentiles, daily trends, and most-failed nodes.
-- **Analytics dashboard panel** — Stat cards, status distribution bar, pure CSS daily chart, percentile bars, and failed nodes table with 7d/14d/30d range selector.
-- **Template gallery dialog** — Visual grid browsing of workflow templates with category filters and one-click creation.
-- **Labeled edges** — Condition and classifier branch names shown as pills on edges.
-- **Workflow variables panel** — Define, edit, and delete workflow-level variables with type/default/description.
-- **Batch execution endpoint** — `POST /batch-run` runs a workflow with up to 100 input sets concurrently, with configurable parallelism (1–10).
-- **Run comparison dialog** — Side-by-side diff of two runs showing per-node status, duration, and input differences.
-- **Webhook configuration dialog** — Set, test, and clear a webhook URL with inline validation and connectivity test.
-- **Canvas node search** — `Cmd+F` to search nodes by type, ID, and content with highlighted matches and arrow-key navigation.
-- **Node comments/annotations** — Collapsible Notes textarea in the config panel with a canvas indicator icon.
+- **ワークフローエンジンノード再試行** — 指数バックオフを伴うノード単位の再試行。ノードはデータ設定で`retry_count`と`retry_delay_ms`を指定できます。失敗したノードは最大N回まで遅延付きで再試行されます（遅延は60秒でキャップ）。試行番号と前のエラーを含む`node_retrying` SSEイベントを発行します。再試行待機中のキャンセルイベントを尊重します。
+- **ワークフロー変数ストア式評価** — simpleeval経由の安全なPython式評価。`evaluate_expression()`メソッドはストア変数（envを除く）と一般的なビルトイン（len、str、int、float、bool、abs、min、max、sum、round、sorted）を公開します。さらに`has()`、`delete()`、`keys()`ヘルパーメソッド。
+- **ワークフロー フェーズ2ノード：HumanIntervention** — 承認待機ノード（自動承認スタブ）。prompt_message（{{variable}}補間付き）、assignee、timeout_hoursを読み取ります。プロンプトプレビューと@assigneeバッジを備えたSky-500テーマのフロントエンドノード。プロンプトテキストエリア、assignee入力、タイムアウトフィールドを備えた設定パネル。
+- **ワークフローテンプレート12に拡張** — 4つの新しいテンプレート：人間承認パイプライン（LLM → HumanIntervention → ConditionBranch → デュアルEnd）、マルチステップデータ処理（CodeExecution → ConditionBranch → Transform → ListOperation）、知識強化エージェント（QuestionUnderstanding → KnowledgeRetrieval → LLM）、反復レビューループ（Loop → LLM → VariableAssign）。
+- **ワークフローペーンコンテキストメニュー** — 空のキャンバスを右クリックして、貼り付け（クリップボードが空の場合は無効）、すべて選択、ビューに合わせる、自動レイアウトアクションにアクセスします。判別された共用体状態がノードとペーンコンテキストメニューを分離します。
+- **ワークフローノードコンテキストメニュー** — 任意のノードを右クリックして、設定、コピー、複製、削除アクションにアクセスします。削除アクションはStart/Endシングルトンノードでは非表示です。メニューは外側のクリックまたはスクロール時に自動的に閉じます。
+- **ワークフロー フェーズ2テンプレート** — 2つの新しい組み込みテンプレート（合計8個）：リスト処理パイプライン（Start → ListOperation → Transform → End）と強化された質問応答（Start → QuestionUnderstanding → LLM → End）。
+- **ワークフロー フェーズ2検証** — ListOperation（入力/式の欠落）、Transform（入力/空の操作の欠落）、Iterator（リスト変数の欠落）、Loop（条件の欠落）、DocumentExtractor、QuestionUnderstanding（入力の欠落）、ParameterExtractor（入力テキスト/空のパラメータの欠落）のブループリント検証警告を拡張しました。修正：ソート操作は式を不正に要求しなくなりました。
+- **ワークフローノートノート** — ノード単位の注釈機能。任意のノードの設定パネルで「Note」をクリックして、フリーフォーム注釈を追加し、キャンバスのノード下にイタリック体で表示されます。自動拡張テキストエリア（`data.note`ストレージ）。
+- **ワークフロー スナップツーグリッド** — ドット背景パターンに合わせた16pxスナップグリッドで、正確なノード配置を実現します。
+- **ワークフロー接続検証** — 既存のStart/End制限に加えて、自己接続と重複エッジを防止します。
+- **ワークフロー ズーム対応ドロップ** — ノードパレットドラッグアンドドロップは`screenToFlowPosition()`を使用して、任意のズームレベルで正しい配置を実現します。
+- **ワークフロー SSEマルチラインデータ** — SSEパーサーはマルチライン`data:`フィールドを処理し、キープアライブコメント行を無視するようになりました。
+- **ワークフロー キーボードショートカット** — コピー（Cmd+C）、貼り付け（Cmd+V）、複製（Cmd+D）、すべて選択（Cmd+A）、Escapeで選択解除。コピー/貼り付けは新しいIDを生成し、位置をオフセットします；Start/Endノードはシングルトン制約を維持するためにコピーから除外されます。
+- **ワークフロー インライン説明編集** — ツールバーの説明行をクリックして、ワークフロー説明を編集するためのポップオーバーテキストエリアを開きます（ページから移動する必要はありません）。
+- **ワークフロー ConditionBranch LLMモード** — 素朴な「最初にマッチ」スタブを置き換える適切なLLMベースの条件評価。条件ラベルから分類プロンプトを構築し、高速LLMを呼び出し、大文字小文字を区別しないファジーマッチングを使用します。
+- **リアクティブエッジラベル** — 条件/分類器ブランチのエッジラベルは`useNodesData()`を使用して、設定パネルで条件またはクラスが編集されるときにリアルタイム更新を行います。
+- **ワークフロー統計パネル** — シートベースの統計表示。総実行数、完了/失敗/キャンセル数、ビジュアルプログレスバー付きの成功率、平均期間、相対フォーマット付きの最後の実行時間を表示します。ツールバーのBarChart3アイコンからトリガーされます。
+- **フェーズ2ワークフローノード：DocumentExtractor & QuestionUnderstanding** — さらに2つのノードタイプ：
+  - **DocumentExtractor**：ドキュメントテキスト処理用のスタブエグゼキューター — テキスト/base64入力タイプと4つの抽出モード（full_text、page_range付きページ、単語/文字/行/ページ数を含むメタデータ、マークダウンテーブル検出を含むテーブル）をサポートします。URL入力は後の実装に延期されます。
+  - **QuestionUnderstanding**：4つのモード — 書き直し（明確性）、拡張（コンテキスト+サブ質問）、分類（意図/トピック/信頼度JSON）、分解（サブ質問配列）を備えたLLMベースの質問前処理。オプションのカスタムシステムプロンプトオーバーライド付きの高速LLMを使用します。
+  - 完全なフロントエンド：ノードコンポーネント、設定パネル、パレットエントリ（QU用のAIカテゴリ、DE用のDataカテゴリ）、変数ピッカーサポート。
+- **フェーズ2ワークフローノード：ListOperation & Transform** — 2つのデータ処理ノードタイプ：
+  - **ListOperation**：8つのリスト操作（フィルタ、マップ、ソート、スライス、フラット化、ユニーク、リバース、長さ）。フィルタ/マップ/ソート用のsimpleeval式をサポートします。JSON文字列入力の自動解析をサポートします。
+  - **Transform**：6つの操作タイプ（json_path、type_cast、format、regex_extract、string_op、math_op）を備えたパイプラインベースのデータ変換。操作は順序に適用されます — 1つの出力が次の入力になります。
+  - 完全なフロントエンド：ノードコンポーネント、操作固有のエディタを備えた設定パネル、パレットエントリ、変数ピッカーサポート。
+- **フェーズ2ワークフローノード：Loop & ParameterExtractor** — さらに2つの高度なノードタイプ：
+  - **Loop**：simpleeval式評価、設定可能なループ変数名、max_iterations安全制限を備えたwhile条件ループ。条件入力、変数名、反復制限設定を備えたフロントエンド。
+  - **ParameterExtractor**：テキストからのLLMベースの構造化パラメータ抽出。型付きパラメータ（名前/タイプ/説明/必須）を定義し、入力テキスト参照を提供し、オプションで抽出指示を追加します。解析されたJSONを返します。パラメータリストエディタと抽出プロンプトテキストエリアを備えたフロントエンド。
+- **フェーズ2ワークフローノード：Iterator & VariableAggregator** — 2つの新しい高度なノードタイプ：
+  - **Iterator**：設定可能なアイテム/インデックス変数名とmax_iterations安全制限を備えたリストの反復。ネイティブリスト、JSON文字列解析、テンプレート変数参照をサポートします。
+  - **VariableAggregator**：4つのモード — リストに収集、文字列を連結（カスタム区切り文字）、辞書をマージ、最初の空でない値を取得 — を介して複数の上流ブランチからの出力をマージします。
+  - 完全なフロントエンド統合：ノードコンポーネント、パレットエントリ、設定パネルフォーム、ミニマップ色、変数ピッカーサポート。バックエンドエグゼキューターはエンジンに登録されます。
+- **ワークフロー テンプレート拡張** — 2つの新しい組み込みテンプレート（合計6個）を追加しました：データ処理パイプライン（Start → CodeExecution → TemplateTransform → End）とナレッジ検索を備えたエージェント（Start → KnowledgeRetrieval → Agent → End）。新しいテンプレートの欠落している`icon`フィールドを修正しました。「intermediate」と「
 
 ### 変更
 
-- **NodeTest スキーマ名前変更** — `TestNodeRequest`/`TestNodeResponse` を `NodeTestRequest`/`NodeTestResponse` に名前変更し、pytest 収集警告を回避。
+- **サブスクリプションベースの可視性モデル** — `build_visibility_filter()` が3段階（自分 → 組織メンバー → サブスクライバー）から2段階（自分 → サブスクライバー）に簡略化されました。データマイグレーションは既存の全組織メンバーに対して `ResourceSubscription` 行を自動作成し、アクセスを保持します。ダッシュボードのコネクタ数とKB統計にはサブスクライブされたリソースが含まれるようになりました。
+- **Market API スコープとカテゴリパラメータ** — `browse_market()` は `scope`（market または org:{id}）と `category`（solutions または components）クエリパラメータを受け入れるようになりました。`subscribe_resource()` は非マーケット組織のサブスクリプションに対して組織メンバーシップを検証するようになりました。
 
-- **実行パネルの Results/Logs タブ** — 実行パネルがタブ付きレイアウト (Results + Logs) を使用するようになり、実行出力とイベントストリームの整理が改善。
-- **elkjs を軽量 BFS 自動レイアウトに置き換え** — カスタム BFS アルゴリズムが elkjs (430 kB) に置き換わり、`/workflows/[id]` バンドルが 473 kB から 43 kB に削減。
-- **ワークフローリストのソートオプション拡張** — 最新、最古、名前 A-Z、名前 Z-A、最近更新。
-- **ワークフローテストスイート 306 テストに拡張** — SubWorkflow と ENV ノード実行器用に 14 個の Phase 3 テストを追加。ノード単位の実行統計テストを追加。合計: 275 → 306。
-- **ワークフローテストスイート 275 テストに拡張** — 再試行 (指数バックオフ)、再試行中のキャンセル、式評価、変数ストアヘルパーなど、23 個の高度なエンジンテストを別ファイルに追加。合計: 252 → 275。
-- **ワークフローテストスイート 252 テストに拡張** — HumanIntervention テスト (8: 自動承認、補間、割り当て先/タイムアウト、デフォルト、検証警告) と新しいテンプレートテスト (4: 人間承認パイプライン、マルチステップデータ処理、知識強化エージェント、反復的レビューループ) を追加。合計: 240 → 252。
-- **ワークフローテストスイート 240 テストに拡張** — Phase 2 検証テスト (ListOperation、Transform、Iterator、Loop、DocumentExtractor、QuestionUnderstanding、ParameterExtractor 警告用の 15 テスト) と Phase 2 テンプレートテスト (新しいテンプレート用の 5 テスト) を追加。合計: 220 → 240。
-- **ワークフローテストスイート 220 テストに拡張** — DocumentExtractor (12 テスト: full_text/pages/metadata/tables モード、base64 デコード、page_range 解析、URL スタブエラー、空入力、ダッシュ区切り文字) と QuestionUnderstanding (8 テスト: LLM モッキング、カスタムシステムプロンプト、変数補間、入力なしを含む rewrite/classify/decompose/expand モード) 用に 20 テストを追加。合計: 200 → 220。
-- **ワークフローテストスイート 200 テストに拡張** — ListOperation (21 テスト: filter、map、sort、slice、flatten、unique、reverse、length、JSON 文字列入力、無効な型、欠落した設定、index-in-scope、デフォルト出力変数) と Transform (29 テスト: json_path、すべての型の type_cast、フォーマットテンプレート、regex_extract、すべてのバリアントの string_op、すべてのバリアントの math_op、5 ステップパイプラインチェーン、ゼロ除算、ワイルドカードパス、未知の操作) 用に 50 テストを追加。合計: 150 → 200。
-- **ワークフローテストスイート 150 テストに拡張** — Loop (6 テスト: 基本カウント、max_iterations 安全性、ゼロ反復、空条件、カスタム変数名、変数補間) と ParameterExtractor (6 テスト: 基本抽出、入力なし、空パラメータ、無効な JSON、変数補間、抽出プロンプト含有) 用に 12 テストを追加。合計: 138 → 150。
-- **ワークフローテストスイート 138 テストに拡張** — Phase 2 Iterator (9 テスト: 基本リスト、JSON 解析、max_iterations、空リスト、欠落した設定、None-to-empty、テンプレート参照、非リスト拒否、メタデータ) と VariableAggregator (11 テスト: list/concat/merge/first_non_empty モード、空入力のエッジケース、None スキップ、未知モード) 用に 20 テストを追加。合計: 118 → 138。
-- **ワークフローテストスイート 118 テストに拡張** — ConditionBranch LLM モード用に 7 テストを追加 (完全一致、大文字小文字区別なし、ファジー、不一致フォールバック、DEFAULT レスポンス、候補なし、変数補間)。合計: 111 → 118。
-- **ワークフロー実行モードのビジュアルフィードバック全面改善** — ボーダーベースのアプローチに代わるリングベースのノード状態スタイル、実行中ノードのアニメーション状態ドット (ping エフェクト付き)、クリーンな状態分離のための `useMemo` 派生の `displayNodes`/`displayEdges`、完了から実行中へのノード間のエッジアニメーション。
-- **ワークフローテストスイート 105 テストに拡張** — テンプレート検証テスト、インポート/エクスポートラウンドトリップ、変数ストア高度なメソッド、デッドロック検出、マルチ条件分岐、質問分類器、包括的なブループリント検証を追加。合計: 68 → 97 → 105。
-- **ワークフローテストスイート 68 テストに拡張** — eval 名前空間フラット化 (ドット付きキー解決、短いエイリアス生成、フラット名を使用した ConditionBranch/VariableAssign 用の 17 テスト) とブループリント検証警告 (切断されたノード、到達不可能な終了、空の条件/プロンプト/コード用の 7 テスト) をカバーする 24 個の新しいテストを追加。合計ワークフローテスト数: 34 → 68。
-- **ワークフローエディター全面改善 (Dify スタイル)** — Dify にインスパイアされたワークフローエディターの完全なビジュアルリデザイン:
-  - 上から下へのレイアウトに代わる水平 (左から右へ) レイアウト。すべての 12 ノードタイプが Left/Right ハンドルを使用
-  - 左カラーバーノード設計、コンパクト 220px 幅、小さいアイコン、実行状態バッジ
-  - エッジ上にノード追加: カスタム `AddNodeEdge` (「+」中点ボタン付き) とノードタイプピッカーポップアップで既存エッジを分割
-  - より豊富な設定パネル: LLM ノード用のモデルセレクタドロップダウン、条件用の演算子ドロップダウン (==、!=、>、<、contains など)、セクションヘッダー、すべての出力ノード用の `InsertVariableHint` と `OutputVariableField`
-  - 折りたたみ可能なノードパレット (アイコンのみモード)、カテゴリグループ化。既に配置されている場合は Start/End ノードが淡色表示
-  - ドロップ時の単一 Start/End 検証。`fitViewOptions` (小さいグラフでの過度なズーム防止用に `maxZoom:1`)
+- **ツールキャッシュホワイトリストリファクタリング** — `ToolCache` のハードコードされたブラックリストをホワイトリストアプローチに置き換えました。`Tool` プロトコルに `cacheable` プロパティを追加（デフォルト `False`）；`cacheable=True` と明示的にマークされたツールのみがキャッシュされます。11個の読み取り専用ツール（web_search、kb_retrieve、calculator など）がキャッシュ可能としてマークされ、すべての副作用ツール（コード実行、メール、コネクタ）はデフォルトでキャッシュされません。新しいコネクタツールは追加の設定なしで安全です。
+- **DAG エグゼキューター カスケード失敗** — 失敗またはタイムアウトしたステップは依存するステップをカスケードブロックするようになりました。`failed_ids` トラッキングが推移的伝播（A→B→C チェーン）で追加されました。依存ステップは自動的に説明的なメッセージとともに失敗としてマークされ、汚染されたコンテキストで実行されることはありません。
+- **DAG ステップ検証ステータス修正** — ステップ検証の再試行失敗は、`"completed"` のままにするのではなく、ステップを `"failed"` として正しくマークするようになりました。失敗した検証は新しいカスケード失敗メカニズムを介してダウンストリームステップにカスケードします。
+- **DAG プランナー ツール説明** — プランナーは名前だけでなく、各ツールに対して `{name, description}` を受け取るようになり、より正確なステップ対ツールマッピングが可能になり、幻覚的な `tool_hint` 値が減少します。
+- **DAG 再プランナー 完全履歴** — 再計画コンテキストは最後のものだけでなく、すべての前のラウンドからの結果を蓄積するようになりました。古いラウンドはより積極的に切り詰められ（200文字/ステップ）、最新のラウンドは500文字/ステップを保持します。
+- **stream_answer 合成品質** — 最終回答を合成する際のツール観察切り詰めが2000から8000文字に増加され、より多くの構造化データ（JSONテーブル、コード出力）が保持されます。
+- **14個のエンジン定数をパラメータ化** — ReAct エージェント、DAG プランナー、コンテキストガード、ワークスペース、およびシステムモジュール全体でハードコードされた数値定数を環境変数に抽出しました。すべての新しい環境変数は `example.env` と `docs/configuration/environment-variables.mdx` に記載されています。
 
-### 追加
+- **エビデンス信頼度 UI 拡張** — グラウンディングパイプラインのフロントエンド表示に3つの改善：（1）不十分なエビデンス観察は生のテキストではなく i18n 琥珀色警告カードとしてレンダリングされるようになりました、（2）インライン `[N]` 引用バッジはホバーポップオーバーでソース名、引用抜粋、関連性スコアを表示するようになりました（新しい EvidenceContext 経由）、（3）エビデンスソースが矛盾する場合、参照セクションに競合警告バナーが表示され、展開可能な並べて比較ができます。
+- **シャドウ Market 組織** — 組み込みの Platform 組織をシャドウ Market 組織に変換しました。リソースはマーケットプレイスブラウジングを介して発見され、明示的にサブスクライブされるようになりました（プルモデル）。メンバーシップ経由で自動表示されるのではなく（プッシュモデル）。非管理者ユーザーは登録時に組織に自動参加しなくなりました；Market 組織はユーザーがマーケットプレイス UI を通じてのみ相互作用する見えないバックエンドエンティティとして機能します。
+- **マーケットプレイス公開（必須レビュー付き）** — Market 組織への公開は、Market 組織の所有者/管理者を除き、常にレビューが必要になりました。公開ダイアログは「マーケットプレイスに公開」オプションと必須レビュー通知を表示します。
+- **スキルとワークフロー マーケットプレイスブラウジング** — マーケットプレイスにスキルとワークフローリソースタイプを追加し、すべての5つのリソースタイプ（エージェント、コネクタ、ナレッジベース、MCP サーバー、スキル/ワークフロー）のコミュニティ発見とサブスクリプションを有効にしました。
+- **Market 組織公開エンドポイント バイパス** — 6つのリソース公開エンドポイントは Market 組織のメンバーシップチェックをスキップするようになり、任意のユーザーがメンバーでなくてもマーケットプレイスにリソースを公開できます。
+- **Platform から Market への移行** — Alembic マイグレーションは Platform 組織を Market に名前変更し、所有者以外のすべてのメンバーシップを削除し、プッシュベースからプルベースのリソース共有への移行を完了します。
+- **ワークフロー バージョン変更サマリー** — `compute_blueprint_diff()` は新しいバージョンを保存する際にブループリント差分から人間が読める要約を自動生成し、追加/削除/変更されたノードとエッジを説明します。
+- **ワークフロー実行保持クリーンアップ** — 設定可能な年齢とカウント制限に基づいて古いワークフロー実行をパージするバックグラウンドクリーンアップタスク。ワークフロー単位の保持オーバーライド。手動クリーンアップトリガー用の管理エンドポイント。新しい環境変数：`WORKFLOW_RUN_MAX_AGE_DAYS`、`WORKFLOW_RUN_MAX_PER_WORKFLOW`、`WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS`。
+- **コネクタ サーキットブレーカー** — 3状態サーキットブレーカー（closed/open/half-open）とコネクタ単位の失敗トラッキング。5xx エラーを検出し、失敗するコネクタを一時的に無効にします。サーキットブレーカー状態検査用の監視エンドポイント。
+- **ConnectorMetaTool（段階的開示フェーズ1-2）** — エージェントプロンプトのアクション単位ツールを置き換える単一メタツール。システムプロンプトは軽量スタブ（コネクタあたり約30トークン対約250トークン/アクション）を受け取ります；エージェントは `discover(connector)` を呼び出して完全なアクションスキーマをオンデマンドで読み込み、`execute` を呼び出してアクションを実行します。後方互換性のための機能フラグ `CONNECTOR_TOOL_MODE`。
+- **実際の MCP エグゼキューター** — スタブ MCP ノードエグゼキューターを MCP サーバー発見とワークフロー実行内でのツール呼び出しをサポートする完全な実装に置き換えました。
+- **エージェント ミッドループ 自己反省** — ReAct ループの6ツール呼び出しイテレーションごとに軽量なゴールチェックプロンプトが注入されます（JSON と ネイティブモード両方）。長い推論チェーンでのゴールドリフトを防ぎます。エージェントがまだ軌道上にあるか、アクションを繰り返しているか、最終回答を生成すべきかを尋ねます。
 
-- **ワークフロー エンジン ノード リトライ** — ノード単位のリトライと指数バックオフ。ノードはデータ設定で `retry_count` と `retry_delay_ms` を指定できます。失敗したノードは最大 N 回リトライされ、遅延は 60 秒に制限されます。試行番号と前のエラーを含む `node_retrying` SSE イベントを発行します。リトライ待機中のキャンセル イベントを尊重します。
-- **ワークフロー変数ストア式評価** — simpleeval を使用した安全な Python 式評価。`evaluate_expression()` メソッドはストア変数（env を除く）と一般的なビルトイン（len、str、int、float、bool、abs、min、max、sum、round、sorted）を公開します。さらに `has()`、`delete()`、`keys()` ヘルパー メソッドがあります。
-- **ワークフロー フェーズ 2 ノード: HumanIntervention** — 承認待機ノード（自動承認スタブ）。prompt_message（{{variable}} 補間付き）、assignee、timeout_hours を読み取ります。Sky-500 テーマのフロントエンド ノード（プロンプト プレビューと @assignee バッジ付き）。プロンプト テキストエリア、assignee 入力、タイムアウト フィールド付きの設定パネル。
-- **ワークフロー テンプレートを 12 に拡張** — 4 つの新しいテンプレート: Human Approval Pipeline（LLM → HumanIntervention → ConditionBranch → dual End）、Multi-Step Data Processing（CodeExecution → ConditionBranch → Transform → ListOperation）、Knowledge-Enhanced Agent（QuestionUnderstanding → KnowledgeRetrieval → LLM）、Iterative Review Loop（Loop → LLM → VariableAssign）。
-- **ワークフロー ペイン コンテキスト メニュー** — 空のキャンバスを右クリックして、Paste（クリップボードが空の場合は無効）、Select All、Fit View、Auto Layout アクションにアクセスします。判別された共用体の状態がノード コンテキスト メニューとペイン コンテキスト メニューを分離します。
-- **ワークフロー ノード コンテキスト メニュー** — 任意のノードを右クリックして、Configure、Copy、Duplicate、Delete アクションにアクセスします。Delete アクションは Start/End シングルトン ノードでは非表示です。メニューは外側のクリックまたはスクロール時に自動的に閉じます。
-- **ワークフロー フェーズ 2 テンプレート** — 2 つの新しい組み込みテンプレート（合計 8 個）: List Processing Pipeline（Start → ListOperation → Transform → End）と Enhanced Question Answering（Start → QuestionUnderstanding → LLM → End）。
-- **ワークフロー フェーズ 2 検証** — ListOperation（入力/式がない）、Transform（入力がない/操作が空）、Iterator（リスト変数がない）、Loop（条件がない）、DocumentExtractor、QuestionUnderstanding（入力がない）、ParameterExtractor（入力テキスト/パラメータが空）に対する拡張ブループリント検証警告。修正: ソート操作は式を必須としなくなりました。
-- **ワークフロー ノート** — ノード単位の注釈機能。任意のノードの設定パネルで「Note」をクリックして、フリーフォーム ノートを追加します。ノートはキャンバス上のノードの下にイタリック テキストとして表示されます。自動拡張テキストエリア（`data.note` ストレージ）。
-- **ワークフロー グリッドにスナップ** — ドット背景パターンに一致する 16px スナップ グリッド（ノードの正確な配置用）。
-- **ワークフロー 接続検証** — 既存の Start/End 制限に加えて、自己接続と重複エッジを防止します。
-- **ワークフロー ズーム対応ドロップ** — ノード パレット ドラッグ アンド ドロップは `screenToFlowPosition()` を使用して、任意のズーム レベルで正しい配置を実現します。
-- **ワークフロー SSE マルチラインデータ** — SSE パーサーはマルチラインの `data:` フィールドを処理し、キープアライブ コメント行を無視します。
-- **ワークフロー キーボード ショートカット** — Copy（Cmd+C）、Paste（Cmd+V）、Duplicate（Cmd+D）、Select All（Cmd+A）、Escape でデセレクト。Copy/Paste は新しい ID を生成し、位置をオフセットします。Start/End ノードはシングルトン制約を維持するためにコピーから除外されます。
-- **ワークフロー インライン説明編集** — ツールバーの説明行をクリックして、ポップオーバー テキストエリアを開き、ワークフロー説明を編集します（ページ移動なし）。
-- **ワークフロー ConditionBranch LLM モード** — ナイーブな「最初にマッチ」スタブを置き換える適切な LLM ベースの条件評価。条件ラベルから分類プロンプトを構築し、高速 LLM を呼び出し、大文字小文字を区別しないファジー マッチングを使用します。
-- **リアクティブ エッジ ラベル** — 条件/分類器ブランチのエッジ ラベルは `useNodesData()` を使用して、設定パネルで条件またはクラスが編集されたときにリアルタイム更新されます。
-- **ワークフロー 統計パネル** — シート ベースの統計表示（総実行数、完了/失敗/キャンセル数、ビジュアル プログレス バー付きの成功率、平均期間、相対形式の最後の実行時刻）。ツールバーの BarChart3 アイコンからトリガーされます。
-- **フェーズ 2 ワークフロー ノード: DocumentExtractor & QuestionUnderstanding** — 2 つのノード タイプ:
-  - **DocumentExtractor**: ドキュメント テキスト処理用のスタブ エグゼキューター — テキスト/base64 入力タイプと 4 つの抽出モード（full_text、page_range 付きページ、単語/文字/行/ページ数付きメタデータ、マークダウン テーブル検出付きテーブル）をサポートします。URL 入力は後で実装予定です。
-  - **QuestionUnderstanding**: 4 つのモード付き LLM ベースの質問前処理 — rewrite（明確性）、expand（コンテキスト + サブ質問）、classify（intent/topic/confidence JSON）、decompose（サブ質問配列）。オプションのカスタム システム プロンプト オーバーライド付きの高速 LLM を使用します。
-  - 完全なフロントエンド: ノード コンポーネント、設定パネル、パレット エントリ（QU 用 AI カテゴリ、DE 用 Data カテゴリ）、変数ピッカー サポート。
-- **フェーズ 2 ワークフロー ノード: ListOperation & Transform** — 2 つのデータ処理ノード タイプ:
-  - **ListOperation**: 8 つのリスト操作（filter、map、sort、slice、flatten、unique、reverse、length）と filter/map/sort 用の simpleeval 式。JSON 文字列入力の自動解析をサポートします。
-  - **Transform**: 6 つの操作タイプ（json_path、type_cast、format、regex_extract、string_op、math_op）を使用したパイプライン ベースのデータ変換。操作は順序に適用されます — 1 つの出力が次の入力になります。
-  - 完全なフロントエンド: ノード コンポーネント、操作固有のエディター付き設定パネル、パレット エントリ、変数ピッカー サポート。
-- **フェーズ 2 ワークフロー ノード: Loop & ParameterExtractor** — 2 つのより高度なノード タイプ:
-  - **Loop**: simpleeval 式評価、設定可能なループ変数名、最大反復回数安全制限付きの While 条件ループ。条件入力、変数名、反復制限設定付きのフロントエンド。
-  - **ParameterExtractor**: テキストから型付きパラメータを抽出する LLM ベースの構造化パラメータ抽出。型付きパラメータ（名前/型/説明/必須）を定義し、入力テキスト参照を提供し、オプションで抽出指示を追加します。解析済み JSON を返します。パラメータ リスト エディターと抽出プロンプト テキストエリア付きのフロントエンド。
-- **フェーズ 2 ワークフロー ノード: Iterator & VariableAggregator** — 2 つの新しい高度なノード タイプ:
-  - **Iterator**: 設定可能なアイテム/インデックス変数名と最大反復回数安全制限付きでリストを反復処理します。ネイティブ リスト、JSON 文字列解析、テンプレート変数参照をサポートします。
-  - **VariableAggregator**: 4 つのモード経由で複数のアップストリーム ブランチからの出力をマージ — リストに収集、文字列を連結（カスタム区切り文字）、辞書をマージ、最初の空でない値を取得。
-  - 完全なフロントエンド統合: ノード コンポーネント、パレット エントリ、設定パネル フォーム、ミニマップ色、変数ピッカー サポート。バックエンド エグゼキューターはエンジンに登録されます。
-- **ワークフロー テンプレート拡張** — 2 つの新しい組み込みテンプレートを追加（合計 6 個）: Data Processing Pipeline（Start → CodeExecution → TemplateTransform → End）と Agent with Knowledge Retrieval（Start → KnowledgeRetrieval → Agent → End）。新しいテンプレートの欠落している `icon` フィールドを修正。「intermediate」および「advanced」テンプレート カテゴリの欠落している i18n キーを追加。
-- **ワークフロー ENV 変数ダイアログ** — ワークフロー単位の暗号化環境変数管理 UI。マスク表示、重複キー検出、インライン検証付きのキー値エディター。`GET/PUT /api/workflows/{id}/env` エンドポイントに接続。ツールバー ドロップダウンからアクセス可能。
-- **ワークフロー 自動保存** — 5 秒のデバウンス自動保存タイマー（即座の Cmd+S オーバーライド付き）。保存ステータス インジケーター「Saving...」、「Unsaved changes」、または「Saved Xs ago」を表示（30 秒自動更新）。
-- **ワークフロー リスト検索とフィルター** — 名前/説明によるクライアント側検索、ステータス フィルター ボタン（All/Draft/Active）、ソート ドロップダウン（Recently updated/created/Name A-Z）、結果なしの空状態。
-- **ワークフロー カラーコード ミニマップ** — ミニマップ ノード色は各ノード タイプのカテゴリ色に一致（緑=Start、赤=End、青=LLM、オレンジ=Condition など）。
-- **エージェント スキル システム** — エージェント指示のオンデマンド スキル ロード: `Skill` モデル（名前、説明、コンテンツ、スクリプト）と完全な CRUD、公開レビュー、可視性ライフサイクル。`read_skill(name)` ビルトイン ツール（段階的な開示 ~80% トークン削減）。システム プロンプトに注入されたスキル スタブ（~15 トークン/スキル）。エージェント単位の `compact_instructions` フィールド（カスタム ContextGuard 圧縮戦略用）。
-- **スキル UI** — スキル リスト ページ、フルページ エディター（コンテンツ/スクリプト/設定タブ）、SkillCard コンポーネント、サイドバー ナビゲーション、コンパクト指示テキストエリア付きのエージェント エディター スキル セレクター。
-- **ワークフロー 公開フロー** — ワークフロー用の公開/非公開/再送信エンドポイント（既存のエージェント公開パターンに一致）。Organization モデルの新しい `review_workflows` フラグ（Alembic マイグレーション付き）でワークフロー レビュー ゲーティングを有効にします。公開アクションはワークフロー カードとツールバー UI に配線されます。
-- **ワークフロー ブループリント システム** — マルチステップ自動化ブループリントを設計および実行するためのビジュアル ワークフロー エディター:
-  - **12 ノード タイプ**: Start、End、LLM、ConditionBranch、QuestionClassifier、Agent、KnowledgeRetrieval、Connector、HTTPRequest、VariableAssign、TemplateTransform、CodeExecution — 各々カスタム React Flow ノード コンポーネント、タイプ固有アイコン、専用設定パネル フォーム付き。
-  - **実行エンジン**: トポロジカル ソートによるノード実行順序、`asyncio.Semaphore` ベースの同時実行制御、`active_handles` に基づいてダウンストリーム エッジを有効化/無効化する条件/分類器ブランチ付き `WorkflowEngine`。
-  - **SSE ストリーミング**: Server-Sent Events 経由のリアルタイム ワークフロー実行進捗 — `run_started`、`node_started`、`node_completed`、`node_failed`、`node_skipped`、`run_completed`、`run_failed` イベントを発行。長時間実行ワークフロー用の SSE キープアライブ。クライアント切断検出によるキャンセル トリガー。
-  - **変数ストア**: `{{node_id.output}}` 補間、フラット名フォールバック解決、暗号化環境変数用の `env.*` 名前空間、`snapshot_safe()`（シークレット除外）、フロントエンド ピッカー用の `list_available_variables()` 付きスレッド セーフ `VariableStore`。
-  - **エッジ ラベル**: `WorkflowEdgeDef` は条件/分類器ブランチ用の `source_handle` と `target_handle` を保持し、各接続がどのブランチ パスを表すかを視覚的に示すラベル付きエッジを有効にします。
-  - **変数ピッカー コンボボックス**: アップストリーム ノードから `{{node_id.output}}` 参照を挿入するための検索可能なコンボボックス（`Command` ベースのポップオーバー）— ノード タイプ別にグループ化（アイコン付き）、すべてのプロンプト/テンプレート/本文フィールドに統合。
-  - **実行履歴シート**: 過去のワークフロー実行を表示するサイド シート（ステータス、期間、入力/出力データ、ノード単位の結果）。`GET /api/workflows/{id}/runs` 経由でページネーション。
-  - **ワークフロー 複製**: `POST /api/workflows/{id}/duplicate` エンドポイントと UI アクション（既存ワークフローをクローン — ブループリント、スキーマ、説明をコピー、ステータスをドラフトにリセット）。
-  - **ブループリント検証**: `POST /api/workflows/validate` エンドポイント — 保存せずにブループリントを検証（Start/End ノード存在、重複 ID、不明なノード タイプ、エッジ参照、サイクル検出を確認）。成功時にノード/エッジ数を返すか、特定の検証エラーを返します。
-  - **エラー戦略**: ノード単位の `error_strategy` フィールド（3 つのモード）— `STOP_WORKFLOW`（デフォルト: 残りのすべてのノードを停止）、`CONTINUE`（失敗をマーク、ダウンストリームは続行）、`FAIL_BRANCH`（失敗したノード経由でのみ到達可能なすべてのノードをスキップ）。
-  - **ノード単位のタイムアウト**: ノード単位の設定可能な `timeout_ms`（デフォルト 30 秒）を `asyncio.wait_for` 経由で実行。タイムアウトは説明的なエラー メッセージ付きの構造化 `FAILED` 結果を生成します。
-  - **ノード設定パネル**: タイプ単位の設定フォーム — LLM ノードはシステム プロンプト、モデル セレクター、モデル ティア（fast/main）トグル、温度スライダー、最大トークン。ConditionBranch は演算子ドロップダウン（==、!=、>、<、contains など）と式/LLM モード。HTTPRequest はメソッド セレクター、URL、ヘッダー エディター（キー値ペアの追加/削除）、変数挿入付き本文。CodeExecution は言語セレクター（Python/JavaScript）と構文適切なヒント。すべての出力ノードは `OutputVariableField` と `InsertVariableBar` を含みます。
-  - **エッジ上にノード追加**: 「+」ミッドポイント ボタン付きカスタム `AddNodeEdge` コンポーネント — クリックするとノード タイプ ピッカー ポップアップを開き、新しいノードをインラインに挿入し、既存エッジを 2 つの接続に分割します。
-  - **自動レイアウト（ELK.js）**: ELK.js レイヤー化アルゴリズム（`elk.direction: RIGHT` で水平左から右へのノード配置）を使用する `getAutoLayoutedNodes()` ユーティリティ。設定可能なノード間隔（ノード間 60px、レイヤー間 120px）。
-  - **包括的なテスト スイート**: パーサー検証（Start/End 存在、重複 ID、不明なタイプ、サイクル検出、エラー戦略/タイムアウト解析）、トポロジカル ソート（線形および並列ブランチ）、`VariableStore`（get/set、補間、env 注入、スナップショット安全性、ノード出力）、エンジン実行（Start-to-End、入力パススルー、キャンセル、STOP_WORKFLOW、CONTINUE 戦略）、ノード エグゼキューター（VariableAssign、変数付き CodeExecution、エラー処理）をカバーする 34 のテスト。
-  - **バックエンド CRUD + API**: Alembic マイグレーション付き `Workflow` および `WorkflowRun` ORM モデル。Pydantic スキーマ。完全な REST API（`/api/workflows/*`）（作成、読み取り、更新、削除、リスト、インポート/エクスポート）。`CREDENTIAL_ENCRYPTION_KEY` 経由の暗号化環境変数。フロントエンド設定パネル用の変数イントロスペクション エンドポイント（`GET /api/workflows/{id}/variables`）。
-  - **セキュリティ**: コード実行ノードは OS レベルの分離のため、ベアの `exec()` の代わりに `subprocess` を使用。eval/テンプレート実行コンテキストからフィルタリングされた環境変数。すべてのノード エグゼキューター全体の `ExecutionContext` 配線。
-  - **フロントエンド**: React Flow v12 で構築されたビジュアル エディター — カテゴリ グループ化（折りたたみ可能なアイコンのみモード）付きドラッグ アンド ドロップ ノード パレット、12 のカスタム ノード コンポーネント、SSE 駆動のライブ実行ステータス付き実行パネル、カード グリッド付きワークフロー リスト ページ。完全な i18n サポート（6 言語）。
-- **ワークフロー ブループリント検証警告**: `validate_blueprint()` はエラーに加えて非致命的な警告を返すようになりました — 接続されていないノード、到達不可能なエンド ノード、空の条件/プロンプト/コード ブロックを検出します。拡張 `POST /api/workflows/validate` エンドポイントは検証結果と共に構造化警告を返します。7 つの新しいテスト。
-- **ワークフロー ノード/エッジ削除** — Backspace/Delete キーボード ショートカットで選択されたノードとエッジを削除。Start/End ノードは削除から保護されます。設定パネルに明示的な削除用の AlertDialog 確認付き「Delete Node」ボタンを含みます。
-- **ワークフロー インポート/エクスポート/複製 UI** — ワークフローを JSON ファイル ダウンロードとしてエクスポート、自動形式検出でインポート、カード ドロップダウン経由でワークフロー複製。ポータブル ワークフロー共有用の `WorkflowExportFile` スキーマ エンベロープ。
-- **ワークフロー テンプレート**: 4 つの組み込みスターター テンプレート（Simple LLM Chain、Conditional Router、Knowledge-Augmented QA、HTTP API Pipeline）。ワークフロー作成時のテンプレート ピッカー ダイアログ（`GET /api/workflows/templates` と `POST /api/workflows/from-template` エンドポイント）。
-- **ワークフロー 統計エンドポイント**: `GET /api/workflows/{id}/stats` は実行統計を返します（総実行数、成功率、平均期間、ステータス内訳、最後の実行タイムスタンプ）。
-- **ワークフロー エラー戦略設定 UI**: 設定パネルのノード単位の高度な設定セクション（エラー戦略セレクター（Stop Workflow / Continue / Fail Branch）とカスタム タイムアウト入力）。
-- **ワークフロー 実行 URL パラメーター**: `?run=true` URL パラメーターはリスト ページからエディターに移動するときに実行パネルを自動的に開きます。
-- **管理者: レビュー ログ監査タブ** — 管理者監査ページに「System Log / Review Log」セグメント化トグルが追加されました。Review Log パネルは新しい `GET /api/admin/review-log` エンドポイント（フィルター: org、リソース タイプ、アクション、limit/offset ページネーション）をクエリし、時刻、org 名、リソース タイプ、リソース名、アクション バッジ（カラーコード: 緑=承認、赤=却下、琥珀=送信/再送信、グレー=非公開）、オペレーターを含むテーブルを表示します。完全な i18n（EN + ZH）。
-- **プラットフォーム組織** — 組み込み org `platform`（ID: `00000000-0000-0000-0000-000000000001`）— すべての新規ユーザーが自動的に参加。この組織は「グローバル」可視性の概念に置き換わり、すべてのユーザー間でリソースを共有するための中央ハブを提供します。
-- **リソース サブスクリプション** — ユーザーは org Markets から共有リソース（エージェント、コネクター、ナレッジ ベース、MCP サーバー）をサブスクライブ/アンサブスクライブできるようになりました。新しい `resource_subscriptions` データベース テーブルがサブスクリプション関係を追跡します。
-- **Market API** — ブラウジングとサブスクリプション管理用の新しいエンドポイント:
-  - `GET /api/market` — 現在の org で利用可能なリソースをブラウズ
-  - `POST /api/market/subscribe` — リソースをサブスクライブ
-  - `DELETE /api/market/unsubscribe` — リソースをアンサブスクライブ
-  - `GET /api/market/subscriptions` — ユーザーの現在のサブスクリプションをリスト
-- **Market ページ** — Portal の新しい `/market` ページ（org リソースへのサブスクリプションをブラウズおよび管理）。
-- **エージェント 自動検出** — エージェント上の新しい `discoverable` ブール フィールド。`discoverable=true` のエージェントは `call_agent` ツール経由で LLM によって自動的に検出および呼び出すことができます（1 レベルの委譲、再帰なし）。
-- **サブエージェント バインディング** — エージェント上の新しい `sub_agent_ids` フィールド — 呼び出し可能なサブエージェントの明示的なホワイトリスト（きめ細かいアクセス制御用）。
-- **CallAgentTool** — 構造化入力検証と結果処理を使用してタスクをスペシャリスト エージェントに委譲するビルトイン ツール。
-- **MCP サーバー 認証情報** — 新しい `mcp_server_credentials` テーブルは MCP サーバーのユーザー単位の環境変数と HTTP ヘッダー オーバーライドを有効にします。
-- **MCP 認証情報エンドポイント** — `PUT /api/mcp-servers/{id}/my-credentials` はユーザーが共有 MCP サーバーの個人認証情報オーバーライドを保存できるようにします。
-- **MCPServer 上の `allow_fallback`** — 認証情報フォールバック動作を制御するブール フィールド — `true` の場合、欠落しているユーザー認証情報は所有者のデフォルトにフォールバックします。
-- **コネクター/KB トグル** — リソース状態管理用の新しいエンドポイント:
-  - `POST /api/connectors/{id}/toggle` — コネクターを一時停止/再開
-  - `POST /api/knowledge-bases/{id}/toggle` — ナレッジ ベースを一時停止/再開
-- **スタンドアロン KB 会話** — `ChatStreamRequest` と `Conversation` 上の新しい `kb_ids` フィールド — ユーザーはエージェントにバインドせずにナレッジ ベースと直接チャットできるようになりました。
-- **プラットフォーム Org 保護** — Platform org は削除できず、ユーザーは自分自身をそこから削除できません。すべてのユーザーが組織ハブへの接続を維持することを保証します。
-- **公開レビュー UI（フロントエンド）** — Org レベルの公開レビュー システム フロントエンド — org 編集ダイアログのレビュー トグル、タイプ/ステータス フィルター付き ReviewsSheet と承認/却下ワークフロー、エージェント カード上の公開ステータス バッジ（保留中/承認/却下）（却下ノートのツールチップ付き）、公開ダイアログの公開ダイアログ内のレビュー通知（ターゲット org がレビューを必須とする場合）、却下されたリソース用の再送信アクション、org 管理者/所有者用の「Review Management」ドロップダウン。すべてのリソース タイプ（エージェント、コネクター、KB、MCP サーバー）は `publish_status`、`reviewed_by`、`reviewed_at`、`review_note` タイプ フィールドを取得します。完全な i18n（EN + ZH）。
+- **実際の BuiltinTool エグゼキューター** — スタブ BuiltinTool ノードエグゼキューターをワークフロー実行用の `ToolRegistry` 統合を使用した実装に置き換えました。
+- **セマンティック スキーマ アノテーション** — コネクタスキーマフィールド用の16個の定義済みセマンティックタグ（`customer_id`、`email`、`phone`、`amount`、`date` など）。各フィールドは `semantic_tag`、`description`、`pii` フラグを持つことができ、LLM ツール説明に表示されるため、エージェントは列名から推測することなくフィールドの意図を理解できます。
+- **コネクタ インポート/エクスポート/フォーク UI** — コネクタを JSON としてエクスポート、ファイルピッカーからインポート、既存のコネクタをフォーク（クローン+カスタマイズ）するためのフロントエンドカードアクション。
+- **コネクタ インポート/エクスポート およびフォーク エンドポイント** — バックエンド API：`GET /api/connectors/{id}/export`、`POST /api/connectors/import`、`POST /api/connectors/{id}/fork`（シークレット漏洩を防ぐためのサニタイズされた認証情報処理付き）。
+- **ワークフロー テンプレート システム** — 管理 CRUD と公開リスト/クローンエンドポイント付きの `WorkflowTemplate` ORM モデル。初回起動時に5つのシードテンプレートが自動挿入され、ワークフロー高速ブートストラップが可能です。
+- **ワークフロー インライン検証バッジ** — キャンバスノード上のリアルタイム `ValidationBadge` でノード単位のエラーと警告を説明的なツールチップ付きで表示し、ブループリント編集中に即座のビジュアルフィードバックを提供します。
+- **ワークフロー 実行トレース ビューアー** — 完了した実行を検査するためのタイムラインベースのトレースビューアーシート。エンジン `trace_level` パラメータは詳細の粒度を制御；変数スナップショットは各ノードでキャプチャされ、ステップスルーデバッグが可能です。
+- **ワークフロー ユーザー単位のレート制限とグローバルタイムアウト** — スライディングウィンドウ実行（ユーザーあたり10実行/分、3同時実行）の `WorkflowRateLimiter`。デフォルト10分（600秒）グローバル実行タイムアウトがすべてのワークフロー実行に適用されます。
+- **管理 バッチ ワークフロー管理** — ワークフロー用の3つのバッチ管理エンドポイント：バッチ削除、バッチ切り替え（アクティブ/非アクティブ）、バッチ公開（すべて監査ログ付き）。
+- **ワークフロー パレット 拡張** — `useRecentNodes` フックを介した最近使用されたノードセクション、説明による検索サポート、ノードパレット内の空の「結果なし」状態。
+- **ワークフロー 実行リプレイ オーバーレイ** — 実行履歴オーバーレイの「キャンバスで表示」ボタンで過去の実行結果をワークフローキャンバスにオーバーレイし、再実行することなく完了した実行からのノード単位のステータスと出力を表示します。
+- **完全な SubWorkflow エグゼキューター** — SubWorkflow ノードをスタブから完全な DB バックアップネストされた実行にアップグレード。ターゲットワークフローをデータベースから読み込み、マップされた入力変数で実行、無限再帰を防ぐための設定可能な深さ制限を実行、ネストされた実行出力を親ワークフローに返します。
+- **管理 ワークフロー管理タブ** — 管理パネルの新しい「ワークフロー」タブでユーザー全体のワークフロー管理。機能：すべてのワークフローを所有者/ステータス/統計付きでリスト、アクティブ/非アクティブ切り替え、確認ダイアログ付きワークフロー削除。
+-
 
 ### 修正
 
@@ -243,14 +113,6 @@ description: "FIM One への全ての注目すべき変更。"
 - **依存関係アナライザー `skill_ids` 解決** — `_resolve_agent` はエージェントによって参照される `skill_ids` を解決するようになりました。以前はスキルは依存関係分析中にサイレントに無視されていました。
 - **大文字小文字を区別しないワークフローノードタイプマッチング** — 依存関係アナライザーのワークフローノードタイプマッチングが大文字小文字を区別しなくなりました。小文字のタイプ（例：`"connector"` vs `"CONNECTOR"`）を持つブループリントが正しく解決されるようになりました。
 - **依存関係アナライザーテストフィクスチャ** — 依存関係アナライザーテストの 7 つのテスト失敗を修正しました。これは DB フィクスチャレコードの欠落と不正な依存関係タイプアサーションが原因でした。
-
-### Changed
-
-- **Compact Workflow Node UI**: ノード幅を240pxから200pxに削減し、カラーバーを細くし、アイコンとハンドルを小さくして、より密度の高いビジュアルレイアウトを実現。`fitView` maxZoomを1に制限して、小さいキャンバス上でのノードの過度な拡大を防止。
-- **Visibility Simplified**: リソースの可視性を `personal | org | global` から `personal | org` に削減。「Global」リソースはPlatform orgに公開されるようになり、後方互換性を維持しながら可視性モデルを簡素化。
-- **Publish Interface Unified**: すべての4つのリソースタイプ（エージェント、コネクタ、ナレッジベース、MCP Server）は、公開時に `scope="org"` のみをサポート。`scope="global"` または管理者専用のグローバル公開エンドポイントはなくなりました。
-- **Auto-Platform Enrollment**: 新規ユーザーは登録時にPlatform orgに自動的に追加され、共有組織リソースへの即座のアクセスを確保。
-- **Admin Panel Cleanup**: 「Global Agents」および「Global MCP」管理タブを削除。グローバルリソースはPlatform orgを通じて管理されるようになりました。
 
 ### 削除
 

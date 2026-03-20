@@ -9,6 +9,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
+## [v0.8] - 2026-03-20
+
 ### Added
 
 - **Agent directive in ReAct synthesis** — New `agent_directive` parameter on `ReActAgent` injects the agent's core purpose (e.g. "translate Chinese to English") into the synthesis system prompt, ensuring the final answer honours the agent's identity instead of defaulting to conversational replies. Wired in both ReAct and DAG chat endpoints.
@@ -21,120 +23,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **`.content` sidecar files** — Full extracted text stored alongside uploads as sidecar files, enabling persistent content access without re-extraction.
 - **`content_length` field in file API responses** — File upload and list endpoints now include `content_length` for text content size visibility.
 - **`fileApi.getContent()` frontend client method** — New API client method for fetching paginated file content from the frontend.
-
-### Changed
-
-- **Subscription-based visibility model** — `build_visibility_filter()` simplified from 3-tier (own → org-member → subscribed) to 2-tier (own → subscribed). Data migration auto-creates `ResourceSubscription` rows for all existing org members to preserve access. Dashboard connector count and KB stats now include subscribed resources.
-- **Market API scope and category params** — `browse_market()` accepts `scope` (market or org:{id}) and `category` (solutions or components) query params. `subscribe_resource()` now validates org membership for non-market org subscriptions.
-
-- **Tool cache whitelist refactor** — Replaced hardcoded blacklist in `ToolCache` with a whitelist approach. Added `cacheable` property to `Tool` protocol (default `False`); only tools explicitly marked `cacheable=True` are cached. 11 read-only tools (web_search, kb_retrieve, calculator, etc.) marked cacheable; all side-effect tools (code exec, email, connectors) remain uncached by default. New connector tools are safe without any additional configuration.
-- **DAG executor cascade failure** — Failed or timed-out steps now cascade-block their dependents. Added `failed_ids` tracking with transitive propagation (A→B→C chains). Dependent steps are automatically marked as failed with a descriptive message instead of running with poisoned context.
-- **DAG step verifier status fix** — Step verification retry failures now correctly mark the step as `"failed"` instead of leaving it as `"completed"`. Failed verifications cascade to downstream steps via the new cascade failure mechanism.
-- **DAG planner tool descriptions** — Planner now receives `{name, description}` for each tool instead of just names, enabling more accurate step-to-tool mapping and reducing hallucinated `tool_hint` values.
-- **DAG re-planner full history** — Re-planning context now accumulates results from ALL previous rounds (not just the last one). Older rounds are more aggressively truncated (200 chars/step) while the most recent round retains 500 chars/step.
-- **stream_answer synthesis quality** — Increased tool observation truncation from 2000 to 8000 characters when synthesizing final answers, preserving more structured data (JSON tables, code output).
-- **14 engine constants parameterized** — Extracted hardcoded numeric constants to environment variables across ReAct agent, DAG planner, context guard, workspace, and system modules. All new env vars documented in `example.env` and `docs/configuration/environment-variables.mdx`.
-
-- **Evidence confidence UI enhancements** — Three improvements to the grounding pipeline's frontend display: (1) insufficient-evidence observations now render as i18n amber warning cards instead of raw English text, (2) inline `[N]` citation badges show hover Popovers with source name, quote excerpt, and relevance score via a new EvidenceContext, (3) conflict warning banner appears in the References section when evidence sources contradict each other, with expandable side-by-side comparison.
-- **Shadow Market org** — Transformed the built-in Platform org into a shadow Market org. Resources are now discovered via marketplace browsing and explicitly subscribed to (pull model) instead of auto-visible via membership (push model). Non-admin users no longer auto-join any org on registration; the Market org operates as an invisible backend entity that users interact with only through the marketplace UI.
-- **Marketplace publish with mandatory review** — Publishing to the Market org now always requires review, except for Market org owner/admins. The publish dialog shows a "Publish to Marketplace" option with a mandatory review notice.
-- **Skill and Workflow marketplace browsing** — Added Skill and Workflow resource types to the marketplace, enabling community discovery and subscription for all five resource types (agents, connectors, knowledge bases, MCP servers, skills/workflows).
-- **Market org publish endpoint bypass** — Six resource publish endpoints now skip membership checks for the Market org, allowing any user to publish resources to the marketplace without being a member.
-- **Platform-to-Market migration** — Alembic migration renames the Platform org to Market and removes all non-owner memberships, completing the transition from push-based to pull-based resource sharing.
-- **Workflow version change summaries** — `compute_blueprint_diff()` auto-generates human-readable summaries from blueprint diffs when saving new versions, describing added/removed/modified nodes and edges.
-- **Workflow run retention cleanup** — Background cleanup task that purges old workflow runs based on configurable age and count limits. Per-workflow retention overrides. Admin endpoint for manual cleanup trigger. New env vars: `WORKFLOW_RUN_MAX_AGE_DAYS`, `WORKFLOW_RUN_MAX_PER_WORKFLOW`, `WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS`.
-- **Connector circuit breaker** — Three-state circuit breaker (closed/open/half-open) with per-connector failure tracking. Detects 5xx errors and temporarily disables failing connectors. Monitoring endpoints for circuit breaker state inspection.
-- **ConnectorMetaTool (Progressive Disclosure Phase 1-2)** — Single meta-tool replaces per-action tools in the agent prompt. System prompt receives lightweight stubs (~30 tokens/connector vs ~250 tokens/action); agent calls `discover(connector)` to load full action schema on demand and `execute` to run actions. Feature flag `CONNECTOR_TOOL_MODE` for backward compatibility.
-- **Real MCP executor** — Replaced stub MCP node executor with full implementation supporting MCP server discovery and tool calling within workflow execution.
-- **Agent mid-loop self-reflection** — Lightweight goal-check prompt injected every 6 tool-call iterations in the ReAct loop (both JSON and native modes) to prevent goal drift in long reasoning chains. Asks the agent whether it is still on track, repeating actions, or should produce a final answer.
-
-### Changed
-
-- **Real BuiltinTool executor** — Replaced stub BuiltinTool node executor with real implementation using `ToolRegistry` integration for workflow execution.
-- **Semantic schema annotations** — 16 predefined semantic tags (`customer_id`, `email`, `phone`, `amount`, `date`, etc.) for connector schema fields. Each field can carry `semantic_tag`, `description`, and `pii` flags, surfaced in LLM tool descriptions so the agent understands field intent without guessing from column names.
-- **Connector import/export/fork UI** — Frontend card actions for exporting connectors as JSON, importing from file picker, and forking (clone + customize) existing connectors.
-- **Connector import/export and fork endpoints** — Backend API: `GET /api/connectors/{id}/export`, `POST /api/connectors/import`, `POST /api/connectors/{id}/fork` with sanitized credential handling to prevent secret leakage.
-- **Workflow templates system** — `WorkflowTemplate` ORM model with admin CRUD and public listing/clone endpoints. 5 seed templates auto-inserted on first startup for quick workflow bootstrapping.
-- **Workflow inline validation badges** — Real-time `ValidationBadge` on canvas nodes displaying per-node errors and warnings with descriptive tooltips, providing immediate visual feedback during blueprint editing.
-- **Workflow execution trace viewer** — Timeline-based trace viewer Sheet for inspecting completed runs. Engine `trace_level` parameter controls detail granularity; variable snapshots captured at each node for step-through debugging.
-- **Workflow per-user rate limiting and global timeout** — `WorkflowRateLimiter` with sliding-window enforcement (10 runs/min, 3 concurrent per user). Default 10-minute (600s) global run timeout applied to all workflow executions.
-- **Admin batch workflow management** — Three batch admin endpoints for workflows: batch delete, batch toggle (active/inactive), and batch publish, all with audit logging.
-- **Workflow palette enhancements** — Recently-used nodes section via `useRecentNodes` hook, search-by-description support, and empty "no results" state in the node palette.
-- **Workflow run replay overlay** — "View on Canvas" button in run history overlays past execution results on the workflow canvas, showing per-node status and output from a completed run without re-executing.
-- **Full SubWorkflow executor** — Upgraded SubWorkflow node from stub to full DB-backed nested execution. Loads target workflow from database, executes with mapped input variables, enforces configurable depth limit to prevent infinite recursion, and returns nested run outputs to the parent workflow.
-- **Admin workflows management tab** — New "Workflows" tab in the admin panel for managing all workflows across users. Features: list all workflows with owner/status/stats, toggle active/inactive, delete workflows with confirmation dialog.
-- **Workflow favorites/pinning** — Star/pin workflows to the top of the list with localStorage persistence. Favorited workflows appear first in the workflow list regardless of sort order.
-- **Workflow run history export** — Export workflow run history as JSON file download. Includes run metadata, per-node results, inputs/outputs, and timing data.
-- **Workflow test-node endpoint** — `POST /api/workflows/{id}/test-node` for isolated single-node execution with mock VariableStore, 30s timeout, START/END rejection. Frontend `TestNodeDialog` sheet with key-value variable input, env vars section, JSON result viewer. Integrated into node config panel (Test button) and editor context menu. 23 tests.
-- **Workflow version diff dialog** — Side-by-side comparison of two blueprint versions showing added/removed/modified nodes and edges. Color-coded indicators (emerald=added, destructive=removed, amber=modified). Integrated into version history sheet with "Compare" button per version.
-- **35 end-to-end lifecycle tests** — Comprehensive workflow lifecycle testing covering create, edit, validate, run, version, restore, delete flows.
-- **Workflow run stats on list and cards** — Backend batch-fetches run counts and success rates via GROUP BY subquery; frontend displays stats on workflow cards with color-coded success rate indicators.
-- **Workflow scheduler daemon** — Background async service polling every 60 seconds for due cron-based workflows. Croniter timezone support, semaphore-based concurrency control, `last_scheduled_at` tracking, and webhook delivery for scheduled run results. 14 scheduler daemon tests.
-- **Workflow import conflict resolver** — Detects unresolved agent/connector/KB/MCP references during workflow import. Batch DB queries with visibility filtering; frontend displays toast warnings for missing external dependencies. 17 import conflict resolver tests.
-- **Workflow delete-run and clear-runs endpoints** — `DELETE /api/workflows/{id}/runs/{run_id}` for individual run deletion; `DELETE /api/workflows/{id}/runs` to clear all completed runs. Frontend confirmation dialogs for both actions.
-- **56 workflow validation warning tests** — Comprehensive coverage of Phase 2 node validation warnings.
-- **137 workflow Phase 2 node executor tests** — Full test coverage for all Phase 2 node type executors.
-- **Scheduled triggers** — Cron configuration per workflow with timezone selection, default inputs, and next-run-at calculation. Frontend dialog with preset cron buttons (every 5 min / hourly / daily / weekly / monthly).
-- **Public API trigger endpoint** — Per-workflow API keys (`wf_` prefix) for external execution without user auth, with rate limiting.
-- **API key management dialog** — Generate, regenerate, and revoke workflow API keys with copy button, trigger URL display, and cURL/JavaScript usage examples.
-- **Real-time execution log viewer** — Chronological SSE event stream in the run panel with timestamps, color-coded event type badges, and filter toggles per event type.
-- **Batch run dialog** — Run workflows with multiple input sets (JSON editor), configurable parallelism (1-10), collapsible per-item results, and JSON export.
-- **30 scheduled trigger tests** — Cron validation, schema handling, and timezone support.
-- **14 batch execution tests** — Schema validation and concurrent engine execution.
-- **Workflow-level timeout** — New `workflow_timeout_ms` parameter in the engine cancels all pending/running nodes when exceeded, with bounded async wait for responsive timeout detection.
-- **Re-run with last inputs** — "Run Again" button pre-fills the input form with values from the previous run.
-- **Run history status filter** — Dropdown to filter workflow runs by Completed/Failed/Cancelled/Running.
-- **Workflow version history** — Auto-versioning on blueprint save with list/get/restore API endpoints for reverting to previous versions.
-- **Validate endpoint** — `POST /validate` for structural blueprint validation without execution.
-- **Dry-run mode** — `POST /run` with `dry_run=true` returns the execution plan as JSON without executing.
-- **13 condition branch routing tests** — Comprehensive coverage for branching, merging, nesting, and classifier routing.
-- **Per-node execution statistics panel** — New stats panel (`node-stats-panel.tsx`) showing per-node success rates, average durations, and failure counts sorted worst-first. Integrated into the workflow toolbar. New `getNodeStats` API client method and `NodeStatEntry` type for frontend consumption.
-- **Phase 3 nodes: SubWorkflow and ENV** — Two new node types with backend executors, parser validation, and 14 new tests (total: 304 → 306):
-  - **SubWorkflow**: Stub executor for nested workflow orchestration — select a target workflow and map input/output variables.
-  - **ENV**: Reads encrypted environment variables at runtime with key selection and fallback defaults.
-- **SubWorkflow and ENV frontend components** — Full frontend integration: `sub-workflow-node.tsx` and `env-node.tsx` with config forms, palette entries, minimap colors, and node type record entries across all type maps.
-- **Two new workflow templates (14 total)** — "Secure API Integration" (ENV → HTTP with auth headers) and "Sub-Workflow Orchestration" (LLM → SubWorkflow → summarize).
-- **Keyboard shortcuts dialog** — Press `?` to view all available keyboard shortcuts in a dialog overlay.
-- **Node input preview capture** — Execution events now include truncated JSON of predecessor outputs for debugging.
-- **Workflow analytics endpoint** — `GET /analytics` returns total runs, status distribution, success rate, p50/p95/p99 duration percentiles, daily trends, and most-failed nodes.
-- **Analytics dashboard panel** — Stat cards, status distribution bar, pure CSS daily chart, percentile bars, and failed nodes table with 7d/14d/30d range selector.
-- **Template gallery dialog** — Visual grid browsing of workflow templates with category filters and one-click creation.
-- **Labeled edges** — Condition and classifier branch names shown as pills on edges.
-- **Workflow variables panel** — Define, edit, and delete workflow-level variables with type/default/description.
-- **Batch execution endpoint** — `POST /batch-run` runs a workflow with up to 100 input sets concurrently, with configurable parallelism (1–10).
-- **Run comparison dialog** — Side-by-side diff of two runs showing per-node status, duration, and input differences.
-- **Webhook configuration dialog** — Set, test, and clear a webhook URL with inline validation and connectivity test.
-- **Canvas node search** — `Cmd+F` to search nodes by type, ID, and content with highlighted matches and arrow-key navigation.
-- **Node comments/annotations** — Collapsible Notes textarea in the config panel with a canvas indicator icon.
-
-### Changed
-
-- **NodeTest schema rename** — Renamed `TestNodeRequest`/`TestNodeResponse` to `NodeTestRequest`/`NodeTestResponse` to avoid pytest collection warnings.
-
-- **Run panel Results/Logs tabs** — Run panel now uses a tabbed layout (Results + Logs) for better organization of execution output and event streams.
-- **Replaced elkjs with lightweight BFS auto-layout** — Custom BFS algorithm replaces elkjs (430 kB); `/workflows/[id]` bundle reduced from 473 kB to 43 kB.
-- **Expanded workflow list sort options** — Newest, Oldest, Name A-Z, Name Z-A, Recently Updated.
-- **Workflow test suite expanded to 306 tests** — Added 14 Phase 3 tests for SubWorkflow and ENV node executors. Added per-node execution statistics tests. Total: 275 → 306.
-- **Workflow test suite expanded to 275 tests** — Added 23 advanced engine tests (retry with exponential backoff, cancellation during retry, expression evaluation, variable store helpers) in separate test file. Total: 252 → 275.
-- **Workflow test suite expanded to 252 tests** — Added HumanIntervention tests (8: auto-approve, interpolation, assignee/timeout, defaults, validation warnings) and new template tests (4: human approval pipeline, multi-step data processing, knowledge-enhanced agent, iterative review loop). Total: 240 → 252.
-- **Workflow test suite expanded to 240 tests** — Added Phase 2 validation tests (15 tests for ListOperation, Transform, Iterator, Loop, DocumentExtractor, QuestionUnderstanding, ParameterExtractor warnings) and Phase 2 template tests (5 tests for new templates). Total: 220 → 240.
-- **Workflow test suite expanded to 220 tests** — Added 20 tests for DocumentExtractor (12 tests: full_text/pages/metadata/tables modes, base64 decode, page_range parsing, URL stub error, empty input, dash delimiter) and QuestionUnderstanding (8 tests: rewrite/classify/decompose/expand modes with LLM mocking, custom system prompt, variable interpolation, missing input). Total: 200 → 220.
-- **Workflow test suite expanded to 200 tests** — Added 50 tests for ListOperation (21 tests: filter, map, sort, slice, flatten, unique, reverse, length, JSON string input, invalid types, missing config, index-in-scope, default output variable) and Transform (29 tests: json_path, type_cast all types, format template, regex_extract, string_op all variants, math_op all variants, 5-step pipeline chaining, divide-by-zero, wildcard path, unknown ops). Total: 150 → 200.
-- **Workflow test suite expanded to 150 tests** — Added 12 tests for Loop (6 tests: basic counting, max_iterations safety, zero iterations, empty condition, custom variable name, variable interpolation) and ParameterExtractor (6 tests: basic extraction, missing input, empty params, invalid JSON, variable interpolation, extraction prompt inclusion). Total: 138 → 150.
-- **Workflow test suite expanded to 138 tests** — Added 20 tests for Phase 2 Iterator (9 tests: basic list, JSON parsing, max_iterations, empty list, missing config, None-to-empty, template refs, non-list rejection, metadata) and VariableAggregator (11 tests: list/concat/merge/first_non_empty modes, edge cases for empty inputs, None skipping, unknown mode). Total: 118 → 138.
-- **Workflow test suite expanded to 118 tests** — Added 7 tests for ConditionBranch LLM mode (exact match, case-insensitive, fuzzy, no-match fallback, DEFAULT response, no-candidates, variable interpolation). Total: 111 → 118.
-- **Workflow run-mode visual feedback overhaul** — Ring-based node status styling replacing border-based approach, animated status dots with ping effect for running nodes, `useMemo`-derived `displayNodes`/`displayEdges` for clean state separation, and edge animation between completed-to-running nodes.
-- **Workflow test suite expanded to 105 tests** — Added template validation tests, import/export round-trip, variable store advanced methods, deadlock detection, multi-condition branching, question classifier, and comprehensive blueprint validation. Total: 68 → 97 → 105.
-- **Workflow test suite expanded to 68 tests** — Added 24 new tests covering eval namespace flattening (17 tests for dotted key resolution, short alias generation, ConditionBranch/VariableAssign with flat names) and blueprint validation warnings (7 tests for disconnected nodes, unreachable ends, empty conditions/prompts/code). Total workflow test count: 34 → 68.
-- **Workflow Editor Overhaul (Dify-style)** — Complete visual redesign of the workflow editor inspired by Dify:
-  - Horizontal (left-to-right) layout replacing top-to-bottom; all 12 node types use Left/Right handles
-  - Left color bar node design with compact 220px width, smaller icons, and run status badges
-  - Add-node-on-edge: custom `AddNodeEdge` with "+" midpoint button and node type picker popup that splits existing edges
-  - Richer config panel: model selector dropdown for LLM nodes, operator dropdowns (==, !=, >, <, contains, etc.) for conditions, section headers, `InsertVariableHint` and `OutputVariableField` for all output nodes
-  - Collapsible node palette (icons-only mode) with category grouping; Start/End nodes dimmed when already placed
-  - Single Start/End validation on drop; `fitViewOptions` with `maxZoom:1` to prevent oversized zoom on small graphs
-
-### Added
 
 - **Workflow Engine Node Retry** — Per-node retry with exponential backoff. Nodes can specify `retry_count` and `retry_delay_ms` in their data config. Failed nodes are retried up to N times with delay capped at 60s. Emits `node_retrying` SSE events with attempt number and previous error. Respects cancel events during retry wait.
 - **Workflow Variable Store Expression Evaluation** — Safe Python expression evaluation via simpleeval. `evaluate_expression()` method exposes store variables (excluding env) with common builtins (len, str, int, float, bool, abs, min, max, sum, round, sorted). Plus `has()`, `delete()`, `keys()` helper methods.
@@ -225,6 +113,120 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Platform Org Protection**: The Platform org cannot be deleted, and users cannot self-leave it. Ensures all users maintain connectivity to the organization hub.
 - **Publish Review UI (Frontend)**: Org-level publish review system frontend — review toggle in org edit dialog, ReviewsSheet with type/status filters and approve/reject workflow, publish status badges (pending/approved/rejected) on agent cards with tooltip for rejection notes, review notice in publish dialog when target org requires review, resubmit action for rejected resources, "Review Management" dropdown for org admin/owners. All resource types (agents, connectors, KBs, MCP servers) gain `publish_status`, `reviewed_by`, `reviewed_at`, `review_note` type fields. Full i18n (EN + ZH).
 
+### Changed
+
+- **Subscription-based visibility model** — `build_visibility_filter()` simplified from 3-tier (own → org-member → subscribed) to 2-tier (own → subscribed). Data migration auto-creates `ResourceSubscription` rows for all existing org members to preserve access. Dashboard connector count and KB stats now include subscribed resources.
+- **Market API scope and category params** — `browse_market()` accepts `scope` (market or org:{id}) and `category` (solutions or components) query params. `subscribe_resource()` now validates org membership for non-market org subscriptions.
+
+- **Tool cache whitelist refactor** — Replaced hardcoded blacklist in `ToolCache` with a whitelist approach. Added `cacheable` property to `Tool` protocol (default `False`); only tools explicitly marked `cacheable=True` are cached. 11 read-only tools (web_search, kb_retrieve, calculator, etc.) marked cacheable; all side-effect tools (code exec, email, connectors) remain uncached by default. New connector tools are safe without any additional configuration.
+- **DAG executor cascade failure** — Failed or timed-out steps now cascade-block their dependents. Added `failed_ids` tracking with transitive propagation (A→B→C chains). Dependent steps are automatically marked as failed with a descriptive message instead of running with poisoned context.
+- **DAG step verifier status fix** — Step verification retry failures now correctly mark the step as `"failed"` instead of leaving it as `"completed"`. Failed verifications cascade to downstream steps via the new cascade failure mechanism.
+- **DAG planner tool descriptions** — Planner now receives `{name, description}` for each tool instead of just names, enabling more accurate step-to-tool mapping and reducing hallucinated `tool_hint` values.
+- **DAG re-planner full history** — Re-planning context now accumulates results from ALL previous rounds (not just the last one). Older rounds are more aggressively truncated (200 chars/step) while the most recent round retains 500 chars/step.
+- **stream_answer synthesis quality** — Increased tool observation truncation from 2000 to 8000 characters when synthesizing final answers, preserving more structured data (JSON tables, code output).
+- **14 engine constants parameterized** — Extracted hardcoded numeric constants to environment variables across ReAct agent, DAG planner, context guard, workspace, and system modules. All new env vars documented in `example.env` and `docs/configuration/environment-variables.mdx`.
+
+- **Evidence confidence UI enhancements** — Three improvements to the grounding pipeline's frontend display: (1) insufficient-evidence observations now render as i18n amber warning cards instead of raw English text, (2) inline `[N]` citation badges show hover Popovers with source name, quote excerpt, and relevance score via a new EvidenceContext, (3) conflict warning banner appears in the References section when evidence sources contradict each other, with expandable side-by-side comparison.
+- **Shadow Market org** — Transformed the built-in Platform org into a shadow Market org. Resources are now discovered via marketplace browsing and explicitly subscribed to (pull model) instead of auto-visible via membership (push model). Non-admin users no longer auto-join any org on registration; the Market org operates as an invisible backend entity that users interact with only through the marketplace UI.
+- **Marketplace publish with mandatory review** — Publishing to the Market org now always requires review, except for Market org owner/admins. The publish dialog shows a "Publish to Marketplace" option with a mandatory review notice.
+- **Skill and Workflow marketplace browsing** — Added Skill and Workflow resource types to the marketplace, enabling community discovery and subscription for all five resource types (agents, connectors, knowledge bases, MCP servers, skills/workflows).
+- **Market org publish endpoint bypass** — Six resource publish endpoints now skip membership checks for the Market org, allowing any user to publish resources to the marketplace without being a member.
+- **Platform-to-Market migration** — Alembic migration renames the Platform org to Market and removes all non-owner memberships, completing the transition from push-based to pull-based resource sharing.
+- **Workflow version change summaries** — `compute_blueprint_diff()` auto-generates human-readable summaries from blueprint diffs when saving new versions, describing added/removed/modified nodes and edges.
+- **Workflow run retention cleanup** — Background cleanup task that purges old workflow runs based on configurable age and count limits. Per-workflow retention overrides. Admin endpoint for manual cleanup trigger. New env vars: `WORKFLOW_RUN_MAX_AGE_DAYS`, `WORKFLOW_RUN_MAX_PER_WORKFLOW`, `WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS`.
+- **Connector circuit breaker** — Three-state circuit breaker (closed/open/half-open) with per-connector failure tracking. Detects 5xx errors and temporarily disables failing connectors. Monitoring endpoints for circuit breaker state inspection.
+- **ConnectorMetaTool (Progressive Disclosure Phase 1-2)** — Single meta-tool replaces per-action tools in the agent prompt. System prompt receives lightweight stubs (~30 tokens/connector vs ~250 tokens/action); agent calls `discover(connector)` to load full action schema on demand and `execute` to run actions. Feature flag `CONNECTOR_TOOL_MODE` for backward compatibility.
+- **Real MCP executor** — Replaced stub MCP node executor with full implementation supporting MCP server discovery and tool calling within workflow execution.
+- **Agent mid-loop self-reflection** — Lightweight goal-check prompt injected every 6 tool-call iterations in the ReAct loop (both JSON and native modes) to prevent goal drift in long reasoning chains. Asks the agent whether it is still on track, repeating actions, or should produce a final answer.
+
+- **Real BuiltinTool executor** — Replaced stub BuiltinTool node executor with real implementation using `ToolRegistry` integration for workflow execution.
+- **Semantic schema annotations** — 16 predefined semantic tags (`customer_id`, `email`, `phone`, `amount`, `date`, etc.) for connector schema fields. Each field can carry `semantic_tag`, `description`, and `pii` flags, surfaced in LLM tool descriptions so the agent understands field intent without guessing from column names.
+- **Connector import/export/fork UI** — Frontend card actions for exporting connectors as JSON, importing from file picker, and forking (clone + customize) existing connectors.
+- **Connector import/export and fork endpoints** — Backend API: `GET /api/connectors/{id}/export`, `POST /api/connectors/import`, `POST /api/connectors/{id}/fork` with sanitized credential handling to prevent secret leakage.
+- **Workflow templates system** — `WorkflowTemplate` ORM model with admin CRUD and public listing/clone endpoints. 5 seed templates auto-inserted on first startup for quick workflow bootstrapping.
+- **Workflow inline validation badges** — Real-time `ValidationBadge` on canvas nodes displaying per-node errors and warnings with descriptive tooltips, providing immediate visual feedback during blueprint editing.
+- **Workflow execution trace viewer** — Timeline-based trace viewer Sheet for inspecting completed runs. Engine `trace_level` parameter controls detail granularity; variable snapshots captured at each node for step-through debugging.
+- **Workflow per-user rate limiting and global timeout** — `WorkflowRateLimiter` with sliding-window enforcement (10 runs/min, 3 concurrent per user). Default 10-minute (600s) global run timeout applied to all workflow executions.
+- **Admin batch workflow management** — Three batch admin endpoints for workflows: batch delete, batch toggle (active/inactive), and batch publish, all with audit logging.
+- **Workflow palette enhancements** — Recently-used nodes section via `useRecentNodes` hook, search-by-description support, and empty "no results" state in the node palette.
+- **Workflow run replay overlay** — "View on Canvas" button in run history overlays past execution results on the workflow canvas, showing per-node status and output from a completed run without re-executing.
+- **Full SubWorkflow executor** — Upgraded SubWorkflow node from stub to full DB-backed nested execution. Loads target workflow from database, executes with mapped input variables, enforces configurable depth limit to prevent infinite recursion, and returns nested run outputs to the parent workflow.
+- **Admin workflows management tab** — New "Workflows" tab in the admin panel for managing all workflows across users. Features: list all workflows with owner/status/stats, toggle active/inactive, delete workflows with confirmation dialog.
+- **Workflow favorites/pinning** — Star/pin workflows to the top of the list with localStorage persistence. Favorited workflows appear first in the workflow list regardless of sort order.
+- **Workflow run history export** — Export workflow run history as JSON file download. Includes run metadata, per-node results, inputs/outputs, and timing data.
+- **Workflow test-node endpoint** — `POST /api/workflows/{id}/test-node` for isolated single-node execution with mock VariableStore, 30s timeout, START/END rejection. Frontend `TestNodeDialog` sheet with key-value variable input, env vars section, JSON result viewer. Integrated into node config panel (Test button) and editor context menu. 23 tests.
+- **Workflow version diff dialog** — Side-by-side comparison of two blueprint versions showing added/removed/modified nodes and edges. Color-coded indicators (emerald=added, destructive=removed, amber=modified). Integrated into version history sheet with "Compare" button per version.
+- **35 end-to-end lifecycle tests** — Comprehensive workflow lifecycle testing covering create, edit, validate, run, version, restore, delete flows.
+- **Workflow run stats on list and cards** — Backend batch-fetches run counts and success rates via GROUP BY subquery; frontend displays stats on workflow cards with color-coded success rate indicators.
+- **Workflow scheduler daemon** — Background async service polling every 60 seconds for due cron-based workflows. Croniter timezone support, semaphore-based concurrency control, `last_scheduled_at` tracking, and webhook delivery for scheduled run results. 14 scheduler daemon tests.
+- **Workflow import conflict resolver** — Detects unresolved agent/connector/KB/MCP references during workflow import. Batch DB queries with visibility filtering; frontend displays toast warnings for missing external dependencies. 17 import conflict resolver tests.
+- **Workflow delete-run and clear-runs endpoints** — `DELETE /api/workflows/{id}/runs/{run_id}` for individual run deletion; `DELETE /api/workflows/{id}/runs` to clear all completed runs. Frontend confirmation dialogs for both actions.
+- **56 workflow validation warning tests** — Comprehensive coverage of Phase 2 node validation warnings.
+- **137 workflow Phase 2 node executor tests** — Full test coverage for all Phase 2 node type executors.
+- **Scheduled triggers** — Cron configuration per workflow with timezone selection, default inputs, and next-run-at calculation. Frontend dialog with preset cron buttons (every 5 min / hourly / daily / weekly / monthly).
+- **Public API trigger endpoint** — Per-workflow API keys (`wf_` prefix) for external execution without user auth, with rate limiting.
+- **API key management dialog** — Generate, regenerate, and revoke workflow API keys with copy button, trigger URL display, and cURL/JavaScript usage examples.
+- **Real-time execution log viewer** — Chronological SSE event stream in the run panel with timestamps, color-coded event type badges, and filter toggles per event type.
+- **Batch run dialog** — Run workflows with multiple input sets (JSON editor), configurable parallelism (1-10), collapsible per-item results, and JSON export.
+- **30 scheduled trigger tests** — Cron validation, schema handling, and timezone support.
+- **14 batch execution tests** — Schema validation and concurrent engine execution.
+- **Workflow-level timeout** — New `workflow_timeout_ms` parameter in the engine cancels all pending/running nodes when exceeded, with bounded async wait for responsive timeout detection.
+- **Re-run with last inputs** — "Run Again" button pre-fills the input form with values from the previous run.
+- **Run history status filter** — Dropdown to filter workflow runs by Completed/Failed/Cancelled/Running.
+- **Workflow version history** — Auto-versioning on blueprint save with list/get/restore API endpoints for reverting to previous versions.
+- **Validate endpoint** — `POST /validate` for structural blueprint validation without execution.
+- **Dry-run mode** — `POST /run` with `dry_run=true` returns the execution plan as JSON without executing.
+- **13 condition branch routing tests** — Comprehensive coverage for branching, merging, nesting, and classifier routing.
+- **Per-node execution statistics panel** — New stats panel (`node-stats-panel.tsx`) showing per-node success rates, average durations, and failure counts sorted worst-first. Integrated into the workflow toolbar. New `getNodeStats` API client method and `NodeStatEntry` type for frontend consumption.
+- **Phase 3 nodes: SubWorkflow and ENV** — Two new node types with backend executors, parser validation, and 14 new tests (total: 304 → 306):
+  - **SubWorkflow**: Stub executor for nested workflow orchestration — select a target workflow and map input/output variables.
+  - **ENV**: Reads encrypted environment variables at runtime with key selection and fallback defaults.
+- **SubWorkflow and ENV frontend components** — Full frontend integration: `sub-workflow-node.tsx` and `env-node.tsx` with config forms, palette entries, minimap colors, and node type record entries across all type maps.
+- **Two new workflow templates (14 total)** — "Secure API Integration" (ENV → HTTP with auth headers) and "Sub-Workflow Orchestration" (LLM → SubWorkflow → summarize).
+- **Keyboard shortcuts dialog** — Press `?` to view all available keyboard shortcuts in a dialog overlay.
+- **Node input preview capture** — Execution events now include truncated JSON of predecessor outputs for debugging.
+- **Workflow analytics endpoint** — `GET /analytics` returns total runs, status distribution, success rate, p50/p95/p99 duration percentiles, daily trends, and most-failed nodes.
+- **Analytics dashboard panel** — Stat cards, status distribution bar, pure CSS daily chart, percentile bars, and failed nodes table with 7d/14d/30d range selector.
+- **Template gallery dialog** — Visual grid browsing of workflow templates with category filters and one-click creation.
+- **Labeled edges** — Condition and classifier branch names shown as pills on edges.
+- **Workflow variables panel** — Define, edit, and delete workflow-level variables with type/default/description.
+- **Batch execution endpoint** — `POST /batch-run` runs a workflow with up to 100 input sets concurrently, with configurable parallelism (1–10).
+- **Run comparison dialog** — Side-by-side diff of two runs showing per-node status, duration, and input differences.
+- **Webhook configuration dialog** — Set, test, and clear a webhook URL with inline validation and connectivity test.
+- **Canvas node search** — `Cmd+F` to search nodes by type, ID, and content with highlighted matches and arrow-key navigation.
+- **Node comments/annotations** — Collapsible Notes textarea in the config panel with a canvas indicator icon.
+
+- **NodeTest schema rename** — Renamed `TestNodeRequest`/`TestNodeResponse` to `NodeTestRequest`/`NodeTestResponse` to avoid pytest collection warnings.
+
+- **Run panel Results/Logs tabs** — Run panel now uses a tabbed layout (Results + Logs) for better organization of execution output and event streams.
+- **Replaced elkjs with lightweight BFS auto-layout** — Custom BFS algorithm replaces elkjs (430 kB); `/workflows/[id]` bundle reduced from 473 kB to 43 kB.
+- **Expanded workflow list sort options** — Newest, Oldest, Name A-Z, Name Z-A, Recently Updated.
+- **Workflow test suite expanded to 306 tests** — Added 14 Phase 3 tests for SubWorkflow and ENV node executors. Added per-node execution statistics tests. Total: 275 → 306.
+- **Workflow test suite expanded to 275 tests** — Added 23 advanced engine tests (retry with exponential backoff, cancellation during retry, expression evaluation, variable store helpers) in separate test file. Total: 252 → 275.
+- **Workflow test suite expanded to 252 tests** — Added HumanIntervention tests (8: auto-approve, interpolation, assignee/timeout, defaults, validation warnings) and new template tests (4: human approval pipeline, multi-step data processing, knowledge-enhanced agent, iterative review loop). Total: 240 → 252.
+- **Workflow test suite expanded to 240 tests** — Added Phase 2 validation tests (15 tests for ListOperation, Transform, Iterator, Loop, DocumentExtractor, QuestionUnderstanding, ParameterExtractor warnings) and Phase 2 template tests (5 tests for new templates). Total: 220 → 240.
+- **Workflow test suite expanded to 220 tests** — Added 20 tests for DocumentExtractor (12 tests: full_text/pages/metadata/tables modes, base64 decode, page_range parsing, URL stub error, empty input, dash delimiter) and QuestionUnderstanding (8 tests: rewrite/classify/decompose/expand modes with LLM mocking, custom system prompt, variable interpolation, missing input). Total: 200 → 220.
+- **Workflow test suite expanded to 200 tests** — Added 50 tests for ListOperation (21 tests: filter, map, sort, slice, flatten, unique, reverse, length, JSON string input, invalid types, missing config, index-in-scope, default output variable) and Transform (29 tests: json_path, type_cast all types, format template, regex_extract, string_op all variants, math_op all variants, 5-step pipeline chaining, divide-by-zero, wildcard path, unknown ops). Total: 150 → 200.
+- **Workflow test suite expanded to 150 tests** — Added 12 tests for Loop (6 tests: basic counting, max_iterations safety, zero iterations, empty condition, custom variable name, variable interpolation) and ParameterExtractor (6 tests: basic extraction, missing input, empty params, invalid JSON, variable interpolation, extraction prompt inclusion). Total: 138 → 150.
+- **Workflow test suite expanded to 138 tests** — Added 20 tests for Phase 2 Iterator (9 tests: basic list, JSON parsing, max_iterations, empty list, missing config, None-to-empty, template refs, non-list rejection, metadata) and VariableAggregator (11 tests: list/concat/merge/first_non_empty modes, edge cases for empty inputs, None skipping, unknown mode). Total: 118 → 138.
+- **Workflow test suite expanded to 118 tests** — Added 7 tests for ConditionBranch LLM mode (exact match, case-insensitive, fuzzy, no-match fallback, DEFAULT response, no-candidates, variable interpolation). Total: 111 → 118.
+- **Workflow run-mode visual feedback overhaul** — Ring-based node status styling replacing border-based approach, animated status dots with ping effect for running nodes, `useMemo`-derived `displayNodes`/`displayEdges` for clean state separation, and edge animation between completed-to-running nodes.
+- **Workflow test suite expanded to 105 tests** — Added template validation tests, import/export round-trip, variable store advanced methods, deadlock detection, multi-condition branching, question classifier, and comprehensive blueprint validation. Total: 68 → 97 → 105.
+- **Workflow test suite expanded to 68 tests** — Added 24 new tests covering eval namespace flattening (17 tests for dotted key resolution, short alias generation, ConditionBranch/VariableAssign with flat names) and blueprint validation warnings (7 tests for disconnected nodes, unreachable ends, empty conditions/prompts/code). Total workflow test count: 34 → 68.
+- **Workflow Editor Overhaul (Dify-style)** — Complete visual redesign of the workflow editor inspired by Dify:
+  - Horizontal (left-to-right) layout replacing top-to-bottom; all 12 node types use Left/Right handles
+  - Left color bar node design with compact 220px width, smaller icons, and run status badges
+  - Add-node-on-edge: custom `AddNodeEdge` with "+" midpoint button and node type picker popup that splits existing edges
+  - Richer config panel: model selector dropdown for LLM nodes, operator dropdowns (==, !=, >, <, contains, etc.) for conditions, section headers, `InsertVariableHint` and `OutputVariableField` for all output nodes
+  - Collapsible node palette (icons-only mode) with category grouping; Start/End nodes dimmed when already placed
+  - Single Start/End validation on drop; `fitViewOptions` with `maxZoom:1` to prevent oversized zoom on small graphs
+
+- **Compact Workflow Node UI**: Reduced node width from 240px to 200px, thinner color bar, smaller icons and handles for a denser visual layout. Capped `fitView` maxZoom to 1 to prevent oversized nodes on small canvases.
+- **Visibility Simplified**: Resource visibility reduced from `personal | org | global` to `personal | org`. "Global" resources are now published to the Platform org, maintaining backwards-compatible behavior while simplifying the visibility model.
+- **Publish Interface Unified**: All 4 resource types (Agent, Connector, Knowledge Base, MCP Server) now only support `scope="org"` for publishing. No more `scope="global"` or admin-only global publishing endpoints.
+- **Auto-Platform Enrollment**: New users are automatically added to the Platform org on registration, ensuring immediate access to shared organizational resources.
+- **Admin Panel Cleanup**: Removed "Global Agents" and "Global MCP" admin tabs, as global resources are now managed through the Platform org.
+
 ### Fixed
 
 - **Template API client endpoint paths** — Updated workflow template API client to use new `/api/workflow-templates` paths, fixing broken template CRUD operations.
@@ -238,14 +240,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Dependency analyzer `skill_ids` resolution** — `_resolve_agent` now resolves `skill_ids` referenced by agents; previously skills were silently ignored during dependency analysis.
 - **Case-insensitive workflow node type matching** — Workflow node type matching in the dependency analyzer is now case-insensitive; blueprints with lowercase types (e.g. `"connector"` vs `"CONNECTOR"`) now resolve correctly.
 - **Dependency analyzer test fixtures** — Fixed 7 test failures in dependency analyzer tests caused by missing DB fixture records and incorrect dependency type assertions.
-
-### Changed
-
-- **Compact Workflow Node UI**: Reduced node width from 240px to 200px, thinner color bar, smaller icons and handles for a denser visual layout. Capped `fitView` maxZoom to 1 to prevent oversized nodes on small canvases.
-- **Visibility Simplified**: Resource visibility reduced from `personal | org | global` to `personal | org`. "Global" resources are now published to the Platform org, maintaining backwards-compatible behavior while simplifying the visibility model.
-- **Publish Interface Unified**: All 4 resource types (Agent, Connector, Knowledge Base, MCP Server) now only support `scope="org"` for publishing. No more `scope="global"` or admin-only global publishing endpoints.
-- **Auto-Platform Enrollment**: New users are automatically added to the Platform org on registration, ensuring immediate access to shared organizational resources.
-- **Admin Panel Cleanup**: Removed "Global Agents" and "Global MCP" admin tabs, as global resources are now managed through the Platform org.
 
 ### Removed
 
