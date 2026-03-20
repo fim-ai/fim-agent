@@ -37,7 +37,6 @@ export function StepDetailPanel({ state, onClose }: StepDetailPanelProps) {
               </Badge>
               <p
                 className="text-sm font-medium text-foreground/80 leading-snug line-clamp-2 hover:line-clamp-none hover:text-foreground transition-colors cursor-default"
-                title={state.task}
               >
                 {state.task}
               </p>

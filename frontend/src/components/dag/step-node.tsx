@@ -170,10 +170,9 @@ function StepNodeComponent({ data }: NodeProps) {
           <p className="text-xs text-foreground/90 line-clamp-2 leading-relaxed">
             {nodeData.task}
           </p>
-          <ToolBadges
-            tools_used={nodeData.tools_used}
-            tool_hint={nodeData.tool_hint}
-          />
+          {!nodeData.tools_used?.length && nodeData.tool_hint && (
+            <ToolBadges tool_hint={nodeData.tool_hint} />
+          )}
           {showStartTime && (
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
               <Clock className="h-2.5 w-2.5 shrink-0" />

@@ -392,7 +392,7 @@ function StepProgressCard({ state }: { state: StepState }) {
       className={`py-4 gap-3 ${cardBorderClass}`}
     >
       <CardHeader className="pb-0">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-start gap-2 min-w-0">
           <div
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${iconBgClass}`}
           >
@@ -400,24 +400,28 @@ function StepProgressCard({ state }: { state: StepState }) {
               className={`h-3.5 w-3.5 ${iconTextClass}${state.status === "running" ? " animate-spin" : ""}`}
             />
           </div>
-          <Badge
-            variant="outline"
-            className={`${badgeBorderClass} text-[10px] shrink-0`}
-          >
-            {state.step_id}
-          </Badge>
-          <span className="text-sm font-medium text-foreground truncate min-w-0">
-            {state.task}
-          </span>
-          {state.status === "completed" && state.duration != null && (
-            <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 tabular-nums">
-              <Clock className="h-2.5 w-2.5" />
-              {fmtDuration(state.duration)}
-            </span>
-          )}
-          {state.status === "running" && state.started_at != null && (
-            <ElapsedTimer startedAt={state.started_at} />
-          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`${badgeBorderClass} text-[10px] shrink-0`}
+              >
+                {state.step_id}
+              </Badge>
+              {state.status === "completed" && state.duration != null && (
+                <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 tabular-nums">
+                  <Clock className="h-2.5 w-2.5" />
+                  {fmtDuration(state.duration)}
+                </span>
+              )}
+              {state.status === "running" && state.started_at != null && (
+                <ElapsedTimer startedAt={state.started_at} />
+              )}
+            </div>
+            <p className="text-sm font-medium text-foreground mt-1">
+              {state.task}
+            </p>
+          </div>
         </div>
       </CardHeader>
 
