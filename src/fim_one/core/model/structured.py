@@ -133,6 +133,9 @@ async def _call_llm(
     """
     try:
         if level == "native_fc":
+            # Forced tool_choice is incompatible with Anthropic's thinking
+            # mode (returns 400).  Explicitly disable reasoning so native FC
+            # always has a chance to succeed.
             result = await llm.chat(
                 messages,
                 tools=[_build_tool_def(fn_name, schema)],
@@ -142,6 +145,7 @@ async def _call_llm(
                 },
                 temperature=temperature,
                 max_tokens=max_tokens,
+                reasoning_effort=None,
             )
             # Primary: extract from tool_calls
             if result.message.tool_calls:
@@ -256,6 +260,11 @@ async def structured_llm_call(
             last_content = content
 
         if data is not None:
+            logger.info(
+                "structured_llm_call: level=%s extracted data keys=%s",
+                level,
+                list(data.keys()) if isinstance(data, dict) else type(data).__name__,
+            )
             value = _transform(data, parse_fn)
             if value is not None:
                 return StructuredCallResult(
