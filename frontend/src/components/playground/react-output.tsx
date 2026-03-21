@@ -250,9 +250,10 @@ interface ReactOutputProps {
   streamingAnswer?: string
   suggestions?: string[]
   onSuggestionSelect?: (query: string) => void
+  isPostProcessing?: boolean
 }
 
-export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, onSuggestionSelect }: ReactOutputProps) {
+export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, onSuggestionSelect, isPostProcessing }: ReactOutputProps) {
   const t = useTranslations("playground")
   const { user } = useAuth()
   const userFallback = (user?.display_name || user?.email || "U").charAt(0).toUpperCase()
@@ -323,7 +324,7 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
         {(displayAnswer || isAnswerStreaming) && (
           <div data-react-idx={doneItem ? items.indexOf(doneItem) : undefined}>
             {done ? (
-              <DoneCard done={done} items={items} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} />
+              <DoneCard done={done} items={items} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} isPostProcessing={isPostProcessing} />
             ) : (
               <StreamingAnswerCard content={displayAnswer} />
             )}
@@ -372,7 +373,7 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
           const done = item.data as ReactDoneEvent
           return (
             <div key={idx} data-react-idx={idx}>
-              <DoneCard done={done} items={items} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} />
+              <DoneCard done={done} items={items} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} isPostProcessing={isPostProcessing} />
             </div>
           )
         }
@@ -487,7 +488,7 @@ function StepCard({ step, duration, displayIteration }: { step: ReactStepEvent; 
   return <IterationCard data={iterData} variant="card" defaultCollapsed={true} />
 }
 
-function DoneCard({ done, items, suggestions, onSuggestionSelect }: { done: ReactDoneEvent; items?: StepItem[]; suggestions?: string[]; onSuggestionSelect?: (query: string) => void }) {
+function DoneCard({ done, items, suggestions, onSuggestionSelect, isPostProcessing }: { done: ReactDoneEvent; items?: StepItem[]; suggestions?: string[]; onSuggestionSelect?: (query: string) => void; isPostProcessing?: boolean }) {
   const t = useTranslations("playground")
   const tDag = useTranslations("dag")
 
@@ -596,10 +597,11 @@ function DoneCard({ done, items, suggestions, onSuggestionSelect }: { done: Reac
         )}
         {items && <ReferencesSection items={items} evidence={evidence} />}
         {/* Use prop suggestions first, fall back to done.suggestions for stored conversations */}
-        {(suggestions?.length || done.suggestions?.length) && onSuggestionSelect ? (
+        {(isPostProcessing || suggestions?.length || done.suggestions?.length) && onSuggestionSelect ? (
           <SuggestedFollowups
             suggestions={suggestions?.length ? suggestions : done.suggestions!}
             onSelect={onSuggestionSelect}
+            isLoading={isPostProcessing}
           />
         ) : null}
       </CardContent>

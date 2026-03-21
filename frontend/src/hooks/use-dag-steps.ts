@@ -55,6 +55,8 @@ export interface DagStepsResult {
   suggestions: string[]
   /** Auto-generated conversation title (from async `title` event or done payload). */
   title: string | null
+  /** True when post_processing event has been received but end event has not yet arrived. */
+  isPostProcessing: boolean
 }
 
 export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStepsResult {
@@ -71,6 +73,7 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
     let answerDone = false
     let suggestions: string[] = []
     let title: string | null = null
+    let isPostProcessing = false
 
     for (const msg of messages) {
       // Handle answer events (streamed before done)
@@ -96,8 +99,14 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
         title = (msg.data as { title: string }).title
         continue
       }
+      // Track post-processing phase (between done and end)
+      if (msg.event === "post_processing") {
+        isPostProcessing = true
+        continue
+      }
       // Skip end event — it's a stream terminator, not a data event
       if (msg.event === "end") {
+        isPostProcessing = false
         continue
       }
       if (msg.event === "phase") {
@@ -285,6 +294,7 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
       answerDone,
       suggestions,
       title,
+      isPostProcessing,
     }
   }, [messages, isRunning])
 }

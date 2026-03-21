@@ -8,6 +8,9 @@ Both endpoints stream Server-Sent Events with the following event names:
 - ``compact``        – Context compaction occurred (original_messages, kept_messages).
 - ``answer``         – Streamed answer text (start / delta / done) emitted before ``done``.
 - ``done``           – Final result payload (answer complete, emitted immediately).
+- ``post_processing`` – Emitted after ``done`` to signal that auxiliary metadata
+  (suggestions, title) is being generated. The agent execution is complete and
+  the interrupt queue has been unregistered.
 - ``suggestions``    – Suggested follow-up questions (emitted after ``done``).
 - ``title``          – Auto-generated conversation title (emitted after ``done``).
 - ``end``            – Stream terminator (always the last event, NOT persisted).
@@ -2258,6 +2261,16 @@ async def react_endpoint(
             # -- Yield done IMMEDIATELY (no suggestions/title yet) ------
             yield _sse("done", done_payload)
 
+            # -- Unregister interrupt queue immediately after done ------
+            # No agent loop is consuming injected messages anymore.
+            # Unregistering causes inject API to return 404, signaling
+            # the frontend to queue messages for the next turn instead.
+            if interrupt_queue is not None and conversation_id:
+                await get_broker().unregister(conversation_id)
+                interrupt_queue = None  # prevent double-unregister in finally
+
+            yield _sse("post_processing", {})
+
             # -- Async post-answer metadata (after done, before end) ----
             async def _maybe_generate_title() -> str | None:
                 """Generate title if this is the first message."""
@@ -3086,6 +3099,16 @@ async def dag_endpoint(
 
             # -- Yield done IMMEDIATELY (no suggestions/title yet) ------
             yield _sse("done", dag_done_payload)
+
+            # -- Unregister interrupt queue immediately after done ------
+            # No agent loop is consuming injected messages anymore.
+            # Unregistering causes inject API to return 404, signaling
+            # the frontend to queue messages for the next turn instead.
+            if dag_interrupt_queue is not None and conversation_id:
+                await get_broker().unregister(conversation_id)
+                dag_interrupt_queue = None  # prevent double-unregister in finally
+
+            yield _sse("post_processing", {})
 
             # -- Async post-answer metadata (after done, before end) ----
             async def _dag_maybe_generate_title() -> str | None:

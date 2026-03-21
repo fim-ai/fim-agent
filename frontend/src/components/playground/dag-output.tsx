@@ -74,6 +74,7 @@ interface DagOutputProps {
   answerDone?: boolean
   suggestions?: string[]
   onSuggestionSelect?: (query: string) => void
+  isPostProcessing?: boolean
 }
 
 export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function DagOutput({
@@ -91,6 +92,7 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
   answerDone,
   suggestions,
   onSuggestionSelect,
+  isPostProcessing,
 }, ref) {
   const t = useTranslations("playground")
   const { user } = useAuth()
@@ -170,7 +172,7 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
         ))}
 
         {/* Done card — always visible */}
-        <DagDoneCard done={doneEvent} stepStates={stepStates} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} />
+        <DagDoneCard done={doneEvent} stepStates={stepStates} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} isPostProcessing={isPostProcessing} />
       </div>
     )
   }
@@ -241,7 +243,7 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
       {analysisPhase && <AnalysisCard phase={analysisPhase} />}
 
       {/* Done card */}
-      {doneEvent && <DagDoneCard done={doneEvent} stepStates={stepStates} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} />}
+      {doneEvent && <DagDoneCard done={doneEvent} stepStates={stepStates} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} isPostProcessing={isPostProcessing} />}
 
       {/* Streaming answer — shown before done arrives */}
       {isAnswerStreaming && displayAnswer && (
@@ -764,7 +766,7 @@ function AnalysisCard({ phase }: { phase: DagPhaseEvent }) {
   )
 }
 
-function DagDoneCard({ done, stepStates, suggestions, onSuggestionSelect }: { done: DagDoneEvent; stepStates?: StepState[]; suggestions?: string[]; onSuggestionSelect?: (query: string) => void }) {
+function DagDoneCard({ done, stepStates, suggestions, onSuggestionSelect, isPostProcessing }: { done: DagDoneEvent; stepStates?: StepState[]; suggestions?: string[]; onSuggestionSelect?: (query: string) => void; isPostProcessing?: boolean }) {
   const t = useTranslations("playground")
   const tDag = useTranslations("dag")
 
@@ -846,10 +848,11 @@ function DagDoneCard({ done, stepStates, suggestions, onSuggestionSelect }: { do
           </div>
         )}
         {/* Use prop suggestions first, fall back to done.suggestions for stored conversations */}
-        {(suggestions?.length || done.suggestions?.length) && onSuggestionSelect ? (
+        {(isPostProcessing || suggestions?.length || done.suggestions?.length) && onSuggestionSelect ? (
           <SuggestedFollowups
             suggestions={suggestions?.length ? suggestions : done.suggestions!}
             onSelect={onSuggestionSelect}
+            isLoading={isPostProcessing}
           />
         ) : null}
       </CardContent>

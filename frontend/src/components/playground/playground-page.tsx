@@ -130,6 +130,17 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
   const { messages, isRunning, isError, start, reset, abort } = useSSE()
   const [injectedMessages, setInjectedMessages] = useState<{id?: string; content: string; ts: number}[]>([])
   const failedInjectRef = useRef<string | null>(null)
+  const pendingNextTurnRef = useRef<string | null>(null)
+
+  // Detect post-processing phase directly from SSE messages
+  const isPostProcessing = useMemo(() => {
+    let postProcessing = false
+    for (const msg of messages) {
+      if (msg.event === "post_processing") postProcessing = true
+      if (msg.event === "end") postProcessing = false
+    }
+    return postProcessing
+  }, [messages])
 
   // Read agent param from URL for quick chat link
   const agentParam = isNewChat ? searchParams.get("agent") : null
@@ -251,6 +262,14 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
         animateTitle(activeId, doneTitle)
       }
       onTurnComplete?.()
+      // Auto-send message that was queued during post-processing
+      const nextTurn = pendingNextTurnRef.current
+      if (nextTurn) {
+        pendingNextTurnRef.current = null
+        // Use setTimeout to let React flush state updates before starting new SSE
+        setTimeout(() => runWithQuery(nextTurn), 0)
+        return // skip the failedInject restore — nextTurn takes priority
+      }
       // Restore failed inject content to input box for user to re-send
       const queued = failedInjectRef.current
       if (queued) {
@@ -270,6 +289,14 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
 
       // INJECT MODE: during active execution, inject message
       if (isRunning && activeId) {
+        // During post-processing, the agent is done — don't inject,
+        // queue message for the next turn instead.
+        if (isPostProcessing) {
+          setQuery("")
+          pendingNextTurnRef.current = trimmed
+          setPendingQuery(trimmed)
+          return
+        }
         setQuery("")
         const ts = Date.now()
         setInjectedMessages(prev => [...prev, { content: trimmed, ts }])
@@ -332,7 +359,7 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
       start(url, { body, onError: (err) => toast.error(getErrorMessage(err, tError)) })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isRunning, mode, start, activeId, createConversation, selectConversation, selectedAgent, setInjectedMessages],
+    [isRunning, mode, start, activeId, createConversation, selectConversation, selectedAgent, setInjectedMessages, isPostProcessing],
   )
 
   const handleExampleSelect = useCallback(
@@ -393,6 +420,7 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
         isNewChat={isNewChat}
         initialAgentId={initialAgentId ?? agentParam}
         embedded={embedded}
+        isPostProcessing={isPostProcessing}
       />
 
     </div>
@@ -586,6 +614,7 @@ interface PlaygroundContentProps {
   isNewChat?: boolean
   initialAgentId?: string | null
   embedded?: boolean
+  isPostProcessing?: boolean
 }
 
 function PlaygroundContent({
@@ -610,6 +639,7 @@ function PlaygroundContent({
   isNewChat,
   initialAgentId,
   embedded,
+  isPostProcessing,
 }: PlaygroundContentProps) {
   const t = useTranslations("playground")
   const tError = useTranslations("errors")
@@ -1304,7 +1334,7 @@ function PlaygroundContent({
   return (
     <>
     <div
-      className="relative flex flex-1 flex-col overflow-hidden p-6 gap-4"
+      className="relative flex flex-1 flex-col overflow-hidden px-6 pb-6 pt-0 gap-4"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -1317,16 +1347,16 @@ function PlaygroundContent({
           {/* Main content */}
           <div
             className={cn(
-              "flex flex-col min-h-0 rounded-lg border border-border/50 bg-muted/10 overflow-hidden",
+              "flex flex-col min-h-0 overflow-hidden",
               !isDragging && "transition-all duration-300",
               !showSidebar && "flex-1 min-w-0"
             )}
             style={showSidebar ? { flex: `${1 - currentRatio} 1 0%`, minWidth: 0 } : undefined}
           >
             {/* Output header bar */}
-            <div className="flex items-center shrink-0 px-4 py-3 border-b border-border/30 gap-1">
-              <span className="text-xs font-medium">
-                {hasLiveMessages || pendingQuery || hasRichHistory ? t("executionLog") : t("history")}
+            <div className="flex items-center shrink-0 px-4 py-2.5 border-b border-border/30 gap-1">
+              <span className="text-sm font-medium truncate max-w-[300px]">
+                {activeConversation?.title || t("newChat")}
               </span>
               {statusText && (
                 <span className="flex items-center gap-1.5 ml-3 text-xs text-muted-foreground">
@@ -1375,7 +1405,7 @@ function PlaygroundContent({
 
             <div className="relative flex-1 min-h-0">
               <ScrollArea ref={scrollAreaRef} className="h-full p-4">
-                <div className="min-w-0 max-w-full space-y-4">
+                <div className="min-w-0 max-w-4xl mx-auto w-full space-y-4">
                   {/* Previous turns from DB (shown during both live and history mode) */}
                   {allHistoryTurns?.map((turn, idx) => {
                     const historyCompact = turn.sseMessages.find((m) => m.event === "compact")
@@ -1434,7 +1464,7 @@ function PlaygroundContent({
                   {(hasLiveMessages || (isRunning && pendingQuery && resolvedLiveMode === "react")) && (
                     <div data-live-output>
                       {resolvedLiveMode === "react" ? (
-                        <ReactOutput key={activeConversation?.id ?? "new"} items={reactItems} isStreaming={isRunning && modeMatches} streamingAnswer={reactStreamingAnswer} suggestions={reactSuggestions} onSuggestionSelect={handleSuggestionSelect} />
+                        <ReactOutput key={activeConversation?.id ?? "new"} items={reactItems} isStreaming={isRunning && modeMatches} streamingAnswer={reactStreamingAnswer} suggestions={reactSuggestions} onSuggestionSelect={handleSuggestionSelect} isPostProcessing={isPostProcessing} />
                       ) : (
                         <DagOutput
                           key={activeConversation?.id ?? "new"}
@@ -1452,6 +1482,7 @@ function PlaygroundContent({
                           suggestions={dagData.suggestions}
                           hideDagGraph
                           onSuggestionSelect={handleSuggestionSelect}
+                          isPostProcessing={isPostProcessing}
                         />
                       )}
                     </div>
@@ -1561,7 +1592,7 @@ function PlaygroundContent({
       )}
 
       {/* Input area -- pinned to bottom */}
-      <div className="shrink-0 space-y-2">
+      <div className="shrink-0 space-y-2 max-w-4xl mx-auto w-full">
         {/* Pending files (uploading eagerly) */}
         {pendingFiles.length > 0 && (
           <div className="flex flex-wrap gap-2 pb-2">
