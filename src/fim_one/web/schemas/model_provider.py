@@ -182,3 +182,80 @@ class ActiveConfigResponse(BaseModel):
     active_group: dict | None  # { id, name } or null
     effective: dict[str, EffectiveModelInfo]  # keys: general, fast, reasoning
     env_fallback: EnvFallbackInfoV2
+
+
+# ---------------------------------------------------------------------------
+# Model Config Import / Export schemas
+# ---------------------------------------------------------------------------
+
+
+class ModelExportData(BaseModel):
+    """A single model entry in the export payload."""
+
+    name: str
+    model_name: str
+    temperature: float | None = None
+    max_output_tokens: int | None = None
+    context_size: int | None = None
+    json_mode_enabled: bool = True
+    is_active: bool = True
+
+
+class ProviderExportData(BaseModel):
+    """A provider with its models in the export payload."""
+
+    name: str
+    base_url: str | None = None
+    api_key: None = None  # NEVER export secrets
+    is_active: bool = True
+    models: list[ModelExportData] = []
+
+
+class GroupModelRef(BaseModel):
+    """Portable reference to a model by provider name + model_name."""
+
+    provider: str
+    model_name: str
+
+
+class GroupExportData(BaseModel):
+    """A model group in the export payload."""
+
+    name: str
+    description: str | None = None
+    general_model: GroupModelRef | None = None
+    fast_model: GroupModelRef | None = None
+    reasoning_model: GroupModelRef | None = None
+    is_active: bool = False
+
+
+class ModelConfigExportEnvelope(BaseModel):
+    """The inner envelope for model config export."""
+
+    exported_at: str
+    providers: list[ProviderExportData]
+    groups: list[GroupExportData]
+
+
+class ModelConfigExportResponse(BaseModel):
+    """Top-level export wrapper with versioned key."""
+
+    fim_model_config_v1: ModelConfigExportEnvelope
+
+
+class ModelConfigImportRequest(BaseModel):
+    """Request body for model config import."""
+
+    fim_model_config_v1: ModelConfigExportEnvelope
+    api_keys: dict[str, str] = Field(
+        default_factory=dict,
+        description="Optional mapping of provider name -> API key",
+    )
+
+
+class ModelConfigImportSummary(BaseModel):
+    """Summary of import results."""
+
+    created: dict[str, int]  # { providers, models, groups }
+    skipped: dict[str, int]  # { providers, models, groups }
+    warnings: list[str] = []

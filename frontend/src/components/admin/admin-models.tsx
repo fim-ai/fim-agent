@@ -68,6 +68,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { cn } from "@/lib/utils"
 import { adminApi } from "@/lib/api"
 import { getErrorMessage } from "@/lib/error-utils"
 import type {
@@ -125,6 +126,15 @@ function EffectiveSlotCard({ role, modelName, providerName, source }: EffectiveS
 // Provider Form Dialog
 // ============================================================
 
+const PROVIDER_PRESETS = [
+  { id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1" },
+  { id: "anthropic", name: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
+  { id: "gemini", name: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta" },
+  { id: "deepseek", name: "DeepSeek", baseUrl: "https://api.deepseek.com/v1" },
+  { id: "mistral", name: "Mistral AI", baseUrl: "https://api.mistral.ai/v1" },
+  { id: "openai-compatible", name: null, baseUrl: null },
+] as const
+
 interface ProviderFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -138,6 +148,7 @@ function ProviderFormDialog({ open, onOpenChange, provider, onSuccess }: Provide
   const tc = useTranslations("common")
   const tError = useTranslations("errors")
 
+  const [preset, setPreset] = useState<string>("openai-compatible")
   const [name, setName] = useState("")
   const [baseUrl, setBaseUrl] = useState("")
   const [apiKey, setApiKey] = useState("")
@@ -154,6 +165,7 @@ function ProviderFormDialog({ open, onOpenChange, provider, onSuccess }: Provide
         setApiKey("")
         setIsActive(provider.is_active)
       } else {
+        setPreset("openai-compatible")
         setName("")
         setBaseUrl("")
         setApiKey("")
@@ -239,6 +251,39 @@ function ProviderFormDialog({ open, onOpenChange, provider, onSuccess }: Provide
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
             <div className="space-y-4 py-2">
+              {!isEdit && (
+                <div className="space-y-1.5">
+                  <Label>{t("providerPreset")}</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PROVIDER_PRESETS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                          preset === p.id
+                            ? "border-transparent bg-primary text-primary-foreground"
+                            : "border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                        onClick={() => {
+                          setPreset(p.id)
+                          if (p.name) {
+                            setName(p.name)
+                            setBaseUrl(p.baseUrl!)
+                          } else {
+                            setName("")
+                            setBaseUrl("")
+                          }
+                          setFieldErrors({})
+                        }}
+                      >
+                        {p.name ?? t("presetCustom")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="pf-name">
                   {t("providerName")} <span className="text-destructive">*</span>
@@ -263,7 +308,7 @@ function ProviderFormDialog({ open, onOpenChange, provider, onSuccess }: Provide
                 </Label>
                 <Input
                   id="pf-base-url"
-                  placeholder="https://api.openai.com/v1"
+                  placeholder={t("baseUrlPlaceholder")}
                   value={baseUrl}
                   onChange={(e) => {
                     setBaseUrl(e.target.value)

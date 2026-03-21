@@ -29,7 +29,7 @@ from fim_one.db import get_session
 from fim_one.web.auth import get_current_admin, hash_password
 from fim_one.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, ModelConfig, Organization, SystemSetting, User
 from fim_one.web.models.review_log import ReviewLog
-from fim_one.web.schemas.common import PaginatedResponse
+from fim_one.web.schemas.common import ApiResponse, PaginatedResponse
 from fim_one.web.schemas.model_config import ModelConfigResponse
 
 # ---------------------------------------------------------------------------
@@ -2256,11 +2256,19 @@ from fim_one.web.schemas.model_provider import (
     EffectiveModelInfo,
     EnvFallbackInfoV2,
     GroupCreate,
+    GroupExportData,
     GroupListResponse,
+    GroupModelRef,
     GroupResponse,
     GroupUpdate,
+    ModelConfigExportEnvelope,
+    ModelConfigExportResponse,
+    ModelConfigImportRequest,
+    ModelConfigImportSummary,
+    ModelExportData,
     ModelSlotInfo,
     ProviderCreate,
+    ProviderExportData,
     ProviderListResponse,
     ProviderModelCreate,
     ProviderModelFullResponse,
@@ -2867,6 +2875,256 @@ async def admin_get_active_config(
         effective=effective,
         env_fallback=env_fallback,
     )
+
+
+# -- Model Config Export / Import ----------------------------------------------
+
+
+@router.get("/model-config/export")
+async def admin_export_model_config(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> StreamingResponse:
+    """Export all model providers, models, and groups as a portable JSON file.
+
+    API keys are always stripped (set to null) for security. The exported
+    file can be re-imported into any FIM One instance.
+    """
+    from datetime import UTC, datetime
+
+    # Fetch providers (models are selectin-loaded automatically)
+    result = await db.execute(
+        select(ModelProvider).order_by(ModelProvider.created_at.asc())
+    )
+    providers = result.scalars().unique().all()
+
+    # Fetch groups (model relationships are selectin-loaded automatically)
+    result = await db.execute(
+        select(ModelGroup).order_by(ModelGroup.created_at.asc())
+    )
+    groups = result.scalars().unique().all()
+
+    # Build provider export data
+    providers_data: list[ProviderExportData] = []
+    for p in providers:
+        models_data = [
+            ModelExportData(
+                name=m.name,
+                model_name=m.model_name,
+                temperature=m.temperature,
+                max_output_tokens=m.max_output_tokens,
+                context_size=m.context_size,
+                json_mode_enabled=m.json_mode_enabled,
+                is_active=m.is_active,
+            )
+            for m in (p.models or [])
+        ]
+        providers_data.append(
+            ProviderExportData(
+                name=p.name,
+                base_url=p.base_url,
+                api_key=None,
+                is_active=p.is_active,
+                models=models_data,
+            )
+        )
+
+    # Build group export data — resolve FKs to portable references
+    def _model_ref(model: ModelProviderModel | None) -> GroupModelRef | None:
+        if model is None:
+            return None
+        provider_name = model.provider.name if model.provider else "Unknown"
+        return GroupModelRef(provider=provider_name, model_name=model.model_name)
+
+    groups_data: list[GroupExportData] = [
+        GroupExportData(
+            name=g.name,
+            description=g.description,
+            general_model=_model_ref(g.general_model),
+            fast_model=_model_ref(g.fast_model),
+            reasoning_model=_model_ref(g.reasoning_model),
+            is_active=g.is_active,
+        )
+        for g in groups
+    ]
+
+    export_payload = ModelConfigExportResponse(
+        fim_model_config_v1=ModelConfigExportEnvelope(
+            exported_at=datetime.now(UTC).isoformat(),
+            providers=providers_data,
+            groups=groups_data,
+        )
+    )
+
+    content = json.dumps(export_payload.model_dump(), indent=2, ensure_ascii=False)
+    today = date.today().isoformat()
+    await write_audit(
+        db,
+        current_user,
+        "model_config.export",
+        target_type="model_config",
+        detail=f"providers={len(providers_data)}, groups={len(groups_data)}",
+    )
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="model-config-{today}.json"',
+        },
+    )
+
+
+@router.post("/model-config/import", response_model=ApiResponse)
+async def admin_import_model_config(
+    body: ModelConfigImportRequest,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ApiResponse:
+    """Import model providers, models, and groups from an exported JSON payload.
+
+    Merge mode: skip existing entries (matched by name), create only new ones.
+    Optionally supply ``api_keys`` mapping provider names to API key strings.
+    """
+    data = body.fim_model_config_v1
+    api_keys = body.api_keys
+
+    created = {"providers": 0, "models": 0, "groups": 0}
+    skipped = {"providers": 0, "models": 0, "groups": 0}
+    warnings: list[str] = []
+
+    # -- Phase 1: Providers & Models ------------------------------------------
+
+    # Load existing providers keyed by name for dedup
+    result = await db.execute(select(ModelProvider))
+    existing_providers = {p.name: p for p in result.scalars().unique().all()}
+
+    for prov_data in data.providers:
+        if prov_data.name in existing_providers:
+            skipped["providers"] += 1
+            provider = existing_providers[prov_data.name]
+        else:
+            provider = ModelProvider(
+                name=prov_data.name,
+                base_url=prov_data.base_url,
+                api_key=api_keys.get(prov_data.name),
+                is_active=prov_data.is_active,
+            )
+            db.add(provider)
+            await db.flush()  # get provider.id
+            existing_providers[prov_data.name] = provider
+            created["providers"] += 1
+
+        # Process models for this provider
+        # Build set of existing model_names under this provider
+        existing_model_names: set[str] = set()
+        for m in (provider.models or []):
+            existing_model_names.add(m.model_name)
+
+        for model_data in prov_data.models:
+            if model_data.model_name in existing_model_names:
+                skipped["models"] += 1
+            else:
+                model = ModelProviderModel(
+                    provider_id=provider.id,
+                    name=model_data.name,
+                    model_name=model_data.model_name,
+                    temperature=model_data.temperature,
+                    max_output_tokens=model_data.max_output_tokens,
+                    context_size=model_data.context_size,
+                    json_mode_enabled=model_data.json_mode_enabled,
+                    is_active=model_data.is_active,
+                )
+                db.add(model)
+                created["models"] += 1
+
+    # Flush to get all model IDs assigned
+    await db.flush()
+
+    # -- Phase 2: Groups ------------------------------------------------------
+
+    # Reload all models for FK resolution (need fresh data including newly created)
+    result = await db.execute(select(ModelProviderModel))
+    all_models = result.scalars().unique().all()
+
+    # Build lookup: (provider_name, model_name) -> model.id
+    model_lookup: dict[tuple[str, str], str] = {}
+    for m in all_models:
+        prov = existing_providers.get(m.provider_id)
+        # provider_id is a UUID string; look up by iterating
+        provider_name: str | None = None
+        for pn, po in existing_providers.items():
+            if po.id == m.provider_id:
+                provider_name = pn
+                break
+        if provider_name:
+            model_lookup[(provider_name, m.model_name)] = m.id
+
+    # Load existing groups keyed by name
+    result = await db.execute(select(ModelGroup))
+    existing_groups = {g.name: g for g in result.scalars().unique().all()}
+
+    def _resolve_model_ref(
+        ref: GroupModelRef | None, slot_name: str, group_name: str
+    ) -> str | None:
+        """Resolve a portable model reference to a DB model ID."""
+        if ref is None:
+            return None
+        key = (ref.provider, ref.model_name)
+        model_id = model_lookup.get(key)
+        if model_id is None:
+            warnings.append(
+                f"Group '{group_name}' {slot_name}: "
+                f"model '{ref.provider}/{ref.model_name}' not found, set to null"
+            )
+            return None
+        return model_id
+
+    for group_data in data.groups:
+        if group_data.name in existing_groups:
+            skipped["groups"] += 1
+            continue
+
+        general_id = _resolve_model_ref(
+            group_data.general_model, "general_model", group_data.name
+        )
+        fast_id = _resolve_model_ref(
+            group_data.fast_model, "fast_model", group_data.name
+        )
+        reasoning_id = _resolve_model_ref(
+            group_data.reasoning_model, "reasoning_model", group_data.name
+        )
+
+        group = ModelGroup(
+            name=group_data.name,
+            description=group_data.description,
+            general_model_id=general_id,
+            fast_model_id=fast_id,
+            reasoning_model_id=reasoning_id,
+            is_active=False,  # Never auto-activate imported groups
+        )
+        db.add(group)
+        created["groups"] += 1
+
+    await db.commit()
+    _invalidate_model_group_cache()
+
+    await write_audit(
+        db,
+        current_user,
+        "model_config.import",
+        target_type="model_config",
+        detail=(
+            f"created: {created['providers']}p/{created['models']}m/{created['groups']}g, "
+            f"skipped: {skipped['providers']}p/{skipped['models']}m/{skipped['groups']}g"
+        ),
+    )
+
+    summary = ModelConfigImportSummary(
+        created=created,
+        skipped=skipped,
+        warnings=warnings,
+    )
+    return ApiResponse(data=summary.model_dump())
 
 
 # -- Model group cache invalidation (used by deps.py) -------------------------
