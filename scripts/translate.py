@@ -899,10 +899,13 @@ def all_en_mdx_files() -> list[Path]:
 
 
 def sync_docs_navigation() -> bool:
-    """Sync docs.json navigation: ensure every locale mirrors the EN page list.
+    """Sync docs.json navigation: ensure every locale mirrors the EN tab/group/page structure.
 
-    For each EN page entry (e.g. "faq"), checks that "{locale}/faq" exists in the
-    corresponding locale group. Missing entries are inserted at the same position.
+    - Tabs and groups are matched by index. Missing locale tabs/groups are created
+      from the EN template (using EN names as fallback until the next LLM pass).
+    - String page entries are prefixed with the locale code (e.g. "faq" → "zh/faq").
+    - Dict page entries (e.g. {"openapi": "POST /api/react"}) are copied as-is
+      since they reference auto-generated content that doesn't need locale prefixes.
 
     Returns True if docs.json was modified.
     """
@@ -937,43 +940,81 @@ def sync_docs_navigation() -> bool:
 
     for locale, locale_lang in locale_blocks:
         locale_tabs = locale_lang.get("tabs", [])
-        # Match tabs by index (EN and locale tabs are in the same order)
+
+        # ── Structural alignment: ensure same number of tabs ──
+        while len(locale_tabs) < len(en_tabs):
+            en_tab = en_tabs[len(locale_tabs)]
+            locale_tabs.append({"tab": en_tab.get("tab", ""), "groups": []})
+            tprint(f"  [docs.json] {locale}: adding missing tab '{en_tab.get('tab', '')}'")
+            modified = True
+
+        if len(locale_tabs) > len(en_tabs):
+            locale_tabs[:] = locale_tabs[: len(en_tabs)]
+            tprint(f"  [docs.json] {locale}: trimmed extra tabs")
+            modified = True
+
+        locale_lang["tabs"] = locale_tabs
+
         for tab_idx, en_tab in enumerate(en_tabs):
-            if tab_idx >= len(locale_tabs):
-                break
             en_groups = en_tab.get("groups", [])
             locale_groups = locale_tabs[tab_idx].get("groups", [])
+
+            # ── Structural alignment: ensure same number of groups per tab ──
+            while len(locale_groups) < len(en_groups):
+                en_group = en_groups[len(locale_groups)]
+                new_group: dict[str, Any] = {
+                    "group": en_group.get("group", ""),
+                    "pages": [],
+                }
+                if "icon" in en_group:
+                    new_group["icon"] = en_group["icon"]
+                locale_groups.append(new_group)
+                tprint(
+                    f"  [docs.json] {locale}: adding missing group "
+                    f"'{en_group.get('group', '')}' in tab '{locale_tabs[tab_idx].get('tab', '')}'"
+                )
+                modified = True
+
+            if len(locale_groups) > len(en_groups):
+                locale_groups[:] = locale_groups[: len(en_groups)]
+                tprint(
+                    f"  [docs.json] {locale}: trimmed extra groups in "
+                    f"tab '{locale_tabs[tab_idx].get('tab', '')}'"
+                )
+                modified = True
+
+            locale_tabs[tab_idx]["groups"] = locale_groups
+
+            # ── Page alignment within each group ──
             for group_idx, en_group in enumerate(en_groups):
-                if group_idx >= len(locale_groups):
-                    break
                 en_pages = en_group.get("pages", [])
                 locale_pages = locale_groups[group_idx].get("pages", [])
-                locale_page_set = set(locale_pages)
 
                 # Build expected locale pages from EN pages
-                new_pages: list[str] = []
+                new_pages: list = []
                 for en_page in en_pages:
-                    locale_page = f"{locale}/{en_page}"
-                    new_pages.append(locale_page)
-                    if locale_page not in locale_page_set:
-                        tprint(f"  [docs.json] {locale}: adding missing page '{locale_page}'")
-                        modified = True
-
-                # Also detect extra pages in locale that are no longer in EN
-                en_page_set = {f"{locale}/{p}" for p in en_pages}
-                for lp in locale_pages:
-                    if lp not in en_page_set:
-                        tprint(f"  [docs.json] {locale}: removing stale page '{lp}'")
-                        modified = True
+                    if isinstance(en_page, dict):
+                        # OpenAPI / special entries: copy as-is (no locale prefix)
+                        new_pages.append(en_page)
+                    else:
+                        new_pages.append(f"{locale}/{en_page}")
 
                 if new_pages != locale_pages:
+                    # Log additions / removals (only for string entries)
+                    old_strs = {p for p in locale_pages if isinstance(p, str)}
+                    new_strs = {p for p in new_pages if isinstance(p, str)}
+                    for p in sorted(new_strs - old_strs):
+                        tprint(f"  [docs.json] {locale}: adding missing page '{p}'")
+                    for p in sorted(old_strs - new_strs):
+                        tprint(f"  [docs.json] {locale}: removing stale page '{p}'")
                     locale_groups[group_idx]["pages"] = new_pages
+                    modified = True
 
     if modified:
         docs_json_path.write_text(
             json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
-        tprint(f"  [docs.json] navigation synced")
+        tprint("  [docs.json] navigation synced")
 
     return modified
 

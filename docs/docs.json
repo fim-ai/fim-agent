@@ -300,24 +300,112 @@
             ]
           },
           {
+            "tab": "API 参考",
+            "groups": [
+              {
+                "group": "入门指南",
+                "pages": [
+                  "zh/api/overview",
+                  "zh/api/authentication"
+                ],
+                "icon": "key"
+              },
+              {
+                "group": "对话",
+                "pages": [
+                  {
+                    "openapi": "POST /api/react"
+                  },
+                  {
+                    "openapi": "POST /api/dag"
+                  },
+                  {
+                    "openapi": "POST /api/chat/inject"
+                  }
+                ],
+                "icon": "message-bot"
+              },
+              {
+                "group": "会话",
+                "pages": [
+                  {
+                    "openapi": "GET /api/conversations"
+                  },
+                  {
+                    "openapi": "GET /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "POST /api/conversations"
+                  },
+                  {
+                    "openapi": "PATCH /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "DELETE /api/conversations/{conversation_id}"
+                  }
+                ],
+                "icon": "messages"
+              },
+              {
+                "group": "知识库",
+                "pages": [
+                  {
+                    "openapi": "GET /api/knowledge-bases"
+                  },
+                  {
+                    "openapi": "POST /api/knowledge-bases/{kb_id}/retrieve"
+                  }
+                ],
+                "icon": "book"
+              },
+              {
+                "group": "智能体",
+                "pages": [
+                  {
+                    "openapi": "GET /api/agents"
+                  },
+                  {
+                    "openapi": "GET /api/agents/{agent_id}"
+                  }
+                ],
+                "icon": "robot"
+              },
+              {
+                "group": "API 密钥",
+                "pages": [
+                  {
+                    "openapi": "GET /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "POST /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "PATCH /api/me/api-keys/{key_id}/active"
+                  },
+                  {
+                    "openapi": "DELETE /api/me/api-keys/{key_id}"
+                  }
+                ],
+                "icon": "key"
+              }
+            ]
+          },
+          {
             "tab": "项目动态",
             "groups": [
               {
                 "group": "路线图",
-                "icon": "map",
                 "pages": [
-                  "zh/api/overview",
-                  "zh/api/authentication"
-                ]
+                  "zh/roadmap"
+                ],
+                "icon": "map"
               },
               {
                 "group": "变更日志",
-                "icon": "clock-rotate-left",
                 "pages": [
-                  "zh/{'openapi': 'POST /api/react'}",
-                  "zh/{'openapi': 'POST /api/dag'}",
-                  "zh/{'openapi': 'POST /api/chat/inject'}"
-                ]
+                  "zh/changelog"
+                ],
+                "icon": "clock-rotate-left"
               }
             ]
           }
@@ -408,24 +496,112 @@
             ]
           },
           {
+            "tab": "API リファレンス",
+            "groups": [
+              {
+                "group": "はじめに",
+                "pages": [
+                  "ja/api/overview",
+                  "ja/api/authentication"
+                ],
+                "icon": "key"
+              },
+              {
+                "group": "チャット",
+                "pages": [
+                  {
+                    "openapi": "POST /api/react"
+                  },
+                  {
+                    "openapi": "POST /api/dag"
+                  },
+                  {
+                    "openapi": "POST /api/chat/inject"
+                  }
+                ],
+                "icon": "message-bot"
+              },
+              {
+                "group": "会話",
+                "pages": [
+                  {
+                    "openapi": "GET /api/conversations"
+                  },
+                  {
+                    "openapi": "GET /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "POST /api/conversations"
+                  },
+                  {
+                    "openapi": "PATCH /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "DELETE /api/conversations/{conversation_id}"
+                  }
+                ],
+                "icon": "messages"
+              },
+              {
+                "group": "ナレッジベース",
+                "pages": [
+                  {
+                    "openapi": "GET /api/knowledge-bases"
+                  },
+                  {
+                    "openapi": "POST /api/knowledge-bases/{kb_id}/retrieve"
+                  }
+                ],
+                "icon": "book"
+              },
+              {
+                "group": "エージェント",
+                "pages": [
+                  {
+                    "openapi": "GET /api/agents"
+                  },
+                  {
+                    "openapi": "GET /api/agents/{agent_id}"
+                  }
+                ],
+                "icon": "robot"
+              },
+              {
+                "group": "API キー",
+                "pages": [
+                  {
+                    "openapi": "GET /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "POST /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "PATCH /api/me/api-keys/{key_id}/active"
+                  },
+                  {
+                    "openapi": "DELETE /api/me/api-keys/{key_id}"
+                  }
+                ],
+                "icon": "key"
+              }
+            ]
+          },
+          {
             "tab": "更新情報",
             "groups": [
               {
                 "group": "ロードマップ",
-                "icon": "map",
                 "pages": [
-                  "ja/api/overview",
-                  "ja/api/authentication"
-                ]
+                  "ja/roadmap"
+                ],
+                "icon": "map"
               },
               {
                 "group": "変更履歴",
-                "icon": "clock-rotate-left",
                 "pages": [
-                  "ja/{'openapi': 'POST /api/react'}",
-                  "ja/{'openapi': 'POST /api/dag'}",
-                  "ja/{'openapi': 'POST /api/chat/inject'}"
-                ]
+                  "ja/changelog"
+                ],
+                "icon": "clock-rotate-left"
               }
             ]
           }
@@ -516,24 +692,112 @@
             ]
           },
           {
+            "tab": "API 참조",
+            "groups": [
+              {
+                "group": "시작하기",
+                "pages": [
+                  "ko/api/overview",
+                  "ko/api/authentication"
+                ],
+                "icon": "key"
+              },
+              {
+                "group": "채팅",
+                "pages": [
+                  {
+                    "openapi": "POST /api/react"
+                  },
+                  {
+                    "openapi": "POST /api/dag"
+                  },
+                  {
+                    "openapi": "POST /api/chat/inject"
+                  }
+                ],
+                "icon": "message-bot"
+              },
+              {
+                "group": "대화",
+                "pages": [
+                  {
+                    "openapi": "GET /api/conversations"
+                  },
+                  {
+                    "openapi": "GET /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "POST /api/conversations"
+                  },
+                  {
+                    "openapi": "PATCH /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "DELETE /api/conversations/{conversation_id}"
+                  }
+                ],
+                "icon": "messages"
+              },
+              {
+                "group": "지식 베이스",
+                "pages": [
+                  {
+                    "openapi": "GET /api/knowledge-bases"
+                  },
+                  {
+                    "openapi": "POST /api/knowledge-bases/{kb_id}/retrieve"
+                  }
+                ],
+                "icon": "book"
+              },
+              {
+                "group": "에이전트",
+                "pages": [
+                  {
+                    "openapi": "GET /api/agents"
+                  },
+                  {
+                    "openapi": "GET /api/agents/{agent_id}"
+                  }
+                ],
+                "icon": "robot"
+              },
+              {
+                "group": "API 키",
+                "pages": [
+                  {
+                    "openapi": "GET /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "POST /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "PATCH /api/me/api-keys/{key_id}/active"
+                  },
+                  {
+                    "openapi": "DELETE /api/me/api-keys/{key_id}"
+                  }
+                ],
+                "icon": "key"
+              }
+            ]
+          },
+          {
             "tab": "업데이트",
             "groups": [
               {
                 "group": "로드맵",
-                "icon": "map",
                 "pages": [
-                  "ko/api/overview",
-                  "ko/api/authentication"
-                ]
+                  "ko/roadmap"
+                ],
+                "icon": "map"
               },
               {
                 "group": "변경 이력",
-                "icon": "clock-rotate-left",
                 "pages": [
-                  "ko/{'openapi': 'POST /api/react'}",
-                  "ko/{'openapi': 'POST /api/dag'}",
-                  "ko/{'openapi': 'POST /api/chat/inject'}"
-                ]
+                  "ko/changelog"
+                ],
+                "icon": "clock-rotate-left"
               }
             ]
           }
@@ -624,24 +888,112 @@
             ]
           },
           {
+            "tab": "API-Referenz",
+            "groups": [
+              {
+                "group": "Erste Schritte",
+                "pages": [
+                  "de/api/overview",
+                  "de/api/authentication"
+                ],
+                "icon": "key"
+              },
+              {
+                "group": "Chat",
+                "pages": [
+                  {
+                    "openapi": "POST /api/react"
+                  },
+                  {
+                    "openapi": "POST /api/dag"
+                  },
+                  {
+                    "openapi": "POST /api/chat/inject"
+                  }
+                ],
+                "icon": "message-bot"
+              },
+              {
+                "group": "Konversationen",
+                "pages": [
+                  {
+                    "openapi": "GET /api/conversations"
+                  },
+                  {
+                    "openapi": "GET /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "POST /api/conversations"
+                  },
+                  {
+                    "openapi": "PATCH /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "DELETE /api/conversations/{conversation_id}"
+                  }
+                ],
+                "icon": "messages"
+              },
+              {
+                "group": "Wissensdatenbanken",
+                "pages": [
+                  {
+                    "openapi": "GET /api/knowledge-bases"
+                  },
+                  {
+                    "openapi": "POST /api/knowledge-bases/{kb_id}/retrieve"
+                  }
+                ],
+                "icon": "book"
+              },
+              {
+                "group": "Agenten",
+                "pages": [
+                  {
+                    "openapi": "GET /api/agents"
+                  },
+                  {
+                    "openapi": "GET /api/agents/{agent_id}"
+                  }
+                ],
+                "icon": "robot"
+              },
+              {
+                "group": "API-Schlüssel",
+                "pages": [
+                  {
+                    "openapi": "GET /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "POST /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "PATCH /api/me/api-keys/{key_id}/active"
+                  },
+                  {
+                    "openapi": "DELETE /api/me/api-keys/{key_id}"
+                  }
+                ],
+                "icon": "key"
+              }
+            ]
+          },
+          {
             "tab": "Aktualisierungen",
             "groups": [
               {
                 "group": "Roadmap",
-                "icon": "map",
                 "pages": [
-                  "de/api/overview",
-                  "de/api/authentication"
-                ]
+                  "de/roadmap"
+                ],
+                "icon": "map"
               },
               {
                 "group": "Änderungsprotokoll",
-                "icon": "clock-rotate-left",
                 "pages": [
-                  "de/{'openapi': 'POST /api/react'}",
-                  "de/{'openapi': 'POST /api/dag'}",
-                  "de/{'openapi': 'POST /api/chat/inject'}"
-                ]
+                  "de/changelog"
+                ],
+                "icon": "clock-rotate-left"
               }
             ]
           }
@@ -732,24 +1084,112 @@
             ]
           },
           {
+            "tab": "Référence API",
+            "groups": [
+              {
+                "group": "Démarrage",
+                "pages": [
+                  "fr/api/overview",
+                  "fr/api/authentication"
+                ],
+                "icon": "key"
+              },
+              {
+                "group": "Chat",
+                "pages": [
+                  {
+                    "openapi": "POST /api/react"
+                  },
+                  {
+                    "openapi": "POST /api/dag"
+                  },
+                  {
+                    "openapi": "POST /api/chat/inject"
+                  }
+                ],
+                "icon": "message-bot"
+              },
+              {
+                "group": "Conversations",
+                "pages": [
+                  {
+                    "openapi": "GET /api/conversations"
+                  },
+                  {
+                    "openapi": "GET /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "POST /api/conversations"
+                  },
+                  {
+                    "openapi": "PATCH /api/conversations/{conversation_id}"
+                  },
+                  {
+                    "openapi": "DELETE /api/conversations/{conversation_id}"
+                  }
+                ],
+                "icon": "messages"
+              },
+              {
+                "group": "Bases de connaissances",
+                "pages": [
+                  {
+                    "openapi": "GET /api/knowledge-bases"
+                  },
+                  {
+                    "openapi": "POST /api/knowledge-bases/{kb_id}/retrieve"
+                  }
+                ],
+                "icon": "book"
+              },
+              {
+                "group": "Agents",
+                "pages": [
+                  {
+                    "openapi": "GET /api/agents"
+                  },
+                  {
+                    "openapi": "GET /api/agents/{agent_id}"
+                  }
+                ],
+                "icon": "robot"
+              },
+              {
+                "group": "Clés API",
+                "pages": [
+                  {
+                    "openapi": "GET /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "POST /api/me/api-keys"
+                  },
+                  {
+                    "openapi": "PATCH /api/me/api-keys/{key_id}/active"
+                  },
+                  {
+                    "openapi": "DELETE /api/me/api-keys/{key_id}"
+                  }
+                ],
+                "icon": "key"
+              }
+            ]
+          },
+          {
             "tab": "Mises à jour",
             "groups": [
               {
                 "group": "Feuille de route",
-                "icon": "map",
                 "pages": [
-                  "fr/api/overview",
-                  "fr/api/authentication"
-                ]
+                  "fr/roadmap"
+                ],
+                "icon": "map"
               },
               {
                 "group": "Journal des modifications",
-                "icon": "clock-rotate-left",
                 "pages": [
-                  "fr/{'openapi': 'POST /api/react'}",
-                  "fr/{'openapi': 'POST /api/dag'}",
-                  "fr/{'openapi': 'POST /api/chat/inject'}"
-                ]
+                  "fr/changelog"
+                ],
+                "icon": "clock-rotate-left"
               }
             ]
           }
