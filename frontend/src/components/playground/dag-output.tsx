@@ -9,11 +9,13 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
 import { fmtDuration } from "@/lib/utils"
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react"
 import { useTranslations } from "next-intl"
+import type { LucideIcon } from "lucide-react"
 import {
   Loader2,
   Wrench,
+  Brain,
   CheckCircle2,
   CircleDashed,
   BarChart3,
@@ -40,6 +42,9 @@ import { IterationCard, ArtifactChips } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { CollapsibleText } from "@/components/playground/collapsible-text"
+import { getToolDisplayName, getToolIcon } from "@/components/steps/step-summary"
+import { useToolCatalog } from "@/hooks/use-tool-catalog"
+import type { ToolMeta } from "@/hooks/use-tool-catalog"
 import { SuggestedFollowups } from "./suggested-followups"
 import { stripCitations } from "@/lib/evidence-utils"
 import {
@@ -146,11 +151,9 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
               {!hideDagGraph && planSteps && planSteps.length > 0 && (
                 <DagFlowGraph planSteps={planSteps} stepStates={stepStates} />
               )}
-              {!hideStepCards && stepStates.map((state) => (
-                <div key={state.step_id} data-step-id={state.step_id}>
-                  <StepProgressCard state={state} />
-                </div>
-              ))}
+              {!hideStepCards && stepStates.length > 0 && (
+                <StepList stepStates={stepStates} />
+              )}
               {!hideStepCards && analysisPhase && <AnalysisCard phase={analysisPhase} />}
             </div>
           )}
@@ -212,13 +215,9 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
       )}
 
       {/* Step progress cards */}
-      {stepStates.length > 0 &&
-        currentPhase !== "planning" &&
-        stepStates.map((state) => (
-          <div key={state.step_id} data-step-id={state.step_id}>
-            <StepProgressCard state={state} />
-          </div>
-        ))}
+      {stepStates.length > 0 && currentPhase !== "planning" && (
+        <StepList stepStates={stepStates} />
+      )}
 
       {/* Inject messages */}
       {injectEvents.map((evt, i) => (
@@ -289,11 +288,9 @@ function PreviousRoundCard({ snapshot, hideDagGraph, hideStepCards }: { snapshot
           {!hideDagGraph && snapshot.planSteps && snapshot.planSteps.length > 0 && (
             <DagFlowGraph planSteps={snapshot.planSteps} stepStates={snapshot.stepStates} />
           )}
-          {!hideStepCards && snapshot.stepStates.map((state) => (
-            <div key={state.step_id} data-step-id={state.step_id}>
-              <StepProgressCard state={state} />
-            </div>
-          ))}
+          {!hideStepCards && snapshot.stepStates.length > 0 && (
+            <StepList stepStates={snapshot.stepStates} />
+          )}
           {!hideStepCards && snapshot.analysisPhase && <AnalysisCard phase={snapshot.analysisPhase} />}
         </div>
       )}
@@ -331,7 +328,166 @@ function DagStreamingAnswerCard({ content, aborted }: { content: string; aborted
 /*  Restored from commit 44ca9e1 — battle-tested components            */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/*  Iteration grouping helpers                                         */
+/* ------------------------------------------------------------------ */
+
+interface IterationGroupData {
+  toolName: string
+  displayName: string
+  Icon: LucideIcon
+  items: Array<{ data: IterationData; index: number }>
+  totalDuration: number
+}
+
+/** Group consecutive iterations by tool_name for compact expanded display */
+function groupConsecutiveIterations(
+  iterations: StepState["iterations"],
+  tools?: ToolMeta[],
+): IterationGroupData[] {
+  const groups: IterationGroupData[] = []
+  for (let i = 0; i < iterations.length; i++) {
+    const iter = iterations[i]
+    const name = iter.tool_name || "__thinking__"
+    const last = groups[groups.length - 1]
+
+    const iterData: IterationData = {
+      type: iter.type,
+      iteration: iter.iteration,
+      displayIteration: i + 1,
+      tool_name: iter.tool_name,
+      tool_args: iter.tool_args,
+      reasoning: iter.reasoning,
+      observation: iter.observation,
+      error: iter.error,
+      loading: iter.loading,
+      duration: iter.duration,
+      content_type: iter.content_type,
+      artifacts: iter.artifacts,
+    }
+
+    if (last && last.toolName === name) {
+      last.items.push({ data: iterData, index: i })
+      last.totalDuration += iter.duration ?? 0
+    } else {
+      groups.push({
+        toolName: name,
+        displayName: name === "__thinking__" ? "Thinking" : getToolDisplayName(name, tools),
+        Icon: name === "__thinking__" ? Brain : getToolIcon(name, tools),
+        items: [{ data: iterData, index: i }],
+        totalDuration: iter.duration ?? 0,
+      })
+    }
+  }
+  return groups
+}
+
+/** Count iterations by tool type for collapsed step summary */
+function countIterationsByTool(
+  iterations: StepState["iterations"],
+  tools?: ToolMeta[],
+): Array<{ toolName: string; displayName: string; Icon: LucideIcon; count: number }> {
+  const counts = new Map<string, { displayName: string; Icon: LucideIcon; count: number }>()
+  for (const iter of iterations) {
+    const name = iter.tool_name || "__thinking__"
+    const existing = counts.get(name)
+    if (existing) {
+      existing.count++
+    } else {
+      counts.set(name, {
+        displayName: name === "__thinking__" ? "Thinking" : getToolDisplayName(name, tools),
+        Icon: name === "__thinking__" ? Brain : getToolIcon(name, tools),
+        count: 1,
+      })
+    }
+  }
+  return Array.from(counts.entries()).map(([toolName, data]) => ({
+    toolName,
+    ...data,
+  }))
+}
+
+/* ------------------------------------------------------------------ */
+/*  StepList — timeline wrapper                                        */
+/* ------------------------------------------------------------------ */
+
+function StepList({ stepStates }: { stepStates: StepState[] }) {
+  return (
+    <div className="relative">
+      {stepStates.map((state, idx) => (
+        <div key={state.step_id} className="relative" data-step-id={state.step_id}>
+          {/* Timeline connector line to next step */}
+          {idx < stepStates.length - 1 && (
+            <div className="absolute left-[10px] top-[22px] bottom-0 w-px bg-border/30" />
+          )}
+          <StepProgressCard state={state} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  CollapsedIterationGroup — grouped same-tool iterations             */
+/* ------------------------------------------------------------------ */
+
+function CollapsedIterationGroup({ group }: { group: IterationGroupData }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div>
+      <div
+        className="rounded-md border border-border/30 bg-muted/20 px-2.5 py-2 cursor-pointer group hover:bg-muted/30 transition-colors"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <group.Icon className="h-3 w-3 text-amber-500 shrink-0" />
+          <span className="text-xs font-medium text-foreground">
+            {group.displayName}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-medium">
+            ×{group.items.length}
+          </span>
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 tabular-nums">
+            <Clock className="h-2.5 w-2.5" />
+            {fmtDuration(group.totalDuration)}
+          </span>
+          {expanded
+            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          }
+        </div>
+      </div>
+      {expanded && (
+        <div className="ml-4 mt-1.5 space-y-1.5">
+          {group.items.map(({ data, index }) => (
+            <IterationCard
+              key={index}
+              data={data}
+              variant="inline"
+              size="compact"
+              defaultCollapsed={true}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  StepProgressCard — collapsible timeline node                       */
+/* ------------------------------------------------------------------ */
+
 function StepProgressCard({ state }: { state: StepState }) {
+  const { data: catalog } = useToolCatalog()
+  const [expanded, setExpanded] = useState(state.status === "running")
+
+  // Auto-expand when step transitions to running
+  useEffect(() => {
+    if (state.status === "running") setExpanded(true)
+  }, [state.status])
+
   const StatusIcon =
     state.status === "failed"
       ? AlertCircle
@@ -342,17 +498,6 @@ function StepProgressCard({ state }: { state: StepState }) {
           : state.status === "running"
             ? Loader2
             : CircleDashed
-
-  const cardBorderClass =
-    state.status === "failed"
-      ? "border-red-500/20"
-      : state.status === "skipped"
-        ? "border-zinc-500/20 opacity-50"
-        : state.status === "completed"
-          ? "border-green-500/20"
-          : state.status === "running"
-            ? "border-amber-500/20"
-            : "border-zinc-500/20"
 
   const iconBgClass =
     state.status === "failed"
@@ -387,80 +532,99 @@ function StepProgressCard({ state }: { state: StepState }) {
             ? "border-amber-500/30 text-amber-500"
             : "border-zinc-500/30 text-zinc-500"
 
+  // Tool summary for collapsed state
+  const toolSummary = useMemo(() =>
+    countIterationsByTool(state.iterations, catalog?.tools),
+    [state.iterations, catalog?.tools]
+  )
+
+  // Grouped iterations for expanded state
+  const iterGroups = useMemo(() =>
+    groupConsecutiveIterations(state.iterations, catalog?.tools),
+    [state.iterations, catalog?.tools]
+  )
+
+  const hasContent = state.iterations.length > 0 || !!state.result
+
   return (
-    <Card
-      className={`py-4 gap-3 ${cardBorderClass}`}
-    >
-      <CardHeader className="pb-0">
-        <div className="flex items-start gap-2 min-w-0">
-          <div
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${iconBgClass}`}
+    <div className={`pl-8 pb-3 relative${state.status === "skipped" ? " opacity-50" : ""}`}>
+      {/* Timeline dot */}
+      <div className={`absolute left-0 top-0 z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full ${iconBgClass} ring-2 ring-background`}>
+        <StatusIcon
+          className={`h-3 w-3 ${iconTextClass}${state.status === "running" ? " animate-spin" : ""}`}
+        />
+      </div>
+
+      {/* Clickable header */}
+      <div
+        className={`rounded-md px-2 py-1 transition-colors ${hasContent ? "cursor-pointer hover:bg-muted/30" : ""}`}
+        onClick={hasContent ? () => setExpanded(v => !v) : undefined}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Badge
+            variant="outline"
+            className={`${badgeBorderClass} text-[10px] shrink-0`}
           >
-            <StatusIcon
-              className={`h-3.5 w-3.5 ${iconTextClass}${state.status === "running" ? " animate-spin" : ""}`}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`${badgeBorderClass} text-[10px] shrink-0`}
-              >
-                {state.step_id}
-              </Badge>
-              {state.status === "completed" && state.duration != null && (
-                <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 tabular-nums">
-                  <Clock className="h-2.5 w-2.5" />
-                  {fmtDuration(state.duration)}
-                </span>
-              )}
-              {state.status === "running" && state.started_at != null && (
-                <ElapsedTimer startedAt={state.started_at} />
-              )}
-            </div>
-            <p className="text-sm font-medium text-foreground mt-1">
-              {state.task}
-            </p>
-          </div>
-        </div>
-      </CardHeader>
-
-      {(state.iterations.length > 0 || state.result) && (
-        <CardContent className="space-y-2">
-          {/* Iteration items */}
-          {state.iterations.map((iter, idx) => {
-            const iterData: IterationData = {
-              type: iter.type,
-              iteration: iter.iteration,
-              displayIteration: idx + 1,
-              tool_name: iter.tool_name,
-              tool_args: iter.tool_args,
-              reasoning: iter.reasoning,
-              observation: iter.observation,
-              error: iter.error,
-              loading: iter.loading,
-              duration: iter.duration,
-              content_type: iter.content_type,
-              artifacts: iter.artifacts,
-            }
-            return (
-              <IterationCard
-                key={idx}
-                data={iterData}
-                variant="inline"
-                size="compact"
-                defaultCollapsed={true}
-              />
-            )
-          })}
-
-          {/* Completed result */}
-          {state.result && (
-            <ResultBlock content={state.result} />
+            {state.step_id}
+          </Badge>
+          <p className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+            {state.task}
+          </p>
+          {state.status === "completed" && state.duration != null && (
+            <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 tabular-nums">
+              <Clock className="h-2.5 w-2.5" />
+              {fmtDuration(state.duration)}
+            </span>
           )}
-        </CardContent>
+          {state.status === "running" && state.started_at != null && (
+            <ElapsedTimer startedAt={state.started_at} />
+          )}
+          {hasContent && (
+            expanded
+              ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          )}
+        </div>
+
+        {/* Collapsed: tool summary badges */}
+        {!expanded && toolSummary.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {toolSummary.map(({ toolName, displayName, Icon, count }) => (
+              <span
+                key={toolName}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5"
+              >
+                <Icon className="h-2.5 w-2.5" />
+                <span>{displayName}</span>
+                {count > 1 && <span className="font-medium">×{count}</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Expanded: grouped iterations + result */}
+      {expanded && hasContent && (
+        <div className="mt-1.5 space-y-1.5 pl-2">
+          {iterGroups.map((group, gIdx) =>
+            group.items.length >= 3 ? (
+              <CollapsedIterationGroup key={gIdx} group={group} />
+            ) : (
+              group.items.map(({ data, index }) => (
+                <IterationCard
+                  key={index}
+                  data={data}
+                  variant="inline"
+                  size="compact"
+                  defaultCollapsed={true}
+                />
+              ))
+            )
+          )}
+          {state.result && <ResultBlock content={state.result} />}
+        </div>
       )}
-    </Card>
+    </div>
   )
 }
 

@@ -1434,9 +1434,10 @@ function PlaygroundContent({
                   {(hasLiveMessages || (isRunning && pendingQuery && resolvedLiveMode === "react")) && (
                     <div data-live-output>
                       {resolvedLiveMode === "react" ? (
-                        <ReactOutput items={reactItems} isStreaming={isRunning && modeMatches} streamingAnswer={reactStreamingAnswer} suggestions={reactSuggestions} onSuggestionSelect={handleSuggestionSelect} />
+                        <ReactOutput key={activeConversation?.id ?? "new"} items={reactItems} isStreaming={isRunning && modeMatches} streamingAnswer={reactStreamingAnswer} suggestions={reactSuggestions} onSuggestionSelect={handleSuggestionSelect} />
                       ) : (
                         <DagOutput
+                          key={activeConversation?.id ?? "new"}
                           ref={dagOutputRef}
                           planSteps={dagData.planSteps}
                           stepStates={dagData.stepStates}

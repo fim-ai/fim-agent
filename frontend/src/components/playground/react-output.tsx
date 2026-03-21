@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "@/lib/markdown"
 import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
+import type { LucideIcon } from "lucide-react"
 import { Loader2, Wrench, Brain, CheckCircle2, Clock, RefreshCw, BarChart3, ChevronDown, ChevronUp, ChevronRight, StopCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { UserAvatar } from "@/components/shared/user-avatar"
@@ -21,9 +22,227 @@ import { IterationCard, ArtifactChips } from "@/components/steps"
 import type { IterationData } from "@/components/steps"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { CollapsibleText } from "@/components/playground/collapsible-text"
+import { getToolDisplayName, getToolIcon } from "@/components/steps/step-summary"
+import { useToolCatalog } from "@/hooks/use-tool-catalog"
+import type { ToolMeta } from "@/hooks/use-tool-catalog"
 import { SuggestedFollowups } from "./suggested-followups"
 import { parseEvidence, parseSimpleEvidence, mergeEvidence, type ParsedEvidence } from "@/lib/evidence-utils"
 import { EvidenceProvider } from "@/contexts/evidence-context"
+
+/* ------------------------------------------------------------------ */
+/*  Iteration grouping helpers (ReAct mode)                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Extract the first sentence from reasoning text as an iteration title.
+ * Strips markdown, takes first sentence (up to period/newline), truncates to 60 chars.
+ */
+function extractReasoningTitle(reasoning?: string): string | null {
+  if (!reasoning) return null
+  const plain = reasoning
+    .replace(/^#+\s*/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+    .trim()
+  if (!plain) return null
+  // Split on sentence-ending punctuation or newline
+  const first = plain.split(/[.。!！?\n]/)[0]?.trim()
+  if (!first || first.length < 4) return null
+  return first.length > 60 ? first.slice(0, 57) + "\u2026" : first
+}
+
+/** Generate a short title for a group from its tool calls */
+function generateGroupToolTitle(
+  group: ReactIterGroup,
+  tools?: ToolMeta[],
+): string | null {
+  const toolSteps = group.stepItems
+    .map(s => s.item.data as ReactStepEvent)
+    .filter(s => s.type === "iteration" && s.tool_name)
+  if (toolSteps.length === 0) return null
+
+  const names = [...new Set(toolSteps.map(s =>
+    getToolDisplayName(s.tool_name!, tools),
+  ))]
+  return names.join(", ")
+}
+
+interface ReactIterGroup {
+  iteration: number
+  stepItems: Array<{ item: StepItem; originalIdx: number }>
+  totalDuration: number
+  toolCounts: Array<{ name: string; displayName: string; Icon: LucideIcon; count: number }>
+}
+
+/** Group step items by displayIteration for collapsible rendering */
+function groupStepsByIteration(
+  stepItems: StepItem[],
+  allItems: StepItem[],
+  tools?: ToolMeta[],
+): ReactIterGroup[] {
+  const groups: ReactIterGroup[] = []
+
+  for (const item of stepItems) {
+    const step = item.data as ReactStepEvent
+    const iterNum = item.displayIteration ?? (step.iteration ?? 0) + 1
+    const originalIdx = allItems.indexOf(item)
+    const last = groups[groups.length - 1]
+
+    if (last && last.iteration === iterNum) {
+      last.stepItems.push({ item, originalIdx })
+      last.totalDuration += item.duration ?? 0
+    } else {
+      groups.push({
+        iteration: iterNum,
+        stepItems: [{ item, originalIdx }],
+        totalDuration: item.duration ?? 0,
+        toolCounts: [],
+      })
+    }
+  }
+
+  // Compute tool counts per group
+  for (const group of groups) {
+    const counts = new Map<string, { displayName: string; Icon: LucideIcon; count: number }>()
+    for (const { item } of group.stepItems) {
+      const step = item.data as ReactStepEvent
+      if (step.type === "iteration" && step.tool_name) {
+        const existing = counts.get(step.tool_name)
+        if (existing) {
+          existing.count++
+        } else {
+          counts.set(step.tool_name, {
+            displayName: getToolDisplayName(step.tool_name, tools),
+            Icon: getToolIcon(step.tool_name, tools),
+            count: 1,
+          })
+        }
+      }
+    }
+    group.toolCounts = Array.from(counts.entries()).map(([name, data]) => ({
+      name,
+      ...data,
+    }))
+  }
+
+  return groups
+}
+
+/* ------------------------------------------------------------------ */
+/*  ReactIterationTimeline — collapsible timeline for completed view   */
+/* ------------------------------------------------------------------ */
+
+function ReactIterationTimeline({ stepItems, allItems }: { stepItems: StepItem[]; allItems: StepItem[] }) {
+  const { data: catalog } = useToolCatalog()
+  const groups = useMemo(
+    () => groupStepsByIteration(stepItems, allItems, catalog?.tools),
+    [stepItems, allItems, catalog?.tools],
+  )
+
+  return (
+    <div className="relative">
+      {groups.map((group, idx) => (
+        <div key={group.iteration} className="relative">
+          {idx < groups.length - 1 && (
+            <div className="absolute left-[10px] top-[22px] bottom-0 w-px bg-border/30" />
+          )}
+          <ReactIterationNode group={group} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ReactIterationNode({ group }: { group: ReactIterGroup }) {
+  const t = useTranslations("playground")
+  const { data: catalog } = useToolCatalog()
+  const [expanded, setExpanded] = useState(false)
+
+  // Title cascade: reasoning first sentence → tool summary → "Iteration N"
+  const title = useMemo(() => {
+    // 1. Try reasoning from the thinking step
+    const thinkingStep = group.stepItems
+      .map(s => s.item.data as ReactStepEvent)
+      .find(s => s.type === "thinking")
+    const reasoningTitle = extractReasoningTitle(thinkingStep?.reasoning)
+    if (reasoningTitle) return reasoningTitle
+
+    // 2. Try tool name summary
+    const toolTitle = generateGroupToolTitle(group, catalog?.tools)
+    if (toolTitle) return toolTitle
+
+    // 3. Fallback
+    return null
+  }, [group, catalog?.tools])
+
+  return (
+    <div className="pl-8 pb-3 relative">
+      {/* Timeline dot — matches DAG step style */}
+      <div className="absolute left-0 top-0 z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-green-500/10 ring-2 ring-background">
+        <CheckCircle2 className="h-3 w-3 text-green-500" />
+      </div>
+
+      {/* Clickable header */}
+      <div
+        className="rounded-md px-2 py-1 transition-colors cursor-pointer hover:bg-muted/30"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-medium text-foreground shrink-0">
+            {t("iterationLabel", { n: group.iteration })}
+          </span>
+          {title && (
+            <span className="text-xs text-muted-foreground truncate min-w-0">
+              {title}
+            </span>
+          )}
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 tabular-nums">
+            <Clock className="h-2.5 w-2.5" />
+            {fmtDuration(group.totalDuration)}
+          </span>
+          {expanded
+            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          }
+        </div>
+
+        {/* Collapsed: tool summary badges */}
+        {!expanded && group.toolCounts.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {group.toolCounts.map(({ name, displayName, Icon, count }) => (
+              <span
+                key={name}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5"
+              >
+                <Icon className="h-2.5 w-2.5" />
+                <span>{displayName}</span>
+                {count > 1 && <span className="font-medium">×{count}</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Expanded: original step cards */}
+      {expanded && (
+        <div className="mt-1.5 space-y-2 pl-2">
+          {group.stepItems.map(({ item, originalIdx }) => {
+            const step = item.data as ReactStepEvent
+            return (
+              <div key={originalIdx} data-react-idx={originalIdx}>
+                <StepCard step={step} duration={item.duration} displayIteration={item.displayIteration} />
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
 
 interface ReactOutputProps {
   items: StepItem[]
@@ -80,16 +299,8 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
           </button>
 
           {stepsExpanded && (
-            <div className="space-y-3 px-4 pt-1 pb-3">
-              {stepItems.map((item) => {
-                const originalIdx = items.indexOf(item)
-                const step = item.data as ReactStepEvent
-                return (
-                  <div key={originalIdx} data-react-idx={originalIdx}>
-                    <StepCard step={step} duration={item.duration} displayIteration={item.displayIteration} />
-                  </div>
-                )
-              })}
+            <div className="px-4 pt-1 pb-3">
+              <ReactIterationTimeline stepItems={stepItems} allItems={items} />
             </div>
           )}
         </div>
