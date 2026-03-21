@@ -904,10 +904,18 @@ _ENDPOINT_RE = _re.compile(r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+/")
 
 
 def _is_openapi_only_group(group: dict) -> bool:
-    """Return True if every page is an openapi entry (dict or 'METHOD /path' string)."""
+    """Return True if this group is auto-generated from an openapi spec.
+
+    Detects both:
+    - Group-level openapi config: {"group": "...", "openapi": {"source": "..."}}
+    - Page-level openapi entries: dicts or "METHOD /path" strings
+    """
+    # Group-level openapi auto-generation
+    if "openapi" in group:
+        return True
     pages = group.get("pages", [])
     if not pages:
-        return False
+        return True  # Empty group = nothing translatable
     return all(
         isinstance(p, dict) or (isinstance(p, str) and _ENDPOINT_RE.match(p))
         for p in pages
