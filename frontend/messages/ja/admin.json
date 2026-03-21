@@ -372,7 +372,9 @@
     "importSkipped": "スキップ: {providers}個のプロバイダー、{models}個のモデル、{groups}個のグループ",
     "exportSuccess": "モデル設定がエクスポートされました",
     "noFileSelected": "JSONファイルを選択してください",
-    "addProviderHint": "プロバイダーの設定がわかりませんか？<link>LLM プロバイダー互換性ガイド</link>で既知の問題を確認してください。"
+    "addProviderHint": "プロバイダーの設定がわかりませんか？<link>LLM プロバイダー互換性ガイド</link>で既知の問題を確認してください。",
+    "toolChoiceEnabled": "ネイティブ関数呼び出し",
+    "toolChoiceEnabledDesc": "構造化出力のための強制ツール選択（tool_choice）を有効にします。OpenAI GPTシリーズ、Google Gemini、Anthropic Claudeで最適に動作します。モデルがtool_choiceに関連するエラーを返す場合、または構造化出力が遅い場合は、これを無効にしてください。"
   },
   "tools": {
     "title": "組み込みツール",

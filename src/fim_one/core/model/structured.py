@@ -236,7 +236,7 @@ async def structured_llm_call(
 
     # Build the level list based on LLM capabilities.
     levels: list[Literal["native_fc", "json_mode", "plain_text"]] = []
-    if abilities.get("tool_call", False):
+    if abilities.get("tool_call", False) and abilities.get("tool_choice", True):
         levels.append("native_fc")
     if abilities.get("json_mode", False):
         levels.append("json_mode")

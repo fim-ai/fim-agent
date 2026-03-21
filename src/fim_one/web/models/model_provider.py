@@ -57,6 +57,9 @@ class ModelProviderModel(UUIDPKMixin, TimestampMixin, Base):
     json_mode_enabled: Mapped[bool] = mapped_column(
         Boolean, server_default="TRUE", default=True
     )
+    tool_choice_enabled: Mapped[bool] = mapped_column(
+        Boolean, server_default="TRUE", default=True
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean, server_default="TRUE", default=True
     )

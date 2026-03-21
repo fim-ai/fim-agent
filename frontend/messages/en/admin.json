@@ -295,6 +295,8 @@
     "resolutionChain": "Resolution: User Preference → Admin Models → ENV Fallback",
     "jsonModeEnabled": "JSON Mode",
     "jsonModeEnabledDesc": "When disabled, the model will not use response_format=json_object. Turn off for Bedrock-backed relay endpoints that reject assistant prefill.",
+    "toolChoiceEnabled": "Native Function Calling",
+    "toolChoiceEnabledDesc": "Enables forced tool selection (tool_choice) for structured output. Works best with OpenAI GPT series, Google Gemini, and Anthropic Claude. Disable this if your model returns errors related to tool_choice or if structured outputs are slow.",
     "activeConfig": "Active Configuration",
     "activeConfigDesc": "Select the active model group. \"Default (ENV)\" uses environment variables.",
     "currentProfile": "Active Profile",

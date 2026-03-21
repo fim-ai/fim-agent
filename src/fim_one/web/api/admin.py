@@ -2291,6 +2291,7 @@ def _provider_model_to_response(m: ModelProviderModel) -> ProviderModelResponse:
         max_output_tokens=m.max_output_tokens,
         context_size=m.context_size,
         json_mode_enabled=m.json_mode_enabled,
+        tool_choice_enabled=m.tool_choice_enabled,
         is_active=m.is_active,
         created_at=m.created_at.isoformat() if m.created_at else "",
         updated_at=m.updated_at.isoformat() if m.updated_at else None,
@@ -2510,6 +2511,7 @@ async def admin_create_provider_model(
         max_output_tokens=body.max_output_tokens,
         context_size=body.context_size,
         json_mode_enabled=body.json_mode_enabled,
+        tool_choice_enabled=body.tool_choice_enabled,
     )
     db.add(model)
     await db.commit()
@@ -2534,6 +2536,7 @@ async def admin_create_provider_model(
         max_output_tokens=model.max_output_tokens,
         context_size=model.context_size,
         json_mode_enabled=model.json_mode_enabled,
+        tool_choice_enabled=model.tool_choice_enabled,
         is_active=model.is_active,
         created_at=model.created_at.isoformat() if model.created_at else "",
         updated_at=model.updated_at.isoformat() if model.updated_at else None,
@@ -2585,6 +2588,7 @@ async def admin_update_provider_model(
         max_output_tokens=model.max_output_tokens,
         context_size=model.context_size,
         json_mode_enabled=model.json_mode_enabled,
+        tool_choice_enabled=model.tool_choice_enabled,
         is_active=model.is_active,
         created_at=model.created_at.isoformat() if model.created_at else "",
         updated_at=model.updated_at.isoformat() if model.updated_at else None,
@@ -2915,6 +2919,7 @@ async def admin_export_model_config(
                 max_output_tokens=m.max_output_tokens,
                 context_size=m.context_size,
                 json_mode_enabled=m.json_mode_enabled,
+                tool_choice_enabled=m.tool_choice_enabled,
                 is_active=m.is_active,
             )
             for m in (p.models or [])
@@ -3034,6 +3039,7 @@ async def admin_import_model_config(
                     max_output_tokens=model_data.max_output_tokens,
                     context_size=model_data.context_size,
                     json_mode_enabled=model_data.json_mode_enabled,
+                    tool_choice_enabled=model_data.tool_choice_enabled,
                     is_active=model_data.is_active,
                 )
                 db.add(model)

@@ -34,6 +34,7 @@ class ProviderModelResponse(BaseModel):
     max_output_tokens: int | None
     context_size: int | None
     json_mode_enabled: bool
+    tool_choice_enabled: bool
     is_active: bool
     created_at: str
     updated_at: str | None
@@ -68,6 +69,7 @@ class ProviderModelCreate(BaseModel):
     max_output_tokens: int | None = None
     context_size: int | None = None
     json_mode_enabled: bool = True
+    tool_choice_enabled: bool = True
 
 
 class ProviderModelUpdate(BaseModel):
@@ -77,6 +79,7 @@ class ProviderModelUpdate(BaseModel):
     max_output_tokens: int | None = None
     context_size: int | None = None
     json_mode_enabled: bool | None = None
+    tool_choice_enabled: bool | None = None
     is_active: bool | None = None
 
 
@@ -92,6 +95,7 @@ class ProviderModelFullResponse(BaseModel):
     max_output_tokens: int | None
     context_size: int | None
     json_mode_enabled: bool
+    tool_choice_enabled: bool
     is_active: bool
     created_at: str
     updated_at: str | None
@@ -198,6 +202,7 @@ class ModelExportData(BaseModel):
     max_output_tokens: int | None = None
     context_size: int | None = None
     json_mode_enabled: bool = True
+    tool_choice_enabled: bool = True
     is_active: bool = True
 
 

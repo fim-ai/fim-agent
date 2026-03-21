@@ -25,6 +25,7 @@ import {
   Upload,
   Check,
   ChevronsUpDown,
+  HelpCircle,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -72,7 +73,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Popover,
   PopoverContent,
@@ -449,6 +450,8 @@ function ModelFormDialog({ open, onOpenChange, providerId, model, onSuccess }: M
   const [temperature, setTemperature] = useState<number | null>(null)
   const [maxOutputTokens, setMaxOutputTokens] = useState("")
   const [contextSize, setContextSize] = useState("")
+  const [jsonModeEnabled, setJsonModeEnabled] = useState(true)
+  const [toolChoiceEnabled, setToolChoiceEnabled] = useState(true)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
@@ -462,12 +465,16 @@ function ModelFormDialog({ open, onOpenChange, providerId, model, onSuccess }: M
         setTemperature(model.temperature)
         setMaxOutputTokens(model.max_output_tokens?.toString() ?? "")
         setContextSize(model.context_size?.toString() ?? "")
+        setJsonModeEnabled(model.json_mode_enabled)
+        setToolChoiceEnabled(model.tool_choice_enabled)
       } else {
         setDisplayName("")
         setModelName("")
         setTemperature(null)
         setMaxOutputTokens("")
         setContextSize("")
+        setJsonModeEnabled(true)
+        setToolChoiceEnabled(true)
       }
       setShowAdvanced(false)
       setShowCloseConfirm(false)
@@ -503,6 +510,8 @@ function ModelFormDialog({ open, onOpenChange, providerId, model, onSuccess }: M
         temperature: temperature ?? undefined,
         max_output_tokens: maxOutputTokens ? parseInt(maxOutputTokens) : undefined,
         context_size: contextSize ? parseInt(contextSize) : undefined,
+        json_mode_enabled: jsonModeEnabled,
+        tool_choice_enabled: toolChoiceEnabled,
       }
       if (isEdit && model) {
         await adminApi.updateProviderModel(model.id, body)
@@ -639,6 +648,52 @@ function ModelFormDialog({ open, onOpenChange, providerId, model, onSuccess }: M
                         value={[temperature ?? 0.7]}
                         onValueChange={([v]) => setTemperature(v)}
                         className="w-full"
+                      />
+                    </div>
+                    {/* JSON Mode toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Label htmlFor="json-mode" className="text-sm font-medium">
+                          {t("jsonModeEnabled")}
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p className="text-xs">{t("jsonModeEnabledDesc")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Switch
+                        id="json-mode"
+                        checked={jsonModeEnabled}
+                        onCheckedChange={setJsonModeEnabled}
+                      />
+                    </div>
+                    {/* Tool Choice (Native FC) toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Label htmlFor="tool-choice" className="text-sm font-medium">
+                          {t("toolChoiceEnabled")}
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p className="text-xs">{t("toolChoiceEnabledDesc")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Switch
+                        id="tool-choice"
+                        checked={toolChoiceEnabled}
+                        onCheckedChange={setToolChoiceEnabled}
                       />
                     </div>
                   </div>

@@ -178,6 +178,12 @@ def _json_mode_enabled() -> bool:
     return val not in ("false", "0", "no")
 
 
+def _tool_choice_enabled() -> bool:
+    """Return whether forced tool_choice is enabled (env: LLM_TOOL_CHOICE_ENABLED, default true)."""
+    val = os.environ.get("LLM_TOOL_CHOICE_ENABLED", "true").strip().lower()
+    return val not in ("false", "0", "no")
+
+
 def get_max_concurrency() -> int:
     """Return the max parallel steps for the DAG executor."""
     return int(os.environ.get("MAX_CONCURRENCY", "5"))
@@ -284,6 +290,7 @@ def get_llm() -> OpenAICompatibleLLM:
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         json_mode_enabled=_json_mode_enabled(),
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 
@@ -302,6 +309,7 @@ def get_fast_llm() -> OpenAICompatibleLLM:
         reasoning_effort=None,
         reasoning_budget_tokens=None,
         json_mode_enabled=_json_mode_enabled(),
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 
@@ -320,6 +328,7 @@ def get_reasoning_llm() -> OpenAICompatibleLLM:
         reasoning_effort=_reasoning_tier_effort(),
         reasoning_budget_tokens=_reasoning_tier_budget(),
         json_mode_enabled=_json_mode_enabled(),
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 
@@ -405,7 +414,8 @@ def _build_llm_from_group_model(
         default_max_tokens=model.max_output_tokens or _main_max_output(),
         reasoning_effort=None,  # Set per-role below if needed
         reasoning_budget_tokens=None,
-        json_mode_enabled=_json_mode_enabled(),
+        json_mode_enabled=model.json_mode_enabled,
+        tool_choice_enabled=model.tool_choice_enabled,
     )
 
 
@@ -560,6 +570,7 @@ def get_llm_from_config(config: dict[str, object]) -> OpenAICompatibleLLM | None
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=str(config.get("provider", "")) or None,
         json_mode_enabled=_json_mode_enabled(),
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 
@@ -589,6 +600,7 @@ async def get_llm_by_config_id(
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=cfg.provider or None,
         json_mode_enabled=_json_mode_enabled(),
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 
@@ -627,6 +639,7 @@ async def get_system_default_llm(
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=cfg.provider or None,
         json_mode_enabled=_json_mode_enabled(),
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 
@@ -665,6 +678,7 @@ async def get_system_llm_by_role(
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=cfg.provider or None,
         json_mode_enabled=cfg.json_mode_enabled,
+        tool_choice_enabled=_tool_choice_enabled(),
     )
 
 

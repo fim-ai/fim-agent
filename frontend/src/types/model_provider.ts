@@ -29,6 +29,7 @@ export interface ModelProviderModelResponse {
   max_output_tokens: number | null
   context_size: number | null
   json_mode_enabled: boolean
+  tool_choice_enabled: boolean
   is_active: boolean
   created_at: string
   updated_at: string | null
@@ -41,6 +42,7 @@ export interface ModelProviderModelCreate {
   max_output_tokens?: number
   context_size?: number
   json_mode_enabled?: boolean
+  tool_choice_enabled?: boolean
 }
 
 export type ModelProviderModelUpdate = Partial<

@@ -129,6 +129,7 @@ class OpenAICompatibleLLM(BaseLLM):
         reasoning_budget_tokens: int | None = None,
         provider: str | None = None,
         json_mode_enabled: bool = True,
+        tool_choice_enabled: bool = True,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url
@@ -145,6 +146,7 @@ class OpenAICompatibleLLM(BaseLLM):
         self._reasoning_effort = reasoning_effort
         self._reasoning_budget_tokens = reasoning_budget_tokens
         self._json_mode_enabled = json_mode_enabled
+        self._tool_choice_enabled = tool_choice_enabled
 
     @property
     def model_id(self) -> str:
@@ -372,6 +374,7 @@ class OpenAICompatibleLLM(BaseLLM):
         """
         return {
             "tool_call": True,
+            "tool_choice": self._tool_choice_enabled,
             "json_mode": self._json_mode_enabled,
             "vision": True,
             "streaming": True,
