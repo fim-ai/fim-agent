@@ -2239,3 +2239,651 @@ async def list_review_log(
     ]
 
     return ReviewLogPage(items=items, total=total, limit=limit, offset=offset)
+
+
+# ---------------------------------------------------------------------------
+# Model Providers / Models / Groups (three-tier model management)
+# ---------------------------------------------------------------------------
+
+
+from fim_one.web.models.model_provider import (
+    ModelGroup,
+    ModelProvider,
+    ModelProviderModel,
+)
+from fim_one.web.schemas.model_provider import (
+    ActiveConfigResponse,
+    EffectiveModelInfo,
+    EnvFallbackInfoV2,
+    GroupCreate,
+    GroupListResponse,
+    GroupResponse,
+    GroupUpdate,
+    ModelSlotInfo,
+    ProviderCreate,
+    ProviderListResponse,
+    ProviderModelCreate,
+    ProviderModelFullResponse,
+    ProviderModelResponse,
+    ProviderModelUpdate,
+    ProviderResponse,
+    ProviderUpdate,
+)
+
+
+# -- Helpers ------------------------------------------------------------------
+
+
+def _provider_model_to_response(m: ModelProviderModel) -> ProviderModelResponse:
+    return ProviderModelResponse(
+        id=m.id,
+        name=m.name,
+        model_name=m.model_name,
+        temperature=m.temperature,
+        max_output_tokens=m.max_output_tokens,
+        context_size=m.context_size,
+        json_mode_enabled=m.json_mode_enabled,
+        is_active=m.is_active,
+        created_at=m.created_at.isoformat() if m.created_at else "",
+        updated_at=m.updated_at.isoformat() if m.updated_at else None,
+    )
+
+
+def _provider_to_response(p: ModelProvider) -> ProviderResponse:
+    return ProviderResponse(
+        id=p.id,
+        name=p.name,
+        base_url=p.base_url,
+        has_api_key=bool(p.api_key),
+        is_active=p.is_active,
+        models=[_provider_model_to_response(m) for m in (p.models or [])],
+        created_at=p.created_at.isoformat() if p.created_at else "",
+        updated_at=p.updated_at.isoformat() if p.updated_at else None,
+    )
+
+
+def _model_slot_info(
+    model: ModelProviderModel | None,
+) -> ModelSlotInfo | None:
+    """Build a ModelSlotInfo from an ORM model instance."""
+    if model is None:
+        return None
+    provider = model.provider
+    return ModelSlotInfo(
+        id=model.id,
+        name=model.name,
+        model_name=model.model_name,
+        provider_name=provider.name if provider else "Unknown",
+        is_available=model.is_active and (provider.is_active if provider else False),
+    )
+
+
+def _group_to_response(g: ModelGroup) -> GroupResponse:
+    return GroupResponse(
+        id=g.id,
+        name=g.name,
+        description=g.description,
+        general_model_id=g.general_model_id,
+        fast_model_id=g.fast_model_id,
+        reasoning_model_id=g.reasoning_model_id,
+        general_model=_model_slot_info(g.general_model),
+        fast_model=_model_slot_info(g.fast_model),
+        reasoning_model=_model_slot_info(g.reasoning_model),
+        is_active=g.is_active,
+        created_at=g.created_at.isoformat() if g.created_at else "",
+        updated_at=g.updated_at.isoformat() if g.updated_at else None,
+    )
+
+
+def _build_env_fallback_v2() -> EnvFallbackInfoV2:
+    """Build extended environment variable fallback information."""
+    llm_model = os.getenv("LLM_MODEL", "gpt-4o")
+    llm_base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
+    fast_llm_model = os.getenv("FAST_LLM_MODEL") or llm_model
+    fast_llm_base_url = os.getenv("FAST_LLM_BASE_URL") or llm_base_url
+    reasoning_model = os.getenv("REASONING_LLM_MODEL") or llm_model
+    reasoning_base_url = os.getenv("REASONING_LLM_BASE_URL") or llm_base_url
+    return EnvFallbackInfoV2(
+        llm_model=llm_model,
+        llm_base_url=llm_base_url,
+        fast_llm_model=fast_llm_model,
+        fast_llm_base_url=fast_llm_base_url,
+        reasoning_llm_model=reasoning_model,
+        reasoning_llm_base_url=reasoning_base_url,
+        has_api_key=bool(os.getenv("LLM_API_KEY")),
+        has_fast_api_key=bool(os.getenv("FAST_LLM_API_KEY") or os.getenv("LLM_API_KEY")),
+        has_reasoning_api_key=bool(os.getenv("REASONING_LLM_API_KEY") or os.getenv("LLM_API_KEY")),
+    )
+
+
+# -- Provider endpoints -------------------------------------------------------
+
+
+@router.get("/model-providers", response_model=ProviderListResponse)
+async def admin_list_providers(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ProviderListResponse:
+    """List all model providers with their models."""
+    result = await db.execute(
+        select(ModelProvider).order_by(ModelProvider.created_at.asc())
+    )
+    providers = result.scalars().unique().all()
+    return ProviderListResponse(
+        providers=[_provider_to_response(p) for p in providers],
+        total=len(providers),
+    )
+
+
+@router.post("/model-providers", response_model=ProviderResponse, status_code=201)
+async def admin_create_provider(
+    body: ProviderCreate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ProviderResponse:
+    """Create a new model provider."""
+    provider = ModelProvider(
+        name=body.name,
+        base_url=body.base_url,
+        api_key=body.api_key,
+        is_active=body.is_active,
+    )
+    db.add(provider)
+    await db.commit()
+    await db.refresh(provider)
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_provider.create",
+        target_type="model_provider",
+        target_id=provider.id,
+        target_label=provider.name,
+    )
+    return _provider_to_response(provider)
+
+
+@router.put("/model-providers/{provider_id}", response_model=ProviderResponse)
+async def admin_update_provider(
+    provider_id: str,
+    body: ProviderUpdate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ProviderResponse:
+    """Update a model provider. api_key only updates if provided (not empty)."""
+    result = await db.execute(
+        select(ModelProvider).where(ModelProvider.id == provider_id)
+    )
+    provider = result.scalar_one_or_none()
+    if provider is None:
+        raise AppError("model_provider_not_found", status_code=404)
+
+    update_data = body.model_dump(exclude_unset=True)
+
+    # Only update api_key if explicitly provided and non-empty
+    if "api_key" in update_data and not update_data["api_key"]:
+        del update_data["api_key"]
+
+    for field, value in update_data.items():
+        setattr(provider, field, value)
+
+    await db.commit()
+    await db.refresh(provider)
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_provider.update",
+        target_type="model_provider",
+        target_id=provider.id,
+        target_label=provider.name,
+    )
+    return _provider_to_response(provider)
+
+
+@router.delete("/model-providers/{provider_id}", status_code=204)
+async def admin_delete_provider(
+    provider_id: str,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> None:
+    """Delete a provider and cascade-delete all its models.
+
+    Groups referencing deleted models will have those slots set to NULL.
+    """
+    result = await db.execute(
+        select(ModelProvider).where(ModelProvider.id == provider_id)
+    )
+    provider = result.scalar_one_or_none()
+    if provider is None:
+        raise AppError("model_provider_not_found", status_code=404)
+
+    name = provider.name
+    await db.delete(provider)
+    await db.commit()
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_provider.delete",
+        target_type="model_provider",
+        target_id=provider_id,
+        target_label=name,
+    )
+
+
+# -- Provider Model endpoints -------------------------------------------------
+
+
+@router.post(
+    "/model-providers/{provider_id}/models",
+    response_model=ProviderModelFullResponse,
+    status_code=201,
+)
+async def admin_create_provider_model(
+    provider_id: str,
+    body: ProviderModelCreate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ProviderModelFullResponse:
+    """Create a model under an existing provider."""
+    result = await db.execute(
+        select(ModelProvider).where(ModelProvider.id == provider_id)
+    )
+    provider = result.scalar_one_or_none()
+    if provider is None:
+        raise AppError("model_provider_not_found", status_code=404)
+
+    model = ModelProviderModel(
+        provider_id=provider_id,
+        name=body.name,
+        model_name=body.model_name,
+        temperature=body.temperature,
+        max_output_tokens=body.max_output_tokens,
+        context_size=body.context_size,
+        json_mode_enabled=body.json_mode_enabled,
+    )
+    db.add(model)
+    await db.commit()
+    await db.refresh(model)
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_provider_model.create",
+        target_type="model_provider_model",
+        target_id=model.id,
+        target_label=f"{provider.name}/{model.name}",
+        detail=f"model_name={model.model_name}",
+    )
+    return ProviderModelFullResponse(
+        id=model.id,
+        provider_id=provider_id,
+        provider_name=provider.name,
+        name=model.name,
+        model_name=model.model_name,
+        temperature=model.temperature,
+        max_output_tokens=model.max_output_tokens,
+        context_size=model.context_size,
+        json_mode_enabled=model.json_mode_enabled,
+        is_active=model.is_active,
+        created_at=model.created_at.isoformat() if model.created_at else "",
+        updated_at=model.updated_at.isoformat() if model.updated_at else None,
+    )
+
+
+@router.put(
+    "/model-provider-models/{model_id}",
+    response_model=ProviderModelFullResponse,
+)
+async def admin_update_provider_model(
+    model_id: str,
+    body: ProviderModelUpdate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ProviderModelFullResponse:
+    """Update a provider model."""
+    result = await db.execute(
+        select(ModelProviderModel).where(ModelProviderModel.id == model_id)
+    )
+    model = result.scalar_one_or_none()
+    if model is None:
+        raise AppError("model_provider_model_not_found", status_code=404)
+
+    update_data = body.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(model, field, value)
+
+    await db.commit()
+    await db.refresh(model)
+    _invalidate_model_group_cache()
+    # Ensure provider is loaded
+    provider = model.provider
+    await write_audit(
+        db,
+        current_user,
+        "model_provider_model.update",
+        target_type="model_provider_model",
+        target_id=model.id,
+        target_label=f"{provider.name}/{model.name}" if provider else model.name,
+    )
+    return ProviderModelFullResponse(
+        id=model.id,
+        provider_id=model.provider_id,
+        provider_name=provider.name if provider else "",
+        name=model.name,
+        model_name=model.model_name,
+        temperature=model.temperature,
+        max_output_tokens=model.max_output_tokens,
+        context_size=model.context_size,
+        json_mode_enabled=model.json_mode_enabled,
+        is_active=model.is_active,
+        created_at=model.created_at.isoformat() if model.created_at else "",
+        updated_at=model.updated_at.isoformat() if model.updated_at else None,
+    )
+
+
+@router.delete("/model-provider-models/{model_id}", status_code=204)
+async def admin_delete_provider_model(
+    model_id: str,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> None:
+    """Delete a provider model. Groups referencing it get NULL for that slot."""
+    result = await db.execute(
+        select(ModelProviderModel).where(ModelProviderModel.id == model_id)
+    )
+    model = result.scalar_one_or_none()
+    if model is None:
+        raise AppError("model_provider_model_not_found", status_code=404)
+
+    label = f"{model.provider.name}/{model.name}" if model.provider else model.name
+    await db.delete(model)
+    await db.commit()
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_provider_model.delete",
+        target_type="model_provider_model",
+        target_id=model_id,
+        target_label=label,
+    )
+
+
+# -- Model Group endpoints ----------------------------------------------------
+
+
+@router.get("/model-groups", response_model=GroupListResponse)
+async def admin_list_model_groups(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> GroupListResponse:
+    """List all model groups with resolved model info."""
+    result = await db.execute(
+        select(ModelGroup).order_by(ModelGroup.created_at.asc())
+    )
+    groups = result.scalars().unique().all()
+
+    active_group_id: str | None = None
+    for g in groups:
+        if g.is_active:
+            active_group_id = g.id
+            break
+
+    return GroupListResponse(
+        groups=[_group_to_response(g) for g in groups],
+        env_fallback=_build_env_fallback_v2(),
+        active_group_id=active_group_id,
+    )
+
+
+@router.post("/model-groups", response_model=GroupResponse, status_code=201)
+async def admin_create_model_group(
+    body: GroupCreate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> GroupResponse:
+    """Create a new model group."""
+    group = ModelGroup(
+        name=body.name,
+        description=body.description,
+        general_model_id=body.general_model_id,
+        fast_model_id=body.fast_model_id,
+        reasoning_model_id=body.reasoning_model_id,
+        is_active=False,
+    )
+    db.add(group)
+    await db.commit()
+    await db.refresh(group)
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_group.create",
+        target_type="model_group",
+        target_id=group.id,
+        target_label=group.name,
+    )
+    return _group_to_response(group)
+
+
+@router.put("/model-groups/{group_id}", response_model=GroupResponse)
+async def admin_update_model_group(
+    group_id: str,
+    body: GroupUpdate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> GroupResponse:
+    """Update a model group."""
+    result = await db.execute(
+        select(ModelGroup).where(ModelGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise AppError("model_group_not_found", status_code=404)
+
+    update_data = body.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(group, field, value)
+
+    await db.commit()
+    await db.refresh(group)
+    _invalidate_model_group_cache()
+    await write_audit(
+        db,
+        current_user,
+        "model_group.update",
+        target_type="model_group",
+        target_id=group.id,
+        target_label=group.name,
+    )
+    return _group_to_response(group)
+
+
+@router.delete("/model-groups/{group_id}", status_code=204)
+async def admin_delete_model_group(
+    group_id: str,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> None:
+    """Delete a model group."""
+    result = await db.execute(
+        select(ModelGroup).where(ModelGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise AppError("model_group_not_found", status_code=404)
+
+    was_active = group.is_active
+    name = group.name
+    await db.delete(group)
+    await db.commit()
+
+    # If the deleted group was active, invalidate the registry cache
+    if was_active:
+        _invalidate_model_group_cache()
+
+    await write_audit(
+        db,
+        current_user,
+        "model_group.delete",
+        target_type="model_group",
+        target_id=group_id,
+        target_label=name,
+    )
+
+
+@router.patch("/model-groups/{group_id}/activate")
+async def admin_activate_model_group(
+    group_id: str,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict:
+    """Activate a model group. Deactivates all other groups."""
+    result = await db.execute(
+        select(ModelGroup).where(ModelGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise AppError("model_group_not_found", status_code=404)
+
+    # Deactivate all groups first
+    all_result = await db.execute(
+        select(ModelGroup).where(ModelGroup.is_active == True)  # noqa: E712
+    )
+    for g in all_result.scalars().all():
+        g.is_active = False
+
+    # Activate the target group
+    group.is_active = True
+    await db.commit()
+
+    _invalidate_model_group_cache()
+
+    await write_audit(
+        db,
+        current_user,
+        "model_group.activate",
+        target_type="model_group",
+        target_id=group.id,
+        target_label=group.name,
+    )
+    return {"success": True}
+
+
+@router.post("/model-groups/deactivate")
+async def admin_deactivate_all_groups(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict:
+    """Deactivate all model groups (revert to ENV defaults)."""
+    result = await db.execute(
+        select(ModelGroup).where(ModelGroup.is_active == True)  # noqa: E712
+    )
+    for g in result.scalars().all():
+        g.is_active = False
+    await db.commit()
+
+    _invalidate_model_group_cache()
+
+    await write_audit(
+        db,
+        current_user,
+        "model_group.deactivate_all",
+        target_type="model_group",
+    )
+    return {"success": True}
+
+
+# -- Active Configuration endpoint --------------------------------------------
+
+
+@router.get("/model-active-config", response_model=ActiveConfigResponse)
+async def admin_get_active_config(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ActiveConfigResponse:
+    """Get the currently effective model configuration.
+
+    Shows whether models come from an active group or ENV defaults.
+    """
+    env_fallback = _build_env_fallback_v2()
+
+    # Find active group
+    result = await db.execute(
+        select(ModelGroup).where(ModelGroup.is_active == True).limit(1)  # noqa: E712
+    )
+    active_group = result.scalar_one_or_none()
+
+    if active_group is None:
+        # All from ENV
+        return ActiveConfigResponse(
+            mode="env",
+            active_group=None,
+            effective={
+                "general": EffectiveModelInfo(
+                    model_name=env_fallback.llm_model,
+                    provider_name=None,
+                    source="env",
+                ),
+                "fast": EffectiveModelInfo(
+                    model_name=env_fallback.fast_llm_model,
+                    provider_name=None,
+                    source="env",
+                ),
+                "reasoning": EffectiveModelInfo(
+                    model_name=env_fallback.reasoning_llm_model,
+                    provider_name=None,
+                    source="env",
+                ),
+            },
+            env_fallback=env_fallback,
+        )
+
+    # Build effective config: group slots take priority, fallback to ENV
+    effective: dict[str, EffectiveModelInfo] = {}
+    for role, model_obj, env_model in [
+        ("general", active_group.general_model, env_fallback.llm_model),
+        ("fast", active_group.fast_model, env_fallback.fast_llm_model),
+        ("reasoning", active_group.reasoning_model, env_fallback.reasoning_llm_model),
+    ]:
+        if model_obj and model_obj.is_active and model_obj.provider and model_obj.provider.is_active:
+            effective[role] = EffectiveModelInfo(
+                model_name=model_obj.model_name,
+                provider_name=model_obj.provider.name,
+                source="group",
+            )
+        else:
+            effective[role] = EffectiveModelInfo(
+                model_name=env_model,
+                provider_name=None,
+                source="env",
+            )
+
+    return ActiveConfigResponse(
+        mode="group",
+        active_group={"id": active_group.id, "name": active_group.name},
+        effective=effective,
+        env_fallback=env_fallback,
+    )
+
+
+# -- Model group cache invalidation (used by deps.py) -------------------------
+
+
+# Module-level version counter for hot-switching.
+# Incremented when a group is activated/deactivated.
+# deps.py checks this to know when to rebuild the model registry.
+_model_group_version: int = 0
+
+
+def _invalidate_model_group_cache() -> None:
+    """Increment the version counter to signal deps.py to rebuild the registry."""
+    global _model_group_version
+    _model_group_version += 1
+
+
+def get_model_group_version() -> int:
+    """Return the current model group version (used by deps.py)."""
+    return _model_group_version

@@ -62,6 +62,20 @@ import type {
   EvalRunCreate,
   EvalRunDetailResponse,
 } from "@/types/eval"
+import type {
+  ModelProvidersListResponse,
+  ModelProviderResponse,
+  ModelProviderCreate,
+  ModelProviderUpdate,
+  ModelProviderModelResponse,
+  ModelProviderModelCreate,
+  ModelProviderModelUpdate,
+  ModelGroupsListResponse,
+  ModelGroupResponse,
+  ModelGroupCreate,
+  ModelGroupUpdate,
+  ModelActiveConfig,
+} from "@/types/model_provider"
 
 // --- Auth failure callback ---
 let authFailureCallback: (() => void) | null = null
@@ -1568,6 +1582,60 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     }),
+
+  // --- Model Providers ---
+  listModelProviders: () =>
+    apiFetch<ModelProvidersListResponse>('/api/admin/model-providers'),
+  createModelProvider: (data: ModelProviderCreate) =>
+    apiFetch<ModelProviderResponse>('/api/admin/model-providers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateModelProvider: (id: string, data: ModelProviderUpdate) =>
+    apiFetch<ModelProviderResponse>(`/api/admin/model-providers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteModelProvider: (id: string) =>
+    apiFetch<{ success: boolean }>(`/api/admin/model-providers/${id}`, { method: 'DELETE' }),
+
+  // --- Provider Models ---
+  createProviderModel: (providerId: string, data: ModelProviderModelCreate) =>
+    apiFetch<ModelProviderModelResponse>(`/api/admin/model-providers/${providerId}/models`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateProviderModel: (id: string, data: ModelProviderModelUpdate) =>
+    apiFetch<ModelProviderModelResponse>(`/api/admin/model-provider-models/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteProviderModel: (id: string) =>
+    apiFetch<{ success: boolean }>(`/api/admin/model-provider-models/${id}`, { method: 'DELETE' }),
+
+  // --- Model Groups ---
+  listModelGroups: () =>
+    apiFetch<ModelGroupsListResponse>('/api/admin/model-groups'),
+  createModelGroup: (data: ModelGroupCreate) =>
+    apiFetch<ModelGroupResponse>('/api/admin/model-groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateModelGroup: (id: string, data: ModelGroupUpdate) =>
+    apiFetch<ModelGroupResponse>(`/api/admin/model-groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteModelGroup: (id: string) =>
+    apiFetch<{ success: boolean }>(`/api/admin/model-groups/${id}`, { method: 'DELETE' }),
+  activateModelGroup: (id: string) =>
+    apiFetch<{ success: boolean }>(`/api/admin/model-groups/${id}/activate`, { method: 'PATCH' }),
+  deactivateModelGroups: () =>
+    apiFetch<{ success: boolean }>('/api/admin/model-groups/deactivate', { method: 'POST' }),
+
+  // --- Model Active Config ---
+  getModelActiveConfig: () =>
+    apiFetch<ModelActiveConfig>('/api/admin/model-active-config'),
 
   // --- Security: Login History ---
   getLoginHistory: (params?: { page?: number; size?: number; success?: boolean }) => {

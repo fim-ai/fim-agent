@@ -69,15 +69,13 @@ from ..deps import (
     get_dag_tool_cache_enabled,
     get_effective_context_budget,
     get_effective_fast_context_budget,
-    get_effective_fast_llm,
-    get_effective_llm,
     get_fast_context_budget,
     get_fast_llm,
     get_llm,
     get_llm_by_config_id,
     get_llm_from_config,
     get_max_concurrency,
-    get_model_registry,
+    get_model_registry_with_group,
     get_react_max_iterations,
     get_tools,
 )
@@ -420,7 +418,7 @@ async def _classify_deliverables(
 async def _resolve_user(
     token: str | None,
 ) -> tuple[str | None, str | None, str | None, str | None]:
-    """Validate a JWT query-param token (or SSE ticket JWT) and return
+    """Validate a JWT/API-key token and return
     ``(user_id, system_instructions, preferred_language, timezone)``.
 
     Returns ``(None, None, None, None)`` when *token* is not provided.
@@ -429,6 +427,21 @@ async def _resolve_user(
     if not token:
         return None, None, None, None
 
+    # -- API key authentication (fim_-prefixed tokens) ----------------------
+    if token.startswith("fim_"):
+        from fim_one.db import create_session
+        from fim_one.web.auth import _authenticate_api_key
+
+        async with create_session() as session:
+            user = await _authenticate_api_key(token, session)
+            return (
+                user.id,
+                user.system_instructions,
+                user.preferred_language,
+                getattr(user, "timezone", None),
+            )
+
+    # -- JWT authentication -------------------------------------------------
     import jwt as pyjwt
     from fim_one.web.auth import SECRET_KEY, ALGORITHM
 
@@ -615,8 +628,9 @@ async def _resolve_llm(
             llm = get_llm_from_config(cfg)
             if llm is not None:
                 return llm
-    # System default -> ENV fallback
-    llm = await get_effective_llm(db)
+    # Model Group -> ENV fallback (Group-aware registry)
+    registry = await get_model_registry_with_group(db)
+    llm = registry.get_default()
     if not getattr(llm, "api_key", None):
         raise ValueError(
             "No LLM API key configured. "
@@ -638,7 +652,12 @@ async def _resolve_fast_llm(
             llm = await get_llm_by_config_id(db, fast_id)
             if llm is not None:
                 return llm
-    return await get_effective_fast_llm(db)
+    # Model Group -> ENV fallback (Group-aware registry)
+    registry = await get_model_registry_with_group(db)
+    try:
+        return registry.get_by_role("fast")
+    except KeyError:
+        return registry.get_default()
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -2709,7 +2728,9 @@ async def dag_endpoint(
                     user_timezone=user_timezone,
                     agent_directive=agent_instructions,
                 )
-                registry = get_model_registry()
+                from fim_one.db import create_session as _create_registry_session
+                async with _create_registry_session() as _registry_db:
+                    registry = await get_model_registry_with_group(_registry_db)
                 exec_stop_event = asyncio.Event()
                 executor = DAGExecutor(
                     agent=agent,

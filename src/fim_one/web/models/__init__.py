@@ -23,6 +23,7 @@ from .knowledge_base import KBDocument, KnowledgeBase
 from .message import Message
 from .resource_subscription import ResourceSubscription
 from .model_config import ModelConfig
+from .model_provider import ModelGroup, ModelProvider, ModelProviderModel
 from .oauth_binding import UserOAuthBinding
 from .organization import Organization, OrgMembership
 from .sensitive_word import SensitiveWord
@@ -58,6 +59,9 @@ __all__ = [
     "NotificationPreference",
     "ResourceSubscription",
     "ModelConfig",
+    "ModelGroup",
+    "ModelProvider",
+    "ModelProviderModel",
     "Organization",
     "OrgMembership",
     "SchemaColumn",

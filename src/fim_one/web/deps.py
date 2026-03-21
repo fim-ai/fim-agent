@@ -334,7 +334,11 @@ def get_reasoning_context_budget() -> int:
 
 
 def get_model_registry() -> ModelRegistry:
-    """Create a :class:`ModelRegistry` with main, fast, and reasoning models."""
+    """Create a :class:`ModelRegistry` with main, fast, and reasoning models.
+
+    This is the ENV-only fallback. For group-aware registry building, use
+    :func:`get_model_registry_with_group`.
+    """
     registry = ModelRegistry()
 
     registry.register(
@@ -361,6 +365,141 @@ def get_model_registry() -> ModelRegistry:
         # Same model — register the "reasoning" role on the main entry.
         registry._roles.setdefault("reasoning", []).append("main")
 
+    return registry
+
+
+# ---------------------------------------------------------------------------
+# Model Group-aware registry (hot-switchable)
+# ---------------------------------------------------------------------------
+
+# Cached registry + version for hot-switching.
+_cached_registry: ModelRegistry | None = None
+_cached_registry_version: int = -1
+
+
+def _build_llm_from_group_model(
+    model: object,
+) -> OpenAICompatibleLLM | None:
+    """Build an OpenAICompatibleLLM from a ModelProviderModel ORM instance.
+
+    Returns None if the model or its provider is inactive or missing required fields.
+    """
+    if model is None:
+        return None
+    if not model.is_active:
+        return None
+    provider = model.provider
+    if provider is None or not provider.is_active:
+        return None
+    if not provider.base_url and not provider.api_key:
+        # No connection info at all — cannot build LLM
+        return None
+
+    return OpenAICompatibleLLM(
+        api_key=provider.api_key or _api_key(),
+        base_url=provider.base_url or _base_url(),
+        model=model.model_name,
+        default_temperature=(
+            model.temperature if model.temperature is not None else _temperature()
+        ),
+        default_max_tokens=model.max_output_tokens or _main_max_output(),
+        reasoning_effort=None,  # Set per-role below if needed
+        reasoning_budget_tokens=None,
+        json_mode_enabled=_json_mode_enabled(),
+    )
+
+
+async def _get_active_group_config(
+    db: "AsyncSession",
+) -> dict | None:
+    """Query the active model group and return resolved model configs.
+
+    Returns a dict with keys 'general', 'fast', 'reasoning', each mapping to
+    an OpenAICompatibleLLM instance (or None for that slot if not assigned).
+    Returns None if no group is active.
+    """
+    from sqlalchemy import select
+    from fim_one.web.models.model_provider import ModelGroup
+
+    stmt = select(ModelGroup).where(
+        ModelGroup.is_active == True  # noqa: E712
+    ).limit(1)
+    result = await db.execute(stmt)
+    group = result.scalar_one_or_none()
+    if group is None:
+        return None
+
+    return {
+        "general": _build_llm_from_group_model(group.general_model),
+        "fast": _build_llm_from_group_model(group.fast_model),
+        "reasoning": _build_llm_from_group_model(group.reasoning_model),
+    }
+
+
+def _build_registry_from_group(group_config: dict) -> ModelRegistry:
+    """Build a ModelRegistry using group models with ENV fallback per slot."""
+    registry = ModelRegistry()
+
+    # General / main
+    general_llm = group_config.get("general") or get_llm()
+    registry.register("main", general_llm, roles=["general", "planning", "analysis"])
+
+    # Fast
+    fast_llm = group_config.get("fast") or get_fast_llm()
+    # Check if it's actually the same LLM instance as main
+    if fast_llm is not general_llm:
+        registry.register("fast", fast_llm, roles=["fast", "execution"])
+    else:
+        registry._roles.setdefault("fast", []).append("main")
+        registry._roles.setdefault("execution", []).append("main")
+
+    # Reasoning — inject reasoning effort from ENV if group model doesn't have it
+    reasoning_llm = group_config.get("reasoning")
+    if reasoning_llm is not None:
+        # Apply reasoning effort/budget from ENV to the group's reasoning model
+        reasoning_llm._reasoning_effort = _reasoning_tier_effort()
+        reasoning_llm._reasoning_budget_tokens = _reasoning_tier_budget()
+    else:
+        reasoning_llm = get_reasoning_llm()
+
+    if reasoning_llm is not general_llm:
+        registry.register("reasoning", reasoning_llm, roles=["reasoning"])
+    else:
+        registry._roles.setdefault("reasoning", []).append("main")
+
+    return registry
+
+
+async def get_model_registry_with_group(
+    db: "AsyncSession",
+) -> ModelRegistry:
+    """Return a ModelRegistry that respects the active model group.
+
+    If a model group is active, its model assignments override ENV defaults.
+    Uses a version counter for hot-switching: when the active group changes
+    (via admin API), the cached registry is invalidated and rebuilt on the
+    next call.
+
+    Falls back to the ENV-only registry when no group is active.
+    """
+    global _cached_registry, _cached_registry_version
+
+    from fim_one.web.api.admin import get_model_group_version
+
+    current_version = get_model_group_version()
+
+    if _cached_registry is not None and _cached_registry_version == current_version:
+        return _cached_registry
+
+    # Rebuild
+    group_config = await _get_active_group_config(db)
+    if group_config is not None:
+        registry = _build_registry_from_group(group_config)
+    else:
+        registry = get_model_registry()
+
+    _cached_registry = registry
+    _cached_registry_version = current_version
     return registry
 
 
@@ -420,6 +559,7 @@ def get_llm_from_config(config: dict[str, object]) -> OpenAICompatibleLLM | None
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=str(config.get("provider", "")) or None,
+        json_mode_enabled=_json_mode_enabled(),
     )
 
 
@@ -448,6 +588,7 @@ async def get_llm_by_config_id(
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=cfg.provider or None,
+        json_mode_enabled=_json_mode_enabled(),
     )
 
 
@@ -485,6 +626,7 @@ async def get_system_default_llm(
         reasoning_effort=_reasoning_effort(),
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         provider=cfg.provider or None,
+        json_mode_enabled=_json_mode_enabled(),
     )
 
 
