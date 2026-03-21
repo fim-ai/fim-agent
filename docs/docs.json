@@ -819,16 +819,18 @@
       {
         "label": "GitHub",
         "href": "https://github.com/fim-ai/fim-one"
-      },
-      {
-        "label": "Cloud",
-        "href": "https://cloud.fim.ai"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get Started",
       "href": "https://one.fim.ai"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/FIM_One",
+      "github": "https://github.com/fim-ai/fim-one"
     }
   }
 }
