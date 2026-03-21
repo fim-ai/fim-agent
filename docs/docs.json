@@ -105,63 +105,11 @@
           },
           {
             "tab": "API Reference",
-            "groups": [
-              {
-                "group": "Getting Started",
-                "icon": "key",
-                "pages": [
-                  "api/overview",
-                  "api/authentication"
-                ]
-              },
-              {
-                "group": "Chat",
-                "icon": "message-bot",
-                "pages": [
-                  "POST /api/react",
-                  "POST /api/dag",
-                  "POST /api/chat/inject"
-                ]
-              },
-              {
-                "group": "Conversations",
-                "icon": "messages",
-                "pages": [
-                  "GET /api/conversations",
-                  "GET /api/conversations/{conversation_id}",
-                  "POST /api/conversations",
-                  "PATCH /api/conversations/{conversation_id}",
-                  "DELETE /api/conversations/{conversation_id}"
-                ]
-              },
-              {
-                "group": "Knowledge Bases",
-                "icon": "book",
-                "pages": [
-                  "GET /api/knowledge-bases",
-                  "POST /api/knowledge-bases/{kb_id}/retrieve"
-                ]
-              },
-              {
-                "group": "Agents",
-                "icon": "robot",
-                "pages": [
-                  "GET /api/agents",
-                  "GET /api/agents/{agent_id}"
-                ]
-              },
-              {
-                "group": "API Keys",
-                "icon": "key",
-                "pages": [
-                  "GET /api/me/api-keys",
-                  "POST /api/me/api-keys",
-                  "PATCH /api/me/api-keys/{key_id}/active",
-                  "DELETE /api/me/api-keys/{key_id}"
-                ]
-              }
-            ],
-            "openapi": "openapi.json"
+            "openapi": "openapi.json",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
           },
           {
             "tab": "Updates",
