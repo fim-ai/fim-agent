@@ -90,6 +90,16 @@ class BaseLLM(ABC):
         return None
 
     @property
+    def context_size(self) -> int | None:
+        """Return the model's context window size in tokens, if known.
+
+        Subclasses may override to report the actual context window size,
+        which allows downstream components (e.g. ContextGuard) to compute
+        model-aware token budgets.
+        """
+        return None
+
+    @property
     def abilities(self) -> dict[str, bool]:
         """Declare model capabilities.
 
