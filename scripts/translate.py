@@ -898,10 +898,20 @@ def all_en_mdx_files() -> list[Path]:
     return sorted(results)
 
 
+import re as _re
+
+_ENDPOINT_RE = _re.compile(r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+/")
+
+
 def _is_openapi_only_group(group: dict) -> bool:
-    """Return True if every page in this group is an openapi dict entry."""
+    """Return True if every page is an openapi entry (dict or 'METHOD /path' string)."""
     pages = group.get("pages", [])
-    return bool(pages) and all(isinstance(p, dict) for p in pages)
+    if not pages:
+        return False
+    return all(
+        isinstance(p, dict) or (isinstance(p, str) and _ENDPOINT_RE.match(p))
+        for p in pages
+    )
 
 
 def sync_docs_navigation() -> bool:
