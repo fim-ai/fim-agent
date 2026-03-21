@@ -802,9 +802,7 @@ STRICT rules — violating any of these will break the documentation site:
 # MDX files that cause Mintlify build failures when translated.
 # These are kept as manually maintained placeholders linking to the EN version.
 # Format: set of relative paths under docs/ (e.g. "configuration/model-management.mdx")
-_MDX_TRANSLATE_SKIP: set[str] = {
-    "configuration/model-management.mdx",
-}
+_MDX_TRANSLATE_SKIP: set[str] = set()
 
 
 def translate_mdx_file(src_path: Path, locale: str, config: dict[str, str], force: bool = False) -> Path | None:
