@@ -192,8 +192,7 @@
                   }
                 ]
               }
-            ],
-            "openapi": "openapi.json"
+            ]
           },
           {
             "tab": "Updates",
