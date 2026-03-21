@@ -105,93 +105,10 @@
           },
           {
             "tab": "API Reference",
-            "groups": [
-              {
-                "group": "Getting Started",
-                "icon": "key",
-                "pages": [
-                  "api/overview",
-                  "api/authentication"
-                ]
-              },
-              {
-                "group": "Chat",
-                "icon": "message-bot",
-                "pages": [
-                  {
-                    "openapi": "POST /api/react"
-                  },
-                  {
-                    "openapi": "POST /api/dag"
-                  },
-                  {
-                    "openapi": "POST /api/chat/inject"
-                  }
-                ]
-              },
-              {
-                "group": "Conversations",
-                "icon": "messages",
-                "pages": [
-                  {
-                    "openapi": "GET /api/conversations"
-                  },
-                  {
-                    "openapi": "GET /api/conversations/{conversation_id}"
-                  },
-                  {
-                    "openapi": "POST /api/conversations"
-                  },
-                  {
-                    "openapi": "PATCH /api/conversations/{conversation_id}"
-                  },
-                  {
-                    "openapi": "DELETE /api/conversations/{conversation_id}"
-                  }
-                ]
-              },
-              {
-                "group": "Knowledge Bases",
-                "icon": "book",
-                "pages": [
-                  {
-                    "openapi": "GET /api/knowledge-bases"
-                  },
-                  {
-                    "openapi": "POST /api/knowledge-bases/{kb_id}/retrieve"
-                  }
-                ]
-              },
-              {
-                "group": "Agents",
-                "icon": "robot",
-                "pages": [
-                  {
-                    "openapi": "GET /api/agents"
-                  },
-                  {
-                    "openapi": "GET /api/agents/{agent_id}"
-                  }
-                ]
-              },
-              {
-                "group": "API Keys",
-                "icon": "key",
-                "pages": [
-                  {
-                    "openapi": "GET /api/me/api-keys"
-                  },
-                  {
-                    "openapi": "POST /api/me/api-keys"
-                  },
-                  {
-                    "openapi": "PATCH /api/me/api-keys/{key_id}/active"
-                  },
-                  {
-                    "openapi": "DELETE /api/me/api-keys/{key_id}"
-                  }
-                ]
-              }
+            "openapi": "openapi.json",
+            "pages": [
+              "api/overview",
+              "api/authentication"
             ]
           },
           {
