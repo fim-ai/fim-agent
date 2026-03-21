@@ -42,6 +42,7 @@
                   "configuration/environment-variables",
                   "configuration/database",
                   "configuration/models",
+                  "configuration/model-management",
                   "configuration/oauth-providers"
                 ]
               },
@@ -237,6 +238,7 @@
                   "zh/configuration/environment-variables",
                   "zh/configuration/database",
                   "zh/configuration/models",
+                  "zh/configuration/model-management",
                   "zh/configuration/oauth-providers"
                 ]
               },
@@ -344,6 +346,7 @@
                   "ja/configuration/environment-variables",
                   "ja/configuration/database",
                   "ja/configuration/models",
+                  "ja/configuration/model-management",
                   "ja/configuration/oauth-providers"
                 ]
               },
@@ -451,6 +454,7 @@
                   "ko/configuration/environment-variables",
                   "ko/configuration/database",
                   "ko/configuration/models",
+                  "ko/configuration/model-management",
                   "ko/configuration/oauth-providers"
                 ]
               },
@@ -558,6 +562,7 @@
                   "de/configuration/environment-variables",
                   "de/configuration/database",
                   "de/configuration/models",
+                  "de/configuration/model-management",
                   "de/configuration/oauth-providers"
                 ]
               },
@@ -665,6 +670,7 @@
                   "fr/configuration/environment-variables",
                   "fr/configuration/database",
                   "fr/configuration/models",
+                  "fr/configuration/model-management",
                   "fr/configuration/oauth-providers"
                 ]
               },

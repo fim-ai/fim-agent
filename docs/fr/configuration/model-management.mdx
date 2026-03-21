@@ -1,0 +1,242 @@
+---
+title: "Gestion des modèles"
+description: "Configurez les fournisseurs LLM, les modèles et les groupes de modèles dans le panneau d'administration."
+---
+
+FIM One fournit une interface d'administration complète pour gérer les fournisseurs LLM et les modèles. Ce guide couvre comment ajouter des fournisseurs, configurer des modèles individuels, affiner les paramètres avancés de sortie structurée et organiser les modèles en groupes pour un changement en un clic.
+
+Pour la configuration basée sur les variables d'environnement (sans interface d'administration), voir [Variables d'environnement](/configuration/environment-variables). Pour les recommandations de sélection de modèles, voir [Modèles recommandés](/configuration/models).
+
+## Architecture: Fournisseur, Modèle, Groupe
+
+FIM One organise la configuration des LLM en trois niveaux :
+
+| Niveau | Ce qu'il représente | Exemple |
+|---|---|---|
+| **Fournisseur** | Un ensemble d'identifiants partagés (clé API + URL de base). Un fournisseur peut héberger de nombreux modèles. | "Mon compte OpenAI", "Relais Bedrock d'entreprise" |
+| **Modèle** | Un modèle individuel sous un fournisseur. Possède son propre nom d'affichage, identifiant de modèle API et paramètres avancés. | "GPT-4o", "Claude Sonnet 4.6" |
+| **Groupe de modèles** | Un préréglage nommé qui assigne des modèles à des rôles (Général / Rapide / Raisonnement). L'activation d'un groupe bascule tous les rôles à la fois. | "Production (OpenAI)", "Budget (DeepSeek)" |
+
+```
+Provider: "My OpenAI Account"
+  ├── Model: "GPT-4o"         (model_name: gpt-4o)
+  ├── Model: "GPT-5 Nano"     (model_name: gpt-5-nano)
+  └── Model: "o3"             (model_name: o3)
+
+Provider: "Anthropic Direct"
+  ├── Model: "Claude Sonnet"   (model_name: claude-sonnet-4-6)
+  └── Model: "Claude Haiku"    (model_name: claude-haiku-4-5)
+
+Group: "Production"
+  ├── General → GPT-4o
+  ├── Fast    → GPT-5 Nano
+  └── Reasoning → o3
+```
+
+---
+
+## Ajouter un fournisseur
+
+<Steps>
+  <Step title="Ouvrir la page Modèles">
+    Accédez à **Admin** (barre latérale) et sélectionnez l'onglet **Modèles**.
+  </Step>
+  <Step title="Cliquer sur Ajouter un fournisseur">
+    Cliquez sur le bouton **Ajouter un fournisseur** dans la zone supérieure droite de la section Fournisseurs.
+  </Step>
+  <Step title="Sélectionner un préréglage ou utiliser un point de terminaison personnalisé">
+    La boîte de dialogue affiche des boutons de préréglage pour les fournisseurs courants : **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **DeepSeek**, **Mistral AI** et **OpenAI Compatible** (point de terminaison personnalisé). Cliquer sur un préréglage remplit automatiquement le nom du fournisseur et l'URL de base.
+
+    Choisissez **OpenAI Compatible** si votre fournisseur n'est pas répertorié (par exemple, un relais tiers, Ollama ou tout autre point de terminaison compatible OpenAI).
+  </Step>
+  <Step title="Entrer les identifiants">
+    Remplissez les champs obligatoires :
+    - **Nom du fournisseur** -- Un libellé convivial (par exemple, « Mon compte OpenAI »). Ceci est uniquement pour votre référence.
+    - **URL de base** -- Le point de terminaison API. Les préréglages remplissent cela automatiquement. Pour les points de terminaison personnalisés, entrez l'URL complète (par exemple, `http://localhost:11434/v1` pour Ollama).
+    - **Clé API** -- La clé API de votre fournisseur. Pour les modèles locaux (Ollama), entrez une chaîne non vide (par exemple, `ollama`).
+  </Step>
+  <Step title="Enregistrer">
+    Cliquez sur **Créer**. Le fournisseur apparaît dans la liste, prêt pour que vous y ajoutiez des modèles.
+  </Step>
+</Steps>
+
+<Tip>
+Vous pouvez créer plusieurs fournisseurs pour le même service. Par exemple, deux fournisseurs « OpenAI » avec des clés API différentes pour des comptes de facturation distincts, ou « Anthropic (Direct) » et « Anthropic (via Bedrock) » avec des URL de base différentes.
+</Tip>
+
+## Ajouter un modèle
+
+<Steps>
+  <Step title="Développer un fournisseur">
+    Sur la page Modèles, cliquez sur le chevron à côté d'un fournisseur existant pour le développer et voir ses modèles.
+  </Step>
+  <Step title="Cliquer sur Ajouter un modèle">
+    Cliquez sur le bouton **Ajouter un modèle** qui apparaît sous le fournisseur développé.
+  </Step>
+  <Step title="Entrer les détails du modèle">
+    Remplissez les deux champs obligatoires :
+    - **Nom d'affichage** -- Un nom lisible affiché dans l'interface utilisateur (par exemple, « GPT-4o », « Claude Sonnet »). Peut être n'importe quoi.
+    - **Nom du modèle (API)** -- L'identifiant exact du modèle envoyé à l'API (par exemple, `gpt-4o`, `claude-sonnet-4-6`, `deepseek-chat`). Doit correspondre à ce que votre fournisseur attend.
+  </Step>
+  <Step title="Configurer les paramètres avancés (facultatif)">
+    Cliquez sur le bouton bascule **Avancé** pour révéler les paramètres supplémentaires : Jetons de sortie maximaux, Taille du contexte, Température, Appel de fonction natif et Mode JSON. Consultez la section [Paramètres avancés](#advanced-settings) ci-dessous pour plus de détails sur chacun.
+  </Step>
+  <Step title="Enregistrer">
+    Cliquez sur **Créer**. Le modèle apparaît sous son fournisseur et est maintenant disponible pour l'attribution aux groupes de modèles.
+  </Step>
+</Steps>
+
+---
+
+## Paramètres avancés
+
+Chaque modèle dispose de paramètres avancés qui contrôlent la façon dont FIM One interagit avec l'API du fournisseur pour l'extraction de sortie structurée. Ces paramètres se trouvent sous le bouton bascule **Avancé** dans la boîte de dialogue de création/édition du modèle.
+
+### Appel de fonction natif
+
+**Nom du paramètre :** Native Function Calling (stocké sous `tool_choice_enabled`)
+
+**Par défaut :** ACTIVÉ
+
+Contrôle si FIM One utilise `tool_choice` forcé pour l'extraction de sortie structurée. C'est le niveau 1 dans la chaîne de dégradation de sortie structurée -- la méthode la plus fiable lorsque le modèle la supporte.
+
+**Quand désactiver :**
+- Votre modèle retourne des erreurs comme `"tool_choice 'specified' is incompatible with thinking enabled"` -- courant avec les modèles à réflexion toujours active (DeepSeek R1, Kimi K2.5)
+- Les demandes de sortie structurée sont régulièrement lentes avec une pénalité d'environ 10 secondes par appel, suivie d'une réversion à JSON Mode de toute façon
+
+**Effet quand désactivé :** FIM One ignore le niveau 1 (appel de fonction natif) et commence au niveau 2 (JSON Mode) pour la sortie structurée. L'appel d'outil de l'agent ReAct n'est complètement pas affecté -- il utilise `tool_choice="auto"`, qui fonctionne avec tous les modèles indépendamment de ce paramètre.
+
+<Note>
+Ce paramètre affecte uniquement la sélection d'outil **forcée** utilisée pour l'extraction de sortie structurée (planification DAG, annotation de schéma). Il n'affecte **pas** l'agent ReAct, qui décide librement quand appeler des outils en utilisant `tool_choice="auto"`.
+</Note>
+
+Pour les détails techniques, voir [Compatibilité des fournisseurs LLM -- tool_choice_enabled](/architecture/llm-provider-guide#the-fix-tool_choice_enabled).
+
+### Mode JSON
+
+**Nom du paramètre :** JSON Mode (stocké sous `json_mode_enabled`)
+
+**Valeur par défaut :** ACTIVÉ
+
+Contrôle si FIM One utilise `response_format=json_object` pour la sortie structurée. Ceci est le Niveau 2 dans la chaîne de dégradation.
+
+**Quand désactiver :**
+- Votre fournisseur rejette le préfixage des messages d'assistant -- principalement les relais AWS Bedrock, qui lèvent `"This model does not support assistant message prefill"`
+
+**Effet quand désactivé :** FIM One ignore le Niveau 2 (Mode JSON) et bascule au Niveau 3 (extraction de texte brut). Les modèles modernes produisent du JSON valide à partir des instructions de prompt seules, il n'y a donc généralement aucune perte de qualité.
+
+Pour plus de détails techniques, consultez [Compatibilité des fournisseurs LLM -- json_mode_enabled](/architecture/llm-provider-guide#the-fix-json_mode_enabled).
+
+### Température
+
+**Par défaut :** 0.7 (hérité du paramètre global s'il n'est pas défini)
+
+Contrôle le caractère aléatoire de la sortie du modèle. Plage : 0 (déterministe) à 2 (très créatif).
+
+<Note>
+Lorsque le raisonnement/la réflexion étendue est activé pour les modèles Anthropic, la température est automatiquement forcée à 1.0 par le système. Vous n'avez pas besoin de la définir manuellement.
+</Note>
+
+### Tokens de sortie maximaux
+
+Le nombre maximum de jetons que le modèle peut générer dans une seule réponse. Laissez vide pour utiliser la valeur par défaut du système (64 000). Pour les modèles locaux avec une VRAM limitée, définissez explicitement cette valeur sur un nombre inférieur (par exemple, 8192).
+
+### Taille du contexte
+
+La taille de la fenêtre de contexte du modèle en tokens. Laissez vide pour utiliser la valeur par défaut du système (128 000). Définissez cette valeur pour correspondre à la capacité réelle de votre modèle -- pour les modèles locaux, cela est souvent 4K-32K selon le modèle et la mémoire disponible.
+
+---
+
+## Configuration recommandée
+
+La plupart des modèles fonctionnent correctement avec les paramètres par défaut (les deux bascules activées). Ajustez uniquement en cas d'erreurs ou de latence inutile.
+
+| Type de modèle | FC natif | Mode JSON | Notes |
+|---|---|---|---|
+| Série OpenAI GPT | ON | ON | Support complet -- les paramètres par défaut sont corrects |
+| Anthropic Claude | ON | ON | Réflexion automatiquement désactivée pour les appels de sortie structurée |
+| Google Gemini | ON | ON | Support complet |
+| DeepSeek V3 / Coder | ON | ON | Support complet |
+| **DeepSeek R1 (réflexion)** | **OFF** | ON | Réflexion toujours activée ; FC natif rejeté |
+| **Kimi K2.5 (réflexion)** | **OFF** | ON | Réflexion toujours activée ; FC natif rejeté |
+| Kimi K2 (sans réflexion) | ON | ON | Support complet |
+| **Relais AWS Bedrock** | ON | **OFF** | Bedrock rejette le préfixe assistant en Mode JSON |
+| Modèles petits / faibles | OFF | OFF | Aller directement à l'extraction de texte brut |
+
+<Tip>
+**Comment diagnostiquer :** Vérifiez les journaux de votre application pour les avertissements `structured_llm_call: native_fc call raised`. Si vous voyez ces avertissements suivis d'une extraction réussie en Mode JSON, le modèle ne bénéficie pas de l'appel de fonction natif. Désactivez **Appel de fonction natif** pour ce modèle afin d'éliminer l'appel API gaspillé et la pénalité de latence d'environ 10 secondes par demande de sortie structurée.
+</Tip>
+
+---
+
+## Groupes de modèles
+
+Les groupes de modèles vous permettent d'assigner des modèles à des rôles spécifiques et de basculer entre les configurations en un seul clic.
+
+### Rôles
+
+FIM One utilise trois rôles de modèle. Chaque rôle remplit un objectif différent dans le pipeline d'exécution :
+
+| Rôle | Utilisé pour | Recommandation |
+|---|---|---|
+| **General** | Planification, analyse, agent ReAct, raisonnement complexe | Votre modèle le plus capable (par ex., `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | Exécution des étapes DAG, compaction de contexte | Optimisé pour la vitesse et le coût (par ex., `gpt-5-nano`, `deepseek-chat`). Bascule vers General s'il n'est pas assigné. |
+| **Reasoning** | Tâches nécessitant une analyse approfondie -- planification complexe, preuves mathématiques, logique multi-étapes | Un modèle de raisonnement puissant (par ex., `o3`, `deepseek-reasoner`). Bascule vers General s'il n'est pas assigné. |
+
+### Création d'un groupe de modèles
+
+<Steps>
+  <Step title="Ouvrir la section Groupes">
+    Sur la page **Admin > Modèles**, faites défiler jusqu'à la section **Groupes de modèles**.
+  </Step>
+  <Step title="Cliquer sur Ajouter un groupe">
+    Cliquez sur le bouton **Ajouter un groupe**.
+  </Step>
+  <Step title="Nommer le groupe">
+    Entrez un nom descriptif (par exemple, « Production (OpenAI) », « Budget (DeepSeek) », « Local Dev »).
+  </Step>
+  <Step title="Assigner des modèles aux rôles">
+    Pour chaque rôle (Général, Rapide, Raisonnement), sélectionnez un modèle dans la liste déroulante. La liste déroulante affiche tous les modèles actifs des fournisseurs actifs, groupés par nom de fournisseur. Vous pouvez laisser un rôle non assigné -- il reviendra au modèle Général (ou aux modèles configurés par ENV si Général n'est pas assigné non plus).
+  </Step>
+  <Step title="Enregistrer">
+    Cliquez sur **Créer**. Le groupe est maintenant disponible pour activation.
+  </Step>
+</Steps>
+
+### Activation d'un groupe
+
+Pour activer un groupe de modèles, utilisez la liste déroulante ou le contrôle d'activation sur la page Modèles. Un seul groupe peut être actif à la fois. L'activation d'un groupe applique immédiatement ses attributions de modèles à toutes les nouvelles conversations.
+
+Pour désactiver le groupe actuel (revenir aux modèles configurés par ENV), sélectionnez l'option de désactivation.
+
+<Warning>
+Le changement du groupe de modèles actif affecte **toutes les nouvelles conversations** à l'échelle du système. Les conversations en cours existantes continuent d'utiliser le modèle qui était actif au moment de leur démarrage.
+</Warning>
+
+---
+
+## Secours ENV
+
+Lorsqu'aucun groupe de modèles configuré par l'administrateur n'est actif, FIM One revient à une configuration basée sur ENV :
+
+| Rôle | Variable ENV |
+|---|---|
+| Général | `LLM_MODEL` |
+| Rapide | `FAST_LLM_MODEL` (revient à `LLM_MODEL`) |
+| Raisonnement | `REASONING_LLM_MODEL` (revient à `LLM_MODEL`) |
+
+Les modèles configurés par l'administrateur ont toujours la priorité sur les variables ENV. La vérification de l'intégrité du système considère les deux sources -- tant qu'un groupe de modèles actif ou des variables ENV valides sont configurés, le sous-système LLM signale un état sain.
+
+Pour la référence ENV complète, consultez [Variables d'environnement](/configuration/environment-variables#llm-required).
+
+## Exportation et importation
+
+La page Modèles prend en charge l'exportation de l'intégralité de votre configuration de fournisseur et de modèle (fournisseurs, modèles et groupes) sous forme de fichier JSON, et son importation sur une autre instance. Ceci est utile pour :
+
+- Migrer la configuration entre les environnements de développement, de staging et de production
+- Partager une configuration de modèle éprouvée avec les membres de l'équipe
+- Sauvegarder votre configuration avant d'apporter des modifications
+
+<Warning>
+La configuration exportée n'inclut **pas** les clés API. Après l'importation, vous devez modifier chaque fournisseur pour entrer la clé API appropriée.
+</Warning>

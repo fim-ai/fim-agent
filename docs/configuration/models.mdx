@@ -7,14 +7,17 @@ FIM One is **provider-agnostic** — any OpenAI-compatible endpoint works. This 
 
 ## How FIM One Uses Models
 
-FIM One has two model slots:
+FIM One has three model roles:
 
-| Slot | Env Variable | Used For |
+| Role | Env Variable | Used For |
 |---|---|---|
-| **Main LLM** | `LLM_MODEL` | Planning, analysis, ReAct agent, complex reasoning |
-| **Fast LLM** | `FAST_LLM_MODEL` | DAG step execution, context compaction (cheaper, faster) |
+| **General** | `LLM_MODEL` | Planning, analysis, ReAct agent, complex reasoning |
+| **Fast** | `FAST_LLM_MODEL` | DAG step execution, context compaction (cheaper, faster) |
+| **Reasoning** | `REASONING_LLM_MODEL` | Deep analysis, complex planning, mathematical proofs |
 
-If `FAST_LLM_MODEL` is not set, it falls back to `LLM_MODEL`. For production deployments, splitting into two models gives the best cost/quality balance.
+Fast and Reasoning fall back to General if not configured. For production deployments, splitting into at least two models (General + Fast) gives the best cost/quality balance.
+
+These roles can be configured via ENV variables or through the admin UI's **Model Groups** feature, which allows one-click switching between model sets. See [Model Management](/configuration/model-management) for the full admin UI guide.
 
 ---
 

@@ -1,0 +1,240 @@
+---
+title: "Modellverwaltung"
+description: "Konfigurieren Sie LLM-Anbieter, Modelle und Modellgruppen im Admin-Panel."
+---
+
+FIM One bietet eine vollständige Admin-Benutzeroberfläche zur Verwaltung von LLM-Anbietern und Modellen. Dieser Leitfaden behandelt das Hinzufügen von Anbietern, die Konfiguration einzelner Modelle, die Optimierung erweiterter Structured-Output-Einstellungen und die Organisation von Modellen in Gruppen für schnelle Umschaltung.
+
+Für ENV-basierte Konfiguration (ohne Admin-Benutzeroberfläche) siehe [Umgebungsvariablen](/configuration/environment-variables). Für Empfehlungen zur Modellauswahl siehe [Empfohlene Modelle](/configuration/models).
+
+## Architektur: Anbieter, Modell, Gruppe
+
+FIM One organisiert die LLM-Konfiguration in drei Ebenen:
+
+| Ebene | Was es darstellt | Beispiel |
+|---|---|---|
+| **Anbieter** | Ein Satz gemeinsamer Anmeldedaten (API-Schlüssel + Basis-URL). Ein Anbieter kann viele Modelle hosten. | "Mein OpenAI-Konto", "Unternehmens-Bedrock-Relay" |
+| **Modell** | Ein einzelnes Modell unter einem Anbieter. Hat seinen eigenen Anzeigenamen, API-Modellbezeichner und erweiterte Einstellungen. | "GPT-4o", "Claude Sonnet 4.6" |
+| **Modellgruppe** | Eine benannte Voreinstellung, die Modelle Rollen zuweist (Allgemein / Schnell / Reasoning). Das Aktivieren einer Gruppe wechselt alle Rollen auf einmal. | "Produktion (OpenAI)", "Budget (DeepSeek)" |
+
+```
+Provider: "My OpenAI Account"
+  ├── Model: "GPT-4o"         (model_name: gpt-4o)
+  ├── Model: "GPT-5 Nano"     (model_name: gpt-5-nano)
+  └── Model: "o3"             (model_name: o3)
+
+Provider: "Anthropic Direct"
+  ├── Model: "Claude Sonnet"   (model_name: claude-sonnet-4-6)
+  └── Model: "Claude Haiku"    (model_name: claude-haiku-4-5)
+
+Group: "Production"
+  ├── General → GPT-4o
+  ├── Fast    → GPT-5 Nano
+  └── Reasoning → o3
+```
+
+---
+
+## Anbieter hinzufügen
+
+<Steps>
+  <Step title="Öffnen Sie die Seite „Modelle"">
+    Navigieren Sie zu **Admin** (Seitenleiste) und wählen Sie die Registerkarte **Modelle**.
+  </Step>
+  <Step title="Klicken Sie auf „Anbieter hinzufügen"">
+    Klicken Sie auf die Schaltfläche **Anbieter hinzufügen** im oberen rechten Bereich des Abschnitts „Anbieter".
+  </Step>
+  <Step title="Wählen Sie eine Voreinstellung oder verwenden Sie einen benutzerdefinierten Endpunkt">
+    Das Dialogfeld zeigt Voreinstellungsschaltflächen für häufige Anbieter: **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **DeepSeek**, **Mistral AI** und **OpenAI Compatible** (benutzerdefinierter Endpunkt). Durch Klicken auf eine Voreinstellung werden der Anbieter-Name und die Basis-URL automatisch ausgefüllt.
+
+    Wählen Sie **OpenAI Compatible**, wenn Ihr Anbieter nicht aufgelistet ist (z. B. ein Drittanbieter-Relay, Ollama oder ein anderer OpenAI-kompatibler Endpunkt).
+  </Step>
+  <Step title="Geben Sie Anmeldedaten ein">
+    Füllen Sie die erforderlichen Felder aus:
+    - **Anbieter-Name** – Eine benutzerfreundliche Bezeichnung (z. B. „Mein OpenAI-Konto"). Dies dient nur zu Ihrer Referenz.
+    - **Basis-URL** – Der API-Endpunkt. Voreinstellungen füllen dies automatisch aus. Geben Sie für benutzerdefinierte Endpunkte die vollständige URL ein (z. B. `http://localhost:11434/v1` für Ollama).
+    - **API-Schlüssel** – Der API-Schlüssel Ihres Anbieters. Geben Sie für lokale Modelle (Ollama) eine beliebige nicht-leere Zeichenfolge ein (z. B. `ollama`).
+  </Step>
+  <Step title="Speichern">
+    Klicken Sie auf **Erstellen**. Der Anbieter wird in der Liste angezeigt und ist bereit, damit Sie Modelle unter ihm hinzufügen können.
+  </Step>
+</Steps>
+
+<Tip>
+Sie können mehrere Anbieter für denselben Service erstellen. Beispielsweise zwei „OpenAI"-Anbieter mit unterschiedlichen API-Schlüsseln für separate Abrechnungskonten oder ein „Anthropic (Direkt)" und „Anthropic (über Bedrock)" mit unterschiedlichen Basis-URLs.
+</Tip>
+
+---
+
+## Ein Modell hinzufügen
+
+<Steps>
+  <Step title="Einen Anbieter erweitern">
+    Klicken Sie auf der Seite „Modelle" auf das Chevron neben einem vorhandenen Anbieter, um ihn zu erweitern und seine Modelle anzuzeigen.
+  </Step>
+  <Step title="Klicken Sie auf „Modell hinzufügen"">
+    Klicken Sie auf die Schaltfläche **Modell hinzufügen**, die unter dem erweiterten Anbieter angezeigt wird.
+  </Step>
+  <Step title="Modelldetails eingeben">
+    Füllen Sie die zwei erforderlichen Felder aus:
+    - **Anzeigename** – Ein benutzerfreundlicher Name, der in der Benutzeroberfläche angezeigt wird (z. B. „GPT-4o", „Claude Sonnet"). Kann beliebig sein.
+    - **Modellname (API)** – Der genaue Modellbezeichner, der an die API gesendet wird (z. B. `gpt-4o`, `claude-sonnet-4-6`, `deepseek-chat`). Dies muss dem entsprechen, was Ihr Anbieter erwartet.
+  </Step>
+  <Step title="Erweiterte Einstellungen konfigurieren (optional)">
+    Klicken Sie auf den Schalter **Erweitert**, um zusätzliche Einstellungen anzuzeigen: Max. Ausgabe-Token, Kontextgröße, Temperatur, Native Funktionsaufrufe und JSON-Modus. Weitere Informationen zu den einzelnen Einstellungen finden Sie im Abschnitt [Erweiterte Einstellungen](#advanced-settings) unten.
+  </Step>
+  <Step title="Speichern">
+    Klicken Sie auf **Erstellen**. Das Modell wird unter seinem Anbieter angezeigt und ist nun verfügbar, um es Modellgruppen zuzuweisen.
+  </Step>
+</Steps>
+
+---
+
+## Erweiterte Einstellungen
+
+Jedes Modell hat erweiterte Einstellungen, die steuern, wie FIM One mit der API des Anbieters für die Extraktion strukturierter Ausgaben interagiert. Diese Einstellungen finden Sie unter dem Schalter **Erweitert** im Dialog zum Erstellen/Bearbeiten von Modellen.
+
+### Native Funktionsaufrufe
+
+**Einstellungsname:** Native Function Calling (gespeichert als `tool_choice_enabled`)
+
+**Standard:** AN
+
+Steuert, ob FIM One erzwungenes `tool_choice` für die Extraktion strukturierter Ausgaben verwendet. Dies ist Stufe 1 in der Degradationskette für strukturierte Ausgaben -- die zuverlässigste Methode, wenn das Modell dies unterstützt.
+
+**Wann deaktivieren:**
+- Ihr Modell gibt Fehler wie `"tool_choice 'specified' is incompatible with thinking enabled"` zurück -- häufig bei Modellen mit immer aktiviertem Denken (DeepSeek R1, Kimi K2.5)
+- Anfragen für strukturierte Ausgaben sind konsistent langsam mit einer ~10-Sekunden-Strafe pro Aufruf, gefolgt von einem Fallback zu JSON Mode
+
+**Auswirkung bei Deaktivierung:** FIM One überspringt Stufe 1 (native Funktionsaufrufe) und beginnt mit Stufe 2 (JSON Mode) für strukturierte Ausgaben. Der Funktionsaufruf des ReAct-Agenten ist völlig unbeeinträchtigt -- er verwendet `tool_choice="auto"`, das mit allen Modellen unabhängig von dieser Einstellung funktioniert.
+
+<Note>
+Diese Einstellung betrifft nur die **erzwungene** Werkzeugauswahl, die für die Extraktion strukturierter Ausgaben verwendet wird (DAG-Planung, Schema-Annotation). Sie betrifft **nicht** den ReAct-Agenten, der frei entscheidet, wann Werkzeuge mit `tool_choice="auto"` aufgerufen werden.
+</Note>
+
+Technische Details finden Sie unter [LLM-Anbieter-Kompatibilität -- tool_choice_enabled](/architecture/llm-provider-guide#the-fix-tool_choice_enabled).
+
+### JSON Mode
+
+**Setting name:** JSON Mode (stored as `json_mode_enabled`)
+
+**Default:** ON
+
+Controls whether FIM One uses `response_format=json_object` for structured output. This is Level 2 in the degradation chain.
+
+**When to disable:**
+- Your provider rejects assistant message prefill -- primarily AWS Bedrock relays, which throw `"This model does not support assistant message prefill"`
+
+**Effect when disabled:** FIM One skips Level 2 (JSON Mode) and falls to Level 3 (plain text extraction). Modern models produce valid JSON from prompt instructions alone, so there is typically no quality loss.
+
+For technical details, see [LLM Provider Compatibility -- json_mode_enabled](/architecture/llm-provider-guide#the-fix-json_mode_enabled).
+
+### Temperatur
+
+**Standard:** 0.7 (geerbt aus der globalen Einstellung, wenn nicht gesetzt)
+
+Steuert die Zufälligkeit der Modellausgabe. Bereich: 0 (deterministisch) bis 2 (hochkreativ).
+
+<Note>
+Wenn Reasoning/Extended Thinking für Anthropic-Modelle aktiviert ist, wird die Temperatur vom System automatisch auf 1.0 erzwungen. Sie müssen dies nicht manuell einstellen.
+</Note>
+
+### Max Output Tokens
+
+Die maximale Anzahl von Tokens, die das Modell in einer einzelnen Antwort generieren kann. Lassen Sie dieses Feld leer, um den Systemstandard (64.000) zu verwenden. Für lokale Modelle mit begrenztem VRAM sollten Sie diesen Wert explizit auf einen niedrigeren Wert setzen (z. B. 8192).
+
+### Kontextfenstergröße
+
+Die Größe des Kontextfensters des Modells in Token. Lassen Sie dieses Feld leer, um den Systemstandard (128.000) zu verwenden. Stellen Sie dies so ein, dass es der tatsächlichen Fähigkeit Ihres Modells entspricht – bei lokalen Modellen liegt dies oft zwischen 4K-32K, je nach Modell und verfügbarem Speicher.
+
+## Empfohlene Konfiguration
+
+Die meisten Modelle funktionieren mit den Standardeinstellungen korrekt (beide Schalter AN). Passen Sie diese nur an, wenn Sie auf Fehler oder unnötige Latenz stoßen.
+
+| Modelltyp | Native FC | JSON Mode | Notizen |
+|---|---|---|---|
+| OpenAI GPT-Serie | AN | AN | Vollständige Unterstützung -- Standardeinstellungen sind korrekt |
+| Anthropic Claude | AN | AN | Thinking wird für strukturierte Ausgabeaufrufe automatisch deaktiviert |
+| Google Gemini | AN | AN | Vollständige Unterstützung |
+| DeepSeek V3 / Coder | AN | AN | Vollständige Unterstützung |
+| **DeepSeek R1 (thinking)** | **AUS** | AN | Thinking immer aktiviert; native FC abgelehnt |
+| **Kimi K2.5 (thinking)** | **AUS** | AN | Thinking immer aktiviert; native FC abgelehnt |
+| Kimi K2 (non-thinking) | AN | AN | Vollständige Unterstützung |
+| **AWS Bedrock Relay** | AN | **AUS** | Bedrock lehnt Assistant-Prefill im JSON Mode ab |
+| Kleine / schwache Modelle | AUS | AUS | Direkt zur Extraktion von Klartext |
+
+<Tip>
+**Diagnose:** Überprüfen Sie Ihre Anwendungsprotokolle auf `structured_llm_call: native_fc call raised` Warnungen. Wenn Sie diese Warnungen gefolgt von erfolgreicher JSON Mode Extraktion sehen, profitiert das Modell nicht von nativen Funktionsaufrufen. Deaktivieren Sie **Native Function Calling** für dieses Modell, um den verschwendeten API-Aufruf und die ~10-Sekunden-Latenzstrafe pro strukturiertem Ausgabeanforderung zu eliminieren.
+</Tip>
+
+---
+
+## Modellgruppen
+
+Modellgruppen ermöglichen es dir, Modelle bestimmten Rollen zuzuweisen und mit einem einzigen Klick zwischen Konfigurationen zu wechseln.
+
+### Rollen
+
+FIM One verwendet drei Modellrollen. Jede Rolle erfüllt einen anderen Zweck in der Ausführungs-Pipeline:
+
+| Rolle | Verwendet für | Empfehlung |
+|---|---|---|
+| **General** | Planung, Analyse, ReAct-Agent, komplexes Reasoning | Ihr leistungsfähigstes Modell (z. B. `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | DAG-Schrittausführung, Kontextkomprimierung | Optimiert für Geschwindigkeit und Kosten (z. B. `gpt-5-nano`, `deepseek-chat`). Fällt auf General zurück, falls nicht zugewiesen. |
+| **Reasoning** | Aufgaben, die tiefe Analyse erfordern – komplexe Planung, mathematische Beweise, mehrstufige Logik | Ein starkes Reasoning-Modell (z. B. `o3`, `deepseek-reasoner`). Fällt auf General zurück, falls nicht zugewiesen. |
+
+### Erstellen einer Modellgruppe
+
+<Steps>
+  <Step title="Öffnen Sie den Abschnitt „Gruppen"">
+    Scrollen Sie auf der Seite **Admin > Modelle** zum Abschnitt **Modellgruppen**.
+  </Step>
+  <Step title="Klicken Sie auf „Gruppe hinzufügen"">
+    Klicken Sie auf die Schaltfläche **Gruppe hinzufügen**.
+  </Step>
+  <Step title="Benennen Sie die Gruppe">
+    Geben Sie einen aussagekräftigen Namen ein (z. B. „Production (OpenAI)", „Budget (DeepSeek)", „Local Dev").
+  </Step>
+  <Step title="Weisen Sie Modelle Rollen zu">
+    Wählen Sie für jede Rolle (General, Fast, Reasoning) ein Modell aus dem Dropdown-Menü aus. Das Dropdown-Menü zeigt alle aktiven Modelle von aktiven Anbietern an, gruppiert nach Anbieter. Sie können eine Rolle unzugewiesen lassen – sie wird dann auf das Modell „General" zurückgreifen (oder auf ENV-konfigurierte Modelle, wenn „General" auch unzugewiesen ist).
+  </Step>
+  <Step title="Speichern">
+    Klicken Sie auf **Erstellen**. Die Gruppe ist nun zur Aktivierung verfügbar.
+  </Step>
+</Steps>
+
+### Aktivierung einer Gruppe
+
+Um eine Modellgruppe zu aktivieren, verwenden Sie das Dropdown-Menü oder das Aktivierungssteuerelement auf der Seite „Modelle". Es kann jeweils nur eine Gruppe aktiv sein. Durch die Aktivierung einer Gruppe werden ihre Modellzuweisungen sofort auf alle neuen Konversationen angewendet.
+
+Um die aktuelle Gruppe zu deaktivieren (Rückgriff auf ENV-konfigurierte Modelle), wählen Sie die Deaktivierungsoption.
+
+<Warning>
+Das Wechseln der aktiven Modellgruppe beeinflusst **alle neuen Konversationen** systemweit. Laufende Konversationen verwenden weiterhin das Modell, das aktiv war, als sie gestartet wurden.
+</Warning>
+
+## ENV-Fallback
+
+Wenn keine vom Administrator konfigurierte Modellgruppe aktiv ist, greift FIM One auf ENV-basierte Konfiguration zurück:
+
+| Rolle | ENV-Variable |
+|---|---|
+| Allgemein | `LLM_MODEL` |
+| Schnell | `FAST_LLM_MODEL` (greift auf `LLM_MODEL` zurück) |
+| Reasoning | `REASONING_LLM_MODEL` (greift auf `LLM_MODEL` zurück) |
+
+Vom Administrator konfigurierte Modelle haben immer Vorrang vor ENV-Variablen. Die Systemgesundheitsprüfung berücksichtigt beide Quellen – solange entweder eine aktive Modellgruppe oder gültige ENV-Variablen konfiguriert sind, meldet das LLM-Subsystem einen fehlerfreien Zustand.
+
+Die vollständige ENV-Referenz finden Sie unter [Umgebungsvariablen](/configuration/environment-variables#llm-required).
+
+## Export und Import
+
+Die Seite „Models" unterstützt den Export Ihrer gesamten Anbieter- und Modellkonfiguration (Anbieter, Modelle und Gruppen) als JSON-Datei und deren Import auf einer anderen Instanz. Dies ist nützlich für:
+
+- Migration der Konfiguration zwischen Entwicklungs-, Staging- und Produktionsumgebungen
+- Freigabe einer bewährten Modellkonfiguration für Teammitglieder
+- Sicherung Ihrer Konfiguration vor Änderungen
+
+<Warning>
+Die exportierte Konfiguration enthält **keine** API-Schlüssel. Nach dem Import müssen Sie jeden Anbieter bearbeiten, um den entsprechenden API-Schlüssel einzugeben.
+</Warning>

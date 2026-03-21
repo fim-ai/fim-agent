@@ -1,0 +1,246 @@
+---
+title: "Model Management"
+description: "Configure LLM providers, models, and model groups in the admin panel."
+---
+
+FIM One provides a full-featured admin UI for managing LLM providers and models. This guide covers how to add providers, configure individual models, tune advanced structured-output settings, and organize models into groups for one-click switching.
+
+For ENV-based configuration (no admin UI), see [Environment Variables](/configuration/environment-variables). For model selection recommendations, see [Recommended Models](/configuration/models).
+
+## Architecture: Provider, Model, Group
+
+FIM One organizes LLM configuration in three tiers:
+
+| Tier | What it represents | Example |
+|---|---|---|
+| **Provider** | A set of shared credentials (API key + base URL). One provider can host many models. | "My OpenAI Account", "Company Bedrock Relay" |
+| **Model** | An individual model under a provider. Has its own display name, API model identifier, and advanced settings. | "GPT-4o", "Claude Sonnet 4.6" |
+| **Model Group** | A named preset that assigns models to roles (General / Fast / Reasoning). Activating a group switches all roles at once. | "Production (OpenAI)", "Budget (DeepSeek)" |
+
+```
+Provider: "My OpenAI Account"
+  ├── Model: "GPT-4o"         (model_name: gpt-4o)
+  ├── Model: "GPT-5 Nano"     (model_name: gpt-5-nano)
+  └── Model: "o3"             (model_name: o3)
+
+Provider: "Anthropic Direct"
+  ├── Model: "Claude Sonnet"   (model_name: claude-sonnet-4-6)
+  └── Model: "Claude Haiku"    (model_name: claude-haiku-4-5)
+
+Group: "Production"
+  ├── General → GPT-4o
+  ├── Fast    → GPT-5 Nano
+  └── Reasoning → o3
+```
+
+---
+
+## Adding a Provider
+
+<Steps>
+  <Step title="Open the Models page">
+    Navigate to **Admin** (sidebar) and select the **Models** tab.
+  </Step>
+  <Step title="Click Add Provider">
+    Click the **Add Provider** button in the top-right area of the Providers section.
+  </Step>
+  <Step title="Select a preset or use a custom endpoint">
+    The dialog shows preset buttons for common providers: **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **DeepSeek**, **Mistral AI**, and **OpenAI Compatible** (custom endpoint). Clicking a preset auto-fills the provider name and base URL.
+
+    Choose **OpenAI Compatible** if your provider is not listed (e.g., a third-party relay, Ollama, or any other OpenAI-compatible endpoint).
+  </Step>
+  <Step title="Enter credentials">
+    Fill in the required fields:
+    - **Provider Name** -- A friendly label (e.g., "My OpenAI Account"). This is for your reference only.
+    - **Base URL** -- The API endpoint. Presets fill this automatically. For custom endpoints, enter the full URL (e.g., `http://localhost:11434/v1` for Ollama).
+    - **API Key** -- Your provider's API key. For local models (Ollama), enter any non-empty string (e.g., `ollama`).
+  </Step>
+  <Step title="Save">
+    Click **Create**. The provider appears in the list, ready for you to add models under it.
+  </Step>
+</Steps>
+
+<Tip>
+You can create multiple providers for the same service. For example, two "OpenAI" providers with different API keys for separate billing accounts, or an "Anthropic (Direct)" and "Anthropic (via Bedrock)" with different base URLs.
+</Tip>
+
+---
+
+## Adding a Model
+
+<Steps>
+  <Step title="Expand a provider">
+    On the Models page, click the chevron next to an existing provider to expand it and see its models.
+  </Step>
+  <Step title="Click Add Model">
+    Click the **Add Model** button that appears under the expanded provider.
+  </Step>
+  <Step title="Enter model details">
+    Fill in the two required fields:
+    - **Display Name** -- A human-readable name shown in the UI (e.g., "GPT-4o", "Claude Sonnet"). Can be anything you like.
+    - **Model Name (API)** -- The exact model identifier sent to the API (e.g., `gpt-4o`, `claude-sonnet-4-6`, `deepseek-chat`). This must match what your provider expects.
+  </Step>
+  <Step title="Configure advanced settings (optional)">
+    Click the **Advanced** toggle to reveal additional settings: Max Output Tokens, Context Size, Temperature, Native Function Calling, and JSON Mode. See the [Advanced Settings](#advanced-settings) section below for details on each.
+  </Step>
+  <Step title="Save">
+    Click **Create**. The model appears under its provider and is now available for assignment to model groups.
+  </Step>
+</Steps>
+
+---
+
+## Advanced Settings
+
+Each model has advanced settings that control how FIM One interacts with the provider's API for structured output extraction. These settings are found under the **Advanced** toggle in the model create/edit dialog.
+
+### Native Function Calling
+
+**Setting name:** Native Function Calling (stored as `tool_choice_enabled`)
+
+**Default:** ON
+
+Controls whether FIM One uses forced `tool_choice` for structured output extraction. This is Level 1 in the structured output degradation chain -- the most reliable method when the model supports it.
+
+**When to disable:**
+- Your model returns errors like `"tool_choice 'specified' is incompatible with thinking enabled"` -- common with always-on thinking models (DeepSeek R1, Kimi K2.5)
+- Structured output requests are consistently slow with a ~10-second penalty per call, followed by a fallback to JSON Mode anyway
+
+**Effect when disabled:** FIM One skips Level 1 (native function calling) and starts from Level 2 (JSON Mode) for structured output. The ReAct agent's tool calling is completely unaffected -- it uses `tool_choice="auto"`, which works with all models regardless of this setting.
+
+<Note>
+This setting only affects **forced** tool selection used for structured output extraction (DAG planning, schema annotation). It does **not** affect the ReAct agent, which freely decides when to call tools using `tool_choice="auto"`.
+</Note>
+
+For technical details, see [LLM Provider Compatibility -- tool_choice_enabled](/architecture/llm-provider-guide#the-fix-tool_choice_enabled).
+
+### JSON Mode
+
+**Setting name:** JSON Mode (stored as `json_mode_enabled`)
+
+**Default:** ON
+
+Controls whether FIM One uses `response_format=json_object` for structured output. This is Level 2 in the degradation chain.
+
+**When to disable:**
+- Your provider rejects assistant message prefill -- primarily AWS Bedrock relays, which throw `"This model does not support assistant message prefill"`
+
+**Effect when disabled:** FIM One skips Level 2 (JSON Mode) and falls to Level 3 (plain text extraction). Modern models produce valid JSON from prompt instructions alone, so there is typically no quality loss.
+
+For technical details, see [LLM Provider Compatibility -- json_mode_enabled](/architecture/llm-provider-guide#the-fix-json_mode_enabled).
+
+### Temperature
+
+**Default:** 0.7 (inherited from the global setting if left unset)
+
+Controls the randomness of model output. Range: 0 (deterministic) to 2 (highly creative).
+
+<Note>
+When reasoning/extended thinking is enabled for Anthropic models, temperature is automatically forced to 1.0 by the system. You do not need to set this manually.
+</Note>
+
+### Max Output Tokens
+
+The maximum number of tokens the model can generate in a single response. Leave blank to use the system default (64,000). For local models with limited VRAM, set this explicitly to a lower value (e.g., 8192).
+
+### Context Size
+
+The model's context window size in tokens. Leave blank to use the system default (128,000). Set this to match your model's actual capability -- for local models, this is often 4K-32K depending on the model and available memory.
+
+---
+
+## Recommended Configuration
+
+Most models work correctly with the default settings (both toggles ON). Only adjust when you encounter errors or unnecessary latency.
+
+| Model type | Native FC | JSON Mode | Notes |
+|---|---|---|---|
+| OpenAI GPT series | ON | ON | Full support -- defaults are correct |
+| Anthropic Claude | ON | ON | Thinking auto-disabled for structured output calls |
+| Google Gemini | ON | ON | Full support |
+| DeepSeek V3 / Coder | ON | ON | Full support |
+| **DeepSeek R1 (thinking)** | **OFF** | ON | Thinking always-on; native FC rejected |
+| **Kimi K2.5 (thinking)** | **OFF** | ON | Thinking always-on; native FC rejected |
+| Kimi K2 (non-thinking) | ON | ON | Full support |
+| **AWS Bedrock relay** | ON | **OFF** | Bedrock rejects assistant prefill in JSON Mode |
+| Small / weak models | OFF | OFF | Go directly to plain text extraction |
+
+<Tip>
+**How to diagnose:** Check your application logs for `structured_llm_call: native_fc call raised` warnings. If you see these warnings followed by successful JSON Mode extraction, the model does not benefit from native function calling. Disable **Native Function Calling** for that model to eliminate the wasted API call and the ~10-second latency penalty per structured output request.
+</Tip>
+
+---
+
+## Model Groups
+
+Model groups let you assign models to specific roles and switch between configurations with a single click.
+
+### Roles
+
+FIM One uses three model roles. Each role serves a different purpose in the execution pipeline:
+
+| Role | Used for | Recommendation |
+|---|---|---|
+| **General** | Planning, analysis, ReAct agent, complex reasoning | Your most capable model (e.g., `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | DAG step execution, context compaction | Optimized for speed and cost (e.g., `gpt-5-nano`, `deepseek-chat`). Falls back to General if not assigned. |
+| **Reasoning** | Tasks requiring deep analysis -- complex planning, mathematical proofs, multi-step logic | A strong reasoning model (e.g., `o3`, `deepseek-reasoner`). Falls back to General if not assigned. |
+
+### Creating a Model Group
+
+<Steps>
+  <Step title="Open the Groups section">
+    On the **Admin > Models** page, scroll to the **Model Groups** section.
+  </Step>
+  <Step title="Click Add Group">
+    Click the **Add Group** button.
+  </Step>
+  <Step title="Name the group">
+    Enter a descriptive name (e.g., "Production (OpenAI)", "Budget (DeepSeek)", "Local Dev").
+  </Step>
+  <Step title="Assign models to roles">
+    For each role (General, Fast, Reasoning), select a model from the dropdown. The dropdown shows all active models from active providers, grouped by provider name. You can leave a role unassigned -- it will fall back to the General model (or to ENV-configured models if General is also unassigned).
+  </Step>
+  <Step title="Save">
+    Click **Create**. The group is now available for activation.
+  </Step>
+</Steps>
+
+### Activating a Group
+
+To activate a model group, use the dropdown or activation control on the Models page. Only one group can be active at a time. Activating a group immediately applies its model assignments to all new conversations.
+
+To deactivate the current group (falling back to ENV-configured models), select the deactivate option.
+
+<Warning>
+Switching the active model group affects **all new conversations** system-wide. Existing in-progress conversations continue using whichever model was active when they started.
+</Warning>
+
+---
+
+## ENV Fallback
+
+When no admin-configured model group is active, FIM One falls back to ENV-based configuration:
+
+| Role | ENV variable |
+|---|---|
+| General | `LLM_MODEL` |
+| Fast | `FAST_LLM_MODEL` (falls back to `LLM_MODEL`) |
+| Reasoning | `REASONING_LLM_MODEL` (falls back to `LLM_MODEL`) |
+
+Admin-configured models always take priority over ENV variables. The system health check considers both sources -- as long as either an active model group or valid ENV variables are configured, the LLM subsystem reports healthy.
+
+For the full ENV reference, see [Environment Variables](/configuration/environment-variables#llm-required).
+
+---
+
+## Export and Import
+
+The Models page supports exporting your entire provider and model configuration (providers, models, and groups) as a JSON file, and importing it on another instance. This is useful for:
+
+- Migrating configuration between development, staging, and production environments
+- Sharing a known-good model setup with team members
+- Backing up your configuration before making changes
+
+<Warning>
+Exported configuration does **not** include API keys. After importing, you must edit each provider to enter the appropriate API key.
+</Warning>

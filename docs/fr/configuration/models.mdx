@@ -7,16 +7,17 @@ FIM One est **agnostique du fournisseur** — tout point de terminaison compatib
 
 ## Comment FIM One utilise les modèles
 
-FIM One dispose de deux emplacements de modèles :
+FIM One a trois rôles de modèle :
 
-| Emplacement | Variable d'environnement | Utilisé pour |
+| Rôle | Variable d'environnement | Utilisé pour |
 |---|---|---|
-| **LLM principal** | `LLM_MODEL` | Planification, analyse, agent ReAct, raisonnement complexe |
-| **LLM rapide** | `FAST_LLM_MODEL` | Exécution des étapes DAG, compaction de contexte (moins cher, plus rapide) |
+| **General** | `LLM_MODEL` | Planification, analyse, agent ReAct, raisonnement complexe |
+| **Fast** | `FAST_LLM_MODEL` | Exécution des étapes DAG, compaction de contexte (moins cher, plus rapide) |
+| **Reasoning** | `REASONING_LLM_MODEL` | Analyse approfondie, planification complexe, preuves mathématiques |
 
-Si `FAST_LLM_MODEL` n'est pas défini, il revient à `LLM_MODEL`. Pour les déploiements en production, la division en deux modèles offre le meilleur équilibre coût/qualité.
+Fast et Reasoning reviennent à General s'ils ne sont pas configurés. Pour les déploiements en production, la division en au moins deux modèles (General + Fast) offre le meilleur équilibre coût/qualité.
 
----
+Ces rôles peuvent être configurés via des variables d'environnement ou via la fonctionnalité **Model Groups** de l'interface d'administration, qui permet de basculer en un clic entre des ensembles de modèles. Consultez [Gestion des modèles](/configuration/model-management) pour le guide complet de l'interface d'administration.
 
 ## Matrice de Sélection Rapide
 

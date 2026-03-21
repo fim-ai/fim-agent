@@ -5,16 +5,19 @@ description: "Wählen Sie das richtige LLM für Ihre FIM One-Bereitstellung."
 
 FIM One ist **anbieterunabhängig** — jeder OpenAI-kompatible Endpunkt funktioniert. Diese Seite hilft Ihnen, die beste Modellkombination für Ihren Anwendungsfall auszuwählen. Konfigurationsdetails finden Sie unter [Umgebungsvariablen](/configuration/environment-variables).
 
-## Wie FIM One Modelle verwendet
+## Wie FIM One Modelle nutzt
 
-FIM One hat zwei Modell-Slots:
+FIM One hat drei Modellrollen:
 
-| Slot | Umgebungsvariable | Verwendet für |
+| Rolle | Umgebungsvariable | Verwendet für |
 |---|---|---|
-| **Main LLM** | `LLM_MODEL` | Planung, Analyse, ReAct-Agent, komplexes Reasoning |
-| **Fast LLM** | `FAST_LLM_MODEL` | DAG-Schrittausführung, Kontext-Komprimierung (günstiger, schneller) |
+| **General** | `LLM_MODEL` | Planung, Analyse, ReAct-Agent, komplexes Reasoning |
+| **Fast** | `FAST_LLM_MODEL` | DAG-Schrittausführung, Kontextkomprimierung (günstiger, schneller) |
+| **Reasoning** | `REASONING_LLM_MODEL` | Tiefe Analyse, komplexe Planung, mathematische Beweise |
 
-Wenn `FAST_LLM_MODEL` nicht gesetzt ist, wird auf `LLM_MODEL` zurückgegriffen. Für Produktionsbereitstellungen bietet die Aufteilung auf zwei Modelle das beste Kosten-Qualitäts-Verhältnis.
+Fast und Reasoning fallen auf General zurück, falls nicht konfiguriert. Für Produktionsbereitstellungen bietet die Aufteilung in mindestens zwei Modelle (General + Fast) das beste Kosten-/Qualitätsverhältnis.
+
+Diese Rollen können über Umgebungsvariablen oder über die Funktion **Model Groups** der Admin-Benutzeroberfläche konfiguriert werden, die Ein-Klick-Umschaltung zwischen Modellsätzen ermöglicht. Siehe [Model Management](/configuration/model-management) für das vollständige Admin-UI-Handbuch.
 
 ## Schnellauswahlmatrix
 

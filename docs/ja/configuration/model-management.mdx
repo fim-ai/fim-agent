@@ -1,0 +1,242 @@
+---
+title: "モデル管理"
+description: "管理パネルでLLMプロバイダー、モデル、およびモデルグループを設定します。"
+---
+
+FIM One は、LLM プロバイダーとモデルを管理するための機能豊富な管理 UI を提供します。このガイドでは、プロバイダーの追加、個別モデルの設定、高度な構造化出力設定の調整、およびワンクリック切り替え用のモデルグループへの整理方法について説明します。
+
+ENV ベースの設定（管理 UI なし）については、[環境変数](/configuration/environment-variables)を参照してください。モデル選択の推奨事項については、[推奨モデル](/configuration/models)を参照してください。
+
+## アーキテクチャ: プロバイダー、モデル、グループ
+
+FIM One は LLM 設定を 3 つのレベルで整理します:
+
+| レベル | 表すもの | 例 |
+|---|---|---|
+| **プロバイダー** | 共有認証情報のセット (API キー + ベース URL)。1 つのプロバイダーは多くのモデルをホストできます。 | "My OpenAI Account"、"Company Bedrock Relay" |
+| **モデル** | プロバイダー下の個別モデル。独自の表示名、API モデル識別子、および詳細設定があります。 | "GPT-4o"、"Claude Sonnet 4.6" |
+| **モデルグループ** | モデルをロール (General / Fast / Reasoning) に割り当てる名前付きプリセット。グループをアクティブ化すると、すべてのロールが一度に切り替わります。 | "Production (OpenAI)"、"Budget (DeepSeek)" |
+
+```
+Provider: "My OpenAI Account"
+  ├── Model: "GPT-4o"         (model_name: gpt-4o)
+  ├── Model: "GPT-5 Nano"     (model_name: gpt-5-nano)
+  └── Model: "o3"             (model_name: o3)
+
+Provider: "Anthropic Direct"
+  ├── Model: "Claude Sonnet"   (model_name: claude-sonnet-4-6)
+  └── Model: "Claude Haiku"    (model_name: claude-haiku-4-5)
+
+Group: "Production"
+  ├── General → GPT-4o
+  ├── Fast    → GPT-5 Nano
+  └── Reasoning → o3
+```
+
+---
+
+## プロバイダーの追加
+
+<Steps>
+  <Step title="モデルページを開く">
+    **Admin**（サイドバー）に移動し、**Models** タブを選択します。
+  </Step>
+  <Step title="プロバイダーを追加をクリック">
+    プロバイダーセクションの右上にある **Add Provider** ボタンをクリックします。
+  </Step>
+  <Step title="プリセットを選択するか、カスタムエンドポイントを使用する">
+    ダイアログには、一般的なプロバイダーのプリセットボタンが表示されます：**OpenAI**、**Anthropic (Claude)**、**Google Gemini**、**DeepSeek**、**Mistral AI**、および **OpenAI Compatible**（カスタムエンドポイント）。プリセットをクリックすると、プロバイダー名とベース URL が自動入力されます。
+
+    リストにないプロバイダーの場合（例：サードパーティリレー、Ollama、またはその他の OpenAI 互換エンドポイント）は、**OpenAI Compatible** を選択してください。
+  </Step>
+  <Step title="認証情報を入力">
+    必須フィールドに入力します：
+    - **Provider Name** -- わかりやすいラベル（例：「My OpenAI Account」）。これは参照用です。
+    - **Base URL** -- API エンドポイント。プリセットは自動入力されます。カスタムエンドポイントの場合は、完全な URL を入力してください（例：Ollama の場合は `http://localhost:11434/v1`）。
+    - **API Key** -- プロバイダーの API キー。ローカルモデル（Ollama）の場合は、空でない任意の文字列を入力してください（例：`ollama`）。
+  </Step>
+  <Step title="保存">
+    **Create** をクリックします。プロバイダーがリストに表示され、その下にモデルを追加する準備ができます。
+  </Step>
+</Steps>
+
+<Tip>
+同じサービスに対して複数のプロバイダーを作成できます。例えば、異なる API キーを持つ 2 つの「OpenAI」プロバイダー（別々の請求アカウント用）、または異なるベース URL を持つ「Anthropic (Direct)」と「Anthropic (via Bedrock)」などです。
+</Tip>
+
+---
+
+## モデルの追加
+
+<Steps>
+  <Step title="プロバイダーを展開する">
+    モデルページで、既存のプロバイダーの横にあるシェブロンをクリックして展開し、そのモデルを表示します。
+  </Step>
+  <Step title="モデルを追加をクリック">
+    展開されたプロバイダーの下に表示される**モデルを追加**ボタンをクリックします。
+  </Step>
+  <Step title="モデルの詳細を入力">
+    2つの必須フィールドに入力します:
+    - **表示名** -- UI に表示される人間が読める名前 (例: "GPT-4o"、"Claude Sonnet")。任意の名前を指定できます。
+    - **モデル名 (API)** -- API に送信される正確なモデル識別子 (例: `gpt-4o`、`claude-sonnet-4-6`、`deepseek-chat`)。プロバイダーが期待する内容と一致する必要があります。
+  </Step>
+  <Step title="詳細設定を構成する (オプション)">
+    **詳細**トグルをクリックして、追加の設定を表示します: 最大出力トークン、コンテキストサイズ、温度、ネイティブ関数呼び出し、JSON モード。各設定の詳細については、以下の[詳細設定](#advanced-settings)セクションを参照してください。
+  </Step>
+  <Step title="保存">
+    **作成**をクリックします。モデルはそのプロバイダーの下に表示され、モデルグループへの割り当てに利用可能になります。
+  </Step>
+</Steps>
+
+---
+
+## 高度な設定
+
+各モデルには、FIM One が構造化出力抽出のためにプロバイダーの API とどのように相互作用するかを制御する高度な設定があります。これらの設定は、モデル作成/編集ダイアログの **Advanced** トグルの下にあります。
+
+### ネイティブ関数呼び出し
+
+**設定名:** ネイティブ関数呼び出し (`tool_choice_enabled` として保存)
+
+**デフォルト:** ON
+
+FIM One が構造化出力抽出のために強制的な `tool_choice` を使用するかどうかを制御します。これは構造化出力の段階的な低下チェーンのレベル 1 です -- モデルがサポートしている場合の最も信頼性の高い方法です。
+
+**無効にする場合:**
+- モデルが `"tool_choice 'specified' is incompatible with thinking enabled"` のようなエラーを返す場合 -- 常時有効な思考モデル (DeepSeek R1、Kimi K2.5) で一般的
+- 構造化出力リクエストが一貫して遅い場合 (呼び出しあたり約 10 秒のペナルティがあり、その後 JSON Mode へのフォールバックが続く)
+
+**無効にした場合の効果:** FIM One はレベル 1 (ネイティブ関数呼び出し) をスキップし、構造化出力のレベル 2 (JSON Mode) から開始します。ReAct エージェントのツール呼び出しは完全に影響を受けません -- この設定に関係なく、すべてのモデルで機能する `tool_choice="auto"` を使用します。
+
+<Note>
+この設定は、構造化出力抽出に使用される**強制的な**ツール選択 (DAG 計画、スキーマ注釈) にのみ影響します。ReAct エージェントには影響**しません**。ReAct エージェントは `tool_choice="auto"` を使用してツール呼び出しのタイミングを自由に決定します。
+</Note>
+
+技術的な詳細については、[LLM プロバイダー互換性 -- tool_choice_enabled](/architecture/llm-provider-guide#the-fix-tool_choice_enabled) を参照してください。
+
+### JSON Mode
+
+**Setting name:** JSON Mode (stored as `json_mode_enabled`)
+
+**Default:** ON
+
+Controls whether FIM One uses `response_format=json_object` for structured output. This is Level 2 in the degradation chain.
+
+**When to disable:**
+- Your provider rejects assistant message prefill -- primarily AWS Bedrock relays, which throw `"This model does not support assistant message prefill"`
+
+**Effect when disabled:** FIM One skips Level 2 (JSON Mode) and falls to Level 3 (plain text extraction). Modern models produce valid JSON from prompt instructions alone, so there is typically no quality loss.
+
+For technical details, see [LLM Provider Compatibility -- json_mode_enabled](/architecture/llm-provider-guide#the-fix-json_mode_enabled).
+
+### Temperature
+
+**デフォルト:** 0.7 (未設定の場合、グローバル設定から継承)
+
+モデル出力のランダム性を制御します。範囲: 0 (決定的) から 2 (高度に創造的)。
+
+<Note>
+Anthropicモデルで推論/拡張思考が有効になっている場合、温度は自動的にシステムによって1.0に強制されます。手動で設定する必要はありません。
+</Note>
+
+### 最大出力トークン
+
+モデルが単一の応答で生成できるトークンの最大数。ブランクのままにするとシステムデフォルト（64,000）を使用します。VRAMが限定されたローカルモデルの場合は、これを明示的に低い値（例：8192）に設定してください。
+
+### コンテキストサイズ
+
+モデルのコンテキストウィンドウサイズ（トークン単位）。システムデフォルト（128,000）を使用する場合は空白のままにしてください。ローカルモデルの場合、モデルと利用可能なメモリに応じて、これは通常4K～32Kです。実際のモデルの機能に合わせて設定してください。
+
+## 推奨設定
+
+ほとんどのモデルはデフォルト設定（両方のトグルがON）で正しく動作します。エラーや不要なレイテンシが発生した場合のみ調整してください。
+
+| モデルタイプ | Native FC | JSON Mode | 注記 |
+|---|---|---|---|
+| OpenAI GPT series | ON | ON | 完全サポート -- デフォルト設定が正しい |
+| Anthropic Claude | ON | ON | 構造化出力呼び出しではThinkingが自動無効化 |
+| Google Gemini | ON | ON | 完全サポート |
+| DeepSeek V3 / Coder | ON | ON | 完全サポート |
+| **DeepSeek R1 (thinking)** | **OFF** | ON | Thinkingは常にON; native FCは拒否 |
+| **Kimi K2.5 (thinking)** | **OFF** | ON | Thinkingは常にON; native FCは拒否 |
+| Kimi K2 (non-thinking) | ON | ON | 完全サポート |
+| **AWS Bedrock relay** | ON | **OFF** | BedrockはJSON Modeでのアシスタントプリフィルをサポートしない |
+| Small / weak models | OFF | OFF | プレーンテキスト抽出に直接進む |
+
+<Tip>
+**診断方法:** アプリケーションログで `structured_llm_call: native_fc call raised` 警告を確認してください。これらの警告の後にJSON Mode抽出が成功している場合、そのモデルはネイティブ関数呼び出しの恩恵を受けていません。その場合、そのモデルの **Native Function Calling** を無効化して、無駄なAPI呼び出しと構造化出力リクエストごとの約10秒のレイテンシペナルティを排除してください。
+</Tip>
+
+---
+
+## モデルグループ
+
+モデルグループを使用すると、モデルを特定のロールに割り当て、1回のクリックで設定を切り替えることができます。
+
+### ロール
+
+FIM Oneは3つのモデルロールを使用します。各ロールは実行パイプラインで異なる目的を果たします:
+
+| ロール | 用途 | 推奨事項 |
+|---|---|---|
+| **General** | 計画、分析、ReAct エージェント、複雑な推論 | 最も高性能なモデル (例: `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | DAG ステップ実行、コンテキスト圧縮 | 速度とコストに最適化 (例: `gpt-5-nano`, `deepseek-chat`)。割り当てられていない場合は General にフォールバック |
+| **Reasoning** | 深い分析が必要なタスク -- 複雑な計画、数学的証明、多段階ロジック | 強力な推論モデル (例: `o3`, `deepseek-reasoner`)。割り当てられていない場合は General にフォールバック |
+
+### モデルグループの作成
+
+<Steps>
+  <Step title="グループセクションを開く">
+    **Admin > Models** ページで、**Model Groups** セクションまでスクロールします。
+  </Step>
+  <Step title="グループを追加をクリック">
+    **Add Group** ボタンをクリックします。
+  </Step>
+  <Step title="グループに名前を付ける">
+    わかりやすい名前を入力します（例：「Production (OpenAI)」、「Budget (DeepSeek)」、「Local Dev」）。
+  </Step>
+  <Step title="ロールにモデルを割り当てる">
+    各ロール（General、Fast、Reasoning）について、ドロップダウンからモデルを選択します。ドロップダウンには、アクティブなプロバイダーのすべてのアクティブなモデルが表示され、プロバイダー名でグループ化されています。ロールを未割り当てのままにすることもできます。その場合、General モデルにフォールバックします（General も未割り当ての場合は、ENV で設定されたモデルにフォールバックします）。
+  </Step>
+  <Step title="保存">
+    **Create** をクリックします。グループはアクティベーション可能な状態になります。
+  </Step>
+</Steps>
+
+### グループの有効化
+
+モデルグループを有効化するには、モデルページのドロップダウンまたは有効化コントロールを使用します。一度に1つのグループのみを有効化できます。グループを有効化すると、そのモデル割り当てがすべての新しい会話に直ちに適用されます。
+
+現在のグループを無効化する（ENV設定されたモデルにフォールバックする）には、無効化オプションを選択します。
+
+<Warning>
+アクティブなモデルグループを切り替えると、**すべての新しい会話**がシステム全体で影響を受けます。進行中の既存の会話は、開始時にアクティブだったモデルを使い続けます。
+</Warning>
+
+---
+
+## ENV フォールバック
+
+アクティブな管理者設定モデルグループがない場合、FIM One は ENV ベースの設定にフォールバックします:
+
+| ロール | ENV 変数 |
+|---|---|
+| General | `LLM_MODEL` |
+| Fast | `FAST_LLM_MODEL` (`LLM_MODEL` にフォールバック) |
+| Reasoning | `REASONING_LLM_MODEL` (`LLM_MODEL` にフォールバック) |
+
+管理者設定モデルは常に ENV 変数より優先されます。システムヘルスチェックは両方のソースを考慮します -- アクティブなモデルグループまたは有効な ENV 変数のいずれかが設定されている限り、LLM サブシステムは正常と報告されます。
+
+完全な ENV リファレンスについては、[環境変数](/configuration/environment-variables#llm-required)を参照してください。
+
+## エクスポートとインポート
+
+モデルページでは、プロバイダーとモデルの設定全体（プロバイダー、モデル、グループ）をJSONファイルとしてエクスポートし、別のインスタンスにインポートできます。これは以下の場合に便利です：
+
+- 開発環境、ステージング環境、本番環境間での設定の移行
+- チームメンバーとの既知の良好なモデルセットアップの共有
+- 変更を加える前の設定のバックアップ
+
+<Warning>
+エクスポートされた設定には、APIキーは**含まれません**。インポート後、各プロバイダーを編集して適切なAPIキーを入力する必要があります。
+</Warning>

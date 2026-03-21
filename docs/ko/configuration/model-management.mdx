@@ -1,0 +1,244 @@
+---
+title: "모델 관리"
+description: "관리자 패널에서 LLM 제공자, 모델 및 모델 그룹을 구성합니다."
+---
+
+FIM One은 LLM 제공자 및 모델을 관리하기 위한 완전한 기능의 관리자 UI를 제공합니다. 이 가이드는 제공자를 추가하고, 개별 모델을 구성하고, 고급 구조화된 출력 설정을 조정하고, 한 번의 클릭으로 전환하기 위해 모델을 그룹으로 구성하는 방법을 다룹니다.
+
+ENV 기반 구성(관리자 UI 없음)의 경우 [환경 변수](/configuration/environment-variables)를 참조하세요. 모델 선택 권장 사항의 경우 [권장 모델](/configuration/models)을 참조하세요.
+
+## 아키텍처: 제공자, 모델, 그룹
+
+FIM One은 LLM 구성을 세 가지 계층으로 정리합니다:
+
+| 계층 | 의미 | 예시 |
+|---|---|---|
+| **제공자** | 공유 자격증명(API 키 + 기본 URL) 집합. 한 제공자는 많은 모델을 호스팅할 수 있습니다. | "My OpenAI Account", "Company Bedrock Relay" |
+| **모델** | 제공자 아래의 개별 모델. 자체 표시 이름, API 모델 식별자 및 고급 설정이 있습니다. | "GPT-4o", "Claude Sonnet 4.6" |
+| **모델 그룹** | 모델을 역할(일반 / 빠름 / 추론)에 할당하는 명명된 프리셋. 그룹을 활성화하면 모든 역할이 한 번에 전환됩니다. | "Production (OpenAI)", "Budget (DeepSeek)" |
+
+```
+Provider: "My OpenAI Account"
+  ├── Model: "GPT-4o"         (model_name: gpt-4o)
+  ├── Model: "GPT-5 Nano"     (model_name: gpt-5-nano)
+  └── Model: "o3"             (model_name: o3)
+
+Provider: "Anthropic Direct"
+  ├── Model: "Claude Sonnet"   (model_name: claude-sonnet-4-6)
+  └── Model: "Claude Haiku"    (model_name: claude-haiku-4-5)
+
+Group: "Production"
+  ├── General → GPT-4o
+  ├── Fast    → GPT-5 Nano
+  └── Reasoning → o3
+```
+
+---
+
+## 제공자 추가
+
+<Steps>
+  <Step title="모델 페이지 열기">
+    **Admin**(사이드바)으로 이동하여 **Models** 탭을 선택합니다.
+  </Step>
+  <Step title="제공자 추가 클릭">
+    제공자 섹션의 오른쪽 상단에 있는 **Add Provider** 버튼을 클릭합니다.
+  </Step>
+  <Step title="사전 설정 선택 또는 사용자 정의 엔드포인트 사용">
+    대화 상자에는 일반적인 제공자의 사전 설정 버튼이 표시됩니다: **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **DeepSeek**, **Mistral AI**, **OpenAI Compatible**(사용자 정의 엔드포인트). 사전 설정을 클릭하면 제공자 이름과 기본 URL이 자동으로 채워집니다.
+
+    제공자가 목록에 없는 경우(예: 타사 릴레이, Ollama 또는 기타 OpenAI 호환 엔드포인트) **OpenAI Compatible**을 선택합니다.
+  </Step>
+  <Step title="자격증명 입력">
+    필수 필드를 입력합니다:
+    - **Provider Name** -- 친화적인 레이블(예: "My OpenAI Account"). 이는 참조용입니다.
+    - **Base URL** -- API 엔드포인트입니다. 사전 설정은 이를 자동으로 채웁니다. 사용자 정의 엔드포인트의 경우 전체 URL을 입력합니다(예: Ollama의 경우 `http://localhost:11434/v1`).
+    - **API Key** -- 제공자의 API 키입니다. 로컬 모델(Ollama)의 경우 비어있지 않은 문자열을 입력합니다(예: `ollama`).
+  </Step>
+  <Step title="저장">
+    **Create**을 클릭합니다. 제공자가 목록에 나타나고 그 아래에 모델을 추가할 준비가 됩니다.
+  </Step>
+</Steps>
+
+<Tip>
+동일한 서비스에 대해 여러 제공자를 만들 수 있습니다. 예를 들어 별도의 청구 계정을 위해 다른 API 키를 가진 두 개의 "OpenAI" 제공자, 또는 다른 기본 URL을 가진 "Anthropic (Direct)"과 "Anthropic (via Bedrock)"을 만들 수 있습니다.
+</Tip>
+
+---
+
+## 모델 추가
+
+<Steps>
+  <Step title="제공자 확장">
+    모델 페이지에서 기존 제공자 옆의 chevron을 클릭하여 확장하고 해당 모델을 확인합니다.
+  </Step>
+  <Step title="모델 추가 클릭">
+    확장된 제공자 아래에 나타나는 **모델 추가** 버튼을 클릭합니다.
+  </Step>
+  <Step title="모델 세부 정보 입력">
+    두 개의 필수 필드를 작성합니다:
+    - **표시 이름** -- UI에 표시되는 사람이 읽을 수 있는 이름(예: "GPT-4o", "Claude Sonnet"). 원하는 대로 설정할 수 있습니다.
+    - **모델 이름(API)** -- API로 전송되는 정확한 모델 식별자(예: `gpt-4o`, `claude-sonnet-4-6`, `deepseek-chat`). 제공자가 예상하는 것과 일치해야 합니다.
+  </Step>
+  <Step title="고급 설정 구성(선택 사항)">
+    **고급** 토글을 클릭하여 추가 설정을 표시합니다: 최대 출력 토큰, 컨텍스트 크기, 온도, 기본 함수 호출 및 JSON 모드. 각 항목에 대한 자세한 내용은 아래의 [고급 설정](#advanced-settings) 섹션을 참조하세요.
+  </Step>
+  <Step title="저장">
+    **생성**을 클릭합니다. 모델이 제공자 아래에 나타나며 이제 모델 그룹에 할당할 수 있습니다.
+  </Step>
+</Steps>
+
+---
+
+## 고급 설정
+
+각 모델에는 FIM One이 구조화된 출력 추출을 위해 제공자의 API와 상호작용하는 방식을 제어하는 고급 설정이 있습니다. 이러한 설정은 모델 생성/편집 대화상자의 **Advanced** 토글 아래에서 찾을 수 있습니다.
+
+### 네이티브 함수 호출
+
+**설정 이름:** Native Function Calling (저장됨: `tool_choice_enabled`)
+
+**기본값:** ON
+
+FIM One이 구조화된 출력 추출을 위해 강제 `tool_choice`를 사용하는지 여부를 제어합니다. 이는 구조화된 출력 성능 저하 체인의 레벨 1입니다 -- 모델이 지원할 때 가장 신뢰할 수 있는 방법입니다.
+
+**비활성화할 경우:**
+- 모델이 `"tool_choice 'specified' is incompatible with thinking enabled"`와 같은 오류를 반환합니다 -- 항상 활성화된 사고 모델(DeepSeek R1, Kimi K2.5)에서 일반적입니다
+- 구조화된 출력 요청이 호출당 약 10초의 페널티로 일관되게 느리고, 그 후 JSON Mode로 폴백됩니다
+
+**비활성화 시 효과:** FIM One은 레벨 1(네이티브 함수 호출)을 건너뛰고 구조화된 출력에 대해 레벨 2(JSON Mode)부터 시작합니다. ReAct 에이전트의 도구 호출은 완전히 영향을 받지 않습니다 -- 이 설정과 관계없이 모든 모델에서 작동하는 `tool_choice="auto"`를 사용합니다.
+
+<Note>
+이 설정은 구조화된 출력 추출에 사용되는 **강제** 도구 선택(DAG 계획, 스키마 주석)에만 영향을 미칩니다. ReAct 에이전트에는 영향을 주지 않으며, ReAct 에이전트는 `tool_choice="auto"`를 사용하여 자유롭게 도구 호출 시기를 결정합니다.
+</Note>
+
+기술 세부 정보는 [LLM 공급자 호환성 -- tool_choice_enabled](/architecture/llm-provider-guide#the-fix-tool_choice_enabled)를 참조하세요.
+
+### JSON Mode
+
+**Setting name:** JSON Mode (stored as `json_mode_enabled`)
+
+**Default:** ON
+
+Controls whether FIM One uses `response_format=json_object` for structured output. This is Level 2 in the degradation chain.
+
+**When to disable:**
+- Your provider rejects assistant message prefill -- primarily AWS Bedrock relays, which throw `"This model does not support assistant message prefill"`
+
+**Effect when disabled:** FIM One skips Level 2 (JSON Mode) and falls to Level 3 (plain text extraction). Modern models produce valid JSON from prompt instructions alone, so there is typically no quality loss.
+
+For technical details, see [LLM Provider Compatibility -- json_mode_enabled](/architecture/llm-provider-guide#the-fix-json_mode_enabled).
+
+### Temperature
+
+**기본값:** 0.7 (설정하지 않으면 전역 설정에서 상속됨)
+
+모델 출력의 무작위성을 제어합니다. 범위: 0 (결정적)부터 2 (매우 창의적)까지.
+
+<Note>
+Anthropic 모델에 대해 추론/확장 사고가 활성화되면 온도는 시스템에 의해 자동으로 1.0으로 강제됩니다. 이를 수동으로 설정할 필요가 없습니다.
+</Note>
+
+### 최대 출력 토큰
+
+모델이 단일 응답에서 생성할 수 있는 최대 토큰 수입니다. 시스템 기본값(64,000)을 사용하려면 비워두세요. VRAM이 제한된 로컬 모델의 경우 이를 명시적으로 더 낮은 값(예: 8192)으로 설정하세요.
+
+### 컨텍스트 크기
+
+모델의 컨텍스트 윈도우 크기(토큰 단위). 시스템 기본값(128,000)을 사용하려면 비워두세요. 로컬 모델의 경우 모델과 사용 가능한 메모리에 따라 4K-32K인 경우가 많으므로 모델의 실제 기능과 일치하도록 설정하세요.
+
+---
+
+## 권장 구성
+
+대부분의 모델은 기본 설정(토글 모두 ON)에서 올바르게 작동합니다. 오류나 불필요한 지연이 발생할 때만 조정하세요.
+
+| 모델 유형 | Native FC | JSON Mode | 참고 |
+|---|---|---|---|
+| OpenAI GPT 시리즈 | ON | ON | 완전 지원 -- 기본값이 올바름 |
+| Anthropic Claude | ON | ON | 구조화된 출력 호출 시 Thinking 자동 비활성화 |
+| Google Gemini | ON | ON | 완전 지원 |
+| DeepSeek V3 / Coder | ON | ON | 완전 지원 |
+| **DeepSeek R1 (thinking)** | **OFF** | ON | Thinking 항상 활성화; native FC 거부 |
+| **Kimi K2.5 (thinking)** | **OFF** | ON | Thinking 항상 활성화; native FC 거부 |
+| Kimi K2 (non-thinking) | ON | ON | 완전 지원 |
+| **AWS Bedrock relay** | ON | **OFF** | Bedrock이 JSON Mode에서 assistant prefill 거부 |
+| 소형 / 약한 모델 | OFF | OFF | 일반 텍스트 추출로 직접 진행 |
+
+<Tip>
+**진단 방법:** 애플리케이션 로그에서 `structured_llm_call: native_fc call raised` 경고를 확인하세요. 이러한 경고 다음에 성공적인 JSON Mode 추출이 표시되면, 해당 모델은 native function calling의 이점을 얻지 못합니다. 낭비되는 API 호출과 구조화된 출력 요청당 약 10초의 지연 페널티를 제거하기 위해 해당 모델에 대해 **Native Function Calling**을 비활성화하세요.
+</Tip>
+
+---
+
+## 모델 그룹
+
+모델 그룹을 사용하면 모델을 특정 역할에 할당하고 한 번의 클릭으로 구성을 전환할 수 있습니다.
+
+### 역할
+
+FIM One은 세 가지 모델 역할을 사용합니다. 각 역할은 실행 파이프라인에서 다른 목적을 수행합니다:
+
+| 역할 | 사용 목적 | 권장사항 |
+|---|---|---|
+| **General** | 계획, 분석, ReAct 에이전트, 복잡한 추론 | 가장 성능이 우수한 모델 (예: `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | DAG 단계 실행, 컨텍스트 압축 | 속도와 비용에 최적화됨 (예: `gpt-5-nano`, `deepseek-chat`). 할당되지 않으면 General로 폴백됨. |
+| **Reasoning** | 심층 분석이 필요한 작업 -- 복잡한 계획, 수학적 증명, 다단계 논리 | 강력한 추론 모델 (예: `o3`, `deepseek-reasoner`). 할당되지 않으면 General로 폴백됨. |
+
+### 모델 그룹 생성
+
+<Steps>
+  <Step title="그룹 섹션 열기">
+    **관리자 > 모델** 페이지에서 **모델 그룹** 섹션으로 스크롤합니다.
+  </Step>
+  <Step title="그룹 추가 클릭">
+    **그룹 추가** 버튼을 클릭합니다.
+  </Step>
+  <Step title="그룹 이름 지정">
+    설명적인 이름을 입력합니다(예: "Production (OpenAI)", "Budget (DeepSeek)", "Local Dev").
+  </Step>
+  <Step title="역할에 모델 할당">
+    각 역할(General, Fast, Reasoning)에 대해 드롭다운에서 모델을 선택합니다. 드롭다운에는 활성 공급자의 모든 활성 모델이 표시되며, 공급자 이름으로 그룹화됩니다. 역할을 할당하지 않은 상태로 둘 수 있습니다. 이 경우 General 모델로 폴백됩니다(General도 할당되지 않은 경우 ENV 구성 모델로 폴백).
+  </Step>
+  <Step title="저장">
+    **생성**을 클릭합니다. 이제 그룹을 활성화할 수 있습니다.
+  </Step>
+</Steps>
+
+### 그룹 활성화
+
+모델 그룹을 활성화하려면 모델 페이지의 드롭다운 또는 활성화 컨트롤을 사용합니다. 한 번에 하나의 그룹만 활성화할 수 있습니다. 그룹을 활성화하면 해당 모델 할당이 모든 새 대화에 즉시 적용됩니다.
+
+현재 그룹을 비활성화하려면(ENV 구성 모델로 폴백), 비활성화 옵션을 선택합니다.
+
+<Warning>
+활성 모델 그룹을 전환하면 시스템 전체의 **모든 새 대화**에 영향을 미칩니다. 진행 중인 기존 대화는 시작할 때 활성화되었던 모델을 계속 사용합니다.
+</Warning>
+
+---
+
+## ENV 폴백
+
+활성 관리자 구성 모델 그룹이 없을 때 FIM One은 ENV 기반 구성으로 폴백합니다:
+
+| 역할 | ENV 변수 |
+|---|---|
+| General | `LLM_MODEL` |
+| Fast | `FAST_LLM_MODEL` (`LLM_MODEL`으로 폴백) |
+| Reasoning | `REASONING_LLM_MODEL` (`LLM_MODEL`으로 폴백) |
+
+관리자 구성 모델은 항상 ENV 변수보다 우선합니다. 시스템 상태 확인은 두 소스를 모두 고려합니다. 활성 모델 그룹 또는 유효한 ENV 변수 중 하나라도 구성되어 있으면 LLM 서브시스템은 정상으로 보고합니다.
+
+전체 ENV 참조는 [환경 변수](/configuration/environment-variables#llm-required)를 참조하세요.
+
+## 내보내기 및 가져오기
+
+모델 페이지에서는 전체 공급자 및 모델 구성(공급자, 모델 및 그룹)을 JSON 파일로 내보낼 수 있으며, 다른 인스턴스에서 가져올 수 있습니다. 이는 다음과 같은 경우에 유용합니다:
+
+- 개발, 스테이징 및 프로덕션 환경 간 구성 마이그레이션
+- 검증된 모델 설정을 팀 멤버와 공유
+- 변경 전 구성 백업
+
+<Warning>
+내보낸 구성에는 API 키가 **포함되지 않습니다**. 가져온 후 각 공급자를 편집하여 적절한 API 키를 입력해야 합니다.
+</Warning>
