@@ -367,7 +367,21 @@
     "apiKeySet": "Configured",
     "apiKeyNotSet": "Not set",
     "expandModels": "Show models",
-    "collapseModels": "Hide models"
+    "collapseModels": "Hide models",
+    "exportConfig": "Export",
+    "importConfig": "Import",
+    "importTitle": "Import Model Configuration",
+    "importDescription": "Upload a previously exported JSON file to add providers, models, and groups.",
+    "importRules": "Import rules: Only new items are added. Existing providers (matched by name), models (matched by provider + model ID), and groups (matched by name) will be skipped — no existing data will be modified or overwritten. Imported groups are inactive by default. To replace a provider, delete it first, then import.",
+    "importSelectFile": "Select JSON file",
+    "importApiKeysHint": "API keys are never included in exports. Provide them here if needed:",
+    "importApiKeyPlaceholder": "API key for {provider}",
+    "importing": "Importing...",
+    "importSuccess": "Import completed",
+    "importCreated": "Created: {providers} providers, {models} models, {groups} groups",
+    "importSkipped": "Skipped: {providers} providers, {models} models, {groups} groups",
+    "exportSuccess": "Model configuration exported",
+    "noFileSelected": "Please select a JSON file"
   },
   "tools": {
     "title": "Built-in Tools",

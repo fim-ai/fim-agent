@@ -1637,6 +1637,40 @@ export const adminApi = {
   getModelActiveConfig: () =>
     apiFetch<ModelActiveConfig>('/api/admin/model-active-config'),
 
+  // --- Model Config Import/Export ---
+  exportModelConfig: async (): Promise<void> => {
+    const token = getAccessToken()
+    const headers: Record<string, string> = {}
+    if (token) headers["Authorization"] = `Bearer ${token}`
+    const res = await fetch(
+      `${getApiBaseUrl()}/api/admin/model-config/export`,
+      { headers },
+    )
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError(res.status, body.detail || res.statusText, body.error_code ?? null, body.error_args ?? {})
+    }
+    const blob = await res.blob()
+    const contentDisposition = res.headers.get("content-disposition")
+    const utf8Match = contentDisposition?.match(/filename\*=UTF-8''(.+?)(?:;|$)/)
+    const asciiMatch = contentDisposition?.match(/filename="?([^";\n]+)"?/)
+    const filename = utf8Match ? decodeURIComponent(utf8Match[1]) : asciiMatch?.[1] ?? "model-config.json"
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
+
+  importModelConfig: (data: object) =>
+    apiFetch<{ data: { created: { providers: number; models: number; groups: number }; skipped: { providers: number; models: number; groups: number }; warnings: string[] } }>('/api/admin/model-config/import', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // --- Security: Login History ---
   getLoginHistory: (params?: { page?: number; size?: number; success?: boolean }) => {
     const sp = new URLSearchParams()

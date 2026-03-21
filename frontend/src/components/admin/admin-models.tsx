@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslations } from "next-intl"
 import {
   Plus,
@@ -21,6 +21,8 @@ import {
   CircleDot,
   Circle,
   AlertTriangle,
+  Download,
+  Upload,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -68,6 +70,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { adminApi } from "@/lib/api"
 import { getErrorMessage } from "@/lib/error-utils"
@@ -897,7 +900,7 @@ function ProviderCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold">{provider.name}</p>
-            <Badge variant={provider.is_active ? "default" : "secondary"} className="text-[10px]">
+            <Badge variant="outline" className={`text-[10px] ${provider.is_active ? "border-green-500/40 text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
               {provider.is_active ? t("active") : t("inactive")}
             </Badge>
           </div>
@@ -977,7 +980,7 @@ function ProviderCard({
                       <td className="px-4 py-2.5 font-medium">{m.name}</td>
                       <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{m.model_name}</td>
                       <td className="px-4 py-2.5">
-                        <Badge variant={m.is_active ? "default" : "secondary"} className="text-[10px]">
+                        <Badge variant="outline" className={`text-[10px] ${m.is_active ? "border-green-500/40 text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
                           {m.is_active ? t("active") : t("inactive")}
                         </Badge>
                       </td>
@@ -1040,7 +1043,7 @@ function GroupCard({ group, isActiveGroup, onEdit, onActivate, onDeactivate, onD
       {slotInfo ? (
         <span className="flex items-center gap-1.5 truncate">
           {!slotInfo.is_available && (
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" title={t("slotUnavailable")} />
+            <span title={t("slotUnavailable")}><AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" /></span>
           )}
           <span className={!slotInfo.is_available ? "line-through text-muted-foreground/60" : ""}>
             <span className="text-muted-foreground">{slotInfo.provider_name}</span>
@@ -1068,11 +1071,9 @@ function GroupCard({ group, isActiveGroup, onEdit, onActivate, onDeactivate, onD
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold">{group.name}</p>
-            {isActiveGroup && (
-              <Badge variant="outline" className="border-green-500/40 text-green-600 dark:text-green-400 text-[10px]">
-                {t("activeGroup")}
-              </Badge>
-            )}
+            <Badge variant="outline" className={`text-[10px] ${isActiveGroup ? "border-green-500/40 text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+              {isActiveGroup ? t("activeGroup") : t("inactive")}
+            </Badge>
           </div>
           {group.description && (
             <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
@@ -1118,6 +1119,159 @@ function GroupCard({ group, isActiveGroup, onEdit, onActivate, onDeactivate, onD
 }
 
 // ============================================================
+// Import Model Config Dialog
+// ============================================================
+
+function ImportModelConfigDialog({ open, onOpenChange, onSuccess }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
+}) {
+  const t = useTranslations("admin.models")
+  const tc = useTranslations("common")
+  const tError = useTranslations("errors")
+
+  const [fileData, setFileData] = useState<Record<string, unknown> | null>(null)
+  const [fileName, setFileName] = useState<string>("")
+  const [providerNames, setProviderNames] = useState<string[]>([])
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
+  const [isImporting, setIsImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const json = JSON.parse(ev.target?.result as string)
+        setFileData(json)
+        // Extract provider names for API key inputs
+        const config = json.fim_model_config_v1 as Record<string, unknown> | undefined
+        const providers = (config?.providers as Array<{ name: string }>) ?? []
+        const names = providers.map((p) => p.name)
+        setProviderNames(names)
+        setApiKeys({})
+      } catch {
+        toast.error("Invalid JSON file")
+        setFileData(null)
+        setProviderNames([])
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleImport = async () => {
+    if (!fileData) {
+      toast.error(t("noFileSelected"))
+      return
+    }
+    setIsImporting(true)
+    try {
+      // Filter out empty API keys
+      const filteredKeys: Record<string, string> = {}
+      for (const [k, v] of Object.entries(apiKeys)) {
+        if (v.trim()) filteredKeys[k] = v.trim()
+      }
+      const payload = { ...fileData, api_keys: filteredKeys }
+      const result = await adminApi.importModelConfig(payload)
+      const data = result.data
+
+      toast.success(t("importSuccess"), {
+        description: [
+          t("importCreated", { providers: data.created.providers, models: data.created.models, groups: data.created.groups }),
+          t("importSkipped", { providers: data.skipped.providers, models: data.skipped.models, groups: data.skipped.groups }),
+        ].join(" | "),
+      })
+
+      if (data.warnings?.length > 0) {
+        data.warnings.forEach((w: string) => toast.warning(w))
+      }
+
+      onOpenChange(false)
+      onSuccess()
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setFileData(null)
+      setFileName("")
+      setProviderNames([])
+      setApiKeys({})
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }, [open])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("importTitle")}</DialogTitle>
+          <DialogDescription className="inline-flex items-center gap-1">
+            {t("importDescription")}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                {t("importRules")}
+              </TooltipContent>
+            </Tooltip>
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          {/* File input */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+            />
+            {fileName && (
+              <p className="mt-1 text-xs text-muted-foreground">{fileName}</p>
+            )}
+          </div>
+
+          {/* Provider API key inputs */}
+          {providerNames.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{t("importApiKeysHint")}</p>
+              {providerNames.map((name) => (
+                <div key={name} className="space-y-1">
+                  <Label className="text-xs">{name}</Label>
+                  <Input
+                    type="password"
+                    placeholder={t("importApiKeyPlaceholder", { provider: name })}
+                    value={apiKeys[name] || ""}
+                    onChange={(e) => setApiKeys(prev => ({ ...prev, [name]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
+          <Button onClick={handleImport} disabled={!fileData || isImporting}>
+            {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {tc("import")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ============================================================
 // Main AdminModels Component
 // ============================================================
 
@@ -1152,6 +1306,22 @@ export function AdminModels() {
 
   // ENV fallback collapsible
   const [envExpanded, setEnvExpanded] = useState(false)
+
+  // Import/Export
+  const [isExporting, setIsExporting] = useState(false)
+  const [showImportDialog, setShowImportDialog] = useState(false)
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      await adminApi.exportModelConfig()
+      toast.success(t("exportSuccess"))
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // Data loading
   const loadAll = useCallback(async () => {
@@ -1287,9 +1457,21 @@ export function AdminModels() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h2 className="text-base font-semibold">{t("title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-base font-semibold">{t("title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("description")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} className="gap-1.5">
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {t("exportConfig")}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="gap-1.5">
+            <Upload className="h-4 w-4" />
+            {t("importConfig")}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -1527,6 +1709,13 @@ export function AdminModels() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import model config */}
+      <ImportModelConfigDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onSuccess={loadAll}
+      />
     </div>
   )
 }

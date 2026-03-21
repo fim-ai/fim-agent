@@ -357,7 +357,21 @@
     "collapseModels": "Masquer les modèles",
     "baseUrlPlaceholder": "https://your-provider.com/v1",
     "providerPreset": "Type de fournisseur",
-    "presetCustom": "Compatible OpenAI"
+    "presetCustom": "Compatible OpenAI",
+    "exportConfig": "Exporter",
+    "importConfig": "Importer",
+    "importTitle": "Importer la configuration du modèle",
+    "importDescription": "Téléchargez un fichier JSON précédemment exporté pour ajouter des fournisseurs, des modèles et des groupes.",
+    "importRules": "Règles d'importation : Seuls les nouveaux éléments sont ajoutés. Les fournisseurs existants (identifiés par le nom), les modèles (identifiés par le fournisseur + l'ID du modèle) et les groupes (identifiés par le nom) seront ignorés — aucune donnée existante ne sera modifiée ou écrasée. Les groupes importés sont inactifs par défaut. Pour remplacer un fournisseur, supprimez-le d'abord, puis importez.",
+    "importSelectFile": "Sélectionner un fichier JSON",
+    "importApiKeysHint": "Les clés API ne sont jamais incluses dans les exports. Fournissez-les ici si nécessaire :",
+    "importApiKeyPlaceholder": "Clé API pour {provider}",
+    "importing": "Importation en cours...",
+    "importSuccess": "Importation terminée",
+    "importCreated": "Créé : {providers} fournisseurs, {models} modèles, {groups} groupes",
+    "importSkipped": "Ignoré : {providers} fournisseurs, {models} modèles, {groups} groupes",
+    "exportSuccess": "Configuration du modèle exportée",
+    "noFileSelected": "Veuillez sélectionner un fichier JSON"
   },
   "tools": {
     "title": "Outils intégrés",

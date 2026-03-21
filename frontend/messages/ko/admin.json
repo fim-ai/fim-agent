@@ -357,7 +357,21 @@
     "collapseModels": "모델 숨기기",
     "baseUrlPlaceholder": "https://your-provider.com/v1",
     "providerPreset": "공급자 유형",
-    "presetCustom": "OpenAI 호환"
+    "presetCustom": "OpenAI 호환",
+    "exportConfig": "내보내기",
+    "importConfig": "가져오기",
+    "importTitle": "모델 구성 가져오기",
+    "importDescription": "이전에 내보낸 JSON 파일을 업로드하여 공급자, 모델 및 그룹을 추가합니다.",
+    "importRules": "가져오기 규칙: 새 항목만 추가됩니다. 기존 공급자(이름으로 일치), 모델(공급자 + 모델 ID로 일치) 및 그룹(이름으로 일치)은 건너뜁니다. 기존 데이터는 수정되거나 덮어써지지 않습니다. 가져온 그룹은 기본적으로 비활성 상태입니다. 공급자를 교체하려면 먼저 삭제한 후 가져오세요.",
+    "importSelectFile": "JSON 파일 선택",
+    "importApiKeysHint": "API 키는 내보내기에 포함되지 않습니다. 필요한 경우 여기에 제공하세요:",
+    "importApiKeyPlaceholder": "{provider}의 API 키",
+    "importing": "가져오는 중...",
+    "importSuccess": "가져오기 완료됨",
+    "importCreated": "생성됨: {providers}개 공급자, {models}개 모델, {groups}개 그룹",
+    "importSkipped": "건너뜀: {providers}개 공급자, {models}개 모델, {groups}개 그룹",
+    "exportSuccess": "모델 구성이 내보내졌습니다",
+    "noFileSelected": "JSON 파일을 선택하세요"
   },
   "tools": {
     "title": "기본 제공 도구",

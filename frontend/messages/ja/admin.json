@@ -357,7 +357,21 @@
     "collapseModels": "モデルを非表示",
     "baseUrlPlaceholder": "https://your-provider.com/v1",
     "providerPreset": "プロバイダータイプ",
-    "presetCustom": "OpenAI互換"
+    "presetCustom": "OpenAI互換",
+    "exportConfig": "エクスポート",
+    "importConfig": "インポート",
+    "importTitle": "モデル設定のインポート",
+    "importDescription": "以前にエクスポートしたJSONファイルをアップロードして、プロバイダー、モデル、およびグループを追加します。",
+    "importRules": "インポートルール: 新しいアイテムのみが追加されます。既存のプロバイダー（名前で照合）、モデル（プロバイダー + モデルIDで照合）、およびグループ（名前で照合）はスキップされます。既存のデータは変更または上書きされません。インポートされたグループはデフォルトで非アクティブです。プロバイダーを置き換えるには、最初に削除してからインポートしてください。",
+    "importSelectFile": "JSONファイルを選択",
+    "importApiKeysHint": "APIキーはエクスポートに含まれません。必要に応じてここで提供してください:",
+    "importApiKeyPlaceholder": "{provider}のAPIキー",
+    "importing": "インポート中...",
+    "importSuccess": "インポートが完了しました",
+    "importCreated": "作成: {providers}個のプロバイダー、{models}個のモデル、{groups}個のグループ",
+    "importSkipped": "スキップ: {providers}個のプロバイダー、{models}個のモデル、{groups}個のグループ",
+    "exportSuccess": "モデル設定がエクスポートされました",
+    "noFileSelected": "JSONファイルを選択してください"
   },
   "tools": {
     "title": "組み込みツール",

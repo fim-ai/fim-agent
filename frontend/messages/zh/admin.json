@@ -357,7 +357,21 @@
     "collapseModels": "隐藏模型",
     "baseUrlPlaceholder": "https://your-provider.com/v1",
     "providerPreset": "提供商类型",
-    "presetCustom": "OpenAI 兼容"
+    "presetCustom": "OpenAI 兼容",
+    "exportConfig": "导出",
+    "importConfig": "导入",
+    "importTitle": "导入模型配置",
+    "importDescription": "上传之前导出的 JSON 文件以添加提供商、模型和组。",
+    "importRules": "导入规则：仅添加新项目。现有提供商（按名称匹配）、模型（按提供商 + 模型 ID 匹配）和组（按名称匹配）将被跳过 — 不会修改或覆盖任何现有数据。导入的组默认处于非活跃状态。要替换提供商，请先删除它，然后导入。",
+    "importSelectFile": "选择 JSON 文件",
+    "importApiKeysHint": "API 密钥永远不会包含在导出中。如果需要，请在此处提供：",
+    "importApiKeyPlaceholder": "{provider} 的 API 密钥",
+    "importing": "导入中...",
+    "importSuccess": "导入完成",
+    "importCreated": "已创建：{providers} 个提供商、{models} 个模型、{groups} 个组",
+    "importSkipped": "已跳过：{providers} 个提供商、{models} 个模型、{groups} 个组",
+    "exportSuccess": "模型配置已导出",
+    "noFileSelected": "请选择一个 JSON 文件"
   },
   "tools": {
     "title": "内置工具",

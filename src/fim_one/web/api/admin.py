@@ -2991,6 +2991,7 @@ async def admin_import_model_config(
     created = {"providers": 0, "models": 0, "groups": 0}
     skipped = {"providers": 0, "models": 0, "groups": 0}
     warnings: list[str] = []
+    newly_created_providers: set[str] = set()
 
     # -- Phase 1: Providers & Models ------------------------------------------
 
@@ -3012,6 +3013,7 @@ async def admin_import_model_config(
             db.add(provider)
             await db.flush()  # get provider.id
             existing_providers[prov_data.name] = provider
+            newly_created_providers.add(prov_data.name)
             created["providers"] += 1
 
         # Process models for this provider
@@ -3107,6 +3109,15 @@ async def admin_import_model_config(
 
     await db.commit()
     _invalidate_model_group_cache()
+
+    # Remind admin to configure API keys for newly created providers
+    for name in newly_created_providers:
+        provider = existing_providers.get(name)
+        if provider and not provider.api_key:
+            warnings.append(
+                f"Provider '{name}' was imported without an API key. "
+                "Please configure it in Admin → Model Management."
+            )
 
     await write_audit(
         db,
