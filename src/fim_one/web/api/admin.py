@@ -3000,8 +3000,11 @@ async def admin_import_model_config(
 
     # -- Phase 1: Providers & Models ------------------------------------------
 
-    # Load existing providers keyed by name for dedup
-    result = await db.execute(select(ModelProvider))
+    # Load existing providers keyed by name for dedup.
+    # Explicit selectinload avoids MissingGreenlet when accessing .models later.
+    result = await db.execute(
+        select(ModelProvider).options(selectinload(ModelProvider.models))
+    )
     existing_providers = {p.name: p for p in result.scalars().unique().all()}
 
     for prov_data in data.providers:
@@ -3022,10 +3025,13 @@ async def admin_import_model_config(
             created["providers"] += 1
 
         # Process models for this provider
-        # Build set of existing model_names under this provider
+        # Build set of existing model_names under this provider.
+        # Newly created providers have no models yet — skip relationship
+        # access to avoid MissingGreenlet in async context.
         existing_model_names: set[str] = set()
-        for m in (provider.models or []):
-            existing_model_names.add(m.model_name)
+        if prov_data.name not in newly_created_providers:
+            for m in (provider.models or []):
+                existing_model_names.add(m.model_name)
 
         for model_data in prov_data.models:
             if model_data.model_name in existing_model_names:
