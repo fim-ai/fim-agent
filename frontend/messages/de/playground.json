@@ -136,7 +136,7 @@
       "Rufe das Node.js LTS-Changelog ab und fasse die 5 einflussreichsten Änderungen für einen typischen Backend-Entwickler zusammen",
       "Simuliere das Werfen von zwei Würfeln 50.000 Mal -- gib eine Häufigkeitstabelle aller möglichen Summen aus und identifiziere die häufigsten und seltensten Ergebnisse",
       "Rufe 100 Posts von JSONPlaceholder ab, bewerte die 5 aktivsten Benutzer nach Post-Anzahl, verwende template_render, um ihre Statistiken als stilisierte Leaderboard-Karte anzuzeigen",
-      "Schlage GPT-4 und Claude 3 auf Wikipedia nach -- vergleiche ihre Veröffentlichungsdaten, Kontextfenster und Flaggschiff-Funktionen -- erstelle dann eine saubere Markdown-Vergleichstabelle",
+      "Claude Opus 4 und GPT-5 auf Wikipedia nachschlagen — Veröffentlichungsdaten, Kontextfenster und Hauptfunktionen vergleichen — dann eine saubere Markdown-Vergleichstabelle erstellen",
       "Recherchiere React, Vue und Svelte gleichzeitig -- rufe für jeden die wöchentlichen npm-Downloads, GitHub-Sterne und die neueste Version ab -- bewerte sie dann und erstelle eine stilisierte HTML-Scorecard mit Medaillen-Abzeichen",
       "Parallel: (1) implementiere Merge Sort und Quick Sort, benchmark beide auf 10.000 zufälligen Ganzzahlen; (2) finde alle Fibonacci-Zahlen bis Index 50, die auch Primzahlen sind; (3) löse N-Queens für N=8 und zähle alle Lösungen -- kompiliere alles in einen stilisierten HTML-Bericht"
     ]

@@ -136,7 +136,7 @@
       "Récupérez le journal des modifications de Node.js LTS et résumez les 5 changements les plus impactants pour un développeur backend typique",
       "Simulez le lancer de deux dés 50 000 fois -- affichez un tableau de fréquence de chaque somme possible et identifiez les résultats les plus et les moins courants",
       "Récupérez 100 publications de JSONPlaceholder, classez les 5 utilisateurs les plus actifs par nombre de publications, et utilisez template_render pour afficher leurs statistiques sous forme de carte de classement stylisée",
-      "Recherchez GPT-4 et Claude 3 sur Wikipedia -- comparez leurs dates de sortie, fenêtres de contexte et capacités phares -- puis produisez un tableau comparatif markdown propre",
+      "Recherchez Claude Opus 4 et GPT-5 sur Wikipedia — comparez leurs dates de sortie, fenêtres de contexte et capacités phares — puis produisez un tableau de comparaison markdown propre",
       "Recherchez React, Vue et Svelte simultanément -- pour chacun, récupérez les téléchargements hebdomadaires npm, les étoiles GitHub et la dernière version -- puis classez-les et produisez une fiche de notation HTML stylisée avec des badges de médailles",
       "En parallèle : (1) implémentez merge sort et quick sort, comparez les deux sur 10 000 entiers aléatoires ; (2) trouvez tous les nombres de Fibonacci jusqu'à l'index 50 qui sont aussi premiers ; (3) résolvez N-Queens pour N=8 et comptez toutes les solutions -- compilez tout dans un rapport HTML stylisé"
     ]
