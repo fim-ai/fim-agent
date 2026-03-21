@@ -289,6 +289,15 @@ class TestRetryConfig:
         assert cfg.base_delay == 0.5
         assert cfg.max_delay == 30.0
 
+    def test_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LLM_MAX_RETRIES", "5")
+        monkeypatch.setenv("LLM_RETRY_BASE_DELAY", "2.5")
+        monkeypatch.setenv("LLM_RETRY_MAX_DELAY", "120.0")
+        cfg = RetryConfig()
+        assert cfg.max_retries == 5
+        assert cfg.base_delay == 2.5
+        assert cfg.max_delay == 120.0
+
     def test_frozen(self) -> None:
         cfg = RetryConfig()
         with pytest.raises(AttributeError):

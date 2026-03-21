@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import random
 from collections.abc import AsyncIterator, Callable, Coroutine
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -14,9 +15,24 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
+def _env_int(key: str, default: int) -> int:
+    raw = os.environ.get(key)
+    return int(raw) if raw else default
+
+
+def _env_float(key: str, default: float) -> float:
+    raw = os.environ.get(key)
+    return float(raw) if raw else default
+
+
 @dataclass(frozen=True)
 class RetryConfig:
     """Configuration for retry behaviour.
+
+    All fields can be overridden via environment variables:
+      - ``LLM_MAX_RETRIES``      (default: 3)
+      - ``LLM_RETRY_BASE_DELAY`` (default: 1.0)
+      - ``LLM_RETRY_MAX_DELAY``  (default: 60.0)
 
     Args:
         max_retries: Maximum number of retry attempts (0 means no retries).
@@ -24,9 +40,15 @@ class RetryConfig:
         max_delay: Upper bound on the backoff delay in seconds.
     """
 
-    max_retries: int = 3
-    base_delay: float = 1.0
-    max_delay: float = 60.0
+    max_retries: int = field(
+        default_factory=lambda: _env_int("LLM_MAX_RETRIES", 3),
+    )
+    base_delay: float = field(
+        default_factory=lambda: _env_float("LLM_RETRY_BASE_DELAY", 1.0),
+    )
+    max_delay: float = field(
+        default_factory=lambda: _env_float("LLM_RETRY_MAX_DELAY", 60.0),
+    )
 
 
 def is_retryable_error(error: BaseException) -> bool:
