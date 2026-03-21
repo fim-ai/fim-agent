@@ -133,5 +133,11 @@
   "changelog": "Changelog",
   "roadmap": "Roadmap",
   "website": "Website",
-  "discord": "Discord"
+  "discord": "Discord",
+  "about": "About",
+  "aboutTagline": "AI-Powered Connector Hub",
+  "aboutVersion": "Version",
+  "aboutBuildTime": "Build Time",
+  "aboutCraftedBy": "Crafted by FIM Team",
+  "aboutCopyright": "\u00a9 {year} FIM One. All rights reserved."
 }

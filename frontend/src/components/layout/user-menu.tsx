@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FileText,
   Globe,
+  Info,
   Languages,
   LayoutDashboard,
   LogOut,
@@ -35,6 +36,7 @@ import { useAuth } from "@/contexts/auth-context"
 import type { UserInfo } from "@/types/auth"
 import { authApi } from "@/lib/api"
 import { useTranslations } from "next-intl"
+import { AboutDialog } from "@/components/layout/about-dialog"
 
 interface UserMenuProps {
   collapsed: boolean
@@ -54,6 +56,7 @@ export function UserMenu({ collapsed }: UserMenuProps) {
   const { user, logout, updateUser } = useAuth()
   const t = useTranslations("common")
   const [open, setOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   if (!user) return null
 
@@ -80,6 +83,7 @@ export function UserMenu({ collapsed }: UserMenuProps) {
   }
 
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
@@ -195,6 +199,10 @@ export function UserMenu({ collapsed }: UserMenuProps) {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <DropdownMenuItem onClick={() => { setOpen(false); setAboutOpen(true) }}>
+          <Info className="h-4 w-4" />
+          {t("about")}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>
           <LogOut className="h-4 w-4" />
@@ -202,5 +210,7 @@ export function UserMenu({ collapsed }: UserMenuProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+    </>
   )
 }

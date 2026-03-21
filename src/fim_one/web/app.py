@@ -90,6 +90,7 @@ from .api.hooks import router as hooks_router
 from .api.metrics import router as metrics_router
 from .api.notifications import router as notifications_router
 from .api.user_settings import router as user_settings_router
+from .api.version import router as version_router
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ def create_app() -> FastAPI:
     # -- Maintenance mode middleware ----------------------------------------
     # Passes: OPTIONS (CORS preflight), /api/auth/* (login still works),
     #         /api/admin/* (admins can turn maintenance off), /api/system/*
-    _MAINTENANCE_PASS = ("/api/auth/", "/api/admin/", "/api/system/")
+    _MAINTENANCE_PASS = ("/api/auth/", "/api/admin/", "/api/system/", "/api/version")
     _maintenance_cache: list[tuple[bool, float] | None] = [None]
     _MAINTENANCE_TTL = 5.0
 
@@ -354,6 +355,7 @@ def create_app() -> FastAPI:
     app.include_router(hooks_router)
     app.include_router(notifications_router)
     app.include_router(user_settings_router)
+    app.include_router(version_router)
 
     # NOTE: /uploads is intentionally NOT mounted as a public StaticFiles route.
     # File downloads are served through the authenticated API endpoint at
