@@ -151,23 +151,123 @@ Anthropic 모델에 대해 추론/확장 사고가 활성화되면 온도는 시
 
 ## 권장 구성
 
-대부분의 모델은 기본 설정(토글 모두 ON)에서 올바르게 작동합니다. 오류나 불필요한 지연이 발생할 때만 조정하세요.
+대부분의 모델은 기본 설정(토글 모두 ON)으로 올바르게 작동합니다. 오류가 발생하거나 불필요한 지연이 생길 때만 조정하세요.
 
-| 모델 유형 | Native FC | JSON Mode | 참고 |
-|---|---|---|---|
-| OpenAI GPT 시리즈 | ON | ON | 완전 지원 -- 기본값이 올바름 |
-| Anthropic Claude | ON | ON | 구조화된 출력 호출 시 Thinking 자동 비활성화 |
-| Google Gemini | ON | ON | 완전 지원 |
-| DeepSeek V3 / Coder | ON | ON | 완전 지원 |
-| **DeepSeek R1 (thinking)** | **OFF** | ON | Thinking 항상 활성화; native FC 거부 |
-| **Kimi K2.5 (thinking)** | **OFF** | ON | Thinking 항상 활성화; native FC 거부 |
-| Kimi K2 (non-thinking) | ON | ON | 완전 지원 |
-| **AWS Bedrock relay** | ON | **OFF** | Bedrock이 JSON Mode에서 assistant prefill 거부 |
-| 소형 / 약한 모델 | OFF | OFF | 일반 텍스트 추출로 직접 진행 |
+아래 표는 일반적인 제공자와 모델을 다룹니다. 데이터는 UniAPI 기능 태그에서 소싱되었으며 **2026-03-22** 기준 런타임 동작에 대해 검증되었습니다. 모델 기능은 자주 변경됩니다 -- 오류가 발생하면 제공자의 최신 문서를 확인하세요.
+
+### 빠른 규칙
+
+- **Native FC ON** - 함수 호출을 지원하는 모델(대부분의 최신 모델)
+- **Native FC OFF** - 강제 `tool_choice`를 거부하는 사고 항상 활성화 모델
+- **JSON Mode ON** - 대부분의 모델(안전한 기본값)
+- **JSON Mode OFF** - AWS Bedrock 릴레이만 해당(프리필 거부)
+
+### 제공자별 구성 매트릭스
+
+**OpenAI**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `gpt-5.4` | General | 1,050K | 128K | ON | ON | Function calling + structured output + reasoning |
+| `gpt-5.4-mini` | Fast | 400K | 128K | ON | ON | Function calling + structured output + reasoning |
+| `o3-pro` | Reasoning | 200K | 100K | ON | ON | Reasoning model; FC works with auto-disabled thinking |
+
+**Anthropic (Claude)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `claude-sonnet-4-6` | General | 1,000K | 64K | ON | ON | Function calling + reasoning; thinking auto-disabled for FC |
+| `claude-haiku-4-5` | Fast | 200K | 64K | ON | ON | Function calling supported |
+| `claude-opus-4-6` | Reasoning | 1,000K | 128K | ON | ON | Function calling + reasoning; thinking auto-disabled for FC |
+
+**Google Gemini**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `gemini-3-pro-preview` | General | 1,048K | 65K | ON | ON | Full support (UniAPI tags incomplete -- Gemini natively supports FC) |
+| `gemini-2.5-pro` | Fast | 1,048K | 65K | ON | ON | Full support |
+| `gemini-3.1-pro-preview` | Reasoning | 1,048K | 65K | ON | ON | Full support |
+
+**DeepSeek**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `deepseek-v3.2` | General | 164K | 64K | ON | ON | FC supported (UniAPI tags incomplete) |
+| `deepseek-chat` | Fast | 64K | 8K | ON | ON | Basic chat model; FC supported |
+| `deepseek-reasoner` | Reasoning | 164K | 164K | **OFF** | ON | Thinking always-on; forced tool_choice may be rejected |
+
+**xAI (Grok)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `grok-4-1-fast-non-reasoning` | General | 2,000K | 2,000K | ON | ON | Function calling + structured output |
+| `grok-3-mini-fast` | Fast | 131K | 131K | ON | ON | Function calling + structured output + reasoning |
+| `grok-4-1-fast-reasoning` | Reasoning | 2,000K | 2,000K | ON | ON | Function calling + structured output + reasoning |
+
+**Qwen (Alibaba Cloud)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `qwen3.5-plus` | General | 1,000K | 64K | ON | ON | Function calling + structured output |
+| `qwen-turbo-latest` | Fast | 1,000K | 16K | ON | ON | FC likely supported (UniAPI tags incomplete) |
+| `qwq-plus` | Reasoning | 128K | 8K | ON | ON | Reasoning + function calling (thinking may be toggleable) |
+
+**Zhipu (GLM)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `glm-4.7` | General | 200K | -- | ON | ON | Function calling + structured output + reasoning |
+| `glm-4.7-flashx` | Fast | 200K | -- | ON | ON | Function calling + structured output + reasoning |
+| `glm-5` | Reasoning | 200K | -- | ON | ON | Function calling + structured output + reasoning |
+
+**Moonshot (Kimi)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `kimi-k2.5` | General | 262K | -- | **OFF** | ON | Thinking always-on; forced tool_choice rejected (400 error) |
+| `kimi-k2` | Fast | 131K | -- | ON | ON | Non-thinking; native FC works (verified in production) |
+| `kimi-k2-thinking` | Reasoning | 63K | -- | **OFF** | ON | Thinking always-on; forced tool_choice rejected |
+
+**MiniMax**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `MiniMax-M2.5` | General | 205K | -- | ON | ON | Function calling + structured output (verified in production) |
+| `MiniMax-M2.5-highspeed` | Fast | 205K | -- | ON | ON | Function calling + structured output (verified in production) |
+| `MiniMax-M1` | Reasoning | -- | -- | ON | ON | Function calling + structured output |
+
+**ByteDance (Doubao)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `doubao-seed-2-0-pro` | General | 256K | 128K | ON | ON | Function calling + structured output + reasoning |
+| `doubao-seed-1-6` | Fast | 256K | 32K | ON | ON | Function calling + structured output + reasoning |
+
+**iFlytek (Spark)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `SparkDesk-v3.5` | General | -- | -- | **OFF** | **OFF** | Basic chat only; no FC or structured output tags |
+| `SparkDesk-v3.1` | Fast | -- | -- | **OFF** | **OFF** | Basic chat only; no FC or structured output tags |
+| `SparkDesk-v4.0` | Reasoning | -- | -- | **OFF** | **OFF** | Basic chat only; no FC or structured output tags |
+
+**Meta (Llama)**
+
+| Model | Role | Context | Max Output | Native FC | JSON Mode | Notes |
+|---|---|---|---|---|---|---|
+| `llama-3.3-70b` | General | 131K | 131K | ON | ON | FC depends on hosting provider; try defaults first |
+
+<Note>
+**Max Output의 "--"** 는 제공자가 제한을 보고하지 않았음을 의미합니다. 실제로 이러한 모델은 일반적으로 4K-16K 출력 토큰을 지원합니다. 특정 값이 필요한 경우 모델의 고급 설정에서 **Max Output Tokens**을 명시적으로 설정하세요.
+</Note>
 
 <Tip>
-**진단 방법:** 애플리케이션 로그에서 `structured_llm_call: native_fc call raised` 경고를 확인하세요. 이러한 경고 다음에 성공적인 JSON Mode 추출이 표시되면, 해당 모델은 native function calling의 이점을 얻지 못합니다. 낭비되는 API 호출과 구조화된 출력 요청당 약 10초의 지연 페널티를 제거하기 위해 해당 모델에 대해 **Native Function Calling**을 비활성화하세요.
+**진단 방법:** 애플리케이션 로그에서 `structured_llm_call: native_fc call raised` 경고를 확인하세요. 이러한 경고 뒤에 JSON Mode 추출이 성공하면 해당 모델은 기본 함수 호출의 이점을 얻지 못합니다. 낭비되는 API 호출과 구조화된 출력 요청당 약 10초의 지연 페널티를 제거하려면 해당 모델에 대해 **Native Function Calling**을 비활성화하세요.
 </Tip>
+
+<Warning>
+모델 기능은 제공자가 API를 업데이트함에 따라 자주 변경됩니다. 위의 권장사항은 **2026-03-22** 데이터(UniAPI 기능 태그 + 프로덕션 런타임 검증)를 기반으로 합니다. 이전에 작동하던 모델이 오류를 반환하기 시작하면 제공자의 변경 로그에서 주요 변경사항을 확인하세요.
+</Warning>
 
 ---
 
