@@ -63,15 +63,15 @@ Die ReAct-Engine verwendet natives Function Calling (`_run_native`), wenn `abili
 
 ### structured_llm_call — tool_choice=forced
 
-One-shot strukturierte Extraktion (Schema-Annotation, DAG-Planung, Plan-Analyse). Erzwingt den Aufruf einer bestimmten virtuellen Funktion und garantiert strukturierte JSON-Ausgabe. Dies ist die Aufrufstelle, die anbieter-spezifische Fehler auslöst.
+Einmalige strukturierte Extraktion (Schema-Annotation, DAG-Planung, Plan-Analyse). Erzwingt, dass das Modell eine bestimmte virtuelle Funktion aufruft und garantiert strukturierte JSON-Ausgabe. Dies ist die Aufrufstelle, die anbieterspezifische Fehler auslöst.
 
 `structured_llm_call` implementiert eine 3-stufige Degradationskette:
 
 ```mermaid
 flowchart TD
-    START["structured_llm_call()"] --> L1{"abilities.tool_call?"}
-    L1 -->|Yes| FC["Level 1: native_fc<br/>forced tool_choice"]
-    L1 -->|No| L2
+    START["structured_llm_call()"] --> L1{"abilities.tool_call<br/>AND tool_choice?"}
+    L1 -->|Both true| FC["Level 1: native_fc<br/>forced tool_choice"]
+    L1 -->|Either false| L2
     FC -->|"Success"| DONE["Return StructuredCallResult"]
     FC -->|"Fail (catch Exception)"| L2{"abilities.json_mode?"}
     L2 -->|Yes| JM["Level 2: json_mode<br/>response_format=json_object"]
@@ -82,7 +82,7 @@ flowchart TD
     PT -->|"Fail → retry once"| ERR["StructuredOutputError<br/>or default_value"]
 ```
 
-Der kritische Designunterschied: Der Fallback von `structured_llm_call` ist **Laufzeit** — er versucht dynamisch jede Stufe und fängt Ausnahmen ab, um durchzufallen. Die Modusauswahl der ReAct-Engine ist **Build-Zeit** — sie prüft `_native_mode_active` einmalig am Anfang und verpflichtet sich auf einen Modus für die gesamte Schleife. Das bedeutet, dass `structured_llm_call` sich transparent von anbieter-spezifischen 400-Fehlern erholen kann, während ReAct darauf angewiesen ist, dass der Modus von Anfang an korrekt gewählt wird.
+Der kritische Designunterschied: Das Fallback von `structured_llm_call` ist **Laufzeit** — es versucht dynamisch jede Stufe und fängt Ausnahmen ab, um durchzufallen. Die Modusauswahl der ReAct-Engine ist **Build-Zeit** — sie prüft `_native_mode_active` einmal am Anfang und verpflichtet sich auf einen Modus für die gesamte Schleife. Das bedeutet, dass `structured_llm_call` sich transparent von anbieterspezifischen 400-Fehlern erholen kann, während ReAct darauf angewiesen ist, dass der Modus von Anfang an korrekt gewählt wird.
 
 ## Die Bedrock-Prefill-Falle
 
@@ -113,36 +113,51 @@ Wenn sowohl Level 1 (native_fc) als auch Level 2 (json_mode) auf Bedrock fehlsch
 
 ### Die Lösung: json_mode_enabled
 
-Ein Pro-Modell-Flag `json_mode_enabled` steuert, ob Level 2 (json_mode) jemals versucht wird:
+Ein pro-Modell-Flag `json_mode_enabled` steuert, ob Level 2 (json_mode) jemals versucht wird:
 
-- **DB-konfigurierte Modelle**: Umschalter in Admin → Models → Advanced settings. Das Flag wird auf `ModelConfig.json_mode_enabled` gespeichert (Standard `TRUE`).
-- **ENV-konfigurierte Modelle**: Setzen Sie `LLM_JSON_MODE_ENABLED=false` in Ihrer Umgebung.
-- **Auswirkung**: Wenn deaktiviert, gibt `abilities["json_mode"]` `False` zurück → `response_format` wird nie übergeben → kein Prefill → Bedrock funktioniert. Die Degradationskette wird zu `native_fc → plain_text`, wobei der fehlgeschlagene json_mode-Aufruf vollständig übersprungen wird.
-- **Kein Qualitätsverlust**: Das Modell gibt weiterhin gültiges JSON zurück, da das System-Prompt dies anweist. Die plain_text-Ebene verwendet `extract_json()`, um JSON aus Freitextinhalten zu analysieren, was bei modernen Modellen zuverlässig funktioniert.
+- **DB-konfigurierte Modelle**: Umschalter in Admin → Models → Advanced settings. Das Flag wird auf `ModelProviderModel.json_mode_enabled` gespeichert (Standard `TRUE`).
+- **ENV-konfigurierte Modelle**: setzen Sie `LLM_JSON_MODE_ENABLED=false` in Ihrer Umgebung.
+- **Auswirkung**: wenn deaktiviert, gibt `abilities["json_mode"]` `False` zurück → `response_format` wird nie übergeben → keine Prefill → Bedrock funktioniert. Die Degradationskette wird zu `native_fc → plain_text`, wobei der fehlgeschlagene json_mode-Aufruf vollständig übersprungen wird.
+- **Kein Qualitätsverlust**: das Modell gibt weiterhin gültiges JSON zurück, da das System-Prompt es anweist. Die plain_text-Ebene verwendet `extract_json()` zum Parsen von JSON aus Freitext-Inhalten, was bei modernen Modellen zuverlässig funktioniert.
 
-## Anthropic-Denken + erzwungene tool_choice
+## Thinking-Modelle + erzwungene tool_choice
 
-Die API von Anthropic lehnt `tool_choice={"type":"function","function":{"name":"X"}}` ab, wenn erweitertes Denken aktiviert ist:
+Einige Modelle haben erweitertes Denken (Chain-of-Thought) dauerhaft aktiviert. Ihre APIs lehnen erzwungene `tool_choice` ab, da das Erzwingen eines bestimmten Funktionsaufrufs der Freiheit des Modells zum ersten Nachdenken widerspricht:
 
 ```
-Thinking may not be enabled when tool_choice forces tool use
+tool_choice 'specified' is incompatible with thinking enabled
 ```
 
-Dies ist ein semantischer Konflikt auf Protokollebene: Das Erzwingen eines bestimmten Toolaufrufs widerspricht der Freiheit des Modells, darüber nachzudenken, welches Tool aufgerufen werden soll. Anthropic erzwingt diese Einschränkung; andere Anbieter tun dies nicht.
+Anthropic erzwingt diese Einschränkung auf Protokollebene, und einige andere Anbieter (z. B. Moonshot AI / Kimi K2.5) folgen demselben Muster.
 
-`structured_llm_call` handhabt dies, indem `reasoning_effort=None` beim Aufrufen von native_fc (der erzwungenen `tool_choice`-Ebene) übergeben wird. Dies deaktiviert erweitertes Denken für diesen spezifischen Aufruf, sodass erzwungene tool_choice unabhängig von der globalen Reasoning-Konfiguration immer funktioniert. Strukturierte Ausgabeaufrufe (DAG-Planung, Schema-Annotation, Plan-Analyse) benötigen **Schema-Konformität**, nicht tiefes Denken — das Deaktivieren des Denkens hier ist sowohl korrekt als auch vorteilhaft (niedrigere Latenz, niedrigere Kosten).
+Für Anthropic-Modelle verwaltet `structured_llm_call` dies automatisch, indem `reasoning_effort=None` beim Aufrufen von native_fc übergeben wird, wodurch erweitertes Denken für diesen spezifischen Aufruf deaktiviert wird. Strukturierte Ausgabeaufrufe benötigen **Schemakonformität**, nicht tiefes Denken – das Deaktivieren des Denkens hier ist sowohl korrekt als auch vorteilhaft (niedrigere Latenz, niedrigere Kosten).
 
-`tool_choice="auto"` ist vom Denkmodus nicht betroffen. Die ReAct-Engine verwendet ausschließlich `"auto"`, sodass die Agent-Ausführung mit aktiviertem Denken funktioniert.
+Jedoch haben einige Modelle (z. B. Kimi K2.5) Denken dauerhaft aktiviert, ohne dass es extern deaktiviert werden kann. Für diese Modelle schlägt native_fc immer mit einem 400-Fehler fehl, was vor der Degradationskette etwa 10 Sekunden verschwendete Latenz pro strukturiertem Aufruf hinzufügt, bevor sie zu json_mode fällt.
+
+### Die Lösung: tool_choice_enabled
+
+Ein Pro-Modell-Flag `tool_choice_enabled` steuert, ob Level 1 (native_fc) jemals versucht wird:
+
+- **DB-konfigurierte Modelle**: Umschalter in Admin → Models → Advanced → "Native Function Calling". Das Flag wird auf `ModelProviderModel.tool_choice_enabled` gespeichert (Standard `TRUE`).
+- **ENV-konfigurierte Modelle**: setzen Sie `LLM_TOOL_CHOICE_ENABLED=false` in Ihrer Umgebung.
+- **Auswirkung**: wenn deaktiviert, gibt `abilities["tool_choice"]` `False` zurück → die Degradationskette beginnt bei Level 2 (json_mode) oder Level 3 (plain_text) und überspringt native_fc vollständig. Dies eliminiert die ~10s Strafe pro strukturiertem Aufruf für inkompatible Modelle.
+- **ReAct-Agent nicht betroffen**: `tool_choice_enabled` steuert nur die erzwungene Werkzeugauswahl in `structured_llm_call`. Die ReAct-Engine verwendet `tool_choice="auto"` (Modell entscheidet frei), was mit allen Modellen unabhängig von dieser Einstellung funktioniert.
+
+<Note>
+`tool_choice_enabled` und `tool_call` sind separate Ability-Flags. `tool_call` (immer `True` für `OpenAICompatibleLLM`) steuert, ob Werkzeuge dem Modell überhaupt übergeben werden — das Deaktivieren würde den ReAct-Agent beschädigen. `tool_choice` steuert nur, ob **erzwungene** Werkzeugauswahl für die Strukturierte-Ausgabe-Extraktion versucht wird.
+</Note>
+
+`tool_choice="auto"` wird durch den Thinking-Modus nicht beeinflusst. Die ReAct-Engine verwendet ausschließlich `"auto"`, daher funktioniert die Agent-Ausführung mit aktiviertem Thinking.
 
 <Warning>
-Setzen Sie NICHT `abilities["tool_call"] = False`, um diese Einschränkung zu vermeiden. Das würde den ReAct-Modus `_run_native` deaktivieren (der `tool_choice="auto"` verwendet und gut mit Denken funktioniert) und würde ihn in den weniger zuverlässigen Modus `_run_json` zwingen.
+Setzen Sie NICHT `abilities["tool_call"] = False`, um diese Einschränkung zu vermeiden. Das würde ReActs `_run_native`-Modus deaktivieren (der `tool_choice="auto"` verwendet und mit Thinking gut funktioniert) und würde es in den weniger zuverlässigen `_run_json`-Modus zwingen.
 </Warning>
 
 <Note>
-**Hinweis zur Provider-Migration:** Einige Drittanbieter-Relays löschen stillschweigend nicht unterstützte Parameter wie `reasoning_effort` (`drop_params=True`), sodass Denken nie aktiviert wird, auch wenn es konfiguriert ist. Bei der Migration zu einem Anbieter, der Denken ordnungsgemäß unterstützt (Bedrock, direkte Anthropic-API), stellt `reasoning_effort=None` in native_fc konsistentes Verhalten sicher. Es ist keine Benutzeraktion erforderlich — strukturierte Ausgabe funktioniert identisch bei allen Anbietern.
+**Hinweis zur Provider-Migration:** Einige Drittanbieter-Relays löschen stillschweigend nicht unterstützte Parameter wie `reasoning_effort` (`drop_params=True`), daher wird Thinking nie aktiviert, auch wenn es konfiguriert ist. Bei der Migration zu einem Provider, der Thinking ordnungsgemäß unterstützt (Bedrock, direkte Anthropic API), stellt `reasoning_effort=None` in native_fc konsistentes Verhalten sicher. Es ist keine Benutzeraktion erforderlich — strukturierte Ausgabe funktioniert identisch über alle Provider hinweg.
 </Note>
 
-## Schnellreferenz: Was funktioniert wo
+## Kurzreferenz: Was funktioniert wo
 
 | Szenario | ReAct-Modus | structured_llm_call-Pfad | Hinweise |
 |---|---|---|---|
@@ -152,20 +167,42 @@ Setzen Sie NICHT `abilities["tool_call"] = False`, um diese Einschränkung zu ve
 | Bedrock-Relay (kein Denken) | `_run_native` | native_fc | Vollständige Unterstützung |
 | Bedrock-Relay + Denken | `_run_native` | native_fc (Denken automatisch deaktiviert) | Denken nur für strukturierte Ausgabe deaktiviert |
 | Gemini | `_run_native` | native_fc | Vollständige Unterstützung |
-| DeepSeek | `_run_native` | native_fc | Vollständige Unterstützung |
+| DeepSeek (kein Denken) | `_run_native` | native_fc | Vollständige Unterstützung |
+| DeepSeek R1 (Denken) | `_run_native` | json_mode (setze `tool_choice_enabled=false`) | Denken immer aktiviert; native_fc überspringen |
+| Kimi K2 (kein Denken) | `_run_native` | native_fc | Vollständige Unterstützung |
+| Kimi K2.5 (Denken) | `_run_native` | json_mode (setze `tool_choice_enabled=false`) | Denken immer aktiviert; native_fc überspringen |
 | Generisch OpenAI-kompatibel | `_run_native` | native_fc | Vollständige Unterstützung |
 | Beliebiges Modell mit `tool_call=false` | `_run_json` | json_mode oder plain_text | Fallback für Modelle ohne Tool-Call-Unterstützung |
 
-**Empfohlene Konfiguration für AWS Bedrock-Relays:**
+## Empfohlene Pro-Modell-Konfiguration
+
+Sowohl `tool_choice_enabled` als auch `json_mode_enabled` können pro Modell in Admin → Models → Advanced settings umgeschaltet werden. Die Standardwerte (beide `TRUE`) funktionieren für die meisten Anbieter. Passen Sie sie nur an, wenn Sie auf Fehler oder unnötige Latenz stoßen.
+
+| Modelltyp | Native FC | JSON Mode | Grund |
+|---|---|---|---|
+| OpenAI GPT-Serie | ON | ON | Vollständige Unterstützung — Standardwerte sind korrekt |
+| Anthropic Claude | ON | ON | Thinking wird für native_fc automatisch deaktiviert |
+| Google Gemini | ON | ON | Vollständige Unterstützung |
+| DeepSeek V3 / Coder | ON | ON | Vollständige Unterstützung |
+| **DeepSeek R1 (thinking)** | **OFF** | ON | Thinking immer aktiviert; native_fc abgelehnt |
+| **Kimi K2.5 (thinking)** | **OFF** | ON | Thinking immer aktiviert; native_fc abgelehnt |
+| Kimi K2 (non-thinking) | ON | ON | Vollständige Unterstützung |
+| **AWS Bedrock Relay** | ON | **OFF** | Bedrock lehnt Assistant-Prefill in json_mode ab |
+| Schwache / kleine Modelle | OFF | OFF | Direkt zur plain_text-Extraktion |
+
+<Tip>
+**Wann ändern:** Wenn Sie in Ihren Logs `structured_llm_call: native_fc call raised` Warnungen gefolgt von erfolgreicher json_mode-Extraktion sehen, profitiert das Modell nicht von native_fc. Deaktivieren Sie "Native Function Calling" für dieses Modell, um den verschwendeten API-Aufruf zu eliminieren (~10s pro strukturierter Ausgabeanfrage).
+</Tip>
+
+**ENV-level Overrides** gelten für alle Modelle, die über Umgebungsvariablen konfiguriert werden (nicht Admin UI):
 
 ```bash
-# In .env or environment
+# Disable native_fc globally (for thinking-model-only deployments)
+LLM_TOOL_CHOICE_ENABLED=false
+
+# Disable json_mode globally (for Bedrock relay deployments)
 LLM_JSON_MODE_ENABLED=false
 ```
-
-Oder pro Modell in der Admin-Benutzeroberfläche: Admin → Modelle → Bedrock-Modell auswählen → Erweitert → „JSON-Modus" deaktivieren.
-
-Das Setzen von `json_mode_enabled=false` für Bedrock wird als Defense-in-Depth empfohlen. Native_fc verarbeitet strukturierte Ausgaben zuverlässig, aber falls es unerwartet fehlschlägt, stellt das Deaktivieren des JSON-Modus sicher, dass die Fallback-Kette die Bedrock-Prefill-Falle überspringt und direkt zu plain_text geht.
 
 ## Reasoning-Aufwand und Thinking-Konfiguration
 
@@ -205,14 +242,14 @@ Unter normalen Bedingungen gibt native_fc korrekt strukturierte Tool-Call-Argume
 **"This model does not support assistant message prefill"**
 Bedrock + json_mode. Setzen Sie `LLM_JSON_MODE_ENABLED=false` oder deaktivieren Sie JSON Mode in den Admin-Modelleinstellungen.
 
-**"Thinking may not be enabled when tool_choice forces tool use"**
-`structured_llm_call` deaktiviert thinking für native_fc-Aufrufe automatisch. Wenn dieser Fehler auftritt, deutet dies auf einen Code-Pfad hin, der `structured_llm_call` umgeht, oder auf eine benutzerdefinierte `BaseLLM`-Unterklasse, die das `reasoning_effort`-Kwarg nicht akzeptiert. Überprüfen Sie, dass Ihre LLM-Unterklassensignatur `BaseLLM.chat()` entspricht.
+**"Thinking may not be enabled when tool_choice forces tool use"** / **"tool_choice 'specified' is incompatible with thinking enabled"**
+Bei Anthropic-Modellen deaktiviert `structured_llm_call` das Denken für native_fc-Aufrufe automatisch. Bei anderen Anbietern mit immer aktiviertem Denken (z. B. Kimi K2.5) deaktivieren Sie "Native Function Calling" in den erweiterten Einstellungen des Modells oder setzen Sie `LLM_TOOL_CHOICE_ENABLED=false` global. Die Degradationskette überspringt native_fc und extrahiert strukturierte Ausgaben stattdessen über json_mode oder plain_text.
 
 **"DAG pipeline failed: LLM 'steps' is not an array"**
-Das LLM hat das Feld `steps` als String oder einzelnes Objekt statt als Array zurückgegeben. Dies bedeutet typischerweise, dass die strukturierte Ausgabe auf json_mode zurückfiel (das keine Schema-Erzwingung hat). Überprüfen Sie das Protokoll auf `structured_llm_call: level=xxx` — wenn es `json_mode` statt `native_fc` anzeigt, schlägt native_fc stillschweigend fehl. Wenn Sie eine benutzerdefinierte `BaseLLM`-Unterklasse verwenden, überprüfen Sie, dass sie das `reasoning_effort`-Kwarg akzeptiert.
+Das LLM hat das Feld `steps` als String oder einzelnes Objekt statt als Array zurückgegeben. Dies bedeutet normalerweise, dass die strukturierte Ausgabe zu json_mode gefallen ist (das keine Schemaerzwingung hat). Überprüfen Sie das Protokoll auf `structured_llm_call: level=xxx` — wenn es `json_mode` statt `native_fc` anzeigt, schlägt native_fc stillschweigend fehl. Wenn Sie eine benutzerdefinierte `BaseLLM`-Unterklasse verwenden, überprüfen Sie, ob sie das Kwarg `reasoning_effort` akzeptiert.
 
-**ReAct fällt unerwartet auf JSON Mode zurück**
+**ReAct fällt unerwartet zu JSON-Modus zurück**
 Überprüfen Sie, dass `abilities["tool_call"]` des Modells `True` ist. Dies ist immer `True` für `OpenAICompatibleLLM`, aber eine benutzerdefinierte `BaseLLM`-Unterklasse könnte es überschreiben. Überprüfen Sie mit dem Modelldetail-Endpunkt in der Admin-API.
 
 **structured_llm_call erschöpft alle Ebenen und löst StructuredOutputError aus**
-Das Modell konnte auf keiner Ebene gültiges JSON produzieren. Dies ist bei modernen Modellen selten. Überprüfen Sie: (1) das Schema ist gültiges JSON Schema, (2) das Modell hat genug `max_tokens`, um die vollständige Antwort zu produzieren, (3) der System-Prompt widerspricht nicht den Schema-Anweisungen. Der DAG-Planer und Analyzer stellen beide `default_value`-Fallbacks bereit, daher wird dieser Fehler nur von Call-Sites weitergegeben, die Defaults explizit weglassen.
+Das Modell konnte auf keiner Ebene gültiges JSON erzeugen. Dies ist selten bei modernen Modellen. Überprüfen Sie: (1) das Schema ist gültiges JSON Schema, (2) das Modell hat genug `max_tokens`, um die vollständige Antwort zu erzeugen, (3) die Systemaufforderung widerspricht nicht den Schemaanweisungen. Der DAG-Planer und der Analyzer stellen beide `default_value`-Fallbacks bereit, daher wird dieser Fehler nur von Aufrufstellen weitergegeben, die Standardwerte explizit weglassen.

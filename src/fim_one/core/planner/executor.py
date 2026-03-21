@@ -328,6 +328,11 @@ class DAGExecutor:
         that matches a registered role, a temporary ``ReActAgent`` is created
         with the corresponding LLM.  Otherwise the default agent is returned.
 
+        When the resolved LLM exposes a ``context_size``, a model-aware
+        ``ContextGuard`` is created with a budget computed from that model's
+        actual context window, instead of using the global budget (which may
+        be far too large for small-context models).
+
         Args:
             step: The plan step to resolve an agent for.
 
@@ -372,13 +377,66 @@ class DAGExecutor:
                 )
             return self._agent
 
+        # Compute a model-aware ContextGuard if the resolved LLM exposes
+        # its context_size.  This prevents oversized prompts when the step
+        # model has a smaller context window than the default fast model.
+        context_guard = self._build_model_aware_guard(llm)
+
         return ReActAgent(
             llm=llm,
             tools=tools_to_use,
             system_prompt=self._agent.system_prompt_override,
             extra_instructions=self._agent.extra_instructions,
             max_iterations=self._agent.max_iterations,
-            context_guard=self._agent.context_guard,
+            context_guard=context_guard,
+        )
+
+    def _build_model_aware_guard(self, llm: BaseLLM) -> ContextGuard | None:
+        """Build a ContextGuard with a budget derived from *llm*'s context_size.
+
+        If the LLM does not expose ``context_size``, falls back to the
+        existing global ``ContextGuard`` passed at construction time.
+
+        The budget formula mirrors ``_compute_input_budget`` from
+        ``fim_one.web.deps``:
+        ``context_size - max_output_tokens - system_prompt_reserve``.
+        """
+        if self._context_guard is None:
+            return None
+
+        model_ctx = getattr(llm, "context_size", None)
+        if not isinstance(model_ctx, int):
+            return self._context_guard
+
+        # Derive max_output from the LLM's default_max_tokens if available,
+        # otherwise use a sensible default.
+        raw_max_output = getattr(llm, "_default_max_tokens", None)
+        max_output = raw_max_output if isinstance(raw_max_output, int) else 64000
+        system_prompt_reserve = 4000
+
+        budget = model_ctx - max_output - system_prompt_reserve
+        budget = max(budget, 4000)
+
+        # If the computed budget matches the existing guard's default, reuse it.
+        if budget == self._context_guard._default_budget:
+            return self._context_guard
+
+        logger.debug(
+            "Model-aware ContextGuard for %s: context_size=%d, "
+            "max_output=%d, budget=%d (global budget=%d)",
+            getattr(llm, "model_id", "unknown"),
+            model_ctx,
+            max_output,
+            budget,
+            self._context_guard._default_budget,
+        )
+
+        return ContextGuard(
+            compact_llm=self._context_guard._compact_llm,
+            default_budget=budget,
+            max_message_chars=self._context_guard.max_message_chars,
+            usage_tracker=self._context_guard._usage_tracker,
+            custom_compact_prompt=self._context_guard._custom_compact_prompt,
         )
 
     async def _execute_step(self, step: PlanStep, context: str) -> None:

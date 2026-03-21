@@ -291,6 +291,7 @@ def get_llm() -> OpenAICompatibleLLM:
         reasoning_budget_tokens=_reasoning_budget_tokens(),
         json_mode_enabled=_json_mode_enabled(),
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=int(os.environ.get("LLM_CONTEXT_SIZE", "128000")),
     )
 
 
@@ -300,6 +301,8 @@ def get_fast_llm() -> OpenAICompatibleLLM:
     Falls back to the main model config if ``FAST_LLM_*`` vars are not set.
     Fast models never have reasoning enabled.
     """
+    fast_ctx = os.environ.get("FAST_LLM_CONTEXT_SIZE", "")
+    ctx_size = int(fast_ctx) if fast_ctx else int(os.environ.get("LLM_CONTEXT_SIZE", "128000"))
     return OpenAICompatibleLLM(
         api_key=_fast_api_key(),
         base_url=_fast_base_url(),
@@ -310,6 +313,7 @@ def get_fast_llm() -> OpenAICompatibleLLM:
         reasoning_budget_tokens=None,
         json_mode_enabled=_json_mode_enabled(),
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=ctx_size,
     )
 
 
@@ -329,6 +333,7 @@ def get_reasoning_llm() -> OpenAICompatibleLLM:
         reasoning_budget_tokens=_reasoning_tier_budget(),
         json_mode_enabled=_json_mode_enabled(),
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=_reasoning_context_size(),
     )
 
 
@@ -416,6 +421,7 @@ def _build_llm_from_group_model(
         reasoning_budget_tokens=None,
         json_mode_enabled=model.json_mode_enabled,
         tool_choice_enabled=model.tool_choice_enabled,
+        context_size=model.context_size,
     )
 
 
@@ -560,6 +566,7 @@ def get_llm_from_config(config: dict[str, object]) -> OpenAICompatibleLLM | None
     model_name = config.get("model_name") or config.get("model")
     if not model_name:
         return None
+    ctx_size = config.get("context_size")
     return OpenAICompatibleLLM(
         api_key=str(config.get("api_key", "")) or _api_key(),
         base_url=str(config.get("base_url", "")) or _base_url(),
@@ -571,6 +578,7 @@ def get_llm_from_config(config: dict[str, object]) -> OpenAICompatibleLLM | None
         provider=str(config.get("provider", "")) or None,
         json_mode_enabled=_json_mode_enabled(),
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=int(ctx_size) if ctx_size else None,
     )
 
 
@@ -601,6 +609,7 @@ async def get_llm_by_config_id(
         provider=cfg.provider or None,
         json_mode_enabled=_json_mode_enabled(),
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=cfg.context_size,
     )
 
 
@@ -640,6 +649,7 @@ async def get_system_default_llm(
         provider=cfg.provider or None,
         json_mode_enabled=_json_mode_enabled(),
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=cfg.context_size,
     )
 
 
@@ -679,6 +689,7 @@ async def get_system_llm_by_role(
         provider=cfg.provider or None,
         json_mode_enabled=cfg.json_mode_enabled,
         tool_choice_enabled=_tool_choice_enabled(),
+        context_size=cfg.context_size,
     )
 
 
