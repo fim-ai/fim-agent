@@ -1,10 +1,19 @@
-"""Shared response-truncation utilities for tool adapters.
+"""Shared response-truncation utilities for all tool types.
 
-Both ConnectorToolAdapter and MCPToolAdapter call :func:`truncate_tool_output`
-so that oversized responses are handled consistently across all tool types.
+Every tool adapter and built-in tool delegates truncation to this module so
+that oversized responses are handled consistently across the entire tool layer.
 
-Truncation strategy
--------------------
+Two main entry points:
+
+* :func:`truncate_tool_output` — character-level, JSON-aware truncation for
+  structured API responses (used by ConnectorToolAdapter, MCPToolAdapter,
+  HttpRequestTool, WebFetchTool).
+* :func:`truncate_bytes` — byte-level truncation for raw command/script
+  output where character semantics matter less than memory safety (used by
+  ShellExecTool, PythonExecTool, NodeExecTool).
+
+Truncation strategy (truncate_tool_output)
+------------------------------------------
 - **JSON array** (too many items): keep first *max_items* complete entries and
   append a hint showing total count and available keys so the agent knows what
   was omitted and can refine its query parameters.
@@ -92,3 +101,37 @@ def _truncate_array(data: list, max_items: int) -> str:
 
 def _item_keys(item: object) -> list[str]:
     return list(item.keys()) if isinstance(item, dict) else []
+
+
+def truncate_bytes(
+    text: str,
+    max_bytes: int = 100 * 1024,
+) -> str:
+    """Truncate *text* if its UTF-8 encoding exceeds *max_bytes*.
+
+    Unlike :func:`truncate_tool_output` which works at the character level
+    with JSON-awareness, this function operates at the byte level and is
+    intended for raw command/script output where character semantics are
+    less important than memory safety.
+
+    Parameters
+    ----------
+    text:
+        Raw text output to check.
+    max_bytes:
+        Maximum number of UTF-8 bytes to allow.
+
+    Returns
+    -------
+    str
+        The original text (if within limit) or a truncated version with a
+        trailing hint.
+    """
+    encoded = text.encode("utf-8", errors="replace")
+    if len(encoded) <= max_bytes:
+        return text
+    truncated = encoded[:max_bytes].decode("utf-8", errors="replace")
+    return (
+        truncated
+        + f"\n\n[Output truncated — exceeded {max_bytes // 1024} KB limit]"
+    )

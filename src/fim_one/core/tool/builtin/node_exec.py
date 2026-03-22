@@ -8,26 +8,12 @@ from typing import Any
 
 from ..base import BaseTool
 from ..sandbox import get_sandbox_backend
+from ..truncation import truncate_bytes
 
 _DEFAULT_TIMEOUT_SECONDS: int = int(os.environ.get("SANDBOX_TIMEOUT", "120"))
 
 # Default directory for code execution outputs.
 _DEFAULT_EXEC_DIR = Path(__file__).resolve().parents[4] / "tmp" / "default" / "exec"
-
-# Maximum captured output size (bytes) before truncation.
-_MAX_OUTPUT_BYTES: int = 100 * 1024  # 100 KB
-
-
-def _truncate_output(text: str) -> str:
-    """Truncate *text* if it exceeds ``_MAX_OUTPUT_BYTES``."""
-    encoded = text.encode("utf-8", errors="replace")
-    if len(encoded) <= _MAX_OUTPUT_BYTES:
-        return text
-    truncated = encoded[:_MAX_OUTPUT_BYTES].decode("utf-8", errors="replace")
-    return (
-        truncated
-        + f"\n\n[Output truncated — exceeded {_MAX_OUTPUT_BYTES // 1024} KB limit]"
-    )
 
 
 class NodeExecTool(BaseTool):
@@ -141,7 +127,7 @@ class NodeExecTool(BaseTool):
             output = output + "[stderr]\n" + result.stderr
         if result.script_path is not None:
             output = f"[Script: {result.script_path.name}]\n" + output
-        output = _truncate_output(output)
+        output = truncate_bytes(output)
 
         # Scan for new files after execution.
         if self._artifacts_dir:

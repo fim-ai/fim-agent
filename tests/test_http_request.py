@@ -413,7 +413,7 @@ class TestResponseTruncation:
                 result = await tool.run(url="https://example.com/big")
 
         assert "[Truncated" in result
-        assert "200 KB" in result
+        assert "chars total" in result
 
 
 # ======================================================================

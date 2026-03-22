@@ -10,14 +10,12 @@ from typing import Any
 
 from ..base import BaseTool
 from ..sandbox import get_sandbox_backend
+from ..truncation import truncate_bytes
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS: int = 30
 _MAX_TIMEOUT_SECONDS: int = 120
-
-# Maximum captured output size (bytes) before truncation.
-_MAX_OUTPUT_BYTES: int = 100 * 1024  # 100 KB
 
 # Default sandbox workspace lives under the project-level tmp/ directory.
 _DEFAULT_SANDBOX_DIR = Path(__file__).resolve().parents[4] / "tmp" / "default" / "sandbox"
@@ -179,18 +177,6 @@ def _check_shell_metacharacters(command: str) -> str | None:
 # -----------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------
-
-def _truncate_output(text: str) -> str:
-    """Truncate *text* if it exceeds ``_MAX_OUTPUT_BYTES``."""
-    encoded = text.encode("utf-8", errors="replace")
-    if len(encoded) <= _MAX_OUTPUT_BYTES:
-        return text
-    truncated = encoded[:_MAX_OUTPUT_BYTES].decode("utf-8", errors="replace")
-    return (
-        truncated
-        + f"\n\n[Output truncated — exceeded {_MAX_OUTPUT_BYTES // 1024} KB limit]"
-    )
-
 
 def _validate_command(command: str) -> str | None:
     """Validate *command* against the blocklist.
@@ -399,7 +385,7 @@ class ShellExecTool(BaseTool):
             parts.append(f"\nstderr:\n{result.stderr}")
 
         output = "\n".join(parts)
-        output = _truncate_output(output)
+        output = truncate_bytes(output)
 
         # Scan for new files after execution.
         if self._artifacts_dir:

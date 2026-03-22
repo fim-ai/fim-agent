@@ -14,9 +14,9 @@ from fim_one.core.security import validate_url as _validate_url
 from fim_one.core.web.fetch import get_web_fetcher
 
 from ..base import BaseTool
+from ..truncation import truncate_tool_output
 
 _DEFAULT_TIMEOUT: int = 30
-_MAX_CHARS: int = 20_000
 
 
 class WebFetchTool(BaseTool):
@@ -83,8 +83,4 @@ class WebFetchTool(BaseTool):
         except httpx.RequestError as exc:
             return f"[Error] {exc}"
 
-        if len(content) > _MAX_CHARS:
-            content = (
-                content[:_MAX_CHARS] + f"\n\n[Truncated — {len(content)} chars total]"
-            )
-        return content
+        return truncate_tool_output(content, max_chars=20_000)

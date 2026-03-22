@@ -11,6 +11,7 @@ import httpx
 from fim_one.core.security import get_safe_async_client, resolve_and_check
 
 from ..base import BaseTool
+from ..truncation import truncate_tool_output
 
 _DEFAULT_TIMEOUT_SECONDS: int = 30
 _MAX_TIMEOUT_SECONDS: int = 120
@@ -227,14 +228,11 @@ class HttpRequestTool(BaseTool):
         if header_lines:
             parts.append("\nHeaders:\n" + "\n".join(header_lines))
 
-        # Body
+        # Body — byte-level safety cut, then JSON-aware truncation.
         raw_body = resp.content
-        truncated = False
         if len(raw_body) > _MAX_RESPONSE_BYTES:
             raw_body = raw_body[:_MAX_RESPONSE_BYTES]
-            truncated = True
 
-        # Attempt to decode as text.
         try:
             text = raw_body.decode(resp.encoding or "utf-8", errors="replace")
         except (UnicodeDecodeError, LookupError):
@@ -249,11 +247,6 @@ class HttpRequestTool(BaseTool):
             except (json.JSONDecodeError, ValueError):
                 pass  # Not valid JSON; keep raw text.
 
-        body_section = "\nBody:\n" + text
-        if truncated:
-            body_section += (
-                f"\n\n[Truncated — response exceeded {_MAX_RESPONSE_BYTES // 1024} KB]"
-            )
-
-        parts.append(body_section)
+        text = truncate_tool_output(text)
+        parts.append("\nBody:\n" + text)
         return "\n".join(parts)
