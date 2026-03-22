@@ -10,552 +10,221 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
-### Changed
-
-- **Centralized tool truncation** — All tool types (WebFetch, HttpRequest, ShellExec, PythonExec, NodeExec) now delegate truncation to the shared `truncation.py` module instead of inline logic. Two entry points: `truncate_tool_output()` (JSON-aware, character-level) for web/API tools, `truncate_bytes()` (byte-level) for code execution tools. Defaults configurable via `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES` environment variables.
-- **Domain detection decoupled into independent middleware** — Domain classification (legal, medical, financial, etc.) is now a standalone module (`domain.py`) that runs independently inside each endpoint (ReAct and DAG), rather than being bundled with auto-routing classification. Both endpoints call `classify_domain()` directly, removing the dependency on the auto-router to propagate `domain_hint`.
-- **Domain SOP instructions softened** — Specialist domain instructions now guide rather than mandate web search. When the user's query and context already contain sufficient information, the agent answers directly instead of forcing unnecessary searches.
-- **`web_search` always pinned in ReAct** — The `web_search` tool is now always included in ReAct tool selection, regardless of whether a specialist domain is detected, ensuring it cannot be dropped by the tool selector.
-- **`AUTO_ROUTING` env var removed** — The auto endpoint now always classifies queries; the toggle to disable classification has been removed.
-- **Citation verifier accepts upstream `domain_hint`** — `should_verify_citations()` now accepts a `domain_hint` parameter from the query-level LLM classification, bypassing per-step keyword scanning when domain is already known.
-
 ### Added
 
-- **Per-model Native Function Calling toggle** — New `tool_choice_enabled` setting (ENV global + Admin per-model) controls whether forced `tool_choice` is attempted for structured output extraction. Models that reject forced tool selection (e.g. thinking-mode models) can skip Level 1 and go directly to JSON Mode, eliminating the ~10s penalty per structured call. Configurable in Settings → Models → Advanced.
-- **Structured Output Compatibility table** in model documentation — Shows which providers support native function calling, JSON mode, and planning reliability ratings.
-- **File attachment download** — File attachment cards in chat messages are now clickable to download the original file via authenticated fetch. Download icon indicator and hover state added for discoverability.
-- **Intelligent Document Processing (Vision-Aware) roadmap item** — Added planned feature for adaptive document handling based on model vision capabilities (three tiers: vision-first, hybrid, text-only).
-- **DAG quality overhaul (P0): Default model upgrade** — DAG steps without an explicit `model_hint` now use the registry's general model (e.g. Sonnet) instead of the fast model. Only steps with `model_hint="fast"` use the lightweight model.
-- **DAG quality overhaul (P1): Skill auto-discovery** — `DAGPlanner.plan()` accepts a `skill_descriptions` parameter. Available skills (name + description) are injected into the planning prompt so the planner can suggest `tool_hint="read_skill"` for domain-matched steps.
-- **DAG quality overhaul (P2): Citation verifier** — New `citation_verifier.py` module extracts legal/medical/financial citations via regex, verifies accuracy via LLM judgment, and retries on failure with correction feedback. Integrated into executor post-step flow. Gated by `DAG_CITATION_VERIFICATION` env var (default: `true`).
-- **DAG quality overhaul (P3): Structured content context preservation** — `_build_step_context()` detects structured content (legal citations, markdown tables, code blocks) in dependency results and applies a configurable truncation multiplier (`DAG_STRUCTURED_CONTEXT_MULTIPLIER`, default `3.0`), preventing loss of critical citations between DAG steps.
-- **DAG quality overhaul (P4): Domain classification in router** — `RouteDecision` now includes `domain_hint` (legal/medical/financial/null). Tightly-coupled domain analysis prefers ReAct mode; when DAG is selected, domain context is injected into the planner to guide `model_hint` choices.
-- **Domain model escalation in ReAct** — When the router detects a specialist domain (legal/medical/financial), the ReAct endpoint escalates from the general model to the reasoning model via `registry.get_by_role("reasoning")`. Mandatory instructions are injected requiring web search before writing and citation verification via search. The `read_skill` tool is pinned in tool selection.
+- **Per-model Native Function Calling toggle** — `tool_choice_enabled` setting (ENV + Admin per-model) lets models that reject forced tool selection skip Level 1 and go directly to JSON Mode. Configurable in Settings → Models → Advanced.
+- **DAG quality overhaul** — Five improvements: default model upgrade to general model for non-fast steps; skill auto-discovery in planning; citation verifier for legal/medical/financial domains; structured content context preservation with configurable truncation multiplier; domain classification in router with domain-aware model selection.
+- **Domain model escalation in ReAct** — Specialist domains (legal/medical/financial) auto-escalate to reasoning model with mandatory web search and citation verification.
+- **File attachment download** — File cards in chat messages are now clickable to download the original file.
 
 ### Changed
 
-- **Temperature hint moved to tooltip** — The temperature reasoning hint in the model form dialog is now displayed as a compact tooltip icon (HelpCircle) next to the label instead of a static paragraph below the slider, reducing visual clutter.
-- **RAG grounding pipeline** — Three-stage pipeline: retrieval, citation extraction, and confidence scoring. Confidence score is the average retrieval score of the top-3 evidence units.
-- **API Keys banners updated to "Active"** — Admin and user settings API Keys pages now show a green "API Keys Active" banner (replacing the previous "Coming Soon" notice) with a link to the API authentication docs.
-- **Multi-worker documentation clarified** — `REDIS_URL` and `WORKERS` environment variable descriptions updated with a warning checklist covering stop, inject, PostgreSQL requirements, and local dev guidance.
-- **DAG step default model** — Steps without `model_hint` now resolve to the general model (previously fast model). The fast model is only used when `model_hint="fast"` is explicitly set.
-- **Router classification output** — `RouteDecision` now outputs `domain_hint` (legal/medical/financial/null) alongside the existing `mode` field, enabling downstream domain-aware model selection.
+- **Centralized tool truncation** — All tool types now delegate truncation to a shared module. Defaults configurable via `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES` env vars.
+- **Domain detection decoupled** — Domain classification runs independently in each endpoint, no longer bundled with auto-routing. Domain SOP instructions softened to guide rather than mandate web search.
+- **`AUTO_ROUTING` env var removed** — Auto endpoint always classifies queries.
 
 ### Fixed
 
-- **Duplicate OpenAPI Endpoints in locale docs** — Removed redundant `Endpoints` OpenAPI group from all non-English locale API tabs in `docs.json`. The English section retains the single source; locale sections no longer duplicate it.
-- **Structured output degradation chain** — The 3-level fallback (native FC → JSON mode → plain text extraction) now properly falls through all levels when a model produces malformed JSON. Previously short-circuited at Level 2 with a `ValueError`.
-- **`json_mode_enabled` DB value ignored** — Models configured via Admin (model groups) now correctly use their per-model `json_mode_enabled` setting instead of always falling back to the `LLM_JSON_MODE_ENABLED` environment variable.
-- **DAG planning failure message** — Planning failures now show a user-friendly bilingual message suggesting model switch instead of a raw pipeline error.
-- **DAG step card layout** — Redesigned `StepProgressCard` so task text wraps below the step badge instead of truncating on a single line. Tool badges in step nodes now only display when no `tools_used` exist but `tool_hint` is present, avoiding redundant display.
-- **MCP server owner bypass for allow_fallback** — Server owner is no longer blocked by `allow_fallback=False` restriction. Previously, even the creator of an MCP server could be skipped if `allow_fallback=False` was set; now only non-owner users without credentials are excluded.
-- **Model provider API key validation** — Creating a non-openai-compatible provider now requires an API key with inline validation error, required asterisk indicator, and proper `aria-invalid` accessibility attribute.
+- **Structured output degradation chain** — The 3-level fallback (native FC → JSON mode → plain text) now properly falls through all levels.
+- **`json_mode_enabled` DB value ignored** — Models configured via Admin now correctly use their per-model setting instead of always falling back to the env var.
+- **DAG planning failure message** — Now shows user-friendly bilingual message instead of raw pipeline error.
+- **MCP server owner bypass for allow_fallback** — Server owner is no longer blocked by `allow_fallback=False`.
 
 ## [v0.8] - 2026-03-20
 
 ### Added
 
-- **Agent directive in ReAct synthesis** — New `agent_directive` parameter on `ReActAgent` injects the agent's core purpose (e.g. "translate Chinese to English") into the synthesis system prompt, ensuring the final answer honours the agent's identity instead of defaulting to conversational replies. Wired in both ReAct and DAG chat endpoints.
-
-- **Marketplace redesign Phase 1 — Solutions + Components two-tier model** — Replaced the flat 6-type Market tab with a structured two-level navigation: top-level category toggle (Solutions: Agent/Skill/Workflow; Components: Connector/MCP Server) and type sub-tabs. Added scope selector dropdown to switch between Global Market and user's organizations. KB removed from Market scope (org-only). Unified org and market sharing: both now require explicit subscription (no more org auto-appear).
-
-- **Smart file content injection** — Small uploaded files (`<32K` chars) are automatically fetched and inlined into LLM context; large files receive metadata summary with a tool hint for on-demand reading.
-- **`read_uploaded_file` agent tool** — Dual-mode file reading tool: paginated reading (offset/limit) for sequential access and grep-like search (query with regex support) for targeted content extraction.
-- **`GET /api/files/{file_id}/content` endpoint** — Paginated text content API for accessing full extracted text from uploaded files.
-- **`.content` sidecar files** — Full extracted text stored alongside uploads as sidecar files, enabling persistent content access without re-extraction.
-- **`content_length` field in file API responses** — File upload and list endpoints now include `content_length` for text content size visibility.
-- **`fileApi.getContent()` frontend client method** — New API client method for fetching paginated file content from the frontend.
-
-- **Workflow Engine Node Retry** — Per-node retry with exponential backoff. Nodes can specify `retry_count` and `retry_delay_ms` in their data config. Failed nodes are retried up to N times with delay capped at 60s. Emits `node_retrying` SSE events with attempt number and previous error. Respects cancel events during retry wait.
-- **Workflow Variable Store Expression Evaluation** — Safe Python expression evaluation via simpleeval. `evaluate_expression()` method exposes store variables (excluding env) with common builtins (len, str, int, float, bool, abs, min, max, sum, round, sorted). Plus `has()`, `delete()`, `keys()` helper methods.
-- **Workflow Phase 2 Node: HumanIntervention** — Pause-for-approval node (auto-approve stub). Reads prompt_message (with `{{variable}}` interpolation), assignee, timeout_hours. Sky-500 themed frontend node with prompt preview and @assignee badge. Config panel with prompt textarea, assignee input, timeout field.
-- **Workflow Templates Expanded to 12** — Four new templates: Human Approval Pipeline (LLM → HumanIntervention → ConditionBranch → dual End), Multi-Step Data Processing (CodeExecution → ConditionBranch → Transform → ListOperation), Knowledge-Enhanced Agent (QuestionUnderstanding → KnowledgeRetrieval → LLM), Iterative Review Loop (Loop → LLM → VariableAssign).
-- **Workflow Pane Context Menu** — Right-click on empty canvas for Paste (disabled when clipboard empty), Select All, Fit View, and Auto Layout actions. Discriminated union state separates node vs pane context menus.
-- **Workflow Node Context Menu** — Right-click any node to access Configure, Copy, Duplicate, and Delete actions. Delete action is hidden for Start/End singleton nodes. Menu auto-closes on outside click or scroll.
-- **Workflow Phase 2 Templates** — Two new built-in templates (8 total): List Processing Pipeline (Start → ListOperation → Transform → End) and Enhanced Question Answering (Start → QuestionUnderstanding → LLM → End).
-- **Workflow Phase 2 Validation** — Extended blueprint validation warnings for ListOperation (missing input/expression), Transform (missing input/empty operations), Iterator (missing list variable), Loop (missing condition), DocumentExtractor, QuestionUnderstanding (missing input), ParameterExtractor (missing input text/empty params). Fixed: sort operation no longer incorrectly requires expression.
-- **Workflow Node Notes** — Per-node annotation feature. Click "Note" in any node's config panel to add a freeform note displayed as italic text below the node on the canvas. Auto-expanding textarea with `data.note` storage.
-- **Workflow Snap-to-Grid** — 16px snap grid matching the dot background pattern for precise node alignment.
-- **Workflow Connection Validation** — Prevents self-connections and duplicate edges in addition to existing Start/End restrictions.
-- **Workflow Zoom-Aware Drop** — Node palette drag-and-drop uses `screenToFlowPosition()` for correct placement at any zoom level.
-- **Workflow SSE Multi-Line Data** — SSE parser now handles multi-line `data:` fields and ignores keepalive comment lines.
-- **Workflow Keyboard Shortcuts** — Copy (Cmd+C), paste (Cmd+V), duplicate (Cmd+D), select all (Cmd+A), Escape to deselect. Copy/paste generates new IDs and offsets positions; Start/End nodes are excluded from copy to maintain singleton constraint.
-- **Workflow Inline Description Editing** — Click the description line in the toolbar to open a popover textarea for editing workflow descriptions without navigating away.
-- **Workflow ConditionBranch LLM Mode** — Proper LLM-based condition evaluation replacing the naive "match first" stub. Builds a classification prompt from condition labels, calls the fast LLM, and uses case-insensitive + fuzzy matching.
-- **Reactive Edge Labels** — Edge labels for condition/classifier branches now use `useNodesData()` for real-time updates when conditions or classes are edited in the config panel.
-- **Workflow Statistics Panel** — Sheet-based stats display showing total runs, completed/failed/cancelled counts, success rate with visual progress bar, average duration, and last run time with relative formatting. Triggered from a BarChart3 icon in the toolbar.
-- **Phase 2 Workflow Nodes: DocumentExtractor & QuestionUnderstanding** — Two more node types:
-  - **DocumentExtractor**: Stub executor for document text processing — supports text/base64 input types and 4 extract modes (full_text, pages with page_range, metadata with word/char/line/page counts, tables with markdown table detection). URL input deferred for later implementation.
-  - **QuestionUnderstanding**: LLM-based question preprocessing with 4 modes — rewrite (clarity), expand (context + sub-questions), classify (intent/topic/confidence JSON), decompose (sub-question array). Uses fast LLM with optional custom system prompt override.
-  - Full frontend: node components, config panels, palette entries (AI category for QU, Data category for DE), variable picker support.
-- **Phase 2 Workflow Nodes: ListOperation & Transform** — Two data processing node types:
-  - **ListOperation**: 8 list operations (filter, map, sort, slice, flatten, unique, reverse, length) with simpleeval expressions for filter/map/sort. Supports JSON string input auto-parsing.
-  - **Transform**: Pipeline-based data transformation with 6 operation types (json_path, type_cast, format, regex_extract, string_op, math_op). Operations applied sequentially — output of one feeds into the next.
-  - Full frontend: node components, config panel with operation-specific editors, palette entries, variable picker support.
-- **Phase 2 Workflow Nodes: Loop & ParameterExtractor** — Two more advanced node types:
-  - **Loop**: While-condition loop with simpleeval expression evaluation, configurable loop variable name, and max_iterations safety limit. Frontend with condition input, variable name, and iteration limit config.
-  - **ParameterExtractor**: LLM-based structured parameter extraction from text. Define typed parameters (name/type/description/required), provide input text reference, and optionally add extraction instructions. Returns parsed JSON. Frontend with parameter list editor and extraction prompt textarea.
-- **Phase 2 Workflow Nodes: Iterator & VariableAggregator** — Two new advanced node types:
-  - **Iterator**: Iterate over lists with configurable item/index variable names and max_iterations safety limit. Supports native lists, JSON string parsing, and template variable references.
-  - **VariableAggregator**: Merge outputs from multiple upstream branches via four modes — collect into list, concatenate strings (custom separator), merge dicts, or take first non-empty value.
-  - Full frontend integration: node components, palette entries, config panel forms, minimap colors, variable picker support. Backend executors registered in engine.
-- **Workflow Templates Expanded** — Added two new built-in templates (6 total): Data Processing Pipeline (Start → CodeExecution → TemplateTransform → End) and Agent with Knowledge Retrieval (Start → KnowledgeRetrieval → Agent → End). Fixed missing `icon` fields on new templates. Added missing i18n keys for "intermediate" and "advanced" template categories.
-- **Workflow ENV Variables Dialog** — Per-workflow encrypted environment variable management UI. Key-value editor with masked display, duplicate key detection, and inline validation. Connected to `GET/PUT /api/workflows/{id}/env` endpoints. Accessible via toolbar dropdown.
-- **Workflow Auto-Save** — 5-second debounced auto-save timer with immediate Cmd+S override. Save status indicator shows "Saving...", "Unsaved changes", or "Saved Xs ago" with 30s auto-refresh.
-- **Workflow List Search & Filter** — Client-side search by name/description, status filter buttons (All/Draft/Active), sort dropdown (Recently updated/created/Name A-Z), and empty state for no results.
-- **Workflow Color-Coded MiniMap** — MiniMap node colors now match each node type's category color (green=Start, red=End, blue=LLM, orange=Condition, etc.).
-- **Agent Skill System** — On-demand skill loading for agent instructions: `Skill` model (name, description, content, script) with full CRUD, publish review, and visibility lifecycle; `read_skill(name)` builtin tool for progressive disclosure (~80% token reduction); skill stubs injected into system prompt (~15 tokens/skill); `compact_instructions` per-agent field for custom ContextGuard compaction strategy.
-- **Skills UI** — Skill list page, full-page editor (content/script/settings tabs), SkillCard component, sidebar navigation, agent editor skill selector with compact instructions textarea.
-- **Workflow Publish Flow** — Publish/unpublish/resubmit endpoints for workflows, matching the existing Agent publish pattern. New `review_workflows` flag on Organization model (with Alembic migration) to enable org-level workflow review gating. Publish actions wired into workflow-card and toolbar UI.
-- **Workflow Blueprint System** — Visual workflow editor for designing and executing multi-step automation blueprints:
-  - **12 Node Types**: Start, End, LLM, ConditionBranch, QuestionClassifier, Agent, KnowledgeRetrieval, Connector, HTTPRequest, VariableAssign, TemplateTransform, CodeExecution — each with a custom React Flow node component, type-specific icon, and dedicated config panel form.
-  - **Execution Engine**: `WorkflowEngine` with topological sort for node execution order, `asyncio.Semaphore`-based concurrency control, and condition/classifier branching that activates/deactivates downstream edges based on `active_handles`.
-  - **SSE Streaming**: Real-time workflow execution progress via Server-Sent Events — emits `run_started`, `node_started`, `node_completed`, `node_failed`, `node_skipped`, `run_completed`, and `run_failed` events. SSE keepalive for long-running workflows; client disconnect detection triggers cancellation.
-  - **Variable Store**: Thread-safe `VariableStore` with `{{node_id.output}}` interpolation, flat-name fallback resolution, `env.*` namespace for encrypted environment variables, `snapshot_safe()` (excludes secrets), and `list_available_variables()` for the frontend picker.
-  - **Edge Labels**: `WorkflowEdgeDef` carries `source_handle` and `target_handle` for condition/classifier branches, enabling labeled edges that visually indicate which branch path each connection represents.
-  - **Variable Picker Combobox**: Searchable combobox (`Command`-based popover) for inserting `{{node_id.output}}` references from upstream nodes — grouped by node type with icons, integrated into all prompt/template/body fields.
-  - **Run History Sheet**: Side sheet displaying past workflow execution runs with status, duration, input/output data, and per-node results. Paginated via `GET /api/workflows/{id}/runs`.
-  - **Workflow Duplicate**: `POST /api/workflows/{id}/duplicate` endpoint and UI action to clone an existing workflow (copies blueprint, schema, description; resets status to draft).
-  - **Blueprint Validation**: `POST /api/workflows/validate` endpoint — validates a blueprint without saving (checks Start/End node presence, duplicate IDs, unknown node types, edge references, cycle detection). Returns node/edge counts on success or specific validation errors.
-  - **Error Strategies**: Per-node `error_strategy` field with three modes — `STOP_WORKFLOW` (default: halt all remaining nodes), `CONTINUE` (mark failed but let downstream proceed), `FAIL_BRANCH` (skip all nodes reachable only through the failed node).
-  - **Per-Node Timeout**: Configurable `timeout_ms` per node (default 30s) enforced via `asyncio.wait_for`; timeout produces a structured `FAILED` result with a descriptive error message.
-  - **Node Config Panel**: Per-type configuration forms — LLM nodes have system prompt, model selector, model tier (fast/main) toggle, temperature slider, max tokens; ConditionBranch has operator dropdowns (==, !=, &gt;, &lt;, contains, etc.) with expression/LLM mode; HTTPRequest has method selector, URL, headers editor (add/remove key-value pairs), body with variable insertion; CodeExecution has language selector (Python/JavaScript) with syntax-appropriate hints; all output nodes include `OutputVariableField` and `InsertVariableBar`.
-  - **Add-Node-on-Edge**: Custom `AddNodeEdge` component with "+" midpoint button — clicking opens a node type picker popup that inserts a new node inline, splitting the existing edge into two connections.
-  - **Auto-Layout (ELK.js)**: `getAutoLayoutedNodes()` utility using ELK.js layered algorithm with `elk.direction: RIGHT` for horizontal left-to-right node arrangement. Configurable node spacing (60px between nodes, 120px between layers).
-  - **Comprehensive Test Suite**: 34 tests covering parser validation (Start/End presence, duplicate IDs, unknown types, cycle detection, error strategy/timeout parsing), topological sort (linear and parallel branches), `VariableStore` (get/set, interpolation, env injection, snapshot safety, node outputs), engine execution (Start-to-End, input passthrough, cancellation, STOP_WORKFLOW, CONTINUE strategy), and node executors (VariableAssign, CodeExecution with variables, error handling).
-  - **Backend CRUD + API**: `Workflow` and `WorkflowRun` ORM models with Alembic migration; Pydantic schemas; full REST API (`/api/workflows/*`) with create, read, update, delete, list, import/export; encrypted environment variables via `CREDENTIAL_ENCRYPTION_KEY`; variable introspection endpoint (`GET /api/workflows/{id}/variables`) for frontend config panels.
-  - **Security**: Code execution node uses `subprocess` instead of bare `exec()` for OS-level isolation; environment variables filtered from eval/template execution contexts; `ExecutionContext` wiring across all node executors.
-  - **Frontend**: Visual editor built with React Flow v12 — drag-and-drop node palette with category grouping (collapsible icons-only mode), 12 custom node components, run panel with SSE-driven live execution status, workflow list page with card grid. Full i18n support (6 languages).
-- **Workflow Blueprint Validation Warnings**: `validate_blueprint()` now returns non-fatal warnings in addition to errors — detects disconnected nodes, unreachable end nodes, empty conditions/prompts/code blocks. Enhanced `POST /api/workflows/validate` endpoint returns structured warnings alongside validation results. 7 new tests.
-- **Workflow Node/Edge Deletion**: Backspace/Delete keyboard shortcuts remove selected nodes and edges. Start/End nodes are protected from deletion. Config panel includes a "Delete Node" button with AlertDialog confirmation for explicit removal.
-- **Workflow Import/Export/Duplicate UI**: Export workflows as JSON file download, import with automatic format detection, duplicate workflow via card dropdown. `WorkflowExportFile` schema envelope for portable workflow sharing.
-- **Workflow Templates**: 4 built-in starter templates (Simple LLM Chain, Conditional Router, Knowledge-Augmented QA, HTTP API Pipeline). Template picker dialog on workflow creation with `GET /api/workflows/templates` and `POST /api/workflows/from-template` endpoints.
-- **Workflow Stats Endpoint**: `GET /api/workflows/{id}/stats` returns execution statistics (total runs, success rate, avg duration, status breakdown, last run timestamp).
-- **Workflow Error Strategy Config UI**: Per-node advanced configuration section in the config panel with error strategy selector (Stop Workflow / Continue / Fail Branch) and custom timeout input.
-- **Workflow Run URL Param**: `?run=true` URL parameter auto-opens the run panel when navigating to the editor from the list page.
-- **Admin: Review Log audit tab** — Admin audit page now has a segmented "System Log / Review Log" toggle. The Review Log panel queries the new `GET /api/admin/review-log` endpoint (filters: org, resource type, action; limit/offset pagination) and displays a table with time, org name, resource type, resource name, action badge (color-coded: green=approved, red=rejected, amber=submitted/resubmitted, muted=unpublished), and operator. Full i18n (EN + ZH).
-- **Platform Organization**: Built-in org `platform` (ID: `00000000-0000-0000-0000-000000000001`) — all new users automatically join. This organization replaces the "global" visibility concept and provides a central hub for sharing resources across all users.
-- **Resource Subscriptions**: Users can now subscribe/unsubscribe to shared resources (agents, connectors, knowledge bases, MCP servers) from org Markets. New `resource_subscriptions` database table tracks subscription relationships.
-- **Market API**: New endpoints for browsing and managing subscriptions:
-  - `GET /api/market` — browse available resources in current org
-  - `POST /api/market/subscribe` — subscribe to a resource
-  - `DELETE /api/market/unsubscribe` — unsubscribe from a resource
-  - `GET /api/market/subscriptions` — list user's current subscriptions
-- **Market Page**: New `/market` page in Portal for browsing and managing subscriptions to org resources.
-- **Agent Auto-discovery**: New `discoverable` boolean field on agents. Agents with `discoverable=true` can be automatically discovered and called by LLMs via the `call_agent` tool (one-level delegation, no recursion).
-- **Sub-agent Binding**: New `sub_agent_ids` field on agents — explicit whitelist of callable sub-agents for fine-grained access control.
-- **CallAgentTool**: Built-in tool that delegates tasks to specialist agents with structured input validation and result handling.
-- **MCP Server Credentials**: New `mcp_server_credentials` table enables per-user environment variable and HTTP header overrides for MCP servers.
-- **MCP Credentials Endpoint**: `PUT /api/mcp-servers/{id}/my-credentials` allows users to store personal credential overrides for shared MCP servers.
-- **`allow_fallback` on MCPServer**: Boolean field controlling credential fallback behavior — when `true`, missing user credentials fall back to owner defaults.
-- **Connector/KB Toggle**: New endpoints for resource state management:
-  - `POST /api/connectors/{id}/toggle` — suspend/resume connector
-  - `POST /api/knowledge-bases/{id}/toggle` — suspend/resume knowledge base
-- **Standalone KB Conversations**: New `kb_ids` field on `ChatStreamRequest` and `Conversation` — users can now chat directly with knowledge bases without binding them to an agent.
-- **Platform Org Protection**: The Platform org cannot be deleted, and users cannot self-leave it. Ensures all users maintain connectivity to the organization hub.
-- **Publish Review UI (Frontend)**: Org-level publish review system frontend — review toggle in org edit dialog, ReviewsSheet with type/status filters and approve/reject workflow, publish status badges (pending/approved/rejected) on agent cards with tooltip for rejection notes, review notice in publish dialog when target org requires review, resubmit action for rejected resources, "Review Management" dropdown for org admin/owners. All resource types (agents, connectors, KBs, MCP servers) gain `publish_status`, `reviewed_by`, `reviewed_at`, `review_note` type fields. Full i18n (EN + ZH).
+- **Marketplace redesign Phase 1 — Solutions + Components** — Two-tier Market model (Solutions: Agent/Skill/Workflow; Components: Connector/MCP Server) with scope selector (Global Market / org). KB removed from Market scope. Unified subscription model.
+- **Smart file content injection + `read_uploaded_file` tool** — Small uploads (`<32K` chars) auto-inlined into LLM context; large files get metadata + tool hint. Dual-mode reading tool with pagination and regex search. `GET /api/files/{file_id}/content` endpoint.
+- **Workflow Blueprint System** — Visual workflow editor for multi-step automation: 25 node types (Start, End, LLM, ConditionBranch, QuestionClassifier, Agent, KnowledgeRetrieval, Connector, HTTPRequest, VariableAssign, TemplateTransform, CodeExecution, Iterator, Loop, VariableAggregator, ParameterExtractor, ListOperation, Transform, DocumentExtractor, QuestionUnderstanding, HumanIntervention, SubWorkflow, ENV + more), React Flow v12 editor with drag-and-drop palette, auto-layout, SSE real-time execution, variable interpolation, condition/classifier branching, error strategies per node, per-node timeout, import/export/duplicate, version history with diff viewer, 14 built-in templates, 306 tests.
+- **Workflow Triggers** — Cron scheduling with timezone support; public API keys (`wf_` prefix) for external execution without user auth; batch execution (up to 100 input sets, configurable parallelism).
+- **Workflow Operations** — Real-time execution log viewer, trace viewer with variable snapshots, run replay overlay on canvas, run history export, analytics dashboard with daily trends and percentiles, per-node statistics panel, favorites/pinning, inline validation badges, canvas node search (`Cmd+F`), keyboard shortcuts, snap-to-grid.
+- **Workflow Admin + Templates** — Admin management tab for all workflows, `WorkflowTemplate` model with admin CRUD and 5 seed templates, publish flow with org-level review gating, import conflict resolver for external references.
+- **Agent Skill System** — On-demand skill loading: `Skill` model with CRUD/publish/review, `read_skill(name)` tool for progressive disclosure (~80% token reduction), `compact_instructions` per-agent for custom ContextGuard compaction. Full Skills UI with list page, editor, and agent skill selector.
+- **ConnectorMetaTool (Progressive Disclosure Phase 1-2)** — Single meta-tool replaces per-action tools. System prompt receives lightweight stubs (~30 tokens/connector); agent calls `discover`/`execute` on demand. Feature flag `CONNECTOR_TOOL_MODE` for backward compatibility.
+- **Connector import/export/fork** — Share connector templates via JSON export, clone and customize via fork. Backend sanitizes credentials on export.
+- **Connector credential encryption + per-user override** — `connector_credentials` table with Fernet encryption, `allow_fallback` flag, `GET/PUT/DELETE /my-credentials` endpoints.
+- **Publish review UI** — Org-level review system with approve/reject workflow, status badges on resource cards, review notice in publish dialog, resubmit for rejected resources.
+- **Semantic schema annotations** — 16 predefined semantic tags for connector fields with `description` and `pii` flags, surfaced in LLM tool descriptions.
+- **Agent mid-loop self-reflection** — Goal-check prompt injected every 6 iterations in ReAct to prevent drift in long chains.
+- **Shadow Market org + resource subscriptions** — Pull-based resource sharing: resources discovered via marketplace and explicitly subscribed. Market API for browse/subscribe/unsubscribe.
+- **Agent auto-discovery + sub-agent binding** — `discoverable` flag + `sub_agent_ids` whitelist + `CallAgentTool` for one-level delegation.
+- **MCP server credentials + per-user override** — `mcp_server_credentials` table with `allow_fallback` flag for credential fallback behavior.
+- **Connector/KB toggle** — Suspend/resume endpoints for both resource types.
+- **Standalone KB conversations** — `kb_ids` field on conversations for direct KB chat without agent binding.
+- **Review log audit tab** — Admin audit page with system log / review log toggle and filterable review trail per org/resource.
+- **Agent directive in synthesis** — `agent_directive` parameter ensures final answers honour the agent's core purpose.
 
 ### Changed
 
-- **Subscription-based visibility model** — `build_visibility_filter()` simplified from 3-tier (own → org-member → subscribed) to 2-tier (own → subscribed). Data migration auto-creates `ResourceSubscription` rows for all existing org members to preserve access. Dashboard connector count and KB stats now include subscribed resources.
-- **Market API scope and category params** — `browse_market()` accepts `scope` (market or org:`{id}`) and `category` (solutions or components) query params. `subscribe_resource()` now validates org membership for non-market org subscriptions.
-
-- **Tool cache whitelist refactor** — Replaced hardcoded blacklist in `ToolCache` with a whitelist approach. Added `cacheable` property to `Tool` protocol (default `False`); only tools explicitly marked `cacheable=True` are cached. 11 read-only tools (web_search, kb_retrieve, calculator, etc.) marked cacheable; all side-effect tools (code exec, email, connectors) remain uncached by default. New connector tools are safe without any additional configuration.
-- **DAG executor cascade failure** — Failed or timed-out steps now cascade-block their dependents. Added `failed_ids` tracking with transitive propagation (A→B→C chains). Dependent steps are automatically marked as failed with a descriptive message instead of running with poisoned context.
-- **DAG step verifier status fix** — Step verification retry failures now correctly mark the step as `"failed"` instead of leaving it as `"completed"`. Failed verifications cascade to downstream steps via the new cascade failure mechanism.
-- **DAG planner tool descriptions** — Planner now receives `(name, description)` for each tool instead of just names, enabling more accurate step-to-tool mapping and reducing hallucinated `tool_hint` values.
-- **DAG re-planner full history** — Re-planning context now accumulates results from ALL previous rounds (not just the last one). Older rounds are more aggressively truncated (200 chars/step) while the most recent round retains 500 chars/step.
-- **stream_answer synthesis quality** — Increased tool observation truncation from 2000 to 8000 characters when synthesizing final answers, preserving more structured data (JSON tables, code output).
-- **14 engine constants parameterized** — Extracted hardcoded numeric constants to environment variables across ReAct agent, DAG planner, context guard, workspace, and system modules. All new env vars documented in `example.env` and `docs/configuration/environment-variables.mdx`.
-
-- **Evidence confidence UI enhancements** — Three improvements to the grounding pipeline's frontend display: (1) insufficient-evidence observations now render as i18n amber warning cards instead of raw English text, (2) inline `[N]` citation badges show hover Popovers with source name, quote excerpt, and relevance score via a new EvidenceContext, (3) conflict warning banner appears in the References section when evidence sources contradict each other, with expandable side-by-side comparison.
-- **Shadow Market org** — Transformed the built-in Platform org into a shadow Market org. Resources are now discovered via marketplace browsing and explicitly subscribed to (pull model) instead of auto-visible via membership (push model). Non-admin users no longer auto-join any org on registration; the Market org operates as an invisible backend entity that users interact with only through the marketplace UI.
-- **Marketplace publish with mandatory review** — Publishing to the Market org now always requires review, except for Market org owner/admins. The publish dialog shows a "Publish to Marketplace" option with a mandatory review notice.
-- **Skill and Workflow marketplace browsing** — Added Skill and Workflow resource types to the marketplace, enabling community discovery and subscription for all five resource types (agents, connectors, knowledge bases, MCP servers, skills/workflows).
-- **Market org publish endpoint bypass** — Six resource publish endpoints now skip membership checks for the Market org, allowing any user to publish resources to the marketplace without being a member.
-- **Platform-to-Market migration** — Alembic migration renames the Platform org to Market and removes all non-owner memberships, completing the transition from push-based to pull-based resource sharing.
-- **Workflow version change summaries** — `compute_blueprint_diff()` auto-generates human-readable summaries from blueprint diffs when saving new versions, describing added/removed/modified nodes and edges.
-- **Workflow run retention cleanup** — Background cleanup task that purges old workflow runs based on configurable age and count limits. Per-workflow retention overrides. Admin endpoint for manual cleanup trigger. New env vars: `WORKFLOW_RUN_MAX_AGE_DAYS`, `WORKFLOW_RUN_MAX_PER_WORKFLOW`, `WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS`.
-- **Connector circuit breaker** — Three-state circuit breaker (closed/open/half-open) with per-connector failure tracking. Detects 5xx errors and temporarily disables failing connectors. Monitoring endpoints for circuit breaker state inspection.
-- **ConnectorMetaTool (Progressive Disclosure Phase 1-2)** — Single meta-tool replaces per-action tools in the agent prompt. System prompt receives lightweight stubs (~30 tokens/connector vs ~250 tokens/action); agent calls `discover(connector)` to load full action schema on demand and `execute` to run actions. Feature flag `CONNECTOR_TOOL_MODE` for backward compatibility.
-- **Real MCP executor** — Replaced stub MCP node executor with full implementation supporting MCP server discovery and tool calling within workflow execution.
-- **Agent mid-loop self-reflection** — Lightweight goal-check prompt injected every 6 tool-call iterations in the ReAct loop (both JSON and native modes) to prevent goal drift in long reasoning chains. Asks the agent whether it is still on track, repeating actions, or should produce a final answer.
-
-- **Real BuiltinTool executor** — Replaced stub BuiltinTool node executor with real implementation using `ToolRegistry` integration for workflow execution.
-- **Semantic schema annotations** — 16 predefined semantic tags (`customer_id`, `email`, `phone`, `amount`, `date`, etc.) for connector schema fields. Each field can carry `semantic_tag`, `description`, and `pii` flags, surfaced in LLM tool descriptions so the agent understands field intent without guessing from column names.
-- **Connector import/export/fork UI** — Frontend card actions for exporting connectors as JSON, importing from file picker, and forking (clone + customize) existing connectors.
-- **Connector import/export and fork endpoints** — Backend API: `GET /api/connectors/{id}/export`, `POST /api/connectors/import`, `POST /api/connectors/{id}/fork` with sanitized credential handling to prevent secret leakage.
-- **Workflow templates system** — `WorkflowTemplate` ORM model with admin CRUD and public listing/clone endpoints. 5 seed templates auto-inserted on first startup for quick workflow bootstrapping.
-- **Workflow inline validation badges** — Real-time `ValidationBadge` on canvas nodes displaying per-node errors and warnings with descriptive tooltips, providing immediate visual feedback during blueprint editing.
-- **Workflow execution trace viewer** — Timeline-based trace viewer Sheet for inspecting completed runs. Engine `trace_level` parameter controls detail granularity; variable snapshots captured at each node for step-through debugging.
-- **Workflow per-user rate limiting and global timeout** — `WorkflowRateLimiter` with sliding-window enforcement (10 runs/min, 3 concurrent per user). Default 10-minute (600s) global run timeout applied to all workflow executions.
-- **Admin batch workflow management** — Three batch admin endpoints for workflows: batch delete, batch toggle (active/inactive), and batch publish, all with audit logging.
-- **Workflow palette enhancements** — Recently-used nodes section via `useRecentNodes` hook, search-by-description support, and empty "no results" state in the node palette.
-- **Workflow run replay overlay** — "View on Canvas" button in run history overlays past execution results on the workflow canvas, showing per-node status and output from a completed run without re-executing.
-- **Full SubWorkflow executor** — Upgraded SubWorkflow node from stub to full DB-backed nested execution. Loads target workflow from database, executes with mapped input variables, enforces configurable depth limit to prevent infinite recursion, and returns nested run outputs to the parent workflow.
-- **Admin workflows management tab** — New "Workflows" tab in the admin panel for managing all workflows across users. Features: list all workflows with owner/status/stats, toggle active/inactive, delete workflows with confirmation dialog.
-- **Workflow favorites/pinning** — Star/pin workflows to the top of the list with localStorage persistence. Favorited workflows appear first in the workflow list regardless of sort order.
-- **Workflow run history export** — Export workflow run history as JSON file download. Includes run metadata, per-node results, inputs/outputs, and timing data.
-- **Workflow test-node endpoint** — `POST /api/workflows/{id}/test-node` for isolated single-node execution with mock VariableStore, 30s timeout, START/END rejection. Frontend `TestNodeDialog` sheet with key-value variable input, env vars section, JSON result viewer. Integrated into node config panel (Test button) and editor context menu. 23 tests.
-- **Workflow version diff dialog** — Side-by-side comparison of two blueprint versions showing added/removed/modified nodes and edges. Color-coded indicators (emerald=added, destructive=removed, amber=modified). Integrated into version history sheet with "Compare" button per version.
-- **35 end-to-end lifecycle tests** — Comprehensive workflow lifecycle testing covering create, edit, validate, run, version, restore, delete flows.
-- **Workflow run stats on list and cards** — Backend batch-fetches run counts and success rates via GROUP BY subquery; frontend displays stats on workflow cards with color-coded success rate indicators.
-- **Workflow scheduler daemon** — Background async service polling every 60 seconds for due cron-based workflows. Croniter timezone support, semaphore-based concurrency control, `last_scheduled_at` tracking, and webhook delivery for scheduled run results. 14 scheduler daemon tests.
-- **Workflow import conflict resolver** — Detects unresolved agent/connector/KB/MCP references during workflow import. Batch DB queries with visibility filtering; frontend displays toast warnings for missing external dependencies. 17 import conflict resolver tests.
-- **Workflow delete-run and clear-runs endpoints** — `DELETE /api/workflows/{id}/runs/{run_id}` for individual run deletion; `DELETE /api/workflows/{id}/runs` to clear all completed runs. Frontend confirmation dialogs for both actions.
-- **56 workflow validation warning tests** — Comprehensive coverage of Phase 2 node validation warnings.
-- **137 workflow Phase 2 node executor tests** — Full test coverage for all Phase 2 node type executors.
-- **Scheduled triggers** — Cron configuration per workflow with timezone selection, default inputs, and next-run-at calculation. Frontend dialog with preset cron buttons (every 5 min / hourly / daily / weekly / monthly).
-- **Public API trigger endpoint** — Per-workflow API keys (`wf_` prefix) for external execution without user auth, with rate limiting.
-- **API key management dialog** — Generate, regenerate, and revoke workflow API keys with copy button, trigger URL display, and cURL/JavaScript usage examples.
-- **Real-time execution log viewer** — Chronological SSE event stream in the run panel with timestamps, color-coded event type badges, and filter toggles per event type.
-- **Batch run dialog** — Run workflows with multiple input sets (JSON editor), configurable parallelism (1-10), collapsible per-item results, and JSON export.
-- **30 scheduled trigger tests** — Cron validation, schema handling, and timezone support.
-- **14 batch execution tests** — Schema validation and concurrent engine execution.
-- **Workflow-level timeout** — New `workflow_timeout_ms` parameter in the engine cancels all pending/running nodes when exceeded, with bounded async wait for responsive timeout detection.
-- **Re-run with last inputs** — "Run Again" button pre-fills the input form with values from the previous run.
-- **Run history status filter** — Dropdown to filter workflow runs by Completed/Failed/Cancelled/Running.
-- **Workflow version history** — Auto-versioning on blueprint save with list/get/restore API endpoints for reverting to previous versions.
-- **Validate endpoint** — `POST /validate` for structural blueprint validation without execution.
-- **Dry-run mode** — `POST /run` with `dry_run=true` returns the execution plan as JSON without executing.
-- **13 condition branch routing tests** — Comprehensive coverage for branching, merging, nesting, and classifier routing.
-- **Per-node execution statistics panel** — New stats panel (`node-stats-panel.tsx`) showing per-node success rates, average durations, and failure counts sorted worst-first. Integrated into the workflow toolbar. New `getNodeStats` API client method and `NodeStatEntry` type for frontend consumption.
-- **Phase 3 nodes: SubWorkflow and ENV** — Two new node types with backend executors, parser validation, and 14 new tests (total: 304 → 306):
-  - **SubWorkflow**: Stub executor for nested workflow orchestration — select a target workflow and map input/output variables.
-  - **ENV**: Reads encrypted environment variables at runtime with key selection and fallback defaults.
-- **SubWorkflow and ENV frontend components** — Full frontend integration: `sub-workflow-node.tsx` and `env-node.tsx` with config forms, palette entries, minimap colors, and node type record entries across all type maps.
-- **Two new workflow templates (14 total)** — "Secure API Integration" (ENV → HTTP with auth headers) and "Sub-Workflow Orchestration" (LLM → SubWorkflow → summarize).
-- **Keyboard shortcuts dialog** — Press `?` to view all available keyboard shortcuts in a dialog overlay.
-- **Node input preview capture** — Execution events now include truncated JSON of predecessor outputs for debugging.
-- **Workflow analytics endpoint** — `GET /analytics` returns total runs, status distribution, success rate, p50/p95/p99 duration percentiles, daily trends, and most-failed nodes.
-- **Analytics dashboard panel** — Stat cards, status distribution bar, pure CSS daily chart, percentile bars, and failed nodes table with 7d/14d/30d range selector.
-- **Template gallery dialog** — Visual grid browsing of workflow templates with category filters and one-click creation.
-- **Labeled edges** — Condition and classifier branch names shown as pills on edges.
-- **Workflow variables panel** — Define, edit, and delete workflow-level variables with type/default/description.
-- **Batch execution endpoint** — `POST /batch-run` runs a workflow with up to 100 input sets concurrently, with configurable parallelism (1–10).
-- **Run comparison dialog** — Side-by-side diff of two runs showing per-node status, duration, and input differences.
-- **Webhook configuration dialog** — Set, test, and clear a webhook URL with inline validation and connectivity test.
-- **Canvas node search** — `Cmd+F` to search nodes by type, ID, and content with highlighted matches and arrow-key navigation.
-- **Node comments/annotations** — Collapsible Notes textarea in the config panel with a canvas indicator icon.
-
-- **NodeTest schema rename** — Renamed `TestNodeRequest`/`TestNodeResponse` to `NodeTestRequest`/`NodeTestResponse` to avoid pytest collection warnings.
-
-- **Run panel Results/Logs tabs** — Run panel now uses a tabbed layout (Results + Logs) for better organization of execution output and event streams.
-- **Replaced elkjs with lightweight BFS auto-layout** — Custom BFS algorithm replaces elkjs (430 kB); `/workflows/[id]` bundle reduced from 473 kB to 43 kB.
-- **Expanded workflow list sort options** — Newest, Oldest, Name A-Z, Name Z-A, Recently Updated.
-- **Workflow test suite expanded to 306 tests** — Added 14 Phase 3 tests for SubWorkflow and ENV node executors. Added per-node execution statistics tests. Total: 275 → 306.
-- **Workflow test suite expanded to 275 tests** — Added 23 advanced engine tests (retry with exponential backoff, cancellation during retry, expression evaluation, variable store helpers) in separate test file. Total: 252 → 275.
-- **Workflow test suite expanded to 252 tests** — Added HumanIntervention tests (8: auto-approve, interpolation, assignee/timeout, defaults, validation warnings) and new template tests (4: human approval pipeline, multi-step data processing, knowledge-enhanced agent, iterative review loop). Total: 240 → 252.
-- **Workflow test suite expanded to 240 tests** — Added Phase 2 validation tests (15 tests for ListOperation, Transform, Iterator, Loop, DocumentExtractor, QuestionUnderstanding, ParameterExtractor warnings) and Phase 2 template tests (5 tests for new templates). Total: 220 → 240.
-- **Workflow test suite expanded to 220 tests** — Added 20 tests for DocumentExtractor (12 tests: full_text/pages/metadata/tables modes, base64 decode, page_range parsing, URL stub error, empty input, dash delimiter) and QuestionUnderstanding (8 tests: rewrite/classify/decompose/expand modes with LLM mocking, custom system prompt, variable interpolation, missing input). Total: 200 → 220.
-- **Workflow test suite expanded to 200 tests** — Added 50 tests for ListOperation (21 tests: filter, map, sort, slice, flatten, unique, reverse, length, JSON string input, invalid types, missing config, index-in-scope, default output variable) and Transform (29 tests: json_path, type_cast all types, format template, regex_extract, string_op all variants, math_op all variants, 5-step pipeline chaining, divide-by-zero, wildcard path, unknown ops). Total: 150 → 200.
-- **Workflow test suite expanded to 150 tests** — Added 12 tests for Loop (6 tests: basic counting, max_iterations safety, zero iterations, empty condition, custom variable name, variable interpolation) and ParameterExtractor (6 tests: basic extraction, missing input, empty params, invalid JSON, variable interpolation, extraction prompt inclusion). Total: 138 → 150.
-- **Workflow test suite expanded to 138 tests** — Added 20 tests for Phase 2 Iterator (9 tests: basic list, JSON parsing, max_iterations, empty list, missing config, None-to-empty, template refs, non-list rejection, metadata) and VariableAggregator (11 tests: list/concat/merge/first_non_empty modes, edge cases for empty inputs, None skipping, unknown mode). Total: 118 → 138.
-- **Workflow test suite expanded to 118 tests** — Added 7 tests for ConditionBranch LLM mode (exact match, case-insensitive, fuzzy, no-match fallback, DEFAULT response, no-candidates, variable interpolation). Total: 111 → 118.
-- **Workflow run-mode visual feedback overhaul** — Ring-based node status styling replacing border-based approach, animated status dots with ping effect for running nodes, `useMemo`-derived `displayNodes`/`displayEdges` for clean state separation, and edge animation between completed-to-running nodes.
-- **Workflow test suite expanded to 105 tests** — Added template validation tests, import/export round-trip, variable store advanced methods, deadlock detection, multi-condition branching, question classifier, and comprehensive blueprint validation. Total: 68 → 97 → 105.
-- **Workflow test suite expanded to 68 tests** — Added 24 new tests covering eval namespace flattening (17 tests for dotted key resolution, short alias generation, ConditionBranch/VariableAssign with flat names) and blueprint validation warnings (7 tests for disconnected nodes, unreachable ends, empty conditions/prompts/code). Total workflow test count: 34 → 68.
-- **Workflow Editor Overhaul (Dify-style)** — Complete visual redesign of the workflow editor inspired by Dify:
-  - Horizontal (left-to-right) layout replacing top-to-bottom; all 12 node types use Left/Right handles
-  - Left color bar node design with compact 220px width, smaller icons, and run status badges
-  - Add-node-on-edge: custom `AddNodeEdge` with "+" midpoint button and node type picker popup that splits existing edges
-  - Richer config panel: model selector dropdown for LLM nodes, operator dropdowns (==, !=, &gt;, &lt;, contains, etc.) for conditions, section headers, `InsertVariableHint` and `OutputVariableField` for all output nodes
-  - Collapsible node palette (icons-only mode) with category grouping; Start/End nodes dimmed when already placed
-  - Single Start/End validation on drop; `fitViewOptions` with `maxZoom:1` to prevent oversized zoom on small graphs
-
-- **Compact Workflow Node UI**: Reduced node width from 240px to 200px, thinner color bar, smaller icons and handles for a denser visual layout. Capped `fitView` maxZoom to 1 to prevent oversized nodes on small canvases.
-- **Visibility Simplified**: Resource visibility reduced from `personal | org | global` to `personal | org`. "Global" resources are now published to the Platform org, maintaining backwards-compatible behavior while simplifying the visibility model.
-- **Publish Interface Unified**: All 4 resource types (Agent, Connector, Knowledge Base, MCP Server) now only support `scope="org"` for publishing. No more `scope="global"` or admin-only global publishing endpoints.
-- **Auto-Platform Enrollment**: New users are automatically added to the Platform org on registration, ensuring immediate access to shared organizational resources.
-- **Admin Panel Cleanup**: Removed "Global Agents" and "Global MCP" admin tabs, as global resources are now managed through the Platform org.
+- **Subscription-based visibility model** — Simplified from 3-tier to 2-tier (own → subscribed). Auto-migration preserves existing access.
+- **Tool cache whitelist** — Replaced blacklist with explicit `cacheable` property on tools. 11 read-only tools marked cacheable.
+- **DAG executor cascade failure** — Failed steps now cascade-block dependents with transitive propagation.
+- **DAG planner improvements** — Tool descriptions in planner, full re-plan history across all rounds, 14 engine constants parameterized as env vars.
+- **stream_answer observation truncation** — Increased from 2000 to 8000 characters (configurable via `REACT_TOOL_OBS_TRUNCATION`).
+- **Evidence confidence UI** — Amber warning cards, `[N]` citation badges with hover popovers, conflict warning banner with side-by-side comparison.
+- **Workflow version change summaries** — Auto-generated human-readable summaries from blueprint diffs on version save.
+- **Workflow run retention cleanup** — Background cleanup task with configurable age/count limits. Env vars: `WORKFLOW_RUN_MAX_AGE_DAYS`, `WORKFLOW_RUN_MAX_PER_WORKFLOW`.
+- **Connector circuit breaker** — Three-state machine (closed/open/half-open) with per-connector failure tracking and monitoring endpoints.
+- **Replaced elkjs with lightweight BFS auto-layout** — `/workflows/[id]` bundle reduced from 473 kB to 43 kB.
 
 ### Fixed
 
-- **Template API client endpoint paths** — Updated workflow template API client to use new `/api/workflow-templates` paths, fixing broken template CRUD operations.
-- **Workflow eval namespace flattening**: Fixed ConditionBranch and VariableAssign failing to resolve short variable names (e.g. `score` when the store had `input.score`). Added `_flatten_eval_names()` helper that creates short aliases in the eval namespace, enabling dotted key resolution without full-path references.
-- **Workflow `run_started` SSE event**: The `run_started` event was documented in the SSE protocol but never actually emitted. Now yielded before the orchestrator loop begins, so frontend consumers receive the execution-start signal.
-- **Workflow SSE event name mismatch**: Fixed SSE event names — `node_status` renamed to `node_started`/`node_completed`/`node_failed`/`node_skipped` to match the frontend SSE handler expectations.
-- **Workflow `NodeRunResult.duration` field name**: Fixed `duration` to `duration_ms` to match the Pydantic schema and frontend parsing.
-- **Workflow export/import API response wrapping**: Fixed response envelope wrapping for workflow export and import endpoints.
-- **No re-review on `is_active` toggle**: Toggling `is_active` on agents, connectors, knowledge bases, or MCP servers no longer reverts `publish_status` from `approved` back to `pending_review`. The `check_edit_revert` guard now only fires when actual content fields change (not just `is_active`).
-- **Cascade-skip for condition branches** — Skipped condition/classifier nodes now correctly deactivate outgoing edges, preventing downstream nodes from running unexpectedly.
-- **Dependency analyzer `skill_ids` resolution** — `_resolve_agent` now resolves `skill_ids` referenced by agents; previously skills were silently ignored during dependency analysis.
-- **Case-insensitive workflow node type matching** — Workflow node type matching in the dependency analyzer is now case-insensitive; blueprints with lowercase types (e.g. `"connector"` vs `"CONNECTOR"`) now resolve correctly.
-- **Dependency analyzer test fixtures** — Fixed 7 test failures in dependency analyzer tests caused by missing DB fixture records and incorrect dependency type assertions.
+- **Workflow eval namespace flattening** — Fixed short variable name resolution in ConditionBranch and VariableAssign.
+- **No re-review on `is_active` toggle** — Toggling `is_active` no longer reverts `publish_status` from `approved` to `pending_review`.
+- **Cascade-skip for condition branches** — Skipped nodes correctly deactivate outgoing edges.
+- **Dependency analyzer** — Fixed `skill_ids` resolution, case-insensitive node type matching.
 
 ### Removed
 
-- Removed `is_global` field from Agent and MCPServer models and all API responses
-- Removed `cloned_from_agent_id` and `cloned_from_mcp_server_id` fields from Agent and MCPServer
-- Removed global agent management endpoints (`/api/admin/global-agents/*`)
-- Removed global MCP server endpoints (`/api/admin/mcp-servers/*`)
-- Removed all `visibility="global"` concept references from resources, API contracts, and frontend logic
+- Removed `is_global` field and all global visibility concepts — replaced by Market org + subscriptions.
+- Removed global agent/MCP server admin endpoints.
 
 ## [v0.7.5] - 2026-03-12
 
 ### Added
-- **Free mode switching + per-turn mode tracking**: Users can now freely switch between Auto/React/DAG mid-conversation without starting a new chat. Each assistant message stores its actual execution mode in `metadata.mode`. History turns are rendered with the correct engine per-turn (detected from metadata or SSE event fingerprinting). Sidebar mode icons removed. Per-turn mode badge shows which engine processed each turn.
-- **Three model roles (F5)**: Independent environment config for General, Fast, and Reasoning model tiers. Fast model no longer inherits reasoning settings from the main model. New env vars: `FAST_LLM_API_KEY`, `FAST_LLM_BASE_URL`, `FAST_LLM_TEMPERATURE`, `REASONING_LLM_MODEL`, `REASONING_LLM_API_KEY`, `REASONING_LLM_BASE_URL`, `REASONING_LLM_TEMPERATURE`, `REASONING_LLM_CONTEXT_SIZE`, `REASONING_LLM_MAX_OUTPUT_TOKENS`, `REASONING_LLM_EFFORT`, `REASONING_LLM_BUDGET`
-- **Structured step output (F2)**: `StepOutput` dataclass replaces plain string results in DAG steps, enabling future support for structured data and artifact passing between steps
-- **Tool cache (F3)**: Identical tool calls within a single DAG execution are cached to avoid redundant API calls. Per-key async locks prevent thundering herd. Configurable via `DAG_TOOL_CACHE` (default: on)
-- **Per-step verification (F4)**: Optional LLM-based quality check after each DAG step completes. On failure, retries once with verification feedback. Configurable via `DAG_STEP_VERIFICATION` (default: off)
-- **Auto-routing (F1)**: Fast LLM classifies queries as ReAct or DAG execution mode. New `/api/auto` endpoint with SSE routing event. Frontend 3-way mode toggle (Auto/Standard/Planner). Configurable via `AUTO_ROUTING` (default: on)
-- **Design philosophy doc**: New `docs/design-philosophy.mdx` documenting architectural decisions — why Handoff, Backflow, Teams, and agent_hint were intentionally excluded from DAG execution
 
-- **Connector Credentials Encryption + Per-User Override** — Auth tokens (`bearer`, `api_key`, `basic`) are now extracted from `auth_config` and stored separately in a new `connector_credentials` table with optional Fernet encryption (set `CREDENTIAL_ENCRYPTION_KEY`). Sensitive fields are stripped from all API responses. New endpoints: `GET/PUT/DELETE /api/connectors/{id}/my-credentials` allow users to store personal credential overrides. `allow_fallback` column on connectors controls whether personal credential absence falls back to the connector owner's default. Chat tool loading resolves per-user credentials first, then falls back to owner credential when `allow_fallback=true`. Existing credentials are automatically migrated from `auth_config` by migration `s9u1w3y5a678`.
-- **ModelConfig API key encryption at rest** — `ModelConfig.api_key` is now encrypted at rest using the `EncryptedString` TypeDecorator (Fernet symmetric encryption via `CREDENTIAL_ENCRYPTION_KEY`). Transparent encrypt-on-write / decrypt-on-read with backward-compatible legacy plaintext detection. Migration `f8g9h0a1b2c3` converts existing plaintext values in-place.
-
-### Fixed
-- Fast model (`get_fast_llm()`) no longer inherits `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_TEMPERATURE`, and reasoning settings from the main model configuration
-- Backend Pydantic schemas now accept `"auto"` mode for conversations and agent `execution_mode`, with default changed from `"react"` to `"auto"`
-- Frontend SSE routing event field names aligned with backend (`chosen_mode`→`mode`, `reason`→`reasoning`) — auto-routing was silently falling back to ReAct regardless of classifier decision
-- Agent settings form default execution mode changed from `"react"` to `"auto"` to match backend schema defaults
+- **Free mode switching** — Switch between Auto/React/DAG mid-conversation. Per-turn mode tracking via `metadata.mode`.
+- **Three model roles** — Independent env config for General, Fast, and Reasoning tiers. Fast model no longer inherits main model settings.
+- **DAG engine improvements** — `StepOutput` structured data, tool cache with async lock stampede prevention, per-step LLM verification with retry (`DAG_STEP_VERIFICATION`), auto-routing via fast LLM classification (`AUTO_ROUTING`).
+- **Connector credential encryption** — Auth tokens extracted to `connector_credentials` table with Fernet encryption via `CREDENTIAL_ENCRYPTION_KEY`. Per-user credential override endpoints. `allow_fallback` flag.
+- **ModelConfig API key encryption at rest** — Transparent encrypt-on-write / decrypt-on-read with backward-compatible plaintext detection.
 
 ### Changed
-- Mode toggle labels now include engine name: "Standard (ReAct)", "Planner (DAG)" for clarity
-- **Skeleton screens** — All list/grid pages now show layout-aware skeleton placeholders during initial load instead of a centered spinner. Affected pages: `/agents` (3-col `AgentCard` × 6), `/chats` (`ListRow` × 8), `/kb` (3-col `KbCard` × 6), `/kb/[id]` (structural skeleton with header + toolbar + `TableRow` × 5), `/connectors` connectors tab (3-col `ConnectorCard` × 6), `/artifacts` (4-col `ArtifactCard` × 8). Three new composites added to `skeleton.tsx`: `ConnectorCard`, `ArtifactCard`, `TableRow`. Tab-switch and secondary loading states (show-more, search, dialogs) retain Loader2 spinners.
+
+- **Skeleton screens** — All list/grid pages show layout-aware skeletons during load instead of spinners.
+
+### Fixed
+
+- Fast model no longer inherits settings from the main model.
+- SSE routing event field names aligned with backend.
 
 ## [v0.7.4] - 2026-03-12
 
 ### Added
-- **Evaluation Center** — New `/eval` section in the portal for quantitative agent quality benchmarking. Features: Test Dataset management (create/edit collections of prompt + expected behavior + assertion test cases); Eval Runs (select an agent + dataset → run all cases in parallel through the live agent with `asyncio.Semaphore(5)` → grade each answer with a fast LLM grader → persist per-case pass/fail + latency + token results); Results viewer with expandable rows, pass-rate progress bar, and auto-polling (3s) while running. Suitable for enterprise procurement review. Migration `r8t0v2x4z567`.
-- **Admin: `json_mode_enabled` per-model flag** — Each model config now has an explicit JSON Mode toggle (default on) in Admin → Models → Advanced settings. Disabling it prevents LiteLLM from injecting an assistant prefill message (the JSON `role:assistant` prefill) that causes AWS Bedrock to reject conversations with a `ValidationException` on the 2nd+ agent iteration. ENV-configured models are controlled by the new `LLM_JSON_MODE_ENABLED` env var. All URL-pattern heuristics (`is_bedrock`, `is_anthropic_relay`) have been removed; capability is now explicit. Includes Alembic migration (`q7s9u1w3y456`).
-- **Admin model form UX** — Restructured Add/Edit Model dialog: only Name, Model Name, and API Key are shown by default. All other settings (Base URL, Provider, Temperature, Max Output Tokens, Context Size, JSON Mode) are collapsed under an "Advanced" toggle, reducing visual noise for the common case.
-- **Settings: Organizations tab** — Users can now create, join, and manage organizations directly from the Settings page. Features include a Create Organization dialog (name, auto-generated slug, description, emoji icon), an Edit dialog (owner only), a Members Sheet for managing member roles (owner/admin/member with color-coded badges), and inline actions (leave for non-owners, delete for owners). All org operations call the user-facing `/api/orgs` endpoints. Full i18n support (EN + ZH).
-- **SSE Protocol v2 — real-time answer streaming**: Backend `StreamChunk` gains `delta_reasoning` and `usage` fields; LLM requests include usage tracking; ReAct `_run_native()` now streams via `stream_chat`. SSE protocol emits `done` immediately after the answer, then sends `suggestions`, `title`, and `end` as separate events. DB session early-release during LLM execution. SQLite pool size increased from 5 to 20
-- **AI Builder expansion — 7 new tools + `is_builder` flag**: Three new connector builder tools (`GetSettings`, `TestConnection`, `ImportOpenAPI`) and four new agent builder tools (`ListConnectors`, `AddConnector`, `RemoveConnector`, `SetModel`). New `is_builder` boolean column on agents with Alembic migration. Builder prompt auto-refresh on session creation. SSRF guard for OpenAPI import
-- **SSE v2 frontend — streaming cursor, DAG round snapshots, UI polish**: Frontend hooks parse `end` / `suggestions` / `title` events. DAG re-plan shows previous failed rounds as collapsible cards. CSS dot-pulse streaming cursor. DAG layout decoupled from step states. Collapsed sidebar new-chat button. Connector editor overflow fix. `font-mono` replaced with `tabular-nums`
-- **AI Builder concept page**: New `docs/concepts/ai-builder.mdx` with connector and agent builder guides, plus Chinese translation
-- **Builder Dialog — ReAct agent for connector management**: Upgrades the AI assistant panel from a single-shot LLM call to a full ReAct agent loop. An "Advanced Builder" button opens a full-screen dialog with the embedded PlaygroundPage (chat on the left, live action preview on the right). Six connector builder tools (`connector_list_actions`, `connector_create_action`, `connector_update_action`, `connector_delete_action`, `connector_update_settings`, `connector_test_action`) operate directly on the DB and are auto-injected when the Builder Agent is active. `POST /api/builder/session` creates or reuses a per-connector builder agent that persists conversation history
-- **Dual database support (SQLite + PostgreSQL)**: `DATABASE_URL` now accepts both SQLite (`sqlite+aiosqlite:///...`) and PostgreSQL (`postgresql+asyncpg://...`) connection strings. SQLite remains the zero-config default; PostgreSQL is recommended for production and multi-worker deployments. Docker Compose auto-provisions a PostgreSQL service with health checks. Alembic migrations are dialect-aware (json_extract vs `::json->>'key'`). Admin health dashboard shows the actual database engine and version
-- **Models configuration docs**: New `docs/configuration/models.mdx` page documenting model configuration reference, including extended thinking / reasoning setup for each provider
-- **Extended thinking / reasoning support**: Add `LLM_REASONING_EFFORT` (low/medium/high) and `LLM_REASONING_BUDGET_TOKENS` env vars for models with extended thinking (OpenAI o-series, Gemini 2.5+, Claude). Sends `reasoning_effort` for OpenAI/Gemini, `thinking` for Anthropic (auto-detected). Extracts `reasoning_content` from multiple provider field names (DeepSeek R1, Claude proxies) and surfaces it in the UI "thinking" step
-- **Admin: tool disable**: New admin Tools panel with per-tool enable/disable toggles (stored as `disabled_builtin_tools` setting). Disabled tools are filtered from chat tool resolution at runtime. The `/api/tools/catalog` endpoint returns a `disabled` flag, and the Tools page UI shows disabled state
-- **Admin: MCP servers on Connectors page**: MCP servers management moved from Tools page to Connectors page as a new tab. `MCPServersSection` extracted into a reusable component with imperative action refs
-- **Admin: reasoning effort in health dashboard**: Reasoning effort label now displayed in the admin health check dashboard
-- **Export: PDF format**: Conversations can now be exported as PDF documents (requires `reportlab` + `Markdown` extras)
-- **start.sh: WORKERS env var**: Set `WORKERS=N` to run uvicorn with multiple workers in portal/api mode
+
+- **Evaluation Center** — Test dataset management, parallel eval runs with LLM grading, per-case pass/fail/latency/token results viewer with auto-polling.
+- **Admin: `json_mode_enabled` per-model flag** — Explicit toggle preventing AWS Bedrock prefill issues. ENV models controlled by `LLM_JSON_MODE_ENABLED`.
+- **SSE Protocol v2** — Real-time streaming with `delta_reasoning`, `usage` fields, split `done`/`suggestions`/`title`/`end` events.
+- **AI Builder expansion** — 7 new builder tools, `is_builder` flag, builder prompt auto-refresh, SSRF guard. Full ReAct agent dialog for connector management.
+- **Dual database support** — SQLite (zero-config) + PostgreSQL (production). Docker Compose auto-provisions PG with health checks.
+- **Extended thinking / reasoning** — `LLM_REASONING_EFFORT` and `LLM_REASONING_BUDGET_TOKENS` for OpenAI o-series, Gemini 2.5+, Claude.
+- **Admin: tool disable** — Per-tool enable/disable toggles; disabled tools filtered from chat at runtime.
+- **Settings: Organizations tab** — Create, join, manage orgs with member roles directly from Settings.
+- **Docker Compose deployment** — Single image, named volumes, standalone Next.js output.
+- **Export: PDF format** — Conversations exportable as PDF documents.
+- **Multi-worker support** — `WORKERS=N` env var; Redis interrupt broker for cross-worker relay.
 
 ### Changed
-- **Tests: NativeToolFakeLLM updated for stream-based ReAct**: Test fake LLM now produces `StreamChunk` sequences matching the new stream-based `_run_native()` loop
-- **LLM layer**: Replaced direct `AsyncOpenAI` client with [LiteLLM](https://github.com/BerriAI/litellm) for universal provider support. All provider-specific conditionals (Anthropic thinking, `max_completion_tokens`, GPT-5 tools workaround) have been removed. Anthropic models now route through LiteLLM's native API, enabling proper `reasoning_content` (extended thinking) support
-- **Tools page simplification**: Tools page now shows only built-in tools (no more tabs); MCP management moved to Connectors page
-- **Redis interrupt broker**: Cross-worker interrupt/inject relay via Redis Pub/Sub. Auto-enabled when `REDIS_URL` is set; falls back to in-process queues otherwise. Docker Compose now includes a Redis service (auto-configured, no user action needed)
-- **Export: default detail level**: Export dialog now defaults to summary (no execution details) instead of full
-- **Artifacts: sort by file mtime**: List-all-artifacts now uses per-file mtime for accurate ordering (reverts conversation-time workaround)
-- **Chat: async image loading**: `_load_image_data_urls` is now async, offloading file reads to a thread via `asyncio.to_thread` to unblock the event loop
-- **Multi-worker readiness**: SSE tickets, OAuth state, and bind tickets now use JWT-signed tokens instead of in-memory dicts; file index locks use `fcntl.flock()` for cross-process safety; maintenance cache TTL reduced from 30s to 5s for faster cross-worker propagation
-- **Health dashboard: infrastructure checks**: Added Database type (SQLite/PostgreSQL) and Redis status to admin health dashboard
-- **Smart relay routing**: Automatically detects API protocol from URL path patterns (e.g., `/claude` or `/anthropic` → Anthropic native, `/gemini` → Google native), enabling proper authentication headers and parameter translation for third-party relay platforms without manual provider configuration
-- **Structured output degradation**: Unified `structured_llm_call()` utility with 3-level extraction (Native FC → JSON Mode → plain text + regex fallback). Refactored DAG Planner, Plan Analyzer, and tool selection to use the shared utility, replacing ad-hoc JSON parsing with consistent retry and degradation across all structured LLM call sites
 
-### Docs
-- **Architecture diagrams layout fix**: Switched Mermaid flowcharts from left-right (`LR`) to top-down (`TD`) for better readability, removed `mode: "wide"` frontmatter, and added `custom.css` for centered Mermaid SVG rendering
-- **Mermaid node label line breaks**: Replaced `\n` with `<br/>` in all Mermaid flowchart node labels across architecture and concept docs (EN + ZH) — Mermaid renders `\n` as literal text in quoted labels
+- **LLM layer: LiteLLM** — Replaced direct `AsyncOpenAI` client for universal provider support.
+- **Structured output degradation** — Unified `structured_llm_call()` with 3-level extraction (Native FC → JSON Mode → plain text + regex).
+- **Smart relay routing** — Auto-detects API protocol from URL path patterns for third-party relay platforms.
 
 ### Fixed
-- **Docker sandbox (DooD) volume mount**: Fix empty `-v` bind mounts when `CODE_EXEC_BACKEND=docker` runs inside a container (docker-compose). Sandbox dir moved from `tmp/conversations/` to `data/sandbox/` (under the mounted `./data:/app/data` volume). New `DOCKER_HOST_DATA_DIR` env var translates container-internal paths to host-visible paths for the Docker daemon. Fixes `_PROJECT_ROOT` resolving to `/app/src/` (not `/app/`) by using `.parent`
-- **Security: Python sandbox AST dunder validation**: Block sandbox escape via AST dunder attribute validation
-- **Security: MCP stdio defaults + command allowlist**: Harmonize MCP stdio transport defaults (now disabled by default) and add command allowlist (`ALLOWED_STDIO_COMMANDS`)
-- **Security: SSRF DNS rebinding prevention**: Prevent SSRF DNS rebinding via transport-level IP pinning (`SSRFSafeTransport`)
-- **Security: shell metacharacter evasion detection**: Detect shell metacharacter evasion (command substitution, backticks, variable expansion, empty quote insertion) before blocklist
-- **Security: connector template injection**: Escape connector template inline substitutions to prevent JSON injection
-- **DAG: AnalysisCard markdown**: Analysis reasoning is now rendered with `MarkdownContent` instead of plain `<p>`, fixing bold/lists in multi-step analysis
-- **DAG: scroll-to-step with collapsed steps**: Clicking a step node in the sidebar now auto-expands the collapsed step section before scrolling
-- **DAG: history turn shows step cards**: History turns now render step cards in the expanded collapsible (previously hidden by `hideStepCards`)
-- **DAG: stale analysis on replan**: Round-1 "goal not achieved" analysis is now cleared immediately when replanning starts, and the round-2 "analyzing…" spinner appears correctly
-- **UI: chat search focus ring**: Added `focus-visible:outline-none` to search input to prevent focus ring bleed
-- **Export: PDF readability**: Increased line spacing (leading) and cell padding across all PDF styles for better text readability
-- **Export: emoji stripping removed**: Removed unnecessary `_strip_emoji()` from final answer rendering in both DOCX and PDF exports, preserving original content
-- **Admin: dashboard stats PG crash**: Fixed admin dashboard stats page crash on PostgreSQL — `GROUP BY` with parameterized `coalesce()` caused `GroupingError`; replaced with `literal()` column default
 
-- **Docker Compose deployment**: Single image (API + Frontend), named volumes for data persistence, standalone Next.js output mode
-- **Admin: login history recording**: Auth endpoints now record every login attempt (IP address, User-Agent, success/failure with reason) to the `LoginHistory` table for security auditing
-- **Admin: file browser**: New admin file browser endpoints for listing and downloading user-uploaded files with pagination support
-- **Admin: enriched agent/KB views**: Admin agent list and knowledge base views now expose `model_name`, `tools`, `kb_ids`, and `embedding_model` fields for better visibility
-- **Chat: sensitive word blocking**: Both ReAct and `inject_message` chat endpoints now enforce sensitive word filtering, blocking messages that contain configured sensitive words
-- **SSE: structured error handling**: `onError` callback in `useSSE` hook upgraded from plain string to `ApiError` object for richer error context (error code, args)
-- **UI: `formatTokens` utility**: New formatting helper for displaying token counts with locale-aware number formatting
-- **UI: `Checkbox` and `FadeIn` components**: New shadcn-style checkbox and fade-in animation wrapper components
-
-### Changed
-- **Docs: ASCII → Mermaid diagrams**: All box-drawing ASCII diagrams converted to native Mermaid charts (12 diagrams across 6 pages) for better rendering and interactivity
-- **Docs: dark mode theme**: Refined Mintlify color config — warm amber accent in dark mode, gradient background decoration, proper background colors matching project theme
-
-### Fixed
-- **Export: RFC 5987 filename support**: Prefer UTF-8 encoded `filename*` over plain `filename` in Content-Disposition header, fixing garbled CJK filenames when exporting conversations
-- **Docker i18n broken**: Copy `messages/` directory into standalone output and add `outputFileTracingIncludes` so next-intl can discover locale JSON files at runtime
-- **Docker startup race condition**: Add API readiness wait loop (Python socket poll) in entrypoint before starting Next.js, preventing `e.map is not a function` SSR errors
-- **Artifacts: sort by conversation created_at**: Sort artifacts by conversation creation time instead of file mtime (mtime is unreliable on Docker volumes)
-- **OAuth: auto-detect production API URL from window.location port**: Browser auto-detection now works correctly for custom ports in production (not just 3000)
-- **Docker: DooD sandbox volume mount path mismatch**: When running inside a container with `CODE_EXEC_BACKEND=docker` (Docker-outside-of-Docker), sandbox scripts were written to container-internal paths invisible to the host Docker daemon, causing empty `-v` mounts and "No such file or directory" errors. Fixed by moving sandbox dir to `data/sandbox/`, adding `DOCKER_HOST_DATA_DIR` env var with `_resolve_host_path()` for path translation, and handling empty-string env var edge cases
+- Docker sandbox (DooD) volume mount path translation.
+- Security: sandbox AST dunder validation, MCP stdio defaults, SSRF DNS rebinding, shell metacharacter evasion, connector template injection.
+- Admin dashboard stats crash on PostgreSQL.
+- Docker: i18n file discovery, startup race condition, OAuth auto-detect for custom ports.
+- Export: RFC 5987 filename for CJK.
 
 ## [v0.7.3] - 2026-03-06
 
 ### Added
-- **Global MCP servers**: Admin-provisioned MCP servers loaded in all chat sessions (not per-user/agent); query logic: `or_(is_global==True, user_id==current_user.id)`
-- **Backward-compat mode**: Admin Platform reads legacy `registration_enabled` boolean if `registration_mode` is not set (auto-migrates to "open" mode)
-- **Structured audit logging**: `write_audit()` helper centralizes audit log writes (admin_id, target_type, target_id, detail fields); replaces ad-hoc `AuditLog()` calls
 
-### Changed
-- **Audit log schema**: Moved from raw `meta` dict to structured `admin_id` / `target_type` / `target_id` / `detail` columns for better compliance
-- **OAuth callback URL construction**: `{API_BASE_URL}/api/auth/oauth/{provider}/callback` (auto-constructed by backend, no hardcoding)
+- **Global MCP servers** — Admin-provisioned, loaded in all chat sessions.
+- **Structured audit logging** — `write_audit()` helper with structured columns.
 
 ### Fixed
-- **Invite code backward-compat**: Correctly interprets registration_mode when not explicitly set (reads from registration_enabled)
-- **Multi-user scenario**: Global MCP servers no longer conflict with per-user tools
+
+- Invite code backward-compat for legacy `registration_enabled` field.
 
 ## [v0.7.2] - 2026-03-06
 
 ### Added
-- **Invite-only registration mode**: New registration system with three modes (open/invite/disabled) and invite code CRUD
-- **Storage management**: Per-user disk usage calculation, clear command, orphan file cleanup
-- **Per-user force logout**: Admin ability to revoke all tokens and force re-authentication
-- **Conversation moderation**: Admin ability to list and delete all user conversations
 
-### Changed
-- **Admin panels**: Separated into Admin List (users, API keys, agents, etc.) with consistent dropdown-menu action patterns
-
-### Fixed
-- **Admin list pagination**: All admin data lists now support pagination and search
+- **Invite-only registration** — Three modes (open/invite/disabled) with invite code CRUD.
+- **Storage management** — Per-user disk usage, clear, orphan cleanup.
+- **Per-user force logout** — Admin token revocation.
+- **Conversation moderation** — Admin list/delete all conversations.
 
 ## [v0.7.1] - 2026-03-06
 
 ### Added
-- **API health dashboard**: System stats (users, conversations, tokens, model usage charts, tokens-by-agent breakdown), connector call metrics (success rate, latency)
-- **JWT auth**: Token-based SSE auth, conversation ownership, per-user resource isolation
-- **Admin API**: Agent management, per-user token quota enforcement (429 when exceeded)
 
-### Fixed
-- **Token quota enforcement**: ReAct and DAG endpoints now check per-user quotas before execution
+- **API health dashboard** — System stats, connector metrics, token usage charts.
+- **JWT auth** — Token-based SSE auth, conversation ownership.
+- **Admin API** — Agent management, per-user token quota (429 enforcement).
 
 ## [v0.7] - 2026-03-06
 
 ### Added
-- **Admin Platform v0.7**: User management with search/pagination, role toggle, password reset, account enable/disable, invite-only registration, per-user quota, conversation moderation, storage management
-- **First-run setup wizard**: On first launch, portal guides through admin account creation (username, password, email)
-- **Personal Center**: Per-user global system instructions applied across all conversations
-- **Language preference**: Per-user language setting (auto/en/zh) directs all LLM responses to chosen language
 
-### Changed
-- **Multi-tenant auth**: JWT tokens enforce conversation ownership; agents inherit user context
-
-### Fixed
-- **OAuth account binding**: Proper email matching for link/login flows across all providers
+- **Admin Platform** — User management, role toggle, password reset, account enable/disable.
+- **First-run setup wizard** — Guided admin account creation.
+- **Personal Center** — Per-user global instructions, language preference.
 
 ## [v0.6.5] - 2026-03-05
 
 ### Added
-- **Utility tools**: `email_send`, `json_transform`, `template_render`, `text_utils`
-- **Connector response filtering**: `CONNECTOR_RESPONSE_MAX_CHARS` and `CONNECTOR_RESPONSE_MAX_ITEMS` limits
-- **Embedding model options**: Support for Jina, OpenAI, and custom embedding providers
 
-### Fixed
-- **RAG pipeline stability**: Better error handling for failed chunk operations
+- **Utility tools** — `email_send`, `json_transform`, `template_render`, `text_utils`.
+- **Connector response filtering** — `CONNECTOR_RESPONSE_MAX_CHARS` and `CONNECTOR_RESPONSE_MAX_ITEMS`.
+- **Embedding model options** — Jina, OpenAI, and custom providers.
 
 ## [v0.6] - 2026-03-01
 
 ### Added
-- **Connector Platform (core feature)**:
-  - Connector CRUD (create, read, update, delete)
-  - `ConnectorToolAdapter` converts Connector → BaseTool in ToolRegistry
-  - Per-user credentials with AES-GCM encryption
-  - Confirmation gate for write operations
-  - Circuit breaker for connection failures
-  - Operation classification (read/write/admin)
-  - Audit logging for all tool calls
-- **MCP integration**: Tool auto-discovery via MCP protocol, process isolation
-- **Connector data flow example**: Query → Governance → MCP → Legacy System
 
-### Changed
-- **Tool architecture**: Unified ToolRegistry supports built-in, MCP, and connector tools
-
-### Fixed
-- **Tool categorization**: All built-in tools properly tagged with categories
+- **Connector Platform** — Full CRUD, ConnectorToolAdapter, per-user credential encryption, confirmation gate, circuit breaker, audit logging.
+- **MCP integration** — Tool auto-discovery via protocol, process isolation.
 
 ## [v0.5] - 2026-02-28
 
 ### Added
-- **Full RAG pipeline**: Jina embedding + LanceDB vector store + FTS + RRF hybrid retrieval + reranker
-- **Grounded Generation**: Evidence-anchored RAG with `[N]` citations, conflict detection, explainable confidence scores
-- **KB document management**: Chunk-level CRUD, text search, failed doc retry, auto-migrating vector store schema
-- **ContextGuard + Pinned Messages**: Token budget manager; pinned messages protected from compaction
 
-### Changed
-- **Multi-turn memory**: DbMemory in `core/memory/db.py`, CompactUtils in `core/memory/compact.py`
-- **LLM Compact**: `CompactUtils.llm_compact()` summarizes old turns via fast LLM
-- **DAG Re-Planning**: Loop up to `MAX_REPLAN_ROUNDS=3`; re-plans when `analysis.achieved=False` and `confidence < 0.5`
-
-### Fixed
-- **Token overflow handling**: Automatic LLM-powered summarization respects token budgets
+- **Full RAG pipeline** — Jina embedding + LanceDB + FTS + RRF + reranker.
+- **Grounded Generation** — Evidence-anchored citations, conflict detection, confidence scores.
+- **KB document management** — Chunk-level CRUD, search, retry, schema migration.
+- **ContextGuard + Pinned Messages** — Token budget manager.
+- **DAG Re-Planning** — Up to 3 rounds; LLM Compact for memory.
 
 ## [v0.4] - 2026-02-25
 
 ### Added
-- **Multi-turn conversations**: DbMemory persists conversation history; smart truncation handles long sessions
-- **Tool step folding**: UI collapses/expands tool call steps for readability
-- **HTTP request tool**: Custom headers, auth, method selection
-- **Shell exec tool**: Safe command execution with timeout
-- **Agent management**: Create, configure, publish agents with bound models, tools, instructions
-- **Per-agent execution mode**: Standard/Planner mode toggle, temperature control
-- **JWT authentication**: Stateless token-based auth for API calls
 
-### Changed
-- **Memory architecture**: ReAct fully wired to DbMemory; DAG injects history as enriched query prefix
-- **Admin health check**: Monitors both ENV-configured and admin-configured models
-
-### Fixed
-- **Multi-user isolation**: Conversations isolated by user; agents scoped to user
+- **Multi-turn conversations** — DbMemory persistence, smart truncation.
+- **Tool step folding UI** — Collapse/expand tool calls.
+- **HTTP request + shell exec tools**.
+- **Agent management** — Create, configure, publish with bound models/tools.
+- **JWT authentication**.
 
 ## [v0.3] - 2026-02-25
 
 ### Added
-- **Web tools**: `web_search` (Jina/Tavily/Brave), `web_fetch`, configurable providers
-- **File operations tool**: Read, write, list, delete with path validation
-- **MCP client**: Protocol-first tool integration, process isolation
-- **Tool auto-discovery**: `discover_builtin_tools()` in `builtin/__init__.py`
-- **Tool categories**: computation, web, filesystem, knowledge, mcp, connector, general
-- **DAG visualization**: Interactive flow graph with live status, dependency edges, click-to-scroll
-- **Python/Node.js execution**: Code execution in Docker for isolation (`CODE_EXEC_BACKEND=docker`)
-- **Sandbox hardening**: `--network=none`, `--memory=256m`, timeout enforcement
 
-### Changed
-- **Tool interface**: All tools now categorized; registry supports filtering
-- **Execution model**: DAG Executor runs steps concurrently via asyncio
-
-### Fixed
-- **Tool discovery robustness**: Handles missing optional dependencies gracefully
+- **Web tools** — `web_search` (Jina/Tavily/Brave), `web_fetch`.
+- **File operations + MCP client**.
+- **DAG visualization** — Interactive flow graph with live status.
+- **Code execution in Docker** — `--network=none`, memory limits, timeout.
 
 ## [v0.2] - 2026-02-24
 
 ### Added
-- **Retry & rate limiting**: Automatic exponential backoff for transient failures
-- **Usage tracking**: Per-request token/cost accounting
-- **Native function calling**: Direct model support for tool selection (no JSON-only parsing)
-- **Multi-model support**: `FAST_LLM_MODEL` for cheaper DAG step execution
-- **Memory system**: WindowMemory (latest N turns), SummaryMemory (LLM-summarized), DbMemory (persistent)
-- **FastAPI backend**: `/api/execute` (ReAct), `/api/stream` (SSE streaming)
 
-### Changed
-- **LLM abstraction**: BaseLLM → OpenAICompatibleLLM with unified interface
-- **ModelRegistry**: Centralized configuration, provider auto-selection
-
-### Fixed
-- **Error recovery**: Automatic retry on transient API errors
+- **Retry & rate limiting** — Exponential backoff.
+- **Usage tracking** — Per-request token/cost accounting.
+- **Native function calling** — Direct model tool selection.
+- **Multi-model support** — `FAST_LLM_MODEL` for DAG steps.
+- **Memory system** — Window, Summary, Db memory.
+- **FastAPI backend** — `/api/execute`, `/api/stream` (SSE).
 
 ## [v0.1] - 2026-02-22
 
 ### Added
-- **ReActAgent**: Reason → Act → Observe loop with tools
-- **DAGPlanner**: LLM-generated dependency graphs, DAGExecutor for concurrent execution, PlanAnalyzer for result verification
-- **BaseTool framework**: Unified interface for all tools
-- **Calculator tool**: Arithmetic expressions, formula evaluation
-- **Python exec tool**: Code execution in isolated environment
-- **KaTeX rendering**: Mathematical notation in streaming output
-- **JSON mode parsing**: Robust structured output handling
-- **Portal UI**: Next.js web interface with real-time streaming, dark/light/system theme
-- **Initial documentation**: Wiki pages covering philosophy, architecture, roadmap
 
-### Fixed
-- **Streaming stability**: Proper SSE error handling and connection cleanup
-
+- **ReActAgent** — Reason → Act → Observe loop.
+- **DAGPlanner** — LLM-generated dependency graphs, concurrent execution, result verification.
+- **Tools** — Calculator, Python exec.
+- **Portal UI** — Next.js with streaming, dark/light theme, KaTeX.

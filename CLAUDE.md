@@ -131,7 +131,7 @@ This is a communication requirement only — it does NOT replace automated tests
 
 After every commit, update docs silently (do NOT ask the user). Run ALL applicable items as a checklist:
 
-- [ ] **`docs/changelog.mdx`** — append under `[Unreleased]` (`### Added/Changed/Fixed/Removed`). Applies to ALL commit types. CHANGELOG is the detailed record of everything.
+- [ ] **`docs/changelog.mdx`** — append under `[Unreleased]` (`### Added/Changed/Fixed/Removed`). **Only user-facing changes**: new features, behavior changes, bug fixes that affect users. **Skip**: pure internal refactoring, code style/formatting, test count updates, doc typo fixes, CI config tweaks, dependency bumps with no behavior change. One concise line per change — no implementation details (file names, class names, test counts). CHANGELOG is for users, not developers.
 - [ ] *(feat only)* **`docs/roadmap.mdx`** — ROADMAP is the intent list (what's planned). Three rules:
   1. **Check off**: if this commit satisfies a `- [ ]` planned item → change it to `- [x]`
   2. **Insert new**: if this is a significant new feature NOT in the roadmap → add it under the most fitting planned version as `- [x]` (just shipped) or `- [ ]` if it spawns follow-up work. Use judgment — don't add every small thing; only user-facing features worth planning around
