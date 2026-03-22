@@ -1889,6 +1889,31 @@ async def react_endpoint(
         )
         extra_instructions = (extra_instructions or "") + _domain_instructions
 
+        # Escalate to reasoning model for domain tasks — Sonnet-class models
+        # produce citation-level errors (wrong article numbers) in legal/medical
+        # analysis.  Opus-class reasoning models have significantly higher
+        # factual accuracy for domain-specific content.
+        from fim_one.web.deps import get_model_registry_with_group
+        try:
+            async with _create_session() as _esc_db:
+                _esc_registry = await get_model_registry_with_group(_esc_db)
+            _reasoning_llm = _esc_registry.get_by_role("reasoning")
+            if _reasoning_llm is not llm:
+                logger.info(
+                    "Domain escalation: upgrading ReAct model from %s to %s "
+                    "for %s-domain task",
+                    getattr(llm, "model_id", "unknown"),
+                    getattr(_reasoning_llm, "model_id", "unknown"),
+                    _react_domain_hint,
+                )
+                llm = _reasoning_llm
+        except (KeyError, Exception) as exc:
+            logger.debug(
+                "Domain escalation: no reasoning model available (%s), "
+                "continuing with general model",
+                exc,
+            )
+
     # Load attached images (async to avoid blocking the event loop)
     image_data: list[tuple[str, str, str]] = []
     if image_ids:
