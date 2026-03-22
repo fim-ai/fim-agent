@@ -29,7 +29,7 @@ flowchart TD
 
 **Re-plan.** If the goal was not achieved and confidence is below the stop threshold, the pipeline loops back to planning with a replan context that summarizes what happened and what went wrong. This loop runs up to `DAG_MAX_REPLAN_ROUNDS` times autonomously.
 
-Two LLMs collaborate throughout: a **smart LLM** handles planning, analysis, and answer synthesis (tasks requiring high reasoning capability), while a **fast LLM** handles step execution and context compaction (tasks where cost and latency matter more than peak reasoning). Every structured output call uses `structured_llm_call`, which provides a 3-level degradation chain (Native FC, JSON Mode, plain text with regex fallback) to handle model-specific output quirks.
+Two LLMs collaborate throughout: a **smart LLM** handles planning, analysis, and answer synthesis (tasks requiring high reasoning capability), while the **general LLM** handles step execution by default (with `model_hint="fast"` steps delegated to the fast LLM for cost savings). Context compaction and history summary use the fast LLM. Every structured output call uses `structured_llm_call`, which provides a 3-level degradation chain (Native FC, JSON Mode, plain text with regex fallback) to handle model-specific output quirks.
 
 ## LLM call map
 
@@ -40,7 +40,7 @@ The full DAG pipeline makes seven distinct categories of LLM calls. Understandin
 | 1 | History summary | chat.py | fast LLM | plain text | truncate last 20K chars |
 | 2 | DAGPlanner | planner.py | smart LLM | structured\_llm\_call | 3-level degradation |
 | 3 | Tool selection | react.py | step LLM | structured\_llm\_call | return all tools |
-| 4 | ReAct loop (per step) | react.py | fast/smart LLM | chat() | retry/fallback |
+| 4 | ReAct loop (per step) | react.py | general LLM (default) / fast LLM (`model_hint="fast"`) / reasoning LLM (`model_hint="reasoning"`) | chat() | retry/fallback |
 | 5 | ContextGuard compact | context\_guard.py | fast LLM | plain text | smart\_truncate |
 | 6 | PlanAnalyzer | analyzer.py | smart LLM | structured\_llm\_call | regex + default |
 | 7 | stream\_synthesize | analyzer.py | smart LLM | stream\_chat() | analysis.final\_answer |
@@ -65,7 +65,7 @@ flowchart TD
     PA -->|"replan"| P
 ```
 
-Calls 1 and 5 are **invisible to the user** — they are infrastructure calls that manage context size. Calls 2, 6, and 7 use the **smart LLM** because they require high reasoning capability (decomposing goals, judging achievement, synthesizing coherent answers). Calls 3 and 4 use the **fast LLM** by default because each DAG step should be a focused, bounded task — though a step with `model_hint: null` can be promoted to the smart LLM via the model registry.
+Calls 1 and 5 are **invisible to the user** — they are infrastructure calls that manage context size. Calls 2, 6, and 7 use the **smart LLM** because they require high reasoning capability (decomposing goals, judging achievement, synthesizing coherent answers). Call 4 uses the **general LLM** by default — only steps explicitly marked `model_hint="fast"` are downgraded to the fast LLM, and steps marked `model_hint="reasoning"` are promoted to the reasoning LLM. Call 3 uses the same LLM resolved for that step.
 
 ## DAGPlanner
 
@@ -81,7 +81,7 @@ The planner's job is to turn a high-level goal into a valid DAG of concrete, act
 
 2. **No cycles.** If Kahn's algorithm cannot visit all nodes (meaning at least one cycle exists), the planner raises a `ValueError`. Cycles are unrecoverable — a cyclic plan cannot be executed.
 
-**model\_hint.** The planner assigns `"fast"` to steps it considers simple and deterministic (data lookup, format conversion, straightforward retrieval) and `null` to steps requiring deeper reasoning. The executor uses this hint to select the appropriate LLM per step. When in doubt, the prompt instructs the LLM to use `null` — it is always safer to use the more capable model.
+**model\_hint.** The planner assigns `"fast"` to steps it considers simple and deterministic (data lookup, format conversion, straightforward retrieval), `null` to steps requiring standard reasoning (resolved to the general model), and `"reasoning"` to steps requiring deep analysis. The executor uses this hint to select the appropriate LLM per step via the `ModelRegistry`. When in doubt, the prompt instructs the LLM to use `null` — it is always safer to use the more capable model. For domain-specific tasks (legal, medical, financial), the planner receives domain context from the router and is guided to assign `model_hint="reasoning"` to steps requiring specialist accuracy.
 
 **Input construction.** The enriched query combines conversation history with the current request. If the conversation is long, history is loaded via `DbMemory` and formatted as `"Previous conversation: ..."`. When the resulting enriched query exceeds 16K tokens (estimated via `CompactUtils.estimate_tokens`), it is LLM-summarized using the `planner_input` hint prompt from ContextGuard before being passed to the planner. The fallback when no fast LLM is available: hard-truncate to the last 20K characters.
 
@@ -91,9 +91,11 @@ The executor takes a validated `ExecutionPlan` and runs its steps concurrently, 
 
 **Concurrency model.** An `asyncio.Semaphore` limits parallel step execution to `max_concurrency` (default 5, configurable via `MAX_CONCURRENCY` env var). The dispatch loop identifies all steps whose dependencies have completed, launches them as `asyncio.Task` instances, and waits for at least one to finish before checking again. Steps are launched in sorted ID order for deterministic behavior.
 
-**Per-step ReAct agent.** Each step runs as an independent ReAct agent created by `_resolve_agent()`. If the step has a `model_hint` that matches a role in the `ModelRegistry`, a temporary agent is created with the corresponding LLM. Otherwise, the default fast LLM agent is used. These per-step agents have **no memory** — they start fresh with only their task description, the original goal, any tool hints, and the results of completed dependencies. This isolation is deliberate: DAG steps should be self-contained units of work that do not leak state across the graph.
+**Per-step ReAct agent.** Each step runs as an independent ReAct agent created by `_resolve_agent()`. If the step has a `model_hint` that matches a role in the `ModelRegistry`, a temporary agent is created with the corresponding LLM. Otherwise, the registry's default (general) model is used. These per-step agents have **no memory** — they start fresh with only their task description, the original goal, any tool hints, and the results of completed dependencies. This isolation is deliberate: DAG steps should be self-contained units of work that do not leak state across the graph.
 
 **Dependency context injection.** `_build_step_context()` formats the results of all completed dependency steps into a text block: each dependency's ID, status, task description, and result. If a `ContextGuard` is configured and the combined context exceeds `max_message_chars`, it is hard-truncated with a `[Dependency context truncated]` suffix. This prevents a step that depends on multiple verbose predecessors from blowing out its own context window.
+
+**Structured content multiplier.** When dependency results contain structured content — legal citations, markdown tables, or code blocks — `_build_step_context()` applies a multiplier to the truncation budget (default `3.0`, configurable via `DAG_STRUCTURED_CONTEXT_MULTIPLIER`). This ensures that citations, tabular data, and other structured artifacts are preserved across step boundaries rather than being truncated mid-reference.
 
 **Step timeout.** Each step is wrapped in `asyncio.wait_for` with a default timeout of 600 seconds (10 minutes). If a step exceeds this, it is cancelled and marked as `"failed"` with a timeout message. The timeout is per-step, not per-plan — a 5-step plan can theoretically run for 50 minutes if steps execute sequentially.
 
@@ -114,6 +116,30 @@ The semantic difference matters: **stop event** means "skip what hasn't started 
 **Deadlock detection.** If the dispatch loop finds no tasks running and no steps ready to launch (because their dependencies failed), all remaining pending steps are marked `"failed"` with a message explaining that their dependencies never completed. This prevents the executor from hanging indefinitely.
 
 **Progress callbacks.** The executor fires `(step_id, event, data)` callbacks for three event types: `"started"` (step launched), `"iteration"` (tool call within a step), and `"completed"` (step finished). The SSE layer in `chat.py` bridges these callbacks to `step_progress` events that the frontend uses to render real-time DAG visualization.
+
+## Citation verification
+
+After each step completes, the executor optionally runs a **citation verifier** that checks factual claims in the step's output. This is gated by the `DAG_CITATION_VERIFICATION` environment variable (default: `true`) and targets domains where incorrect citations carry high risk — legal statutes, medical references, and financial regulations.
+
+The verifier operates in three stages:
+
+1. **Extraction.** Regex patterns identify citation-like strings in the step result (e.g., case numbers, statute references, regulation codes).
+2. **Verification.** Each extracted citation is evaluated by an LLM judgment call that checks plausibility and internal consistency.
+3. **Retry on failure.** If verification fails, the step is retried with correction feedback appended to the task description, giving the agent a chance to fix inaccurate references.
+
+Citation verification adds latency to steps that contain citations but does not affect steps without them. Disable it by setting `DAG_CITATION_VERIFICATION=false` if your use case does not involve citation-sensitive domains.
+
+## Domain-aware routing
+
+The auto-router now classifies queries with a **`domain_hint`** alongside the existing mode selection. Recognized domains are `legal`, `medical`, and `financial`; queries outside these domains receive `null`.
+
+Domain classification influences the pipeline in two ways:
+
+**DAG mode.** When the router selects DAG and provides a non-null `domain_hint`, the domain context is injected into the planner prompt. This guides the planner toward assigning `model_hint="reasoning"` for steps that require specialist accuracy and suggesting `tool_hint="read_skill"` for steps that match available domain skills.
+
+**ReAct mode.** When the router selects ReAct for a domain-specific query, the system escalates from the general model to the **reasoning model** via `registry.get_by_role("reasoning")`. Additionally, mandatory instructions are injected requiring the agent to use `web_search` before writing any domain-specific content and to verify citations via search. The `read_skill` tool is pinned in tool selection (not filtered out), ensuring domain knowledge is always accessible.
+
+The routing bias also shifts: tightly-coupled domain analysis (where multiple sub-tasks share context and citations) prefers ReAct mode to avoid losing context across DAG step boundaries.
 
 ## PlanAnalyzer
 
@@ -170,19 +196,21 @@ When the analyzer confirms the goal was achieved (`analysis.achieved == True`), 
 
 The fallback design ensures the user always gets an answer — degraded but never empty.
 
-## Two-LLM architecture
+## Multi-LLM architecture
 
-The DAG engine's cost and latency profile is shaped by its dual-model design. The division of labor is:
+The DAG engine's cost and latency profile is shaped by its multi-model design. The division of labor is:
 
 | Role | Used for | Optimized for |
 |------|----------|---------------|
 | **Smart LLM** | Planning, analysis, answer synthesis | Reasoning capability |
-| **Fast LLM** | Step execution, context compaction, history summary | Cost and latency |
+| **General LLM** | Step execution (default), ReAct agent | Balance of capability and cost |
+| **Fast LLM** | `model_hint="fast"` steps, context compaction, history summary | Cost and latency |
+| **Reasoning LLM** | `model_hint="reasoning"` steps, domain-escalated ReAct | Deep analysis capability |
 
 The smart LLM handles the three calls that require the deepest reasoning: decomposing a goal into a coherent plan, judging whether the plan achieved the goal, and synthesizing a final answer that coherently integrates multiple step results. These calls happen once per round (or once total for synthesis), so their higher per-token cost is amortized.
 
-The fast LLM handles the high-volume calls: each DAG step's ReAct loop (which may involve multiple tool calls and iterations), context compaction when step contexts grow too large, and history summarization for multi-turn conversations. A 5-step plan with 3 iterations per step means 15+ fast LLM calls — using the smart LLM here would be prohibitively expensive.
+The general LLM handles step execution by default — each DAG step's ReAct loop runs on the general model unless the planner explicitly assigns a different `model_hint`. The fast LLM is reserved for steps tagged `model_hint="fast"` (simple lookups, format conversions) and for infrastructure calls (context compaction, history summarization). The reasoning LLM is used for steps tagged `model_hint="reasoning"` and for domain-escalated ReAct tasks (see [Domain-aware routing](#domain-aware-routing)).
 
-**Per-step override.** The `model_hint` field on each `PlanStep` allows the planner to promote individual steps to the smart LLM. When `model_hint` is `null`, the executor uses the default agent (fast LLM). When it is `"fast"`, the executor explicitly uses the fast LLM via the model registry. The planner is instructed to set `"fast"` for deterministic tasks and `null` for complex reasoning, but it can also be set to any custom role registered in the `ModelRegistry`. Model resolution happens **once per step** via `_resolve_agent()` immediately before that step's ReAct loop begins — all iterations within the step (tool selection, the ReAct loop, ContextGuard compaction) use the same resolved LLM. The model never changes mid-step.
+**Per-step override.** The `model_hint` field on each `PlanStep` controls which LLM runs that step. When `model_hint` is `null`, the executor uses the general model. When it is `"fast"`, the executor uses the fast LLM via the model registry. When it is `"reasoning"`, the executor uses the reasoning LLM. The planner is instructed to set `"fast"` for deterministic tasks, `null` for standard reasoning, and `"reasoning"` for deep analysis — but it can also be set to any custom role registered in the `ModelRegistry`. Model resolution happens **once per step** via `_resolve_agent()` immediately before that step's ReAct loop begins — all iterations within the step (tool selection, the ReAct loop, ContextGuard compaction) use the same resolved LLM. The model never changes mid-step.
 
-**Budget independence.** The smart and fast LLMs have independent context budgets, computed from their respective model configurations. DAG step execution uses the fast LLM's budget; the planning and analysis calls use the smart LLM's budget. This is important because operators often pair a large-context model (128K+) for planning with a smaller, faster model (32K) for step execution. For details on how budgets are computed, see [Context Management — Budget Configuration](/architecture/context-management#layer-5--budget-configuration).
+**Budget independence.** Each LLM role has an independent context budget, computed from its model configuration. DAG step execution uses the resolved step model's budget (general by default); planning and analysis calls use the smart LLM's budget. This is important because operators often pair a large-context model (128K+) for planning with different models for step execution. For details on how budgets are computed, see [Context Management — Budget Configuration](/architecture/context-management#layer-5--budget-configuration).

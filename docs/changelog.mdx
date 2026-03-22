@@ -15,6 +15,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Structured Output Compatibility table** in model documentation — Shows which providers support native function calling, JSON mode, and planning reliability ratings.
 - **File attachment download** — File attachment cards in chat messages are now clickable to download the original file via authenticated fetch. Download icon indicator and hover state added for discoverability.
 - **Intelligent Document Processing (Vision-Aware) roadmap item** — Added planned feature for adaptive document handling based on model vision capabilities (three tiers: vision-first, hybrid, text-only).
+- **DAG quality overhaul (P0): Default model upgrade** — DAG steps without an explicit `model_hint` now use the registry's general model (e.g. Sonnet) instead of the fast model. Only steps with `model_hint="fast"` use the lightweight model.
+- **DAG quality overhaul (P1): Skill auto-discovery** — `DAGPlanner.plan()` accepts a `skill_descriptions` parameter. Available skills (name + description) are injected into the planning prompt so the planner can suggest `tool_hint="read_skill"` for domain-matched steps.
+- **DAG quality overhaul (P2): Citation verifier** — New `citation_verifier.py` module extracts legal/medical/financial citations via regex, verifies accuracy via LLM judgment, and retries on failure with correction feedback. Integrated into executor post-step flow. Gated by `DAG_CITATION_VERIFICATION` env var (default: `true`).
+- **DAG quality overhaul (P3): Structured content context preservation** — `_build_step_context()` detects structured content (legal citations, markdown tables, code blocks) in dependency results and applies a configurable truncation multiplier (`DAG_STRUCTURED_CONTEXT_MULTIPLIER`, default `3.0`), preventing loss of critical citations between DAG steps.
+- **DAG quality overhaul (P4): Domain classification in router** — `RouteDecision` now includes `domain_hint` (legal/medical/financial/null). Tightly-coupled domain analysis prefers ReAct mode; when DAG is selected, domain context is injected into the planner to guide `model_hint` choices.
+- **Domain model escalation in ReAct** — When the router detects a specialist domain (legal/medical/financial), the ReAct endpoint escalates from the general model to the reasoning model via `registry.get_by_role("reasoning")`. Mandatory instructions are injected requiring web search before writing and citation verification via search. The `read_skill` tool is pinned in tool selection.
 
 ### Changed
 
@@ -22,6 +28,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **RAG grounding pipeline** — Three-stage pipeline: retrieval, citation extraction, and confidence scoring. Confidence score is the average retrieval score of the top-3 evidence units.
 - **API Keys banners updated to "Active"** — Admin and user settings API Keys pages now show a green "API Keys Active" banner (replacing the previous "Coming Soon" notice) with a link to the API authentication docs.
 - **Multi-worker documentation clarified** — `REDIS_URL` and `WORKERS` environment variable descriptions updated with a warning checklist covering stop, inject, PostgreSQL requirements, and local dev guidance.
+- **DAG step default model** — Steps without `model_hint` now resolve to the general model (previously fast model). The fast model is only used when `model_hint="fast"` is explicitly set.
+- **Router classification output** — `RouteDecision` now outputs `domain_hint` (legal/medical/financial/null) alongside the existing `mode` field, enabling downstream domain-aware model selection.
 
 ### Fixed
 

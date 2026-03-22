@@ -17,6 +17,47 @@ from fim_one.core.model.types import ChatMessage
 
 logger = logging.getLogger(__name__)
 
+# Specialist domains that trigger model escalation and domain-aware routing.
+# Configurable via env var (comma-separated).  Each domain gets:
+# - Reasoning model escalation in ReAct mode
+# - Mandatory web_search instructions
+# - Citation verification in DAG mode
+# - Routing bias toward ReAct for deep analysis tasks
+ESCALATION_DOMAINS: list[str] = [
+    d.strip()
+    for d in os.getenv(
+        "DAG_ESCALATION_DOMAINS",
+        "legal,medical,financial,tax,compliance,patent",
+    ).split(",")
+    if d.strip()
+]
+
+# Pre-built description map for the classification prompt.
+_DOMAIN_DESCRIPTIONS: dict[str, str] = {
+    "legal": "laws, regulations, compliance, trademarks, contracts, litigation",
+    "medical": "health, drugs, clinical trials, diagnosis, medical devices",
+    "financial": "securities, accounting, audit, financial regulations",
+    "tax": "tax law, tax codes, VAT, income tax, transfer pricing",
+    "compliance": "GDPR, SOX, data protection, industry regulations, certifications",
+    "patent": "patent law, claims, prior art, IP prosecution, utility models",
+}
+
+
+def _build_domain_prompt_block() -> str:
+    """Build the domain_hint section of the classification prompt."""
+    lines = []
+    for domain in ESCALATION_DOMAINS:
+        desc = _DOMAIN_DESCRIPTIONS.get(domain, domain)
+        lines.append(f'- "{domain}": {desc}')
+    lines.append("- null: general purpose, no domain expertise required")
+    return "\n".join(lines)
+
+
+def _build_domain_enum() -> list[str | None]:
+    """Build the JSON schema enum for domain_hint."""
+    return [*ESCALATION_DOMAINS, None]
+
+
 _CLASSIFICATION_PROMPT = """\
 You are an execution-mode classifier for an AI agent system.
 
@@ -29,13 +70,10 @@ Queries that need back-and-forth or are open-ended.
 subtasks with dependencies. Tasks that benefit from parallel execution.
 
 2. **domain_hint** — the specialist domain (or null for general):
-- "legal": laws, regulations, compliance, trademarks, contracts, litigation
-- "medical": health, drugs, clinical trials, diagnosis, medical devices
-- "financial": securities, accounting, tax, audit, financial regulations
-- null: general purpose, no domain expertise required
+{domain_block}
 
 ## Domain-aware routing guidance
-- Queries in legal/medical/financial domains that require **deep analysis \
+- Queries in specialist domains that require **deep analysis \
 or report writing** → prefer "react".  These domains have tightly coupled \
 analysis dimensions; splitting into DAG steps loses cross-reference context \
 and increases citation hallucination risk.
@@ -55,10 +93,13 @@ draft an email campaign" -> dag, null
 - "Hello" -> react, null
 
 ## Query
-{query}
+{{query}}
 
-Respond with JSON: {{"mode": "react" or "dag", "domain_hint": "legal"/"medical"/"financial"/null, "reasoning": "brief explanation"}}
-"""
+Respond with JSON: {{{{"mode": "react" or "dag", "domain_hint": one of {domain_names_str} or null, "reasoning": "brief explanation"}}}}
+""".format(
+    domain_block=_build_domain_prompt_block(),
+    domain_names_str="/".join(f'"{d}"' for d in ESCALATION_DOMAINS),
+)
 
 _CLASSIFICATION_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -66,7 +107,7 @@ _CLASSIFICATION_SCHEMA: dict[str, Any] = {
         "mode": {"type": "string", "enum": ["react", "dag"]},
         "domain_hint": {
             "type": ["string", "null"],
-            "enum": ["legal", "medical", "financial", None],
+            "enum": _build_domain_enum(),
         },
         "reasoning": {"type": "string"},
     },
@@ -131,7 +172,7 @@ async def classify_execution_mode(
             mode = "react"
         reasoning = data.get("reasoning", "") if isinstance(data, dict) else ""
 
-        _valid_domains = {"legal", "medical", "financial"}
+        _valid_domains = set(ESCALATION_DOMAINS)
         raw_domain = data.get("domain_hint") if isinstance(data, dict) else None
         domain_hint = raw_domain if raw_domain in _valid_domains else None
 

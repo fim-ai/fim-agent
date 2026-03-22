@@ -266,9 +266,9 @@ FIM One utilise trois rôles de modèle. Chaque rôle sert un objectif différen
 
 | Rôle | Utilisé pour | Recommandation |
 |---|---|---|
-| **General** | Planification, analyse, agent ReAct, raisonnement complexe | Votre modèle le plus capable (par ex., `gpt-4o`, `claude-sonnet-4-6`) |
-| **Fast** | Exécution des étapes DAG, compaction de contexte | Optimisé pour la vitesse et le coût (par ex., `gpt-5-nano`, `deepseek-chat`). Revient à General s'il n'est pas assigné. |
-| **Reasoning** | Tâches nécessitant une analyse approfondie -- planification complexe, preuves mathématiques, logique multi-étapes | Un modèle de raisonnement puissant (par ex., `o3`, `deepseek-reasoner`). Revient à General s'il n'est pas assigné. |
+| **General** | Planification, analyse, agent ReAct, exécution des étapes DAG (par défaut) | Votre modèle le plus capable (par ex., `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | Étapes DAG avec `model_hint="fast"`, compaction de contexte, résumé d'historique | Optimisé pour la vitesse et le coût (par ex., `gpt-5-nano`, `deepseek-chat`). Bascule vers General s'il n'est pas assigné. |
+| **Reasoning** | Étapes DAG avec `model_hint="reasoning"`, ReAct avec escalade de domaine (juridique/médical/financier) | Un modèle de raisonnement robuste (par ex., `o3`, `deepseek-reasoner`). Bascule vers General s'il n'est pas assigné. |
 
 ### Création d'un groupe de modèles
 
@@ -300,6 +300,26 @@ Pour désactiver le groupe actuel (revenir aux modèles configurés par ENV), s�
 Le changement du groupe de modèles actif affecte **toutes les nouvelles conversations** à l'échelle du système. Les conversations en cours existantes continuent d'utiliser le modèle qui était actif au moment de leur démarrage.
 </Warning>
 
+## Escalade de modèle consciente du domaine
+
+Lorsque l'auto-routeur détecte un domaine spécialisé — **juridique**, **médical** ou **financier** — le système escalade automatiquement la sélection du modèle au-delà des attributions de rôle normales :
+
+- **Mode ReAct :** Le modèle général est remplacé par le **modèle de raisonnement** (`registry.get_by_role("reasoning")`). Cela signifie que l'emplacement Raisonnement dans votre Groupe de modèles n'est pas seulement utilisé pour les étapes DAG `model_hint="reasoning"` — il sert également de cible d'escalade pour les tâches ReAct spécifiques au domaine.
+- **Mode DAG :** Le contexte du domaine est injecté dans l'invite du planificateur, le guidant pour assigner `model_hint="reasoning"` aux étapes nécessitant une précision spécialisée.
+
+Cette escalade est automatique et ne nécessite aucune configuration au-delà de l'attribution d'un modèle de Raisonnement dans votre Groupe de modèles actif (ou via la variable d'environnement `REASONING_LLM_MODEL`).
+
+**Variables d'environnement associées :**
+
+| Variable | Défaut | Description |
+|---|---|---|
+| `DAG_CITATION_VERIFICATION` | `true` | Activer la vérification des citations post-étape pour le contenu juridique/médical/financier. Extrait les citations via regex et vérifie la précision via jugement LLM. |
+| `DAG_STRUCTURED_CONTEXT_MULTIPLIER` | `3.0` | Multiplicateur du budget de troncature pour le contenu structuré (citations, tableaux, blocs de code) dans le contexte de dépendance DAG. Les valeurs plus élevées préservent plus de données structurées entre les étapes. |
+
+<Tip>
+Si votre charge de travail implique des requêtes juridiques, médicales ou financières, assurez-vous que votre modèle de Raisonnement est un bon raisonneur (par exemple, `o3`, `claude-opus-4-6`, `deepseek-reasoner`). L'escalade automatique dépend de cet emplacement étant rempli avec un modèle capable de gérer les exigences de précision critiques au domaine.
+</Tip>
+
 ## Secours ENV
 
 Lorsqu'aucun groupe de modèles configuré par l'administrateur n'est actif, FIM One se replie sur la configuration basée sur ENV :
@@ -325,6 +345,3 @@ La page Modèles prend en charge l'exportation de l'intégralité de votre confi
 <Warning>
 La configuration exportée n'inclut **pas** les clés API. Après l'importation, vous devez modifier chaque fournisseur pour entrer la clé API appropriée.
 </Warning>
-
-
-

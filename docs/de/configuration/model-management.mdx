@@ -38,11 +38,11 @@ Group: "Production"
 ## Anbieter hinzufügen
 
 <Steps>
-  <Step title="Öffnen Sie die Seite Modelle">
+  <Step title="Öffnen Sie die Seite „Modelle"">
     Navigieren Sie zu **Admin** (Seitenleiste) und wählen Sie die Registerkarte **Modelle** aus.
   </Step>
-  <Step title="Klicken Sie auf Anbieter hinzufügen">
-    Klicken Sie auf die Schaltfläche **Anbieter hinzufügen** im oberen rechten Bereich des Abschnitts 'Anbieter".
+  <Step title="Klicken Sie auf „Anbieter hinzufügen"">
+    Klicken Sie auf die Schaltfläche **Anbieter hinzufügen** im oberen rechten Bereich des Abschnitts „Anbieter".
   </Step>
   <Step title="Wählen Sie eine Voreinstellung oder verwenden Sie einen benutzerdefinierten Endpunkt">
     Das Dialogfeld zeigt Voreinstellungsschaltflächen für gängige Anbieter: **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **DeepSeek**, **Mistral AI** und **OpenAI Compatible** (benutzerdefinierter Endpunkt). Durch Klicken auf eine Voreinstellung werden der Anbieter-Name und die Basis-URL automatisch ausgefüllt.
@@ -51,7 +51,7 @@ Group: "Production"
   </Step>
   <Step title="Geben Sie Anmeldedaten ein">
     Füllen Sie die erforderlichen Felder aus:
-    - **Anbieter-Name** – Eine benutzerfreundliche Bezeichnung (z. B. 'Mein OpenAI-Konto"). Dies dient nur als Referenz für Sie.
+    - **Anbieter-Name** – Eine benutzerfreundliche Bezeichnung (z. B. „Mein OpenAI-Konto"). Dies dient nur als Referenz für Sie.
     - **Basis-URL** – Der API-Endpunkt. Voreinstellungen füllen dies automatisch aus. Geben Sie für benutzerdefinierte Endpunkte die vollständige URL ein (z. B. `http://localhost:11434/v1` für Ollama).
     - **API-Schlüssel** – Der API-Schlüssel Ihres Anbieters. Geben Sie für lokale Modelle (Ollama) eine beliebige nicht-leere Zeichenkette ein (z. B. `ollama`).
   </Step>
@@ -61,21 +61,21 @@ Group: "Production"
 </Steps>
 
 <Tip>
-Sie können mehrere Anbieter für denselben Dienst erstellen. Beispielsweise zwei 'OpenAI"-Anbieter mit unterschiedlichen API-Schlüsseln für separate Abrechnungskonten oder ein 'Anthropic (Direkt)" und 'Anthropic (über Bedrock)" mit unterschiedlichen Basis-URLs.
+Sie können mehrere Anbieter für denselben Dienst erstellen. Beispielsweise zwei „OpenAI"-Anbieter mit unterschiedlichen API-Schlüsseln für separate Abrechnungskonten oder ein „Anthropic (Direkt)" und „Anthropic (über Bedrock)" mit unterschiedlichen Basis-URLs.
 </Tip>
 
 ## Ein Modell hinzufügen
 
 <Steps>
   <Step title="Einen Anbieter erweitern">
-    Klicken Sie auf der Seite 'Modelle" auf das Chevron neben einem vorhandenen Anbieter, um ihn zu erweitern und seine Modelle anzuzeigen.
+    Klicken Sie auf der Seite „Modelle" auf das Chevron neben einem vorhandenen Anbieter, um ihn zu erweitern und seine Modelle anzuzeigen.
   </Step>
-  <Step title="Klicken Sie auf Modell hinzufügen">
+  <Step title="Klicken Sie auf „Modell hinzufügen"">
     Klicken Sie auf die Schaltfläche **Modell hinzufügen**, die unter dem erweiterten Anbieter angezeigt wird.
   </Step>
   <Step title="Modelldetails eingeben">
     Füllen Sie die zwei erforderlichen Felder aus:
-    - **Anzeigename** -- Ein benutzerfreundlicher Name, der in der Benutzeroberfläche angezeigt wird (z. B. 'GPT-4o", 'Claude Sonnet"). Kann beliebig sein.
+    - **Anzeigename** -- Ein benutzerfreundlicher Name, der in der Benutzeroberfläche angezeigt wird (z. B. „GPT-4o", „Claude Sonnet"). Kann beliebig sein.
     - **Modellname (API)** -- Der genaue Modellbezeichner, der an die API gesendet wird (z. B. `gpt-4o`, `claude-sonnet-4-6`, `deepseek-chat`). Dies muss dem entsprechen, was Ihr Anbieter erwartet.
   </Step>
   <Step title="Erweiterte Einstellungen konfigurieren (optional)">
@@ -268,24 +268,24 @@ FIM One verwendet drei Modellrollen. Jede Rolle erfüllt einen anderen Zweck in 
 
 | Rolle | Verwendet für | Empfehlung |
 |---|---|---|
-| **General** | Planung, Analyse, ReAct-Agent, komplexe Argumentation | Ihr leistungsfähigstes Modell (z. B. `gpt-4o`, `claude-sonnet-4-6`) |
-| **Fast** | DAG-Schrittausführung, Kontextkomprimierung | Optimiert für Geschwindigkeit und Kosten (z. B. `gpt-5-nano`, `deepseek-chat`). Fällt auf General zurück, falls nicht zugewiesen. |
-| **Reasoning** | Aufgaben, die tiefe Analyse erfordern – komplexe Planung, mathematische Beweise, mehrstufige Logik | Ein starkes Reasoning-Modell (z. B. `o3`, `deepseek-reasoner`). Fällt auf General zurück, falls nicht zugewiesen. |
+| **General** | Planung, Analyse, ReAct-Agent, DAG-Schrittausführung (Standard) | Ihr leistungsstärkstes Modell (z. B. `gpt-4o`, `claude-sonnet-4-6`) |
+| **Fast** | `model_hint="fast"` DAG-Schritte, Kontext-Komprimierung, Verlaufszusammenfassung | Optimiert für Geschwindigkeit und Kosten (z. B. `gpt-5-nano`, `deepseek-chat`). Fällt auf General zurück, falls nicht zugewiesen. |
+| **Reasoning** | `model_hint="reasoning"` DAG-Schritte, domänen-eskalierte ReAct (Recht/Medizin/Finanzen) | Ein starkes Reasoning-Modell (z. B. `o3`, `deepseek-reasoner`). Fällt auf General zurück, falls nicht zugewiesen. |
 
 ### Erstellen einer Modellgruppe
 
 <Steps>
-  <Step title="Öffnen Sie den Bereich Gruppen">
+  <Step title="Öffnen Sie den Bereich „Gruppen"">
     Scrollen Sie auf der Seite **Admin > Modelle** zum Bereich **Modellgruppen**.
   </Step>
-  <Step title="Klicken Sie auf Gruppe hinzufügen">
+  <Step title="Klicken Sie auf „Gruppe hinzufügen"">
     Klicken Sie auf die Schaltfläche **Gruppe hinzufügen**.
   </Step>
   <Step title="Benennen Sie die Gruppe">
-    Geben Sie einen aussagekräftigen Namen ein (z. B. 'Production (OpenAI)", 'Budget (DeepSeek)", 'Local Dev").
+    Geben Sie einen aussagekräftigen Namen ein (z. B. „Production (OpenAI)", „Budget (DeepSeek)", „Local Dev").
   </Step>
   <Step title="Weisen Sie Modelle Rollen zu">
-    Wählen Sie für jede Rolle (General, Fast, Reasoning) ein Modell aus dem Dropdown-Menü aus. Das Dropdown-Menü zeigt alle aktiven Modelle von aktiven Anbietern, gruppiert nach Anbieter-Name. Sie können eine Rolle nicht zugewiesen lassen – sie wird dann auf das Modell 'General" zurückgreifen (oder auf ENV-konfigurierte Modelle, wenn 'General" ebenfalls nicht zugewiesen ist).
+    Wählen Sie für jede Rolle (General, Fast, Reasoning) ein Modell aus dem Dropdown-Menü aus. Das Dropdown-Menü zeigt alle aktiven Modelle von aktiven Anbietern, gruppiert nach Anbieter-Name. Sie können eine Rolle nicht zugewiesen lassen – sie wird dann auf das Modell „General" zurückgreifen (oder auf ENV-konfigurierte Modelle, wenn „General" ebenfalls nicht zugewiesen ist).
   </Step>
   <Step title="Speichern">
     Klicken Sie auf **Erstellen**. Die Gruppe ist nun zur Aktivierung verfügbar.
@@ -294,13 +294,33 @@ FIM One verwendet drei Modellrollen. Jede Rolle erfüllt einen anderen Zweck in 
 
 ### Eine Gruppe aktivieren
 
-Um eine Modellgruppe zu aktivieren, verwenden Sie das Dropdown-Menü oder die Aktivierungskontrolle auf der Seite 'Modelle". Es kann jeweils nur eine Gruppe aktiv sein. Das Aktivieren einer Gruppe wendet ihre Modellzuweisungen sofort auf alle neuen Gespräche an.
+Um eine Modellgruppe zu aktivieren, verwenden Sie das Dropdown-Menü oder die Aktivierungskontrolle auf der Seite „Modelle". Es kann jeweils nur eine Gruppe aktiv sein. Das Aktivieren einer Gruppe wendet ihre Modellzuweisungen sofort auf alle neuen Gespräche an.
 
 Um die aktuelle Gruppe zu deaktivieren (Rückgriff auf ENV-konfigurierte Modelle), wählen Sie die Deaktivierungsoption.
 
 <Warning>
 Das Wechseln der aktiven Modellgruppe wirkt sich auf **alle neuen Gespräche** systemweit aus. Laufende Gespräche verwenden weiterhin das Modell, das aktiv war, als sie gestartet wurden.
 </Warning>
+
+## Domänenspezifische Modellstufenerhöhung
+
+Wenn der Auto-Router eine spezialisierte Domäne erkennt — **legal**, **medizinisch** oder **finanziell** — eskaliert das System automatisch die Modellauswahl über die normalen Rollenzuweisungen hinaus:
+
+- **ReAct-Modus:** Das allgemeine Modell wird durch das **Reasoning-Modell** (`registry.get_by_role("reasoning")`) ersetzt. Das bedeutet, dass der Reasoning-Slot in Ihrer Modellgruppe nicht nur für DAG `model_hint="reasoning"` Schritte verwendet wird — er dient auch als Eskalationsziel für domänenspezifische ReAct-Aufgaben.
+- **DAG-Modus:** Domänenkontext wird in den Planner-Prompt eingefügt und leitet ihn an, `model_hint="reasoning"` Schritte zuzuweisen, die spezialisierte Genauigkeit erfordern.
+
+Diese Eskalation ist automatisch und erfordert keine Konfiguration über das Vorhandensein eines zugewiesenen Reasoning-Modells in Ihrer aktiven Modellgruppe (oder über die `REASONING_LLM_MODEL` Umgebungsvariable) hinaus.
+
+**Zugehörige Umgebungsvariablen:**
+
+| Variable | Standard | Beschreibung |
+|---|---|---|
+| `DAG_CITATION_VERIFICATION` | `true` | Aktivieren Sie die Zitierverifizierung nach Schritten für rechtliche/medizinische/finanzielle Inhalte. Extrahiert Zitate über Regex und verifiziert die Genauigkeit durch LLM-Bewertung. |
+| `DAG_STRUCTURED_CONTEXT_MULTIPLIER` | `3.0` | Kürzungsbudget-Multiplikator für strukturierte Inhalte (Zitate, Tabellen, Code-Blöcke) im DAG-Abhängigkeitskontext. Höhere Werte bewahren mehr strukturierte Daten zwischen Schritten. |
+
+<Tip>
+Wenn Ihre Workload rechtliche, medizinische oder finanzielle Anfragen umfasst, stellen Sie sicher, dass Ihr Reasoning-Modell ein starker Reasoner ist (z. B. `o3`, `claude-opus-4-6`, `deepseek-reasoner`). Die automatische Eskalation hängt davon ab, dass dieser Slot mit einem Modell gefüllt ist, das domänenkritische Genauigkeitsanforderungen erfüllen kann.
+</Tip>
 
 ## ENV-Fallback
 
@@ -318,7 +338,7 @@ Die vollständige ENV-Referenz finden Sie unter [Umgebungsvariablen](/configurat
 
 ## Export und Import
 
-Die Seite 'Models" unterstützt den Export Ihrer gesamten Anbieter- und Modellkonfiguration (Anbieter, Modelle und Gruppen) als JSON-Datei und deren Import auf einer anderen Instanz. Dies ist nützlich für:
+Die Seite „Models" unterstützt den Export Ihrer gesamten Anbieter- und Modellkonfiguration (Anbieter, Modelle und Gruppen) als JSON-Datei und deren Import auf einer anderen Instanz. Dies ist nützlich für:
 
 - Migration der Konfiguration zwischen Entwicklungs-, Staging- und Produktionsumgebungen
 - Austausch einer bekanntermaßen funktionierenden Modellkonfiguration mit Teammitgliedern
@@ -327,5 +347,3 @@ Die Seite 'Models" unterstützt den Export Ihrer gesamten Anbieter- und Modellko
 <Warning>
 Die exportierte Konfiguration enthält **keine** API-Schlüssel. Nach dem Import müssen Sie jeden Anbieter bearbeiten, um den entsprechenden API-Schlüssel einzugeben.
 </Warning>
-
-
