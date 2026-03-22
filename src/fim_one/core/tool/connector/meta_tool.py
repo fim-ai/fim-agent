@@ -96,7 +96,14 @@ class ConnectorMetaTool(BaseTool):
         lines = ["Interact with external services. Available connectors:"]
         for stub in self._stubs.values():
             desc = stub.description or stub.name
-            lines.append(f"  - {stub.name}: {desc} ({stub.action_count} actions)")
+            action_names = [a.name for a in stub.actions]
+            if action_names:
+                names_str = ", ".join(action_names)
+                lines.append(
+                    f"  - {stub.name}: {desc} — actions: {names_str}"
+                )
+            else:
+                lines.append(f"  - {stub.name}: {desc} (no actions)")
         lines.append("")
         lines.append("Subcommands:")
         lines.append(
@@ -104,6 +111,11 @@ class ConnectorMetaTool(BaseTool):
         )
         lines.append(
             '  execute <name> <action> {"param": "value"} — run an action'
+        )
+        lines.append("")
+        lines.append(
+            "IMPORTANT: Only use action names listed above. "
+            "Call 'discover' first if you need parameter details."
         )
         return "\n".join(lines)
 
