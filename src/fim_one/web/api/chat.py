@@ -1486,6 +1486,30 @@ async def _resolve_skill_stubs(skill_ids: list[str]) -> str:
         return ""
 
 
+async def _resolve_skill_descriptors(
+    skill_ids: list[str],
+) -> list[dict[str, str]]:
+    """Return ``[{"name": ..., "description": ...}]`` for planner skill discovery."""
+    from fim_one.db import create_session
+    from fim_one.web.models.skill import Skill
+
+    try:
+        async with create_session() as session:
+            result = await session.execute(
+                sa_select(Skill.name, Skill.description).where(
+                    Skill.id.in_(skill_ids),
+                    Skill.is_active == True,  # noqa: E712
+                )
+            )
+            return [
+                {"name": name, "description": desc or ""}
+                for name, desc in result.all()
+            ]
+    except Exception:
+        logger.warning("Failed to resolve skill descriptors", exc_info=True)
+        return []
+
+
 async def _resolve_user_skill_ids(user_id: str) -> list[str]:
     """Fetch all active, visible skill IDs for a user (own + org + subscribed)."""
     from fim_one.db import create_session
@@ -1636,6 +1660,8 @@ class ChatStreamRequest(BaseModel):
     token: str | None = None
     image_ids: str | None = None
     user_metadata: str | None = None
+    # Set by auto-router; not from external input.
+    domain_hint: str | None = None
 
 
 class InjectMessageRequest(BaseModel):
@@ -2457,6 +2483,7 @@ async def dag_endpoint(
 
     # Inject skill stubs — skills are global SOPs
     _dag_skill_ids = await _resolve_user_skill_ids(current_user_id) if current_user_id else None
+    _dag_skill_descs: list[dict[str, str]] = []
     if _dag_skill_ids:
         _skill_mode = get_skill_tool_mode(agent_cfg)
         if _skill_mode == "inline":
@@ -2465,6 +2492,8 @@ async def dag_endpoint(
             _skill_block = await _resolve_skill_stubs(_dag_skill_ids)
         if _skill_block:
             extra_instructions = (extra_instructions or "") + _skill_block
+        # Also resolve compact descriptors for planner skill discovery.
+        _dag_skill_descs = await _resolve_skill_descriptors(_dag_skill_ids)
 
     # DAG uses a fast LLM for step execution; role='fast' -> role='general' -> ENV fallback.
     async with _create_session() as _fast_llm_db:
@@ -2687,11 +2716,31 @@ async def dag_endpoint(
                     {"name": t.name, "description": t.description}
                     for t in tools.list_tools()
                 ]
+                # Inject domain-aware guidance when the router detected a
+                # specialist domain (legal, medical, financial).
+                _domain_hint = getattr(body, "domain_hint", None)
+                _domain_context = replan_context
+                if _domain_hint:
+                    _domain_guidance = (
+                        f"[Domain: {_domain_hint}] This is a {_domain_hint}-domain task. "
+                        f"For steps that involve analysis, synthesis, or report writing, "
+                        f"set model_hint=\"reasoning\" to ensure accuracy and reduce "
+                        f"citation hallucination.  Avoid splitting tightly coupled "
+                        f"analysis dimensions into separate steps — keep cross-"
+                        f"referencing analysis together in fewer, deeper steps."
+                    )
+                    _domain_context = (
+                        _domain_guidance + "\n\n" + replan_context
+                        if replan_context
+                        else _domain_guidance
+                    )
+
                 planner = DAGPlanner(llm=llm, language_directive=lang_directive)
                 plan = await planner.plan(
                     enriched_query,
-                    context=replan_context,
+                    context=_domain_context,
                     tools=tool_descriptors,
+                    skill_descriptions=_dag_skill_descs or None,
                 )
                 plan.current_round = round_num
                 yield _emit(
@@ -3285,9 +3334,14 @@ async def auto_endpoint(
         decision = await classify_execution_mode(q, fast_llm)
         mode = decision.mode
         reasoning = decision.reasoning
+        domain_hint = decision.domain_hint
     else:
         mode = "react"
         reasoning = "Auto-routing disabled, defaulting to react"
+        domain_hint = None
+
+    # Pass domain_hint through to the DAG endpoint for planner guidance.
+    body.domain_hint = domain_hint
 
     # Wrap the inner endpoint's StreamingResponse to prepend the routing event
     if mode == "dag":
@@ -3297,7 +3351,7 @@ async def auto_endpoint(
 
     async def auto_generate() -> AsyncGenerator[str, None]:
         # Emit routing decision first
-        yield _sse("routing", {"mode": mode, "reasoning": reasoning})
+        yield _sse("routing", {"mode": mode, "domain_hint": domain_hint, "reasoning": reasoning})
         # Then delegate to the inner endpoint's generator
         async for chunk in inner_response.body_iterator:
             yield chunk
