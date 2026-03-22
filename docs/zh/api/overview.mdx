@@ -3,7 +3,194 @@ title: "API 概览"
 description: "FIM One REST API 入门指南"
 ---
 
-## API 概览
+FIM One 提供 REST API，用于以编程方式访问 AI 智能体、对话、知识库等。
 
-请参阅 [英文版本](/api/overview)。
+## 基础 URL
 
+```
+https://your-domain.com/api
+```
+
+## 身份验证
+
+所有 API 请求都需要通过 API 密钥或 JWT 令牌进行身份验证。
+
+### 使用 API 密钥
+
+在 `Authorization` 标头中包含您的 API 密钥：
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/agents
+```
+
+### 使用 JWT 令牌
+
+对于 SSE 流式端点（`/api/react` 和 `/api/dag`），你可以在请求体中传递令牌：
+
+```json
+{
+  "q": "What's the weather today?",
+  "token": "your_jwt_token_here"
+}
+```
+
+有关详细的设置说明，请参阅[身份验证](/api/authentication)。
+
+## 响应格式
+
+### 成功响应
+
+所有成功的 API 响应遵循以下结构：
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "conv_123abc",
+    "title": "My Conversation",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### 错误响应
+
+错误响应包括错误代码和人类可读的消息：
+
+```json
+{
+  "success": false,
+  "error": "conversation_not_found",
+  "message": "The conversation does not exist or has been deleted"
+}
+```
+
+### 分页响应
+
+列表端点返回分页结果：
+
+```json
+{
+  "items": [
+    { "id": "item_1", "name": "First Item" },
+    { "id": "item_2", "name": "Second Item" }
+  ],
+  "total": 42,
+  "page": 1,
+  "size": 20,
+  "pages": 3
+}
+```
+
+## 流式传输 (Server-Sent Events)
+
+聊天端点（`POST /api/react` 和 `POST /api/dag`）返回 Server-Sent Events 以实现实时流式传输。每个事件都有一个 `type` 字段，指示其内容：
+
+| 事件类型 | 描述 |
+|-----------|-------------|
+| `step` | ReAct 推理步骤（工具调用、思考） |
+| `step_progress` | DAG 步骤进度（已启动/迭代/已完成） |
+| `phase` | 管道阶段转换（规划/执行/分析） |
+| `compact` | 上下文压缩已发生 |
+| `answer` | 流式答案文本（开始/增量/完成） |
+| `done` | 最终结果负载 |
+| `suggestions` | 建议的后续问题 |
+| `title` | 自动生成的对话标题 |
+| `end` | 流终止符（始终最后） |
+
+### SSE 流示例
+
+```
+event: step
+data: {"type": "tool_call", "tool": "search", "input": "Paris weather"}
+
+event: answer
+data: {"type": "delta", "text": "Based on current data, "}
+
+event: answer
+data: {"type": "delta", "text": "Paris has pleasant weather."}
+
+event: done
+data: {"answer": "Based on current data, Paris has pleasant weather.", "tokens": 128}
+
+event: suggestions
+data: ["What about tomorrow's forecast?", "Compare with other European cities"]
+
+event: end
+data: {}
+```
+
+## 速率限制
+
+计划在未来版本中实现按密钥的速率限制。目前没有强制的按密钥请求限制，但请负责任地使用 API。
+
+## 分页
+
+列表端点支持通过查询参数进行分页：
+
+```bash
+curl "https://your-domain.com/api/conversations?page=2&size=50" \
+  -H "Authorization: Bearer fim_your_api_key_here"
+```
+
+参数：
+- `page`（默认值：1）— 页码，从 1 开始
+- `size`（默认值：20）— 每页项目数，最多 100
+
+## 时间戳
+
+所有时间戳均采用 ISO 8601 格式，使用 UTC 时区：
+
+```json
+{
+  "created_at": "2024-01-15T10:30:45.123456Z",
+  "updated_at": "2024-01-15T14:22:10.654321Z"
+}
+```
+
+## 错误代码
+
+常见错误代码及其含义：
+
+| 错误代码 | HTTP 状态 | 含义 |
+|-----------|-------------|---------|
+| `unauthorized` | 401 | 无效或缺失身份验证 |
+| `forbidden` | 403 | 用户缺少此资源的权限 |
+| `not_found` | 404 | 资源不存在 |
+| `bad_request` | 400 | 无效的请求参数 |
+| `rate_limit_exceeded` | 429 | 请求过于频繁（计划中） |
+| `internal_error` | 500 | 服务器错误 |
+
+## API 游乐场
+
+每个端点页面都包含一个交互式 API 游乐场，您可以：
+
+- 直接从浏览器测试请求
+- 查看真实响应
+- 复制多种语言的请求代码
+- 使用您的 API 密钥进行身份验证
+
+<Note>
+API 游乐场从您的浏览器运行请求，因此请确保您的 API 密钥具有适当的 CORS 权限（通常对同源请求默认启用）。
+</Note>
+
+## SDK 可用性
+
+虽然 FIM One API 完全基于 REST，但流行语言的 SDK 已可用（或即将推出）：
+
+- **Python**：即将推出
+- **JavaScript/TypeScript**：即将推出
+- **Go**：即将推出
+
+## 版本控制
+
+当前 API 版本为 `v0.8.0`。版本号不包含在 URL 路径中；重大变更将通过主版本号升级和迁移期来通知。
+
+## 支持
+
+如有 API 问题或疑问：
+
+- **文档**: 查看每个端点的详细指南
+- **GitHub Issues**: 在 https://github.com/fim-ai/fim-one/issues 报告错误
+- **Discord 社区**: 加入我们的社区进行讨论

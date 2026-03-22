@@ -3,6 +3,194 @@ title: "API-Übersicht"
 description: "Erste Schritte mit der FIM One REST API"
 ---
 
-## API-Übersicht
+FIM One bietet eine REST API für programmgesteuerten Zugriff auf KI-Agenten, Gespräche, Wissensdatenbanken und mehr.
 
-Bitte lesen Sie die [englische Version](/api/overview).
+## Basis-URL
+
+```
+https://your-domain.com/api
+```
+
+## Authentifizierung
+
+Alle API-Anfragen erfordern eine Authentifizierung über einen API-Schlüssel oder JWT-Token.
+
+### API-Schlüssel verwenden
+
+Fügen Sie Ihren API-Schlüssel in den `Authorization`-Header ein:
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/agents
+```
+
+### JWT-Token verwenden
+
+Für SSE-Streaming-Endpunkte (`/api/react` und `/api/dag`) können Sie das Token stattdessen im Request-Body übergeben:
+
+```json
+{
+  "q": "What's the weather today?",
+  "token": "your_jwt_token_here"
+}
+```
+
+Siehe [Authentifizierung](/api/authentication) für detaillierte Setupanweisungen.
+
+## Antwortformat
+
+### Erfolgreiche Antwort
+
+Alle erfolgreichen API-Antworten folgen dieser Struktur:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "conv_123abc",
+    "title": "My Conversation",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Fehlerantwort
+
+Fehlerantworten enthalten einen Fehlercode und eine für Menschen lesbare Nachricht:
+
+```json
+{
+  "success": false,
+  "error": "conversation_not_found",
+  "message": "The conversation does not exist or has been deleted"
+}
+```
+
+### Paginierte Antworten
+
+List-Endpunkte geben paginierte Ergebnisse zurück:
+
+```json
+{
+  "items": [
+    { "id": "item_1", "name": "First Item" },
+    { "id": "item_2", "name": "Second Item" }
+  ],
+  "total": 42,
+  "page": 1,
+  "size": 20,
+  "pages": 3
+}
+```
+
+## Streaming (Server-Sent Events)
+
+Chat-Endpunkte (`POST /api/react` und `POST /api/dag`) geben Server-Sent Events für Echtzeit-Streaming zurück. Jedes Event hat ein `type`-Feld, das seinen Inhalt angibt:
+
+| Event-Typ | Beschreibung |
+|-----------|-------------|
+| `step` | ReAct-Reasoning-Schritt (Tool-Aufrufe, Überlegungen) |
+| `step_progress` | DAG-Schritt-Fortschritt (gestartet/Iteration/abgeschlossen) |
+| `phase` | Pipeline-Phasenübergang (Planung/Ausführung/Analyse) |
+| `compact` | Kontext-Komprimierung aufgetreten |
+| `answer` | Gestreamter Antworttext (Start/Delta/Fertig) |
+| `done` | Endgültiges Ergebnis-Payload |
+| `suggestions` | Vorgeschlagene Anschlussfragen |
+| `title` | Automatisch generierter Gesprächstitel |
+| `end` | Stream-Terminator (immer zuletzt) |
+
+### SSE-Stream-Beispiel
+
+```
+event: step
+data: {"type": "tool_call", "tool": "search", "input": "Paris weather"}
+
+event: answer
+data: {"type": "delta", "text": "Based on current data, "}
+
+event: answer
+data: {"type": "delta", "text": "Paris has pleasant weather."}
+
+event: done
+data: {"answer": "Based on current data, Paris has pleasant weather.", "tokens": 128}
+
+event: suggestions
+data: ["What about tomorrow's forecast?", "Compare with other European cities"]
+
+event: end
+data: {}
+```
+
+## Ratenbegrenzung
+
+Die Ratenbegrenzung pro Schlüssel ist für eine zukünftige Version geplant. Derzeit gibt es keine durchgesetzten Anfragelimits pro Schlüssel, aber bitte nutzen Sie die API verantwortungsvoll.
+
+## Pagination
+
+List-Endpunkte unterstützen Pagination über Abfrageparameter:
+
+```bash
+curl "https://your-domain.com/api/conversations?page=2&size=50" \
+  -H "Authorization: Bearer fim_your_api_key_here"
+```
+
+Parameter:
+- `page` (Standard: 1) — Seitennummer, beginnend bei 1
+- `size` (Standard: 20) — Elemente pro Seite, max. 100
+
+## Zeitstempel
+
+Alle Zeitstempel sind im ISO 8601-Format mit UTC-Zeitzone:
+
+```json
+{
+  "created_at": "2024-01-15T10:30:45.123456Z",
+  "updated_at": "2024-01-15T14:22:10.654321Z"
+}
+```
+
+## Fehlercodes
+
+Häufige Fehlercodes und ihre Bedeutungen:
+
+| Fehlercode | HTTP-Status | Bedeutung |
+|-----------|-------------|---------|
+| `unauthorized` | 401 | Ungültige oder fehlende Authentifizierung |
+| `forbidden` | 403 | Benutzer hat keine Berechtigung für diese Ressource |
+| `not_found` | 404 | Ressource existiert nicht |
+| `bad_request` | 400 | Ungültige Anfrageparameter |
+| `rate_limit_exceeded` | 429 | Zu viele Anfragen (geplant) |
+| `internal_error` | 500 | Serverfehler |
+
+## API-Spielplatz
+
+Jede Endpunkt-Seite enthält einen interaktiven API-Spielplatz, in dem Sie:
+
+- Anfragen direkt von Ihrem Browser aus testen können
+- Echte Antworten anzeigen können
+- Anfrage-Code in mehreren Sprachen kopieren können
+- Sich mit Ihrem API-Schlüssel authentifizieren können
+
+<Note>
+Der API-Spielplatz führt Anfragen von Ihrem Browser aus aus, daher stellen Sie sicher, dass Ihr API-Schlüssel über entsprechende CORS-Berechtigungen verfügt (normalerweise standardmäßig für Same-Origin-Anfragen aktiviert).
+</Note>
+
+## SDK-Verfügbarkeit
+
+Obwohl die FIM One API vollständig REST-basiert ist, sind SDKs in beliebten Sprachen verfügbar (oder in Kürze verfügbar):
+
+- **Python**: In Kürze verfügbar
+- **JavaScript/TypeScript**: In Kürze verfügbar
+- **Go**: In Kürze verfügbar
+
+## Versionierung
+
+Die aktuelle API-Version ist `v0.8.0`. Die Version ist nicht im URL-Pfad enthalten; Breaking Changes werden durch Major-Version-Bumps und eine Migrationsfrist signalisiert.
+
+## Unterstützung
+
+Bei API-Problemen oder Fragen:
+
+- **Dokumentation**: Siehe detaillierte Leitfäden zu jedem Endpunkt
+- **GitHub Issues**: Melden Sie Fehler unter https://github.com/fim-ai/fim-one/issues
+- **Discord Community**: Treten Sie unserer Community bei, um zu diskutieren

@@ -1,8 +1,196 @@
 ---
 title: "API 개요"
-description: "FIM One REST API 시작 가이드"
+description: "FIM One REST API 시작하기"
 ---
 
-## API 개요
+FIM One은 AI 에이전트, 대화, 지식 베이스 등에 프로그래밍 방식으로 액세스할 수 있는 REST API를 제공합니다.
 
-[영어 버전](/api/overview)을 참조하세요.
+## 기본 URL
+
+```
+https://your-domain.com/api
+```
+
+## 인증
+
+모든 API 요청은 API 키 또는 JWT 토큰을 통한 인증이 필요합니다.
+
+### API 키 사용
+
+`Authorization` 헤더에 API 키를 포함하세요:
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/agents
+```
+
+### JWT 토큰 사용
+
+SSE 스트리밍 엔드포인트(`/api/react` 및 `/api/dag`)의 경우, 요청 본문에 토큰을 전달할 수 있습니다:
+
+```json
+{
+  "q": "What's the weather today?",
+  "token": "your_jwt_token_here"
+}
+```
+
+자세한 설정 지침은 [인증](/api/authentication)을 참조하세요.
+
+## 응답 형식
+
+### 성공 응답
+
+모든 성공적인 API 응답은 다음 구조를 따릅니다:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "conv_123abc",
+    "title": "My Conversation",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### 오류 응답
+
+오류 응답에는 오류 코드와 사람이 읽을 수 있는 메시지가 포함됩니다:
+
+```json
+{
+  "success": false,
+  "error": "conversation_not_found",
+  "message": "The conversation does not exist or has been deleted"
+}
+```
+
+### 페이지 매김 응답
+
+목록 엔드포인트는 페이지 매김된 결과를 반환합니다:
+
+```json
+{
+  "items": [
+    { "id": "item_1", "name": "First Item" },
+    { "id": "item_2", "name": "Second Item" }
+  ],
+  "total": 42,
+  "page": 1,
+  "size": 20,
+  "pages": 3
+}
+```
+
+## 스트리밍 (Server-Sent Events)
+
+채팅 엔드포인트(`POST /api/react` 및 `POST /api/dag`)는 실시간 스트리밍을 위해 Server-Sent Events를 반환합니다. 각 이벤트에는 콘텐츠를 나타내는 `type` 필드가 있습니다:
+
+| 이벤트 타입 | 설명 |
+|-----------|-------------|
+| `step` | ReAct 추론 단계 (도구 호출, 사고) |
+| `step_progress` | DAG 단계 진행 상황 (시작됨/반복/완료됨) |
+| `phase` | 파이프라인 단계 전환 (계획/실행/분석) |
+| `compact` | 컨텍스트 압축 발생 |
+| `answer` | 스트리밍된 답변 텍스트 (시작/델타/완료) |
+| `done` | 최종 결과 페이로드 |
+| `suggestions` | 제안된 후속 질문 |
+| `title` | 자동 생성된 대화 제목 |
+| `end` | 스트림 종료자 (항상 마지막) |
+
+### SSE 스트림 예제
+
+```
+event: step
+data: {"type": "tool_call", "tool": "search", "input": "Paris weather"}
+
+event: answer
+data: {"type": "delta", "text": "Based on current data, "}
+
+event: answer
+data: {"type": "delta", "text": "Paris has pleasant weather."}
+
+event: done
+data: {"answer": "Based on current data, Paris has pleasant weather.", "tokens": 128}
+
+event: suggestions
+data: ["What about tomorrow's forecast?", "Compare with other European cities"]
+
+event: end
+data: {}
+```
+
+## 속도 제한
+
+키별 속도 제한은 향후 릴리스에서 계획되어 있습니다. 현재는 강제된 키별 요청 제한이 없지만, API를 책임감 있게 사용해 주시기 바랍니다.
+
+## 페이지네이션
+
+목록 엔드포인트는 쿼리 매개변수를 통한 페이지네이션을 지원합니다:
+
+```bash
+curl "https://your-domain.com/api/conversations?page=2&size=50" \
+  -H "Authorization: Bearer fim_your_api_key_here"
+```
+
+매개변수:
+- `page` (기본값: 1) — 페이지 번호, 1부터 시작
+- `size` (기본값: 20) — 페이지당 항목 수, 최대 100
+
+## 타임스탬프
+
+모든 타임스탬프는 UTC 시간대의 ISO 8601 형식입니다:
+
+```json
+{
+  "created_at": "2024-01-15T10:30:45.123456Z",
+  "updated_at": "2024-01-15T14:22:10.654321Z"
+}
+```
+
+## 오류 코드
+
+일반적인 오류 코드 및 그 의미:
+
+| 오류 코드 | HTTP 상태 | 의미 |
+|-----------|-------------|---------|
+| `unauthorized` | 401 | 잘못되었거나 누락된 인증 |
+| `forbidden` | 403 | 사용자가 이 리소스에 대한 권한이 없음 |
+| `not_found` | 404 | 리소스가 존재하지 않음 |
+| `bad_request` | 400 | 잘못된 요청 매개변수 |
+| `rate_limit_exceeded` | 429 | 너무 많은 요청 (계획됨) |
+| `internal_error` | 500 | 서버 오류 |
+
+## API 플레이그라운드
+
+각 엔드포인트 페이지에는 다음을 수행할 수 있는 대화형 API 플레이그라운드가 포함되어 있습니다:
+
+- 브라우저에서 직접 요청 테스트
+- 실제 응답 보기
+- 여러 언어로 요청 코드 복사
+- API 키로 인증
+
+<Note>
+API 플레이그라운드는 브라우저에서 요청을 실행하므로, API 키에 적절한 CORS 권한이 있는지 확인하세요(일반적으로 동일 출처 요청에 대해 기본적으로 활성화됨).
+</Note>
+
+## SDK 가용성
+
+FIM One API는 완전히 REST 기반이지만, 인기 있는 언어로 SDK를 사용할 수 있습니다(또는 곧 출시될 예정입니다):
+
+- **Python**: 곧 출시 예정
+- **JavaScript/TypeScript**: 곧 출시 예정
+- **Go**: 곧 출시 예정
+
+## 버전 관리
+
+현재 API 버전은 `v0.8.0`입니다. 버전은 URL 경로에 포함되지 않으며, 주요 변경 사항은 메이저 버전 업그레이드와 마이그레이션 기간을 통해 알려집니다.
+
+## 지원
+
+API 문제 또는 질문의 경우:
+
+- **문서**: 각 엔드포인트에 대한 자세한 가이드 참조
+- **GitHub Issues**: https://github.com/fim-ai/fim-one/issues에서 버그 보고
+- **Discord Community**: 커뮤니티에 참여하여 토론

@@ -1,8 +1,356 @@
 ---
 title: "인증"
-description: "FIM One API 인증 방법"
+description: "FIM One API로 인증하는 방법"
 ---
 
-## 인증
+## 개요
 
-[영어 버전](/api/authentication)을 참조하세요.
+FIM One API는 두 가지 인증 방법을 지원합니다:
+
+1. **API 키** — 서비스 간 통합을 위한 간단한 장기 토큰
+2. **JWT 토큰** — 사용자 로그인의 단기 토큰 (SSE 엔드포인트용)
+
+대부분의 통합은 **API 키**를 사용해야 합니다.
+
+## API 키
+
+API 키는 사용자 계정에 연결된 장기 자격 증명입니다. 다음과 같은 경우에 이상적입니다:
+
+- 서버 간 통합
+- 예약된 스크립트 및 자동화
+- FIM One에 액세스하는 외부 애플리케이션
+
+### API 키 생성
+
+1. FIM One 포털에 로그인
+2. **설정 → API 키**로 이동
+3. **API 키 생성** 클릭
+4. 이름 입력 (예: "Production Integration")
+5. (선택사항) 액세스를 제한하기 위해 범위 설정
+6. (선택사항) 만료 날짜 설정
+7. **생성** 클릭
+8. 키를 즉시 복사 — 한 번만 표시됨
+
+전체 키는 다음과 같습니다: `fim_your44characterkeystringhere` (`fim_` 접두사로 시작)
+
+### API 키 사용
+
+`Authorization` 헤더에 Bearer 토큰으로 키를 포함하세요:
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/conversations
+```
+
+또는 Python에서:
+
+```python
+import requests
+
+headers = {
+    "Authorization": "Bearer fim_your_api_key_here"
+}
+
+response = requests.get(
+    "https://your-domain.com/api/conversations",
+    headers=headers
+)
+print(response.json())
+```
+
+### API 키 기능
+
+**가시성**: 각 키는 다음을 표시합니다:
+- 키 접두사 (식별을 위한 처음 8자)
+- 생성 날짜
+- 마지막 사용 타임스탬프
+- 총 요청 수
+- 활성 상태
+- 만료 날짜 (설정된 경우)
+
+**관리**: 다음을 수행할 수 있습니다:
+- 키를 삭제하지 않고 활성화/비활성화
+- 자동 만료 날짜 설정
+- 키 영구 삭제
+- 사용 패턴 추적
+
+### 스코프
+
+스코프는 API 키가 접근할 수 있는 범위를 제한합니다. 스코프를 설정하지 않으면 키는 전체 접근 권한을 가집니다.
+
+사용 가능한 스코프:
+
+| 스코프 | 허용 사항 |
+|-------|--------|
+| `chat` | POST /api/react, POST /api/dag, POST /api/chat/inject |
+| `agents` | GET /api/agents, GET /api/agents/{id} |
+| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/{id}/retrieve |
+| `connectors` | 커넥터 CRUD (connector_specific endpoints) |
+| `admin` | 관리 엔드포인트 |
+
+스코프를 사용하여 키 생성:
+
+```bash
+curl -X POST https://your-domain.com/api/me/api-keys \
+  -H "Authorization: Bearer your_current_api_key_or_jwt" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Chat-only Integration",
+    "scopes": "chat"
+  }'
+```
+
+## JWT 토큰
+
+JWT 토큰은 단기 유효하며 로그인 시 발급됩니다. 다음 용도로 사용됩니다:
+
+- **SSE 스트리밍 엔드포인트**: `/api/react` 및 `/api/dag`에 대한 요청 본문에 토큰 전달
+- **포털 세션**: 프론트엔드 인증
+
+### JWT 토큰 가져오기
+
+JWT 토큰은 웹 포털을 통해 로그인하거나 인증 엔드포인트를 호출할 때 자동으로 발급됩니다:
+
+```bash
+curl -X POST https://your-domain.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your_password"
+  }'
+```
+
+응답:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 7200,
+  "user": { ... }
+}
+```
+
+### JWT를 사용한 스트리밍
+
+SSE 엔드포인트의 경우 요청 본문에 토큰을 포함하세요:
+
+```bash
+curl -X POST https://your-domain.com/api/react \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "What are the top 3 Python frameworks?",
+    "token": "your_jwt_token_here"
+  }'
+```
+
+또는 읽기 가능한 스트림을 사용하는 JavaScript의 `fetch`에서 (엔드포인트는 POST 전용이므로 GET만 지원하는 기본 `EventSource`는 사용할 수 없습니다):
+
+```javascript
+const response = await fetch("https://your-domain.com/api/react", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    q: "Hello",
+    token: "fim_your_api_key_here"
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value);
+  // Parse SSE events from chunk
+  console.log(chunk);
+}
+```
+
+### 토큰 새로고침
+
+액세스 토큰은 2시간 후에 만료됩니다. 새로고침 토큰을 사용하여 다시 로그인하지 않고 새 액세스 토큰을 얻을 수 있습니다:
+
+```bash
+curl -X POST https://your-domain.com/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token": "your_refresh_token_here"
+  }'
+```
+
+## 보안 모범 사례
+
+### API 키
+
+<Warning>
+**API 키를 버전 관리에 커밋하지 마세요.** API 키는 데이터에 대한 전체 액세스 권한을 제공합니다.
+</Warning>
+
+1. **환경 변수에 저장**:
+   ```bash
+   export FIM_API_KEY="fim_your_api_key_here"
+   ```
+   그런 다음 코드에서 참조:
+   ```python
+   api_key = os.environ.get("FIM_API_KEY")
+   ```
+
+2. **키 로테이션 사용**:
+   - 새 키 생성
+   - 애플리케이션 업데이트
+   - 이전 키 삭제
+   - 분기별로 반복
+
+3. **만료 날짜 설정**:
+   - 임시 통합에는 단기 키 사용
+   - 주기적으로 재인증 필요
+
+4. **범위가 지정된 키 사용**:
+   - 필요한 경우가 아니면 "전체 액세스" 키 사용 금지
+   - 다양한 서비스에 대해 별도의 키 생성
+   - 키가 손상된 경우 피해 제한
+
+5. **사용량 모니터링**:
+   - "마지막 사용" 타임스탬프 확인
+   - 요청 수 검토
+   - 사용하지 않는 키 삭제
+
+### JWT 토큰
+
+1. **수명을 짧게 유지**: 액세스 토큰은 2시간 후 만료됨
+2. **안전한 저장**:
+   - 브라우저에서: HttpOnly 쿠키 사용 (localStorage보다 안전함)
+   - 서버에서: 안전한 세션 저장소 사용
+3. **로그에 노출하지 않기**: 전체 토큰이 아닌 토큰 접두사만 로깅
+4. **HTTPS만 사용**: 암호화되지 않은 연결을 통해 토큰을 전송하지 않기
+
+## 속도 제한
+
+키별 속도 제한은 향후 릴리스에서 계획되어 있습니다. 현재는 적용되는 키별 요청 제한이 없습니다.
+
+## 문제 해결
+
+### 유효하지 않은 토큰 오류
+
+```json
+{
+  "error": "invalid_token",
+  "message": "The provided token is invalid or expired"
+}
+```
+
+**원인**:
+- API 키 접두사가 잘못됨 (`fim_`으로 시작해야 함)
+- JWT 토큰이 만료됨 (새로고침 필요)
+- 토큰이 형식이 잘못되었거나 손상됨
+- API 키가 삭제됨
+
+**해결 방법**: 토큰 형식을 확인하고 필요한 경우 다시 생성하세요
+
+### 인증 오류
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Authentication required"
+}
+```
+
+**원인**:
+- Authorization 헤더가 제공되지 않음
+- 요청 본문에 토큰이 없음 (SSE 엔드포인트의 경우)
+- API 키가 비활성화됨
+
+**해결책**: 모든 요청에 유효한 토큰을 포함하세요
+
+### Forbidden 오류
+
+```json
+{
+  "error": "forbidden",
+  "message": "Your API key does not have permission to access this resource"
+}
+```
+
+**원인**:
+- API 키가 범위가 지정된 액세스 권한을 가지고 있으며 필요한 범위가 없음
+- 사용자 계정에 제한된 권한이 있음
+
+**해결책**: 적절한 범위를 가진 키를 사용하거나 키 권한을 증가시키세요
+
+### 만료된 토큰
+
+```json
+{
+  "error": "token_expired",
+  "message": "Your token has expired. Please refresh your authentication."
+}
+```
+
+**해결책**: 새로운 액세스 토큰을 얻기 위해 새로고침 토큰을 사용하세요:
+
+```bash
+curl -X POST https://your-domain.com/api/auth/refresh \
+  -d '{"refresh_token": "your_refresh_token"}'
+```
+
+## 환경 변수 설정
+
+### Python
+
+```python
+import os
+from dotenv import load_dotenv
+import requests
+
+# Load from .env file
+load_dotenv()
+
+api_key = os.getenv("FIM_API_KEY")
+base_url = os.getenv("FIM_API_BASE_URL", "https://your-domain.com/api")
+
+headers = {"Authorization": f"Bearer {api_key}"}
+
+# Now use in requests
+response = requests.get(f"{base_url}/agents", headers=headers)
+```
+
+### Node.js
+
+```javascript
+const api_key = process.env.FIM_API_KEY;
+const base_url = process.env.FIM_API_BASE_URL || "https://your-domain.com/api";
+
+const headers = {
+  "Authorization": `Bearer ${api_key}`,
+  "Content-Type": "application/json"
+};
+
+// Use in fetch
+const response = await fetch(`${base_url}/agents`, {
+  headers: headers
+});
+```
+
+### Bash
+
+```bash
+#!/bin/bash
+
+FIM_API_KEY="${FIM_API_KEY:-$(cat ~/.fim_api_key)}"
+FIM_API_BASE_URL="${FIM_API_BASE_URL:-https://your-domain.com/api}"
+
+curl -H "Authorization: Bearer $FIM_API_KEY" \
+  "$FIM_API_BASE_URL/agents"
+```
+
+## 지원
+
+인증 문제의 경우:
+
+- 응답 형식 세부 정보는 [API 개요](/api/overview)를 확인하세요
+- `GET /api/auth/verify`로 토큰 만료를 검토하세요
+- 키가 손상되었다고 생각되면 지원팀에 문의하세요

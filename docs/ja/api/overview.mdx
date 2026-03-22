@@ -1,8 +1,196 @@
 ---
-title: "API 概要"
-description: "FIM One REST API 入門ガイド"
+title: "API概要"
+description: "FIM One REST APIの開始"
 ---
 
-## API 概要
+FIM Oneは、AIエージェント、会話、ナレッジベースなどへのプログラマティックアクセスのためのREST APIを提供しています。
 
-[英語版](/api/overview)をご参照ください。
+## ベースURL
+
+```
+https://your-domain.com/api
+```
+
+## 認証
+
+すべてのAPI リクエストは、APIキーまたはJWTトークンを使用した認証が必要です。
+
+### APIキーの使用
+
+`Authorization`ヘッダーにAPIキーを含めます：
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/agents
+```
+
+### JWT トークンの使用
+
+SSE ストリーミングエンドポイント（`/api/react` と `/api/dag`）の場合、リクエストボディでトークンを渡すことができます：
+
+```json
+{
+  "q": "What's the weather today?",
+  "token": "your_jwt_token_here"
+}
+```
+
+詳細なセットアップ手順については、[認証](/api/authentication)を参照してください。
+
+## レスポンス形式
+
+### 成功レスポンス
+
+すべての成功したAPIレスポンスは、以下の構造に従います：
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "conv_123abc",
+    "title": "My Conversation",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### エラーレスポンス
+
+エラーレスポンスにはエラーコードと人間が読める形のメッセージが含まれます：
+
+```json
+{
+  "success": false,
+  "error": "conversation_not_found",
+  "message": "The conversation does not exist or has been deleted"
+}
+```
+
+### ページネーション付きレスポンス
+
+リストエンドポイントはページネーション付きの結果を返します:
+
+```json
+{
+  "items": [
+    { "id": "item_1", "name": "First Item" },
+    { "id": "item_2", "name": "Second Item" }
+  ],
+  "total": 42,
+  "page": 1,
+  "size": 20,
+  "pages": 3
+}
+```
+
+## ストリーミング (Server-Sent Events)
+
+チャットエンドポイント (`POST /api/react` および `POST /api/dag`) は、リアルタイムストリーミング用の Server-Sent Events を返します。各イベントには、そのコンテンツを示す `type` フィールドがあります:
+
+| イベントタイプ | 説明 |
+|-----------|-------------|
+| `step` | ReAct推論ステップ (ツール呼び出し、思考) |
+| `step_progress` | DAGステップの進行状況 (開始/反復/完了) |
+| `phase` | パイプラインフェーズの遷移 (計画/実行/分析) |
+| `compact` | コンテキスト圧縮が発生 |
+| `answer` | ストリーミングされた回答テキスト (開始/デルタ/完了) |
+| `done` | 最終結果ペイロード |
+| `suggestions` | 推奨フォローアップ質問 |
+| `title` | 自動生成された会話タイトル |
+| `end` | ストリーム終了記号 (常に最後) |
+
+### SSE ストリーム例
+
+```
+event: step
+data: {"type": "tool_call", "tool": "search", "input": "Paris weather"}
+
+event: answer
+data: {"type": "delta", "text": "Based on current data, "}
+
+event: answer
+data: {"type": "delta", "text": "Paris has pleasant weather."}
+
+event: done
+data: {"answer": "Based on current data, Paris has pleasant weather.", "tokens": 128}
+
+event: suggestions
+data: ["What about tomorrow's forecast?", "Compare with other European cities"]
+
+event: end
+data: {}
+```
+
+## レート制限
+
+キーごとのレート制限は将来のリリースで予定されています。現在、キーごとのリクエスト制限は強制されていませんが、APIを責任を持って使用してください。
+
+## ページネーション
+
+リストエンドポイントはクエリパラメータを使用したページネーションをサポートしています：
+
+```bash
+curl "https://your-domain.com/api/conversations?page=2&size=50" \
+  -H "Authorization: Bearer fim_your_api_key_here"
+```
+
+パラメータ：
+- `page` (デフォルト: 1) — ページ番号、1から始まります
+- `size` (デフォルト: 20) — ページあたりのアイテム数、最大 100
+
+## タイムスタンプ
+
+すべてのタイムスタンプはUTCタイムゾーン付きのISO 8601形式です:
+
+```json
+{
+  "created_at": "2024-01-15T10:30:45.123456Z",
+  "updated_at": "2024-01-15T14:22:10.654321Z"
+}
+```
+
+## エラーコード
+
+一般的なエラーコードとその意味：
+
+| エラーコード | HTTPステータス | 意味 |
+|-----------|-------------|---------|
+| `unauthorized` | 401 | 無効または欠落している認証 |
+| `forbidden` | 403 | このリソースへのアクセス権限がありません |
+| `not_found` | 404 | リソースが存在しません |
+| `bad_request` | 400 | 無効なリクエストパラメータ |
+| `rate_limit_exceeded` | 429 | リクエストが多すぎます（予定） |
+| `internal_error` | 500 | サーバーエラー |
+
+## API プレイグラウンド
+
+各エンドポイントページには、以下のことができるインタラクティブな API プレイグラウンドが含まれています:
+
+- ブラウザから直接リクエストをテストする
+- 実際のレスポンスを表示する
+- 複数の言語でリクエストコードをコピーする
+- API キーで認証する
+
+<Note>
+API プレイグラウンドはブラウザからリクエストを実行するため、API キーに適切な CORS パーミッションがあることを確認してください (通常、同一オリジンのリクエストではデフォルトで有効になっています)。
+</Note>
+
+## SDK の利用可能性
+
+FIM One API は完全に REST ベースですが、一般的なプログラミング言語で SDK が利用可能です (またはまもなく利用可能になります):
+
+- **Python**: 近日公開予定
+- **JavaScript/TypeScript**: 近日公開予定
+- **Go**: 近日公開予定
+
+## バージョニング
+
+現在のAPIバージョンは `v0.8.0` です。バージョンはURLパスに含まれていません。破壊的な変更はメジャーバージョンのバンプと移行期間を通じて通知されます。
+
+## サポート
+
+API の問題または質問については:
+
+- **ドキュメント**: 各エンドポイントの詳細ガイドを参照してください
+- **GitHub Issues**: バグを報告してください https://github.com/fim-ai/fim-one/issues
+- **Discord コミュニティ**: コミュニティに参加して議論してください

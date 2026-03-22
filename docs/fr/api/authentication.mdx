@@ -1,8 +1,356 @@
 ---
 title: "Authentification"
-description: "Comment s'authentifier avec l'API FIM One"
+description: "Comment s'authentifier auprès de l'API FIM One"
 ---
 
-## Authentification
+## Aperçu
 
-Veuillez consulter la [version anglaise](/api/authentication).
+L'API FIM One prend en charge deux méthodes d'authentification :
+
+1. **Clés API** — Jetons simples et durables pour l'intégration de service à service
+2. **Jetons JWT** — Jetons de courte durée issus de la connexion utilisateur (pour les points de terminaison SSE)
+
+La plupart des intégrations doivent utiliser les **Clés API**.
+
+## Clés API
+
+Les clés API sont des identifiants de longue durée liés à votre compte utilisateur. Elles sont idéales pour :
+
+- Les intégrations serveur à serveur
+- Les scripts planifiés et l'automatisation
+- Les applications externes accédant à FIM One
+
+### Création d'une clé API
+
+1. Connectez-vous à votre portail FIM One
+2. Allez à **Paramètres → Clés API**
+3. Cliquez sur **Créer une clé API**
+4. Entrez un nom (par exemple, « Intégration Production »)
+5. (Facultatif) Définissez les portées pour limiter l'accès
+6. (Facultatif) Définissez une date d'expiration
+7. Cliquez sur **Créer**
+8. Copiez la clé immédiatement — elle n'est affichée qu'une seule fois
+
+La clé complète ressemble à : `fim_your44characterkeystringhere` (commence par le préfixe `fim_`)
+
+### Utilisation des clés API
+
+Incluez la clé dans l'en-tête `Authorization` en tant que jeton Bearer :
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/conversations
+```
+
+Ou en Python :
+
+```python
+import requests
+
+headers = {
+    "Authorization": "Bearer fim_your_api_key_here"
+}
+
+response = requests.get(
+    "https://your-domain.com/api/conversations",
+    headers=headers
+)
+print(response.json())
+```
+
+### Fonctionnalités des clés API
+
+**Visibilité** : Chaque clé affiche :
+- Préfixe de clé (premiers 8 caractères pour l'identification)
+- Date de création
+- Horodatage de la dernière utilisation
+- Nombre total de requêtes
+- Statut actif
+- Date d'expiration (si définie)
+
+**Gestion** : Vous pouvez :
+- Activer/désactiver les clés sans les supprimer
+- Définir des dates d'expiration automatiques
+- Supprimer les clés de manière permanente
+- Suivre les modèles d'utilisation
+
+### Portées
+
+Les portées limitent ce qu'une clé API peut accéder. Si aucune portée n'est définie, la clé a un accès complet.
+
+Portées disponibles :
+
+| Portée | Autorise |
+|--------|----------|
+| `chat` | POST /api/react, POST /api/dag, POST /api/chat/inject |
+| `agents` | GET /api/agents, GET /api/agents/{id} |
+| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/{id}/retrieve |
+| `connectors` | CRUD des connecteurs (endpoints connector_specific) |
+| `admin` | Points de terminaison administratifs |
+
+Créer une clé avec des portées :
+
+```bash
+curl -X POST https://your-domain.com/api/me/api-keys \
+  -H "Authorization: Bearer your_current_api_key_or_jwt" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Chat-only Integration",
+    "scopes": "chat"
+  }'
+```
+
+## Jetons JWT
+
+Les jetons JWT sont de courte durée et émis lors de la connexion. Ils sont utilisés pour :
+
+- **Points de terminaison de diffusion en continu SSE** : Transmettez les jetons dans le corps de la requête pour `/api/react` et `/api/dag`
+- **Session du portail** : Authentification du frontend
+
+### Obtenir un jeton JWT
+
+Les jetons JWT sont automatiquement émis lorsque vous vous connectez via le portail web ou appelez le point de terminaison d'authentification :
+
+```bash
+curl -X POST https://your-domain.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your_password"
+  }'
+```
+
+Réponse :
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 7200,
+  "user": { ... }
+}
+```
+
+### Utilisation de JWT pour le streaming
+
+Pour les points de terminaison SSE, incluez le jeton dans le corps de la requête :
+
+```bash
+curl -X POST https://your-domain.com/api/react \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "What are the top 3 Python frameworks?",
+    "token": "your_jwt_token_here"
+  }'
+```
+
+Ou depuis JavaScript en utilisant `fetch` avec un flux lisible (le point de terminaison est POST uniquement, donc `EventSource` natif qui ne supporte que GET ne peut pas être utilisé) :
+
+```javascript
+const response = await fetch("https://your-domain.com/api/react", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    q: "Hello",
+    token: "fim_your_api_key_here"
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value);
+  // Parse SSE events from chunk
+  console.log(chunk);
+}
+```
+
+### Actualisation du jeton
+
+Les jetons d'accès expirent après 2 heures. Utilisez le jeton d'actualisation pour obtenir un nouveau jeton d'accès sans vous reconnecter :
+
+```bash
+curl -X POST https://your-domain.com/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token": "your_refresh_token_here"
+  }'
+```
+
+## Bonnes pratiques de sécurité
+
+### Clés API
+
+<Warning>
+**Ne validez jamais les clés API dans le contrôle de version.** Elles fournissent un accès complet à vos données.
+</Warning>
+
+1. **Stockez dans des variables d'environnement** :
+   ```bash
+   export FIM_API_KEY="fim_your_api_key_here"
+   ```
+   Puis référencez dans le code :
+   ```python
+   api_key = os.environ.get("FIM_API_KEY")
+   ```
+
+2. **Utilisez la rotation des clés** :
+   - Créez une nouvelle clé
+   - Mettez à jour votre application
+   - Supprimez l'ancienne clé
+   - Répétez tous les trimestres
+
+3. **Définissez des dates d'expiration** :
+   - Utilisez des clés de courte durée pour les intégrations temporaires
+   - Exigez une réauthentification périodique
+
+4. **Utilisez des clés limitées** :
+   - N'utilisez pas de clés « accès complet » sauf si nécessaire
+   - Créez des clés séparées pour différents services
+   - Limitez les dégâts si une clé est compromise
+
+5. **Surveillez l'utilisation** :
+   - Vérifiez les horodatages « dernière utilisation »
+   - Examinez les compteurs de requêtes
+   - Supprimez les clés inutilisées
+
+### Jetons JWT
+
+1. **Garder une courte durée de vie** : Les jetons d'accès expirent après 2 heures
+2. **Stockage sécurisé** :
+   - Dans les navigateurs : utiliser les cookies HttpOnly (plus sûr que localStorage)
+   - Sur les serveurs : utiliser le stockage de session sécurisé
+3. **Ne jamais exposer dans les journaux** : Enregistrer uniquement le préfixe du jeton, pas le jeton complet
+4. **Utiliser HTTPS uniquement** : Ne jamais envoyer les jetons sur des connexions non chiffrées
+
+## Limites de débit
+
+La limitation de débit par clé est prévue pour une version future. Actuellement, il n'y a pas de limites de requêtes appliquées par clé.
+
+## Dépannage
+
+### Erreur de jeton invalide
+
+```json
+{
+  "error": "invalid_token",
+  "message": "The provided token is invalid or expired"
+}
+```
+
+**Causes** :
+- Le préfixe de la clé API est incorrect (doit commencer par `fim_`)
+- Le jeton JWT a expiré (actualisez-le)
+- Le jeton est mal formé ou corrompu
+- La clé API a été supprimée
+
+**Solution** : Vérifiez le format de votre jeton et régénérez-le si nécessaire
+
+### Erreur Non Autorisée
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Authentication required"
+}
+```
+
+**Causes** :
+- Aucun en-tête Authorization fourni
+- Le jeton est manquant du corps de la requête (pour les points de terminaison SSE)
+- La clé API est désactivée
+
+**Solution** : Incluez un jeton valide dans chaque requête
+
+### Erreur Interdite
+
+```json
+{
+  "error": "forbidden",
+  "message": "Your API key does not have permission to access this resource"
+}
+```
+
+**Causes** :
+- La clé API a un accès limité et manque de la portée requise
+- Le compte utilisateur a des permissions restreintes
+
+**Solution** : Utilisez une clé avec la portée appropriée ou augmentez les privilèges de la clé
+
+### Jeton expiré
+
+```json
+{
+  "error": "token_expired",
+  "message": "Your token has expired. Please refresh your authentication."
+}
+```
+
+**Solution** : Utilisez le jeton d'actualisation pour obtenir un nouveau jeton d'accès :
+
+```bash
+curl -X POST https://your-domain.com/api/auth/refresh \
+  -d '{"refresh_token": "your_refresh_token"}'
+```
+
+## Configuration des variables d'environnement
+
+### Python
+
+```python
+import os
+from dotenv import load_dotenv
+import requests
+
+# Load from .env file
+load_dotenv()
+
+api_key = os.getenv("FIM_API_KEY")
+base_url = os.getenv("FIM_API_BASE_URL", "https://your-domain.com/api")
+
+headers = {"Authorization": f"Bearer {api_key}"}
+
+# Now use in requests
+response = requests.get(f"{base_url}/agents", headers=headers)
+```
+
+### Node.js
+
+```javascript
+const api_key = process.env.FIM_API_KEY;
+const base_url = process.env.FIM_API_BASE_URL || "https://your-domain.com/api";
+
+const headers = {
+  "Authorization": `Bearer ${api_key}`,
+  "Content-Type": "application/json"
+};
+
+// Use in fetch
+const response = await fetch(`${base_url}/agents`, {
+  headers: headers
+});
+```
+
+### Bash
+
+```bash
+#!/bin/bash
+
+FIM_API_KEY="${FIM_API_KEY:-$(cat ~/.fim_api_key)}"
+FIM_API_BASE_URL="${FIM_API_BASE_URL:-https://your-domain.com/api}"
+
+curl -H "Authorization: Bearer $FIM_API_KEY" \
+  "$FIM_API_BASE_URL/agents"
+```
+
+## Support
+
+Pour les problèmes d'authentification :
+
+- Consultez la [Présentation de l'API](/api/overview) pour les détails du format de réponse
+- Vérifiez l'expiration du jeton avec `GET /api/auth/verify`
+- Contactez le support si vous pensez qu'une clé a été compromise

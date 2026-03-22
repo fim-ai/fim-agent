@@ -1,8 +1,356 @@
 ---
 title: "Authentifizierung"
-description: "Authentifizierung mit der FIM One API"
+description: "So authentifizieren Sie sich mit der FIM One API"
 ---
 
-## Authentifizierung
+## Übersicht
 
-Bitte lesen Sie die [englische Version](/api/authentication).
+Die FIM One API unterstützt zwei Authentifizierungsmethoden:
+
+1. **API-Schlüssel** — Einfache, langlebige Token für Service-to-Service-Integration
+2. **JWT-Token** — Kurzlebige Token aus Benutzeranmeldung (für SSE-Endpunkte)
+
+Die meisten Integrationen sollten **API-Schlüssel** verwenden.
+
+## API-Schlüssel
+
+API-Schlüssel sind langlebige Anmeldedaten, die an Ihr Benutzerkonto gebunden sind. Sie sind ideal für:
+
+- Server-zu-Server-Integrationen
+- Geplante Skripte und Automatisierung
+- Externe Anwendungen, die auf FIM One zugreifen
+
+### API-Schlüssel erstellen
+
+1. Melden Sie sich bei Ihrem FIM One-Portal an
+2. Gehen Sie zu **Einstellungen → API-Schlüssel**
+3. Klicken Sie auf **API-Schlüssel erstellen**
+4. Geben Sie einen Namen ein (z. B. „Production Integration")
+5. (Optional) Legen Sie Bereiche fest, um den Zugriff einzuschränken
+6. (Optional) Legen Sie ein Ablaufdatum fest
+7. Klicken Sie auf **Erstellen**
+8. Kopieren Sie den Schlüssel sofort – er wird nur einmal angezeigt
+
+Der vollständige Schlüssel sieht wie folgt aus: `fim_your44characterkeystringhere` (beginnt mit dem Präfix `fim_`)
+
+### API-Schlüssel verwenden
+
+Fügen Sie den Schlüssel im `Authorization`-Header als Bearer-Token ein:
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/conversations
+```
+
+Oder in Python:
+
+```python
+import requests
+
+headers = {
+    "Authorization": "Bearer fim_your_api_key_here"
+}
+
+response = requests.get(
+    "https://your-domain.com/api/conversations",
+    headers=headers
+)
+print(response.json())
+```
+
+### API-Schlüssel-Funktionen
+
+**Sichtbarkeit**: Jeder Schlüssel zeigt:
+- Schlüsselpräfix (erste 8 Zeichen zur Identifikation)
+- Erstellungsdatum
+- Zeitstempel der letzten Verwendung
+- Gesamtanzahl der Anfragen
+- Aktivitätsstatus
+- Ablaufdatum (falls festgelegt)
+
+**Verwaltung**: Sie können:
+- Schlüssel aktivieren/deaktivieren, ohne sie zu löschen
+- Automatische Ablaufdaten festlegen
+- Schlüssel dauerhaft löschen
+- Nutzungsmuster verfolgen
+
+### Scopes
+
+Scopes begrenzen, worauf ein API-Schlüssel zugreifen kann. Wenn keine Scopes festgelegt sind, hat der Schlüssel vollständigen Zugriff.
+
+Verfügbare Scopes:
+
+| Scope | Erlaubt |
+|-------|--------|
+| `chat` | POST /api/react, POST /api/dag, POST /api/chat/inject |
+| `agents` | GET /api/agents, GET /api/agents/{id} |
+| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/{id}/retrieve |
+| `connectors` | Connector CRUD (connector_specific endpoints) |
+| `admin` | Administrative Endpoints |
+
+Erstellen Sie einen Schlüssel mit Scopes:
+
+```bash
+curl -X POST https://your-domain.com/api/me/api-keys \
+  -H "Authorization: Bearer your_current_api_key_or_jwt" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Chat-only Integration",
+    "scopes": "chat"
+  }'
+```
+
+## JWT-Token
+
+JWT-Token sind kurzlebig und werden bei der Anmeldung ausgestellt. Sie werden verwendet für:
+
+- **SSE-Streaming-Endpunkte**: Token im Request-Body für `/api/react` und `/api/dag` übergeben
+- **Portal-Sitzung**: Frontend-Authentifizierung
+
+### JWT-Token abrufen
+
+JWT-Token werden automatisch ausgestellt, wenn Sie sich über das Web-Portal anmelden oder den Authentifizierungsendpunkt aufrufen:
+
+```bash
+curl -X POST https://your-domain.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your_password"
+  }'
+```
+
+Antwort:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 7200,
+  "user": { ... }
+}
+```
+
+### JWT für Streaming verwenden
+
+Für SSE-Endpunkte den Token im Request-Body einschließen:
+
+```bash
+curl -X POST https://your-domain.com/api/react \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "What are the top 3 Python frameworks?",
+    "token": "your_jwt_token_here"
+  }'
+```
+
+Oder von JavaScript aus mit `fetch` und einem lesbaren Stream (der Endpunkt ist nur POST, daher kann das native `EventSource`, das nur GET unterstützt, nicht verwendet werden):
+
+```javascript
+const response = await fetch("https://your-domain.com/api/react", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    q: "Hello",
+    token: "fim_your_api_key_here"
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value);
+  // Parse SSE events from chunk
+  console.log(chunk);
+}
+```
+
+### Token-Aktualisierung
+
+Zugriffstoken verfallen nach 2 Stunden. Verwenden Sie das Aktualisierungstoken, um ein neues Zugriffstoken zu erhalten, ohne sich erneut anzumelden:
+
+```bash
+curl -X POST https://your-domain.com/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token": "your_refresh_token_here"
+  }'
+```
+
+## Sicherheitsbest Practices
+
+### API-Schlüssel
+
+<Warning>
+**Committen Sie API-Schlüssel niemals in die Versionskontrolle.** Sie bieten vollständigen Zugriff auf Ihre Daten.
+</Warning>
+
+1. **Speichern Sie in Umgebungsvariablen**:
+   ```bash
+   export FIM_API_KEY="fim_your_api_key_here"
+   ```
+   Dann referenzieren Sie im Code:
+   ```python
+   api_key = os.environ.get("FIM_API_KEY")
+   ```
+
+2. **Verwenden Sie Schlüsselrotation**:
+   - Erstellen Sie einen neuen Schlüssel
+   - Aktualisieren Sie Ihre Anwendung
+   - Löschen Sie den alten Schlüssel
+   - Wiederholen Sie dies vierteljährlich
+
+3. **Legen Sie Ablaufdaten fest**:
+   - Verwenden Sie kurzlebige Schlüssel für temporäre Integrationen
+   - Erfordern Sie regelmäßige Wiederauthentifizierung
+
+4. **Verwenden Sie begrenzte Schlüssel**:
+   - Verwenden Sie keine Schlüssel mit „vollständigem Zugriff", wenn nicht notwendig
+   - Erstellen Sie separate Schlüssel für verschiedene Dienste
+   - Begrenzt Schäden, wenn ein Schlüssel kompromittiert wird
+
+5. **Überwachen Sie die Nutzung**:
+   - Überprüfen Sie die Zeitstempel „zuletzt verwendet"
+   - Überprüfen Sie Anfragezählungen
+   - Löschen Sie ungenutzte Schlüssel
+
+### JWT Tokens
+
+1. **Kurze Gültigkeitsdauer beibehalten**: Zugriffstokens verfallen nach 2 Stunden
+2. **Sichere Speicherung**:
+   - In Browsern: HttpOnly-Cookies verwenden (sicherer als localStorage)
+   - Auf Servern: sichere Sitzungsspeicherung verwenden
+3. **Niemals in Protokollen offenlegen**: Nur das Token-Präfix protokollieren, nicht das vollständige Token
+4. **Nur HTTPS verwenden**: Tokens niemals über unverschlüsselte Verbindungen senden
+
+## Ratenlimits
+
+Pro-Schlüssel-Ratenlimits sind für eine zukünftige Version geplant. Derzeit gibt es keine durchgesetzten Pro-Schlüssel-Anfragenlimits.
+
+## Fehlerbehebung
+
+### Ungültiger Token-Fehler
+
+```json
+{
+  "error": "invalid_token",
+  "message": "The provided token is invalid or expired"
+}
+```
+
+**Ursachen**:
+- API-Schlüsselpräfix ist falsch (muss mit `fim_` beginnen)
+- JWT-Token ist abgelaufen (aktualisieren Sie ihn)
+- Token ist fehlerhaft oder beschädigt
+- API-Schlüssel wurde gelöscht
+
+**Lösung**: Überprüfen Sie Ihr Token-Format und generieren Sie es bei Bedarf neu
+
+### Unauthorized Error
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Authentication required"
+}
+```
+
+**Ursachen**:
+- Kein Authorization-Header bereitgestellt
+- Token fehlt im Request-Body (für SSE-Endpunkte)
+- API-Schlüssel ist deaktiviert
+
+**Lösung**: Fügen Sie einen gültigen Token in jede Anfrage ein
+
+### Forbidden Error
+
+```json
+{
+  "error": "forbidden",
+  "message": "Your API key does not have permission to access this resource"
+}
+```
+
+**Ursachen**:
+- API-Schlüssel hat begrenzte Zugriffe und verfügt nicht über den erforderlichen Umfang
+- Benutzerkonto hat eingeschränkte Berechtigungen
+
+**Lösung**: Verwenden Sie einen Schlüssel mit dem entsprechenden Umfang oder erhöhen Sie die Schlüsselberechtigungen
+
+### Abgelaufenes Token
+
+```json
+{
+  "error": "token_expired",
+  "message": "Your token has expired. Please refresh your authentication."
+}
+```
+
+**Lösung**: Verwenden Sie das Refresh-Token, um ein neues Zugriffstoken zu erhalten:
+
+```bash
+curl -X POST https://your-domain.com/api/auth/refresh \
+  -d '{"refresh_token": "your_refresh_token"}'
+```
+
+## Umgebungsvariablen-Einrichtung
+
+### Python
+
+```python
+import os
+from dotenv import load_dotenv
+import requests
+
+# Load from .env file
+load_dotenv()
+
+api_key = os.getenv("FIM_API_KEY")
+base_url = os.getenv("FIM_API_BASE_URL", "https://your-domain.com/api")
+
+headers = {"Authorization": f"Bearer {api_key}"}
+
+# Now use in requests
+response = requests.get(f"{base_url}/agents", headers=headers)
+```
+
+### Node.js
+
+```javascript
+const api_key = process.env.FIM_API_KEY;
+const base_url = process.env.FIM_API_BASE_URL || "https://your-domain.com/api";
+
+const headers = {
+  "Authorization": `Bearer ${api_key}`,
+  "Content-Type": "application/json"
+};
+
+// Use in fetch
+const response = await fetch(`${base_url}/agents`, {
+  headers: headers
+});
+```
+
+### Bash
+
+```bash
+#!/bin/bash
+
+FIM_API_KEY="${FIM_API_KEY:-$(cat ~/.fim_api_key)}"
+FIM_API_BASE_URL="${FIM_API_BASE_URL:-https://your-domain.com/api}"
+
+curl -H "Authorization: Bearer $FIM_API_KEY" \
+  "$FIM_API_BASE_URL/agents"
+```
+
+## Unterstützung
+
+Bei Authentifizierungsproblemen:
+
+- Überprüfen Sie die [API-Übersicht](/api/overview) auf Details zum Antwortformat
+- Überprüfen Sie die Token-Ablaufzeit mit `GET /api/auth/verify`
+- Kontaktieren Sie den Support, wenn Sie vermuten, dass ein Schlüssel kompromittiert wurde

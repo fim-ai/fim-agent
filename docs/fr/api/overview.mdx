@@ -1,8 +1,196 @@
 ---
 title: "Aperçu de l'API"
-description: "Guide de démarrage avec l'API REST FIM One"
+description: "Premiers pas avec l'API REST FIM One"
 ---
 
-## Aperçu de l'API
+FIM One fournit une API REST pour un accès programmatique aux agents IA, conversations, bases de connaissances, et bien plus.
 
-Veuillez consulter la [version anglaise](/api/overview).
+## URL de base
+
+```
+https://your-domain.com/api
+```
+
+## Authentification
+
+Toutes les demandes d'API nécessitent une authentification via une clé API ou un jeton JWT.
+
+### Utilisation de la clé API
+
+Incluez votre clé API dans l'en-tête `Authorization` :
+
+```bash
+curl -H "Authorization: Bearer fim_your_api_key_here" \
+  https://your-domain.com/api/agents
+```
+
+### Utilisation du jeton JWT
+
+Pour les points de terminaison de streaming SSE (`/api/react` et `/api/dag`), vous pouvez transmettre le jeton dans le corps de la requête à la place :
+
+```json
+{
+  "q": "What's the weather today?",
+  "token": "your_jwt_token_here"
+}
+```
+
+Consultez [Authentification](/api/authentication) pour des instructions de configuration détaillées.
+
+## Format de réponse
+
+### Réponse réussie
+
+Toutes les réponses API réussies suivent cette structure :
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "conv_123abc",
+    "title": "My Conversation",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Réponse d'erreur
+
+Les réponses d'erreur incluent un code d'erreur et un message lisible par l'homme :
+
+```json
+{
+  "success": false,
+  "error": "conversation_not_found",
+  "message": "The conversation does not exist or has been deleted"
+}
+```
+
+### Réponses Paginées
+
+Les points de terminaison de liste retournent des résultats paginés :
+
+```json
+{
+  "items": [
+    { "id": "item_1", "name": "First Item" },
+    { "id": "item_2", "name": "Second Item" }
+  ],
+  "total": 42,
+  "page": 1,
+  "size": 20,
+  "pages": 3
+}
+```
+
+## Streaming (Server-Sent Events)
+
+Les points de terminaison de chat (`POST /api/react` et `POST /api/dag`) retournent des Server-Sent Events pour le streaming en temps réel. Chaque événement a un champ `type` indiquant son contenu :
+
+| Type d'événement | Description |
+|-----------|-------------|
+| `step` | Étape de raisonnement ReAct (appels d'outils, réflexion) |
+| `step_progress` | Progression de l'étape DAG (démarrée/itération/terminée) |
+| `phase` | Transition de phase du pipeline (planification/exécution/analyse) |
+| `compact` | Compaction de contexte effectuée |
+| `answer` | Texte de réponse en streaming (début/delta/terminé) |
+| `done` | Charge utile du résultat final |
+| `suggestions` | Questions de suivi suggérées |
+| `title` | Titre de conversation généré automatiquement |
+| `end` | Terminateur de flux (toujours en dernier) |
+
+### Flux SSE
+
+```
+event: step
+data: {"type": "tool_call", "tool": "search", "input": "Paris weather"}
+
+event: answer
+data: {"type": "delta", "text": "Based on current data, "}
+
+event: answer
+data: {"type": "delta", "text": "Paris has pleasant weather."}
+
+event: done
+data: {"answer": "Based on current data, Paris has pleasant weather.", "tokens": 128}
+
+event: suggestions
+data: ["What about tomorrow's forecast?", "Compare with other European cities"]
+
+event: end
+data: {}
+```
+
+## Limitation de débit
+
+La limitation de débit par clé est prévue pour une version future. Actuellement, il n'y a pas de limites de requêtes appliquées par clé, mais veuillez utiliser l'API de manière responsable.
+
+## Pagination
+
+Les points de terminaison de liste prennent en charge la pagination via les paramètres de requête :
+
+```bash
+curl "https://your-domain.com/api/conversations?page=2&size=50" \
+  -H "Authorization: Bearer fim_your_api_key_here"
+```
+
+Paramètres :
+- `page` (par défaut : 1) — numéro de page, à partir de 1
+- `size` (par défaut : 20) — éléments par page, max 100
+
+## Horodatages
+
+Tous les horodatages sont au format ISO 8601 avec le fuseau horaire UTC :
+
+```json
+{
+  "created_at": "2024-01-15T10:30:45.123456Z",
+  "updated_at": "2024-01-15T14:22:10.654321Z"
+}
+```
+
+## Codes d'erreur
+
+Codes d'erreur courants et leurs significations :
+
+| Code d'erreur | Statut HTTP | Signification |
+|-----------|-------------|---------|
+| `unauthorized` | 401 | Authentification invalide ou manquante |
+| `forbidden` | 403 | L'utilisateur n'a pas les permissions pour cette ressource |
+| `not_found` | 404 | La ressource n'existe pas |
+| `bad_request` | 400 | Paramètres de requête invalides |
+| `rate_limit_exceeded` | 429 | Trop de requêtes (prévu) |
+| `internal_error` | 500 | Erreur serveur |
+
+## Terrain de jeu API
+
+Chaque page de point de terminaison inclut un terrain de jeu API interactif où vous pouvez :
+
+- Tester les demandes directement depuis votre navigateur
+- Afficher les réponses réelles
+- Copier le code de demande dans plusieurs langues
+- S'authentifier avec votre clé API
+
+<Note>
+Le terrain de jeu API exécute les demandes depuis votre navigateur, assurez-vous donc que votre clé API dispose des autorisations CORS appropriées (généralement activées par défaut pour les demandes de même origine).
+</Note>
+
+## Disponibilité du SDK
+
+Bien que l'API FIM One soit entièrement basée sur REST, des SDK sont disponibles (ou à venir) dans les langages populaires :
+
+- **Python** : À venir
+- **JavaScript/TypeScript** : À venir
+- **Go** : À venir
+
+## Versioning
+
+La version actuelle de l'API est `v0.8.0`. La version n'est pas incluse dans le chemin d'accès de l'URL ; les modifications incompatibles seront signalées par des augmentations de version majeure et une période de migration.
+
+## Support
+
+Pour les problèmes ou questions liés à l'API :
+
+- **Documentation** : Consultez les guides détaillés sur chaque endpoint
+- **GitHub Issues** : Signalez les bugs sur https://github.com/fim-ai/fim-one/issues
+- **Communauté Discord** : Rejoignez notre communauté pour discuter
