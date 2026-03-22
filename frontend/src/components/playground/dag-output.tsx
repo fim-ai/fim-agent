@@ -584,7 +584,7 @@ function StepProgressCard({ state }: { state: StepState }) {
           >
             {state.step_id}
           </Badge>
-          <p className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground flex-1 min-w-0">
             {state.task}
           </p>
           {state.status === "completed" && state.duration != null && (
