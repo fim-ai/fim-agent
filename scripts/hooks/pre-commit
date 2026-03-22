@@ -40,19 +40,34 @@ fi
 STAGED_README=$(git diff --cached --name-only --diff-filter=ACM \
   | grep -E '^README\.md$' || true)
 
+STAGED_WEB_PY=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^src/fim_one/web/.*\.py$' || true)
+
 # ---------------------------------------------------------------------------
 # Skip hook if nothing relevant is staged
 # ---------------------------------------------------------------------------
-if [ -z "$STAGED_JSON" ] && [ -z "$STAGED_MDX" ] && [ -z "$STAGED_README" ]; then
+if [ -z "$STAGED_JSON" ] && [ -z "$STAGED_MDX" ] && [ -z "$STAGED_README" ] && [ -z "$STAGED_WEB_PY" ]; then
   exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# Run the translation script
+# Re-generate OpenAPI spec if web routes changed
 # ---------------------------------------------------------------------------
-echo "i18n: translating changed files..."
-cd "$ROOT"
-GIT_HOOK=1 uv run scripts/translate.py
+if [ -n "$STAGED_WEB_PY" ]; then
+  echo "openapi: regenerating docs/openapi.json..."
+  cd "$ROOT"
+  uv run python scripts/export_openapi.py 2>/dev/null
+  git add docs/openapi.json
+fi
+
+# ---------------------------------------------------------------------------
+# Run the translation script (skip if only web py changed, no docs)
+# ---------------------------------------------------------------------------
+if [ -n "$STAGED_JSON" ] || [ -n "$STAGED_MDX" ] || [ -n "$STAGED_README" ]; then
+  echo "i18n: translating changed files..."
+  cd "$ROOT"
+  GIT_HOOK=1 uv run scripts/translate.py
+fi
 
 # ---------------------------------------------------------------------------
 # Validate MDX files (catches JSX parse errors before Mintlify)
