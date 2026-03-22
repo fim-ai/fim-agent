@@ -74,21 +74,21 @@ print(response.json())
 - 키 영구 삭제
 - 사용 패턴 추적
 
-### 스코프
+### 범위
 
-스코프는 API 키가 접근할 수 있는 범위를 제한합니다. 스코프를 설정하지 않으면 키는 전체 접근 권한을 가집니다.
+범위는 API 키가 액세스할 수 있는 항목을 제한합니다. 범위를 설정하지 않으면 키는 전체 액세스 권한을 가집니다.
 
-사용 가능한 스코프:
+사용 가능한 범위:
 
-| 스코프 | 허용 사항 |
+| 범위 | 허용 |
 |-------|--------|
 | `chat` | POST /api/react, POST /api/dag, POST /api/chat/inject |
-| `agents` | GET /api/agents, GET /api/agents/{id} |
-| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/{id}/retrieve |
+| `agents` | GET /api/agents, GET /api/agents/`{id}` |
+| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/`{id}`/retrieve |
 | `connectors` | 커넥터 CRUD (connector_specific endpoints) |
 | `admin` | 관리 엔드포인트 |
 
-스코프를 사용하여 키 생성:
+범위를 사용하여 키 생성:
 
 ```bash
 curl -X POST https://your-domain.com/api/me/api-keys \
@@ -354,4 +354,3 @@ curl -H "Authorization: Bearer $FIM_API_KEY" \
 - 응답 형식 세부 정보는 [API 개요](/api/overview)를 확인하세요
 - `GET /api/auth/verify`로 토큰 만료를 검토하세요
 - 키가 손상되었다고 생각되면 지원팀에 문의하세요
-

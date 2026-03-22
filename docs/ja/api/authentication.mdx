@@ -78,17 +78,17 @@ print(response.json())
 
 スコープはAPIキーがアクセスできる内容を制限します。スコープが設定されていない場合、キーはフルアクセス権を持ちます。
 
-利用可能なスコープ：
+利用可能なスコープ:
 
 | スコープ | 許可される操作 |
 |-------|--------|
 | `chat` | POST /api/react, POST /api/dag, POST /api/chat/inject |
-| `agents` | GET /api/agents, GET /api/agents/{id} |
-| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/{id}/retrieve |
-| `connectors` | コネクタCRUD（connector_specificエンドポイント） |
+| `agents` | GET /api/agents, GET /api/agents/`{id}` |
+| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/`{id}`/retrieve |
+| `connectors` | コネクタCRUD (connector_specific endpoints) |
 | `admin` | 管理エンドポイント |
 
-スコープ付きのキーを作成する：
+スコープ付きのキーを作成:
 
 ```bash
 curl -X POST https://your-domain.com/api/me/api-keys \
@@ -354,4 +354,3 @@ curl -H "Authorization: Bearer $FIM_API_KEY" \
 - レスポンス形式の詳細については[API概要](/api/overview)を確認してください
 - `GET /api/auth/verify`でトークンの有効期限を確認してください
 - キーが侵害されたと思われる場合はサポートにお問い合わせください
-

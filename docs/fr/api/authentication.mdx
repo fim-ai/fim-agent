@@ -80,12 +80,12 @@ Les portées limitent ce qu'une clé API peut accéder. Si aucune portée n'est 
 
 Portées disponibles :
 
-| Portée | Autorise |
-|--------|----------|
+| Portée | Permet |
+|--------|--------|
 | `chat` | POST /api/react, POST /api/dag, POST /api/chat/inject |
-| `agents` | GET /api/agents, GET /api/agents/{id} |
-| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/{id}/retrieve |
-| `connectors` | CRUD des connecteurs (endpoints connector_specific) |
+| `agents` | GET /api/agents, GET /api/agents/`{id}` |
+| `kb` | GET /api/knowledge-bases, POST /api/knowledge-bases/`{id}`/retrieve |
+| `connectors` | CRUD des connecteurs (endpoints spécifiques aux connecteurs) |
 | `admin` | Points de terminaison administratifs |
 
 Créer une clé avec des portées :
@@ -354,4 +354,3 @@ Pour les problèmes d'authentification :
 - Consultez la [Présentation de l'API](/api/overview) pour les détails du format de réponse
 - Vérifiez l'expiration du jeton avec `GET /api/auth/verify`
 - Contactez le support si vous pensez qu'une clé a été compromise
-
