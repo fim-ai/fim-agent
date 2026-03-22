@@ -14,5 +14,7 @@
   "generatedFiles": "Generierte Dateien",
   "htmlPreview": "HTML-Vorschau",
   "deliverables": "Lieferergebnisse",
-  "generatedFilesCount": "Generierte Dateien ({count})"
+  "generatedFilesCount": "Generierte Dateien ({count})",
+  "verifyingStep": "Ergebnisse werden überprüft...",
+  "verifyingCitations": "Zitate werden überprüft..."
 }

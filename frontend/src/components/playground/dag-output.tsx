@@ -497,6 +497,7 @@ function CollapsedIterationGroup({ group }: { group: IterationGroupData }) {
 /* ------------------------------------------------------------------ */
 
 function StepProgressCard({ state }: { state: StepState }) {
+  const tDag = useTranslations("dag")
   const { data: catalog } = useToolCatalog()
   const [expanded, setExpanded] = useState(state.status === "running")
 
@@ -603,6 +604,16 @@ function StepProgressCard({ state }: { state: StepState }) {
           <p className="text-sm font-medium text-foreground">
             {state.task}
           </p>
+          {state.verifying && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Loader2 className="h-2.5 w-2.5 animate-spin text-blue-500" />
+              <span className="text-[10px] text-blue-500">
+                {state.verifying === "citations"
+                  ? tDag("verifyingCitations")
+                  : tDag("verifyingStep")}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Collapsed: tool summary badges */}

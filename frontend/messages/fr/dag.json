@@ -14,5 +14,7 @@
   "generatedFiles": "Fichiers générés",
   "htmlPreview": "Aperçu HTML",
   "deliverables": "Livrables",
-  "generatedFilesCount": "Fichiers générés ({count})"
+  "generatedFilesCount": "Fichiers générés ({count})",
+  "verifyingStep": "Vérification des résultats...",
+  "verifyingCitations": "Vérification des citations..."
 }

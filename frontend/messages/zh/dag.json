@@ -14,5 +14,7 @@
   "generatedFiles": "生成的文件",
   "htmlPreview": "HTML 预览",
   "deliverables": "可交付成果",
-  "generatedFilesCount": "生成的文件 ({count})"
+  "generatedFilesCount": "生成的文件 ({count})",
+  "verifyingStep": "正在验证结果...",
+  "verifyingCitations": "正在检查引用..."
 }

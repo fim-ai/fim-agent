@@ -83,7 +83,7 @@ export interface DagPhaseEvent {
 
 export interface DagStepProgressEvent {
   step_id: string
-  event: "started" | "iteration" | "completed"
+  event: "started" | "iteration" | "completed" | "verifying"
   task?: string
   status?: string
   result?: string

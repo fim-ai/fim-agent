@@ -14,5 +14,7 @@
   "generatedFiles": "생성된 파일",
   "htmlPreview": "HTML 미리보기",
   "deliverables": "결과물",
-  "generatedFilesCount": "생성된 파일 ({count})"
+  "generatedFilesCount": "생성된 파일 ({count})",
+  "verifyingStep": "결과 확인 중...",
+  "verifyingCitations": "인용 확인 중..."
 }

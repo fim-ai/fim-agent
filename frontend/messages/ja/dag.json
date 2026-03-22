@@ -14,5 +14,7 @@
   "generatedFiles": "生成されたファイル",
   "htmlPreview": "HTMLプレビュー",
   "deliverables": "成果物",
-  "generatedFilesCount": "生成されたファイル ({count})"
+  "generatedFilesCount": "生成されたファイル ({count})",
+  "verifyingStep": "結果を検証中...",
+  "verifyingCitations": "引用を確認中..."
 }

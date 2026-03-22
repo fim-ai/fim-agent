@@ -3108,14 +3108,25 @@ async def dag_endpoint(
                             dag_all_artifacts.append({
                                 **a,
                                 "tool_name": sp_data.get("tool_name", ""),
+                                "step_id": sp_data.get("step_id", ""),
                             })
 
             dag_deliverables: list[dict[str, Any]] = []
-            if dag_all_artifacts and fast_llm:
-                dag_deliverables = await _classify_deliverables(
-                    fast_llm, answer, dag_all_artifacts,
-                    usage_tracker=fast_usage_tracker,
-                )
+            if dag_all_artifacts:
+                # Terminal steps = steps that no other step depends on (DAG sinks)
+                all_dep_targets: set[str] = set()
+                for s in plan.steps:
+                    all_dep_targets.update(s.dependencies)
+                terminal_step_ids = {s.id for s in plan.steps} - all_dep_targets
+
+                # Artifacts from terminal steps are deliverables
+                dag_deliverables = [
+                    a for a in dag_all_artifacts
+                    if a.get("step_id") in terminal_step_ids
+                ]
+                # Fallback: if terminal steps produced no artifacts, use all
+                if not dag_deliverables:
+                    dag_deliverables = dag_all_artifacts
 
             dag_done_payload: dict[str, Any] = {
                 "answer": answer,
@@ -3125,9 +3136,9 @@ async def dag_endpoint(
                 "rounds": plan.current_round,
             }
             if dag_deliverables:
-                # Strip tool_name from deliverable dicts before sending to client
+                # Strip internal keys from deliverable dicts before sending to client
                 dag_done_payload["deliverables"] = [
-                    {k: v for k, v in d.items() if k != "tool_name"}
+                    {k: v for k, v in d.items() if k not in ("tool_name", "step_id")}
                     for d in dag_deliverables
                 ]
             if cumulative_usage is not None:
