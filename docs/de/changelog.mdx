@@ -12,14 +12,16 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Hinzugefügt
 
-- **Progressive Datenbankwerkzeug-Offenlegung** — Ein einzelnes `database` Meta-Werkzeug mit `list_tables`/`discover`/`query` Unterbefehlen ersetzt einzelne Pro-Tabellen-Werkzeuge. Konfigurierbar über die Umgebungsvariable `DATABASE_TOOL_MODE` (`progressive` Standard, `legacy` Fallback).
+- **Progressive Datenbankwerkzeug-Offenlegung** — Ein einzelnes `database` Meta-Werkzeug mit `list_tables`/`discover`/`query` Unterbefehlen ersetzt einzelne Pro-Tabellen-Werkzeuge. Konfigurierbar über `DATABASE_TOOL_MODE` Umgebungsvariable (`progressive` Standard, `legacy` Fallback).
 - **On-Demand-Werkzeugladung** — Wenn mehr als 12 Werkzeuge verfügbar sind, ermöglicht ein `request_tools` Meta-Werkzeug dem Agenten, zusätzliche Werkzeuge dynamisch während des Gesprächs zu laden, anstatt auf die anfängliche Auswahl beschränkt zu sein.
-- **Progressive MCP-Werkzeug-Offenlegung** — Ein einzelnes `mcp` Meta-Werkzeug mit `discover`/`call` Unterbefehlen ersetzt einzelne Pro-Server-Werkzeuge. Konfigurierbar über die Umgebungsvariable `MCP_TOOL_MODE` (`progressive` Standard, `legacy` Fallback).
-- **Pro-Turn-Token-Budget-Schutzschalter** — Die Umgebungsvariable `REACT_MAX_TURN_TOKENS` bietet einen Notfall-Stopp für unkontrollierte Agent-Schleifen. Standard `0` (unbegrenzt) — verwenden Sie stattdessen das benutzerabhängige `token_quota` für tägliche Kostenkontrolle.
-- **Pro-Modell Native Function Calling-Umschalter** — Die Einstellung `tool_choice_enabled` (ENV + Admin pro Modell) ermöglicht es Modellen, die erzwungene Werkzeugauswahl ablehnen, Stufe 1 zu überspringen und direkt zum JSON-Modus zu gehen. Konfigurierbar unter Einstellungen → Modelle → Erweitert.
-- **DAG-Qualitätsüberholung** — Fünf Verbesserungen: Modell-Upgrade auf allgemeines Modell für Nicht-Fast-Schritte; automatische Skill-Erkennung in der Planung; Zitierverifizierer für juristische/medizinische/finanzielle Bereiche; strukturierte Inhaltskontext-Beibehaltung mit konfigurierbarem Kürzungsmultiplikator; Domain-Klassifizierung im Router mit Domain-bewusster Modellauswahl.
-- **Domain-Modell-Eskalation in ReAct** — Spezialisierte Bereiche (juristische/medizinische/finanzielle) eskalieren automatisch zu Reasoning-Modell mit obligatorischer Websuche und Zitierverifikation.
+- **Progressive MCP-Werkzeug-Offenlegung** — Ein einzelnes `mcp` Meta-Werkzeug mit `discover`/`call` Unterbefehlen ersetzt einzelne Pro-Server-Werkzeuge. Konfigurierbar über `MCP_TOOL_MODE` Umgebungsvariable (`progressive` Standard, `legacy` Fallback).
+- **Pro-Turn Token-Budget Schutzschalter** — `REACT_MAX_TURN_TOKENS` Umgebungsvariable bietet einen Notausschalter für unkontrollierte Agentenschleifen. Standard `0` (unbegrenzt) — verwenden Sie stattdessen `token_quota` pro Benutzer für tägliche Kostenkontrolle.
+- **Pro-Modell Native Function Calling Umschalter** — `tool_choice_enabled` Einstellung (ENV + Admin pro Modell) ermöglicht es Modellen, die erzwungene Werkzeugauswahl ablehnen, Level 1 zu überspringen und direkt zum JSON-Modus zu gehen. Konfigurierbar unter Einstellungen → Modelle → Erweitert.
+- **DAG-Qualitätsüberholung** — Fünf Verbesserungen: Modell-Upgrade auf allgemeines Modell für Nicht-Fast-Schritte; automatische Skill-Erkennung bei der Planung; Zitierprüfer für rechtliche/medizinische/finanzielle Bereiche; strukturierte Inhaltskontext-Beibehaltung mit konfigurierbarem Kürzungsmultiplikator; Domänenklassifizierung im Router mit domänengesteuerter Modellauswahl.
+- **Domänenmodell-Eskalation in ReAct** — Spezialisierte Bereiche (rechtlich/medizinisch/finanziell) eskalieren automatisch zum Reasoning-Modell mit obligatorischer Websuche und Zitierverifikation.
 - **Dateianhang-Download** — Dateikarten in Chat-Nachrichten können jetzt angeklickt werden, um die ursprüngliche Datei herunterzuladen.
+- **Admin-Benachrichtigungen Hauptschalter** — Globaler Ein-/Aus-Schalter für Admin-E-Mail-Benachrichtigungen mit SMTP-Laufzeiterkennung. Zeigt ein Warnbanner an, wenn SMTP nicht konfiguriert ist, und deaktiviert alle Benachrichtigungssteuerelemente.
+- **SMTP Reply-To Header** — Neue `SMTP_REPLY_TO` Umgebungsvariable ermöglicht Antworten an eine andere Adresse als den Absender.
 
 ### Geändert
 

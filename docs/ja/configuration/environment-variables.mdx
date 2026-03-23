@@ -300,13 +300,14 @@ Rerankerは取得したドキュメントを再スコアリングして関連性
 |---|---|---|---|
 | `SMTP_HOST` | 条件付き | — | SMTP サーバーのホスト名 |
 | `SMTP_PORT` | いいえ | `465` | SMTP ポート |
-| `SMTP_SSL` | いいえ | `ssl` | TLS モード: `ssl` (ポート 465) / `tls` (STARTTLS、ポート 587) / `""` (平文) |
+| `SMTP_SSL` | いいえ | `ssl` | TLS モード: `ssl` (ポート 465) / `tls` (STARTTLS、ポート 587) / `""` (プレーン) |
 | `SMTP_USER` | 条件付き | — | SMTP ログインユーザー名 |
 | `SMTP_PASS` | 条件付き | — | SMTP ログインパスワード |
 | `SMTP_FROM` | いいえ | *(`SMTP_USER` を使用)* | From ヘッダーに表示される送信者アドレス |
 | `SMTP_FROM_NAME` | いいえ | — | From ヘッダーに表示される表示名 |
-| `SMTP_ALLOWED_DOMAINS` | いいえ | — | カンマ区切りのドメイン許可リスト (例: `example.com,corp.io`); リストされたドメイン外の受信者をブロック |
-| `SMTP_ALLOWED_ADDRESSES` | いいえ | — | カンマ区切りの完全なアドレス許可リスト; `SMTP_ALLOWED_DOMAINS` と組み合わせて使用; 両方を未設定のままにするとすべての受信者を許可 (共有メールボックスの場合は非推奨) |
+| `SMTP_REPLY_TO` | いいえ | — | Reply-To アドレス。返信はここに送信されます (`SMTP_FROM` の代わりに) |
+| `SMTP_ALLOWED_DOMAINS` | いいえ | — | カンマ区切りのドメイン許可リスト (例: `example.com,corp.io`)。リストに含まれていないドメインの受信者をブロックします |
+| `SMTP_ALLOWED_ADDRESSES` | いいえ | — | カンマ区切りの正確なアドレス許可リスト。`SMTP_ALLOWED_DOMAINS` と組み合わせて使用します。両方を未設定のままにすると、すべての受信者を許可します (共有メールボックスの場合は非推奨) |
 
 ---
 

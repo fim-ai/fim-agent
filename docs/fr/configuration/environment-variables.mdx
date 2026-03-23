@@ -303,6 +303,7 @@ Enregistre automatiquement l'outil intégré `email_send` lorsque `SMTP_HOST`, `
 | `SMTP_PASS` | Cond. | — | Mot de passe de connexion SMTP |
 | `SMTP_FROM` | Non | *(utilise `SMTP_USER`)* | Adresse de l'expéditeur affichée dans l'en-tête From |
 | `SMTP_FROM_NAME` | Non | — | Nom d'affichage affiché dans l'en-tête From |
+| `SMTP_REPLY_TO` | Non | — | Adresse Reply-To ; les réponses vont ici au lieu de `SMTP_FROM` |
 | `SMTP_ALLOWED_DOMAINS` | Non | — | Liste d'autorisation de domaines séparés par des virgules (ex. `example.com,corp.io`) ; bloque les destinataires en dehors des domaines listés |
 | `SMTP_ALLOWED_ADDRESSES` | Non | — | Liste d'autorisation d'adresses exactes séparées par des virgules ; combinée avec `SMTP_ALLOWED_DOMAINS` ; laissez les deux non définis pour autoriser n'importe quel destinataire (non recommandé pour les boîtes aux lettres partagées) |
 

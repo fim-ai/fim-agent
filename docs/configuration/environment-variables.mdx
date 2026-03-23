@@ -309,6 +309,7 @@ Auto-registers the `email_send` built-in tool when `SMTP_HOST`, `SMTP_USER`, and
 | `SMTP_PASS` | Cond. | — | SMTP login password |
 | `SMTP_FROM` | No | *(uses `SMTP_USER`)* | Sender address shown in From header |
 | `SMTP_FROM_NAME` | No | — | Display name shown in From header |
+| `SMTP_REPLY_TO` | No | — | Reply-To address; replies go here instead of `SMTP_FROM` |
 | `SMTP_ALLOWED_DOMAINS` | No | — | Comma-separated domain allowlist (e.g. `example.com,corp.io`); blocks recipients outside listed domains |
 | `SMTP_ALLOWED_ADDRESSES` | No | — | Comma-separated exact-address allowlist; combined with `SMTP_ALLOWED_DOMAINS`; leave both unset to allow any recipient (not recommended for shared mailboxes) |
 

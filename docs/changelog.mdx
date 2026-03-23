@@ -20,6 +20,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **DAG quality overhaul** — Five improvements: default model upgrade to general model for non-fast steps; skill auto-discovery in planning; citation verifier for legal/medical/financial domains; structured content context preservation with configurable truncation multiplier; domain classification in router with domain-aware model selection.
 - **Domain model escalation in ReAct** — Specialist domains (legal/medical/financial) auto-escalate to reasoning model with mandatory web search and citation verification.
 - **File attachment download** — File cards in chat messages are now clickable to download the original file.
+- **Admin notification master switch** — Global on/off toggle for admin email notifications with runtime SMTP detection. Shows a warning banner when SMTP is not configured and disables all notification controls.
+- **SMTP Reply-To header** — New `SMTP_REPLY_TO` env var allows replies to go to a different address than the sender.
 
 ### Changed
 
