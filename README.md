@@ -221,6 +221,7 @@ We welcome contributions of all kinds — code, docs, translations, bug reports,
 **Quick links:**
 
 - [**Contributing Guide**](CONTRIBUTING.md) — setup, conventions, PR process
+- [**Development Conventions**](https://docs.fim.ai/contributing) — type safety, testing, and code quality standards
 - [**Good First Issues**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — curated for newcomers
 - [**Open Issues**](https://github.com/fim-ai/fim-one/issues) — bugs & feature requests
 

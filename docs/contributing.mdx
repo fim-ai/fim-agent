@@ -1,0 +1,155 @@
+---
+title: "Contributing"
+icon: "code-pull-request"
+description: "Development conventions, type safety, testing, and code quality standards for FIM One contributors."
+---
+
+## Setup
+
+Prerequisites: Python 3.11+, [uv](https://docs.astral.sh/uv/), Node.js 18+, pnpm.
+
+```bash
+git clone https://github.com/fim-ai/fim-one.git && cd fim-one
+cp example.env .env                        # set LLM_API_KEY at minimum
+uv sync --all-extras                       # Python dependencies
+cd frontend && pnpm install && cd ..       # frontend dependencies
+bash scripts/setup-hooks.sh                # pre-commit hooks (required)
+```
+
+Verify everything works:
+
+```bash
+uv run pytest tests/ -x -q                # tests
+uv run mypy src/fim_one/                   # type check
+uv run ruff check src/                     # lint
+cd frontend && pnpm build && cd ..         # frontend build
+```
+
+---
+
+## Type safety
+
+mypy strict mode is enforced. The entire codebase passes with zero errors, and the pre-commit hook runs mypy on every staged `.py` file with full import chain checking.
+
+**Rules:**
+
+- Type hints required on all public functions.
+- No `# type: ignore` except for `import-untyped` (third-party libs without stubs).
+- Use `from __future__ import annotations` for forward references.
+- Fix the actual types -- never suppress errors to make CI pass.
+
+---
+
+## Testing
+
+Every new module **must** have a corresponding test file. Every feature commit **must** include tests.
+
+| Convention | Pattern |
+|---|---|
+| File | `tests/test_{module}.py` |
+| Class | `Test{Feature}` |
+| Method | `test_{behavior_under_test}` |
+
+**Rules:**
+
+- All existing tests must pass before committing: `uv run pytest tests/ -x -q`.
+- Tests must not depend on external services -- mock databases, MCP servers, HTTP endpoints, and LLM calls using `unittest.mock` / `AsyncMock`.
+- Run tests with coverage: `uv run pytest --cov=fim_one`.
+
+---
+
+## Code style
+
+- **Async-first.** Use `async def` for I/O-bound operations. Wrap synchronous calls with `asyncio.to_thread()` rather than blocking the event loop.
+- **Ruff for linting.** `uv run ruff check src/` -- line length is 100 characters.
+- **Minimal `__init__.py` exports.** Only re-export the public API; keep internal symbols private.
+- **Package managers.** `uv` for Python, `pnpm` for frontend. Never use `pip` or `npm`.
+
+---
+
+## Git conventions
+
+**Atomic commits.** One logical change per commit. Split unrelated changes even if they were developed together.
+
+**Commit message format:** `type: description`
+
+| Type | When to use |
+|---|---|
+| `feat` | New user-facing feature |
+| `fix` | Bug fix |
+| `refactor` | Code restructuring with no behavior change |
+| `docs` | Documentation only |
+| `test` | Adding or updating tests |
+| `chore` | Build, CI, dependency updates |
+
+**Never skip hooks** with `--no-verify`. The pre-commit pipeline exists to catch errors before they reach the repository.
+
+---
+
+## Pre-commit hook pipeline
+
+The hook runs automatically on every commit. It only processes staged files relevant to each step -- if you only changed Python files, the i18n step is skipped, and vice versa.
+
+| Order | Step | Trigger | What it does |
+|---|---|---|---|
+| 1 | OpenAPI spec regen | `src/fim_one/web/**/*.py` changed | Re-exports `docs/openapi.json` from FastAPI routes |
+| 2 | i18n translation | `messages/en/*.json`, `docs/*.mdx`, or `README.md` changed | Translates new/changed keys into all target locales |
+| 3 | mypy type checking | Any `src/fim_one/**/*.py` changed | Runs mypy with full import chain on staged files |
+| 4 | MDX validation | Any `.mdx` file staged | Validates JSX/MDX syntax before it reaches Mintlify |
+
+If any step fails, the commit is aborted. Fix the reported errors and retry.
+
+---
+
+## i18n
+
+FIM One supports 6 locales (EN, ZH, JA, KO, DE, FR). Translations are fully automated.
+
+**Only edit English source files:**
+
+- `frontend/messages/en/{namespace}.json` -- UI strings
+- `docs/*.mdx` (root level, not locale subdirs) -- documentation
+- `README.md` -- project readme
+
+Other locale files (`messages/zh/`, `docs/zh/`, `README.zh.md`, etc.) are **auto-generated** by the pre-commit hook. Never edit them manually.
+
+**Adding a new i18n namespace:** Create `messages/en/{ns}.json` -- other locale files are generated on the next commit.
+
+**Force full retranslation:** `uv run scripts/translate.py --all`.
+
+---
+
+## Database migrations
+
+Dev uses SQLite, production uses PostgreSQL. One set of Alembic migration files must work on both.
+
+**Key rules:**
+
+- Every new ORM model or column **must** have a migration -- never rely on `metadata.create_all()`.
+- All migrations **must** be idempotent -- use helpers from `fim_one.migrations.helpers` (`table_exists`, `table_has_column`, `index_exists`).
+- Boolean defaults: `server_default=sa.text("FALSE")` / `sa.text("TRUE")`. Never `"0"` / `"1"` -- PostgreSQL rejects integer literals for Boolean columns.
+- SQLite cannot `ALTER COLUMN` -- use `op.batch_alter_table()` for column constraint changes.
+- After writing a migration, immediately run `uv run alembic upgrade head` to apply it.
+
+---
+
+## Quick reference
+
+```bash
+# Development
+./start.sh dev                            # hot reload (Python + Next.js HMR)
+./start.sh api                            # FastAPI only (headless)
+
+# Quality checks
+uv run pytest tests/ -x -q               # tests (stop on first failure)
+uv run pytest --cov=fim_one              # tests with coverage
+uv run mypy src/fim_one/                  # type check
+uv run ruff check src/                    # lint
+
+# i18n
+uv run scripts/translate.py --all         # force full retranslation
+
+# Database
+uv run alembic upgrade head               # apply migrations
+uv run alembic revision -m "description"  # create new migration
+```

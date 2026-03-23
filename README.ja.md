@@ -214,17 +214,18 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 
 ## 貢献
 
-すべての種類の貢献を歓迎します — コード、ドキュメント、翻訳、バグ報告、アイデアなど。
+あらゆる種類の貢献を歓迎します — コード、ドキュメント、翻訳、バグ報告、アイデア。
 
-> **パイオニアプログラム**: PRがマージされた最初の100人の貢献者は、**創設貢献者**として認識され、永続的なクレジット、バッジ、優先的な問題サポートが付与されます。[詳細はこちら &rarr;](CONTRIBUTING.md#-pioneer-program)
+> **パイオニアプログラム**: PRがマージされた最初の100人の貢献者は、**創設貢献者**として認識され、永続的なクレジット、バッジ、優先的な問題サポートが付与されます。[詳細を見る &rarr;](CONTRIBUTING.md#-pioneer-program)
 
 **クイックリンク:**
 
 - [**貢献ガイド**](CONTRIBUTING.md) — セットアップ、規約、PRプロセス
-- [**初心者向けの良い Issue**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — 初心者向けに厳選
-- [**オープンな Issue**](https://github.com/fim-ai/fim-one/issues) — バグ & 機能リクエスト
+- [**開発規約**](https://docs.fim.ai/contributing) — 型安全性、テスト、コード品質基準
+- [**初心者向けの良い問題**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — 初心者向けに厳選
+- [**オープンな問題**](https://github.com/fim-ai/fim-one/issues) — バグ & 機能リクエスト
 
-**セキュリティ:** 脆弱性を報告するには、`[SECURITY]` タグを付けて [GitHub issue](https://github.com/fim-ai/fim-one/issues) を開いてください。機密情報の場合は、Discord DM でお問い合わせください。
+**セキュリティ:** 脆弱性を報告する場合は、`[SECURITY]`タグを付けて[GitHubの問題](https://github.com/fim-ai/fim-one/issues)を開いてください。機密の報告については、Discord DMで私たちに連絡してください。
 
 ## Star History
 

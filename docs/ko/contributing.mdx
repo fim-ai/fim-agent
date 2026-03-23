@@ -1,0 +1,149 @@
+---
+title: "기여하기"
+icon: "code-pull-request"
+description: "FIM One 기여자를 위한 개발 규칙, 타입 안전성, 테스트 및 코드 품질 표준."
+---
+
+## 설정
+
+전제 조건: Python 3.11+, [uv](https://docs.astral.sh/uv/), Node.js 18+, pnpm.
+
+```bash
+git clone https://github.com/fim-ai/fim-one.git && cd fim-one
+cp example.env .env                        # set LLM_API_KEY at minimum
+uv sync --all-extras                       # Python dependencies
+cd frontend && pnpm install && cd ..       # frontend dependencies
+bash scripts/setup-hooks.sh                # pre-commit hooks (required)
+```
+
+모든 것이 작동하는지 확인하세요:
+
+```bash
+uv run pytest tests/ -x -q                # tests
+uv run mypy src/fim_one/                   # type check
+uv run ruff check src/                     # lint
+cd frontend && pnpm build && cd ..         # frontend build
+```
+
+---
+
+## 타입 안전성
+
+mypy strict 모드가 적용됩니다. 전체 코드베이스는 오류 없이 통과하며, pre-commit 훅은 모든 staged `.py` 파일에 대해 전체 import 체인 검사와 함께 mypy를 실행합니다.
+
+**규칙:**
+
+- 모든 공개 함수에 타입 힌트가 필요합니다.
+- `import-untyped` (stub이 없는 타사 라이브러리)를 제외하고 `# type: ignore`를 사용하지 않습니다.
+- forward reference를 위해 `from __future__ import annotations`를 사용합니다.
+- CI를 통과시키기 위해 오류를 억제하지 말고 실제 타입을 수정합니다.
+
+## 테스트
+
+모든 새로운 모듈은 **반드시** 해당하는 테스트 파일을 가져야 합니다. 모든 기능 커밋은 테스트를 포함해야 합니다.
+
+| 규칙 | 패턴 |
+|---|---|
+| 파일 | `tests/test_{module}.py` |
+| 클래스 | `Test{Feature}` |
+| 메서드 | `test_{behavior_under_test}` |
+
+**규칙:**
+
+- 커밋하기 전에 모든 기존 테스트가 통과해야 합니다: `uv run pytest tests/ -x -q`.
+- 테스트는 외부 서비스에 의존하면 안 됩니다 -- `unittest.mock` / `AsyncMock`을 사용하여 데이터베이스, MCP 서버, HTTP 엔드포인트, LLM 호출을 모킹하세요.
+- 커버리지와 함께 테스트를 실행하세요: `uv run pytest --cov=fim_one`.
+
+## 코드 스타일
+
+- **비동기 우선.** I/O 바운드 작업에는 `async def`를 사용하세요. 이벤트 루프를 블로킹하지 않도록 동기 호출을 `asyncio.to_thread()`로 래핑하세요.
+- **린팅을 위해 Ruff 사용.** `uv run ruff check src/` -- 줄 길이는 100자입니다.
+- **최소한의 `__init__.py` 내보내기.** 공개 API만 다시 내보내고 내부 기호는 비공개로 유지하세요.
+- **패키지 관리자.** Python은 `uv`, 프론트엔드는 `pnpm`을 사용하세요. `pip`나 `npm`은 절대 사용하지 마세요.
+
+---
+
+## Git 규칙
+
+**원자적 커밋.** 커밋 하나당 하나의 논리적 변경. 함께 개발되었더라도 관련 없는 변경사항은 분리하세요.
+
+**커밋 메시지 형식:** `type: description`
+
+| Type | 사용 시기 |
+|---|---|
+| `feat` | 사용자 대면 새로운 기능 |
+| `fix` | 버그 수정 |
+| `refactor` | 동작 변경 없는 코드 재구성 |
+| `docs` | 문서만 변경 |
+| `test` | 테스트 추가 또는 업데이트 |
+| `chore` | 빌드, CI, 의존성 업데이트 |
+
+**`--no-verify`로 훅을 건너뛰지 마세요.** pre-commit 파이프라인은 오류가 저장소에 도달하기 전에 이를 감지하기 위해 존재합니다.
+
+---
+
+## Pre-commit hook 파이프라인
+
+이 훅은 모든 커밋에서 자동으로 실행됩니다. 각 단계와 관련된 스테이징된 파일만 처리합니다 -- Python 파일만 변경한 경우 i18n 단계는 건너뛰고, 그 반대도 마찬가지입니다.
+
+| 순서 | 단계 | 트리거 | 수행 작업 |
+|---|---|---|---|
+| 1 | OpenAPI spec 재생성 | `src/fim_one/web/**/*.py` 변경됨 | FastAPI 라우트에서 `docs/openapi.json` 재내보내기 |
+| 2 | i18n 번역 | `messages/en/*.json`, `docs/*.mdx`, 또는 `README.md` 변경됨 | 새로운/변경된 키를 모든 대상 로케일로 번역 |
+| 3 | mypy 타입 검사 | `src/fim_one/**/*.py` 변경됨 | 스테이징된 파일에서 전체 import 체인으로 mypy 실행 |
+| 4 | MDX 검증 | `.mdx` 파일 스테이징됨 | Mintlify에 도달하기 전에 JSX/MDX 문법 검증 |
+
+단계가 실패하면 커밋이 중단됩니다. 보고된 오류를 수정하고 다시 시도하세요.
+
+---
+
+## i18n
+
+FIM One는 6개의 로케일(EN, ZH, JA, KO, DE, FR)을 지원합니다. 번역은 완전히 자동화되어 있습니다.
+
+**영어 소스 파일만 편집하세요:**
+
+- `frontend/messages/en/{namespace}.json` -- UI 문자열
+- `docs/*.mdx` (로케일 하위 디렉토리가 아닌 루트 레벨) -- 문서
+- `README.md` -- 프로젝트 readme
+
+다른 로케일 파일(`messages/zh/`, `docs/zh/`, `README.zh.md` 등)은 **자동 생성**되며 pre-commit 훅에 의해 생성됩니다. 수동으로 편집하지 마세요.
+
+**새로운 i18n 네임스페이스 추가:** `messages/en/{ns}.json` 생성 -- 다른 로케일 파일은 다음 커밋에서 생성됩니다.
+
+**전체 재번역 강제 실행:** `uv run scripts/translate.py --all`.
+
+---
+
+## 데이터베이스 마이그레이션
+
+개발 환경에서는 SQLite를 사용하고, 프로덕션 환경에서는 PostgreSQL을 사용합니다. 하나의 Alembic 마이그레이션 파일 세트가 둘 다에서 작동해야 합니다.
+
+**주요 규칙:**
+
+- 모든 새로운 ORM 모델 또는 열에는 **반드시** 마이그레이션이 필요합니다 -- `metadata.create_all()`에 의존하지 마세요.
+- 모든 마이그레이션은 **멱등성**을 가져야 합니다 -- `fim_one.migrations.helpers`의 헬퍼 함수(`table_exists`, `table_has_column`, `index_exists`)를 사용하세요.
+- Boolean 기본값: `server_default=sa.text("FALSE")` / `sa.text("TRUE")`. 절대 `"0"` / `"1"`을 사용하지 마세요 -- PostgreSQL은 Boolean 열에 대한 정수 리터럴을 거부합니다.
+- SQLite는 `ALTER COLUMN`을 지원하지 않습니다 -- 열 제약 조건 변경의 경우 `op.batch_alter_table()`을 사용하세요.
+- 마이그레이션을 작성한 후 즉시 `uv run alembic upgrade head`를 실행하여 적용하세요.
+
+## 빠른 참조
+
+```bash
+# Development
+./start.sh dev                            # hot reload (Python + Next.js HMR)
+./start.sh api                            # FastAPI only (headless)
+
+# Quality checks
+uv run pytest tests/ -x -q               # tests (stop on first failure)
+uv run pytest --cov=fim_one              # tests with coverage
+uv run mypy src/fim_one/                  # type check
+uv run ruff check src/                    # lint
+
+# i18n
+uv run scripts/translate.py --all         # force full retranslation
+
+# Database
+uv run alembic upgrade head               # apply migrations
+uv run alembic revision -m "description"  # create new migration
+```

@@ -214,17 +214,18 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 
 ## 기여하기
 
-모든 종류의 기여를 환영합니다 — 코드, 문서, 번역, 버그 보고, 아이디어.
+모든 종류의 기여를 환영합니다 — 코드, 문서, 번역, 버그 리포트, 아이디어 등.
 
-> **Pioneer Program**: PR이 병합된 첫 100명의 기여자는 **Founding Contributors**로 인정받으며 영구적인 크레딧, 배지, 우선 이슈 지원을 받습니다. [자세히 알아보기 &rarr;](CONTRIBUTING.md#-pioneer-program)
+> **Pioneer Program**: PR이 병합된 첫 100명의 기여자는 **Founding Contributors**로 인정되며, 영구적인 크레딧, 배지, 우선 이슈 지원을 받습니다. [자세히 알아보기 &rarr;](CONTRIBUTING.md#-pioneer-program)
 
 **빠른 링크:**
 
 - [**기여 가이드**](CONTRIBUTING.md) — 설정, 규칙, PR 프로세스
+- [**개발 규칙**](https://docs.fim.ai/contributing) — 타입 안전성, 테스트, 코드 품질 표준
 - [**Good First Issues**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — 신규 기여자를 위해 선별됨
 - [**Open Issues**](https://github.com/fim-ai/fim-one/issues) — 버그 & 기능 요청
 
-**보안:** 취약점을 보고하려면 `[SECURITY]` 태그와 함께 [GitHub issue](https://github.com/fim-ai/fim-one/issues)를 열어주세요. 민감한 공개의 경우 Discord DM을 통해 문의해주세요.
+**보안:** 취약점을 보고하려면 `[SECURITY]` 태그와 함께 [GitHub issue](https://github.com/fim-ai/fim-one/issues)를 열어주세요. 민감한 공개의 경우, Discord DM을 통해 저희에게 연락해주세요.
 
 ## Star History
 

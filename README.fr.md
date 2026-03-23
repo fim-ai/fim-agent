@@ -212,17 +212,18 @@ Consultez la [Feuille de route](https://docs.fim.ai/roadmap) complète pour l'hi
 
 Questions fréquemment posées sur le déploiement, les fournisseurs de LLM, la configuration système, et bien d'autres — consultez la [FAQ](https://docs.fim.ai/faq).
 
-## Contribuer
+## Contribution
 
-Nous accueillons les contributions de tous types — code, documentation, traductions, rapports de bugs et idées.
+Nous accueillons les contributions de toutes sortes — code, documentation, traductions, rapports de bugs et idées.
 
 > **Programme Pioneer** : Les 100 premiers contributeurs dont une PR est fusionnée sont reconnus comme **Contributeurs Fondateurs** avec des crédits permanents, un badge et un support prioritaire des problèmes. [En savoir plus &rarr;](CONTRIBUTING.md#-pioneer-program)
 
 **Liens rapides :**
 
-- [**Guide de contribution**](CONTRIBUTING.md) — configuration, conventions, processus de PR
-- [**Bons premiers problèmes**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — sélectionnés pour les nouveaux venus
-- [**Problèmes ouverts**](https://github.com/fim-ai/fim-one/issues) — bugs et demandes de fonctionnalités
+- [**Guide de Contribution**](CONTRIBUTING.md) — configuration, conventions, processus de PR
+- [**Conventions de Développement**](https://docs.fim.ai/contributing) — sécurité des types, tests et normes de qualité du code
+- [**Bons Premiers Problèmes**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — sélectionnés pour les nouveaux venus
+- [**Problèmes Ouverts**](https://github.com/fim-ai/fim-one/issues) — bugs et demandes de fonctionnalités
 
 **Sécurité :** Pour signaler une vulnérabilité, veuillez ouvrir un [problème GitHub](https://github.com/fim-ai/fim-one/issues) avec l'étiquette `[SECURITY]`. Pour les divulgations sensibles, contactez-nous via Discord DM.
 

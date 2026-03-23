@@ -1,0 +1,145 @@
+---
+title: "貢献"
+icon: "code-pull-request"
+description: "FIM One貢献者向けの開発規約、型安全性、テスト、およびコード品質基準。"
+---
+
+## セットアップ
+
+前提条件: Python 3.11+、[uv](https://docs.astral.sh/uv/)、Node.js 18+、pnpm。
+
+```bash
+git clone https://github.com/fim-ai/fim-one.git && cd fim-one
+cp example.env .env                        # set LLM_API_KEY at minimum
+uv sync --all-extras                       # Python dependencies
+cd frontend && pnpm install && cd ..       # frontend dependencies
+bash scripts/setup-hooks.sh                # pre-commit hooks (required)
+```
+
+すべてが正常に機能することを確認します:
+
+```bash
+uv run pytest tests/ -x -q                # tests
+uv run mypy src/fim_one/                   # type check
+uv run ruff check src/                     # lint
+cd frontend && pnpm build && cd ..         # frontend build
+```
+
+---
+
+## 型安全性
+
+mypy strict モードが強制されています。コードベース全体がゼロエラーで通過し、プリコミットフックは段階的な `.py` ファイルすべてに対して完全なインポートチェーン検査を実行して mypy を実行します。
+
+**ルール:**
+
+- すべてのパブリック関数に型ヒントが必須です。
+- `# type: ignore` は `import-untyped`（スタブのないサードパーティライブラリ）を除いて使用しないでください。
+- 前方参照には `from __future__ import annotations` を使用してください。
+- 実際の型を修正してください -- CI を通すためにエラーを抑制しないでください。
+
+## テスト
+
+すべての新しいモジュールには、対応するテストファイルが**必須**です。すべての機能コミットにはテストを含める必要があります。
+
+| 規約 | パターン |
+|---|---|
+| ファイル | `tests/test_{module}.py` |
+| クラス | `Test{Feature}` |
+| メソッド | `test_{behavior_under_test}` |
+
+**ルール:**
+
+- コミット前にすべての既存テストが成功している必要があります: `uv run pytest tests/ -x -q`.
+- テストは外部サービスに依存してはいけません -- `unittest.mock` / `AsyncMock` を使用してデータベース、MCP サーバー、HTTP エンドポイント、および LLM 呼び出しをモックしてください。
+- カバレッジ付きでテストを実行してください: `uv run pytest --cov=fim_one`.
+
+## コードスタイル
+
+- **非同期ファースト。** I/O バウンド操作には `async def` を使用します。同期呼び出しは `asyncio.to_thread()` でラップして、イベントループをブロックしないようにします。
+- **Ruff によるリンティング。** `uv run ruff check src/` -- 行の長さは 100 文字です。
+- **最小限の `__init__.py` エクスポート。** パブリック API のみを再エクスポートし、内部シンボルはプライベートに保ちます。
+- **パッケージマネージャー。** Python には `uv`、フロントエンドには `pnpm` を使用します。`pip` や `npm` は使用しないでください。
+
+---
+
+## Git規約
+
+**アトミックコミット。** 1つの論理的な変更ごとに1つのコミット。関連のない変更は一緒に開発されていても分割してください。
+
+**コミットメッセージ形式:** `type: description`
+
+| Type | 使用時期 |
+|---|---|
+| `feat` | ユーザー向けの新機能 |
+| `fix` | バグ修正 |
+| `refactor` | 動作変更のないコード再構成 |
+| `docs` | ドキュメントのみ |
+| `test` | テストの追加または更新 |
+| `chore` | ビルド、CI、依存関係の更新 |
+
+**`--no-verify`でフックをスキップしないでください。** pre-commitパイプラインは、エラーがリポジトリに到達する前に検出するために存在します。
+
+---
+
+## Pre-commit hook パイプライン
+
+フックはすべてのコミットで自動的に実行されます。各ステップに関連するステージ済みファイルのみを処理します。Python ファイルのみを変更した場合、i18n ステップはスキップされます。その逆も同様です。
+
+| 順序 | ステップ | トリガー | 実行内容 |
+|---|---|---|---|
+| 1 | OpenAPI spec 再生成 | `src/fim_one/web/**/*.py` が変更された | FastAPI ルートから `docs/openapi.json` を再エクスポート |
+| 2 | i18n 翻訳 | `messages/en/*.json`、`docs/*.mdx`、または `README.md` が変更された | 新規/変更されたキーをすべてのターゲットロケールに翻訳 |
+| 3 | mypy 型チェック | `src/fim_one/**/*.py` が変更された | ステージ済みファイルに対してインポートチェーン全体で mypy を実行 |
+| 4 | MDX 検証 | `.mdx` ファイルがステージされた | Mintlify に到達する前に JSX/MDX 構文を検証 |
+
+いずれかのステップが失敗した場合、コミットは中止されます。報告されたエラーを修正して再試行してください。
+
+## i18n
+
+FIM One は 6 つのロケール (EN, ZH, JA, KO, DE, FR) をサポートしています。翻訳は完全に自動化されています。
+
+**英語のソースファイルのみを編集してください:**
+
+- `frontend/messages/en/{namespace}.json` -- UI 文字列
+- `docs/*.mdx` (ロケールサブディレクトリではなくルートレベル) -- ドキュメント
+- `README.md` -- プロジェクト readme
+
+その他のロケールファイル (`messages/zh/`, `docs/zh/`, `README.zh.md` など) は **自動生成** され、pre-commit フックによって生成されます。手動で編集しないでください。
+
+**新しい i18n ネームスペースを追加する:** `messages/en/{ns}.json` を作成してください -- その他のロケールファイルは次のコミット時に生成されます。
+
+**完全な再翻訳を強制する:** `uv run scripts/translate.py --all`。
+
+## データベースマイグレーション
+
+開発環境ではSQLite、本番環境ではPostgreSQLを使用します。1つのAlembicマイグレーションファイルセットが両方で動作する必要があります。
+
+**主なルール：**
+
+- 新しいORMモデルまたはカラムには**必ず**マイグレーションが必要です -- `metadata.create_all()`に依存しないでください。
+- すべてのマイグレーションは**べき等**である必要があります -- `fim_one.migrations.helpers`のヘルパー（`table_exists`、`table_has_column`、`index_exists`）を使用してください。
+- ブール値のデフォルト値：`server_default=sa.text("FALSE")` / `sa.text("TRUE")`。`"0"` / `"1"`は使用しないでください -- PostgreSQLはブール型カラムに対して整数リテラルを拒否します。
+- SQLiteは`ALTER COLUMN`ができません -- カラム制約の変更には`op.batch_alter_table()`を使用してください。
+- マイグレーションを作成した後、すぐに`uv run alembic upgrade head`を実行して適用してください。
+
+## クイックリファレンス
+
+```bash
+# Development
+./start.sh dev                            # hot reload (Python + Next.js HMR)
+./start.sh api                            # FastAPI only (headless)
+
+# Quality checks
+uv run pytest tests/ -x -q               # tests (stop on first failure)
+uv run pytest --cov=fim_one              # tests with coverage
+uv run mypy src/fim_one/                  # type check
+uv run ruff check src/                    # lint
+
+# i18n
+uv run scripts/translate.py --all         # force full retranslation
+
+# Database
+uv run alembic upgrade head               # apply migrations
+uv run alembic revision -m "description"  # create new migration
+```

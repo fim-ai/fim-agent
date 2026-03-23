@@ -1,0 +1,151 @@
+---
+title: "贡献指南"
+icon: "code-pull-request"
+description: "FIM One 贡献者的开发规范、类型安全、测试和代码质量标准。"
+---
+
+## 设置
+
+前置条件：Python 3.11+、[uv](https://docs.astral.sh/uv/)、Node.js 18+、pnpm。
+
+```bash
+git clone https://github.com/fim-ai/fim-one.git && cd fim-one
+cp example.env .env                        # set LLM_API_KEY at minimum
+uv sync --all-extras                       # Python dependencies
+cd frontend && pnpm install && cd ..       # frontend dependencies
+bash scripts/setup-hooks.sh                # pre-commit hooks (required)
+```
+
+验证一切正常工作：
+
+```bash
+uv run pytest tests/ -x -q                # tests
+uv run mypy src/fim_one/                   # type check
+uv run ruff check src/                     # lint
+cd frontend && pnpm build && cd ..         # frontend build
+```
+
+---
+
+## 类型安全
+
+mypy 严格模式已启用。整个代码库通过零错误检查，预提交钩子在每个暂存的 `.py` 文件上运行 mypy，并进行完整的导入链检查。
+
+**规则：**
+
+- 所有公共函数都需要类型提示。
+- 除了 `import-untyped`（没有存根的第三方库）外，不允许使用 `# type: ignore`。
+- 使用 `from __future__ import annotations` 来处理前向引用。
+- 修复实际类型——永远不要通过抑制错误来让 CI 通过。
+
+## 测试
+
+每个新模块**必须**有对应的测试文件。每个功能提交**必须**包含测试。
+
+| 约定 | 模式 |
+|---|---|
+| 文件 | `tests/test_{module}.py` |
+| 类 | `Test{Feature}` |
+| 方法 | `test_{behavior_under_test}` |
+
+**规则：**
+
+- 提交前所有现有测试必须通过：`uv run pytest tests/ -x -q`。
+- 测试不得依赖外部服务 -- 使用 `unittest.mock` / `AsyncMock` 模拟数据库、MCP 服务器、HTTP 端点和 LLM 调用。
+- 运行带覆盖率的测试：`uv run pytest --cov=fim_one`。
+
+---
+
+## 代码风格
+
+- **异步优先。** 对于 I/O 绑定操作使用 `async def`。用 `asyncio.to_thread()` 包装同步调用，而不是阻塞事件循环。
+- **使用 Ruff 进行代码检查。** `uv run ruff check src/` -- 行长度为 100 个字符。
+- **最小化 `__init__.py` 导出。** 仅重新导出公共 API；保持内部符号私有。
+- **包管理器。** Python 使用 `uv`，前端使用 `pnpm`。永远不要使用 `pip` 或 `npm`。
+
+---
+
+## Git 约定
+
+**原子提交。** 每次提交包含一个逻辑变更。即使是一起开发的无关变更也要分开提交。
+
+**提交信息格式：** `type: description`
+
+| Type | 何时使用 |
+|---|---|
+| `feat` | 新的面向用户的功能 |
+| `fix` | 错误修复 |
+| `refactor` | 代码重构，无行为变更 |
+| `docs` | 仅文档更新 |
+| `test` | 添加或更新测试 |
+| `chore` | 构建、CI、依赖更新 |
+
+**不要跳过钩子** 使用 `--no-verify`。预提交管道的存在是为了在错误进入仓库之前捕获它们。
+
+---
+
+## 预提交钩子管道
+
+该钩子在每次提交时自动运行。它仅处理与每个步骤相关的暂存文件——如果您仅更改了 Python 文件，i18n 步骤会被跳过，反之亦然。
+
+| 顺序 | 步骤 | 触发条件 | 功能 |
+|---|---|---|---|
+| 1 | OpenAPI 规范重新生成 | `src/fim_one/web/**/*.py` 已更改 | 从 FastAPI 路由重新导出 `docs/openapi.json` |
+| 2 | i18n 翻译 | `messages/en/*.json`、`docs/*.mdx` 或 `README.md` 已更改 | 将新增/更改的键翻译为所有目标语言 |
+| 3 | mypy 类型检查 | 任何 `src/fim_one/**/*.py` 已更改 | 在暂存文件上运行 mypy 并进行完整导入链检查 |
+| 4 | MDX 验证 | 任何 `.mdx` 文件已暂存 | 在到达 Mintlify 之前验证 JSX/MDX 语法 |
+
+如果任何步骤失败，提交将被中止。修复报告的错误并重试。
+
+---
+
+## 国际化
+
+FIM One 支持 6 种语言环境（EN、ZH、JA、KO、DE、FR）。翻译完全自动化。
+
+**仅编辑英文源文件：**
+
+- `frontend/messages/en/{namespace}.json` -- UI 字符串
+- `docs/*.mdx`（根级别，不是语言环境子目录）-- 文档
+- `README.md` -- 项目自述文件
+
+其他语言环境文件（`messages/zh/`、`docs/zh/`、`README.zh.md` 等）由 pre-commit 钩子**自动生成**。切勿手动编辑。
+
+**添加新的国际化命名空间：** 创建 `messages/en/{ns}.json` -- 其他语言环境文件在下次提交时生成。
+
+**强制完整重新翻译：** `uv run scripts/translate.py --all`。
+
+## 数据库迁移
+
+开发环境使用 SQLite，生产环境使用 PostgreSQL。一套 Alembic 迁移文件必须在两者上都能工作。
+
+**关键规则：**
+
+- 每个新的 ORM 模型或列**必须**有一个迁移 -- 永远不要依赖 `metadata.create_all()`。
+- 所有迁移**必须**是幂等的 -- 使用 `fim_one.migrations.helpers` 中的辅助函数（`table_exists`、`table_has_column`、`index_exists`）。
+- 布尔默认值：`server_default=sa.text("FALSE")` / `sa.text("TRUE")`。永远不要使用 `"0"` / `"1"` -- PostgreSQL 拒绝为布尔列使用整数字面量。
+- SQLite 无法执行 `ALTER COLUMN` -- 对于列约束更改，使用 `op.batch_alter_table()`。
+- 编写迁移后，立即运行 `uv run alembic upgrade head` 来应用它。
+
+---
+
+## 快速参考
+
+```bash
+# Development
+./start.sh dev                            # hot reload (Python + Next.js HMR)
+./start.sh api                            # FastAPI only (headless)
+
+# Quality checks
+uv run pytest tests/ -x -q               # tests (stop on first failure)
+uv run pytest --cov=fim_one              # tests with coverage
+uv run mypy src/fim_one/                  # type check
+uv run ruff check src/                    # lint
+
+# i18n
+uv run scripts/translate.py --all         # force full retranslation
+
+# Database
+uv run alembic upgrade head               # apply migrations
+uv run alembic revision -m "description"  # create new migration
+```

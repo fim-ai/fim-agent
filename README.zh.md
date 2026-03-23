@@ -216,11 +216,12 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 
 我们欢迎各种形式的贡献 — 代码、文档、翻译、错误报告和想法。
 
-> **先锋计划**：前 100 位获得 PR 合并的贡献者将被认可为**创始贡献者**，获得永久致谢、徽章和优先问题支持。[了解更多 &rarr;](CONTRIBUTING.md#-pioneer-program)
+> **先锋计划**：前 100 位获得 PR 合并的贡献者将被认可为**创始贡献者**，获得永久署名、徽章和优先问题支持。[了解更多 &rarr;](CONTRIBUTING.md#-pioneer-program)
 
 **快速链接：**
 
 - [**贡献指南**](CONTRIBUTING.md) — 设置、约定、PR 流程
+- [**开发约定**](https://docs.fim.ai/contributing) — 类型安全、测试和代码质量标准
 - [**好的首个问题**](https://github.com/fim-ai/fim-one/labels/good%20first%20issue) — 为新手精选
 - [**开放问题**](https://github.com/fim-ai/fim-one/issues) — 错误和功能请求
 

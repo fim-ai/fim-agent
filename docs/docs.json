@@ -62,7 +62,8 @@
                 "group": "Extending FIM One",
                 "icon": "plug",
                 "pages": [
-                  "extension-guide"
+                  "extension-guide",
+                  "contributing"
                 ]
               }
             ]
@@ -189,7 +190,8 @@
                 "group": "扩展 FIM One",
                 "icon": "plug",
                 "pages": [
-                  "zh/extension-guide"
+                  "zh/extension-guide",
+                  "zh/contributing"
                 ]
               }
             ]
@@ -309,7 +311,8 @@
                 "group": "FIM One の拡張",
                 "icon": "plug",
                 "pages": [
-                  "ja/extension-guide"
+                  "ja/extension-guide",
+                  "ja/contributing"
                 ]
               }
             ]
@@ -429,7 +432,8 @@
                 "group": "FIM One 확장",
                 "icon": "plug",
                 "pages": [
-                  "ko/extension-guide"
+                  "ko/extension-guide",
+                  "ko/contributing"
                 ]
               }
             ]
@@ -549,7 +553,8 @@
                 "group": "FIM One erweitern",
                 "icon": "plug",
                 "pages": [
-                  "de/extension-guide"
+                  "de/extension-guide",
+                  "de/contributing"
                 ]
               }
             ]
@@ -669,7 +674,8 @@
                 "group": "Extension de FIM One",
                 "icon": "plug",
                 "pages": [
-                  "fr/extension-guide"
+                  "fr/extension-guide",
+                  "fr/contributing"
                 ]
               }
             ]

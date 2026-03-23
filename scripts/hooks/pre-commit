@@ -78,13 +78,11 @@ fi
 if [ -n "$STAGED_PY" ]; then
   echo "mypy: type-checking staged .py files..."
   cd "$ROOT"
-  # Only check the files being committed — not the entire codebase.
-  # This prevents existing type debt from blocking new commits while
-  # ensuring every new commit is type-safe.
-  # --follow-imports=silent: only report errors in staged files, not their
-  # transitive dependencies. This prevents existing type debt in imported
-  # modules from blocking commits that don't touch those modules.
-  echo "$STAGED_PY" | xargs uv run mypy --follow-imports=silent --no-error-summary 2>&1
+  # Check staged files WITH their import chain. Since the entire codebase
+  # is now mypy-clean (699/699 errors resolved), we no longer need
+  # --follow-imports=silent. Any new type error — whether in the staged
+  # file itself or caused by an import change — will be caught.
+  echo "$STAGED_PY" | xargs uv run mypy --no-error-summary 2>&1
   MYPY_EXIT=$?
   if [ $MYPY_EXIT -ne 0 ]; then
     echo ""
