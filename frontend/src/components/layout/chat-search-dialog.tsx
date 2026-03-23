@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { conversationApi } from "@/lib/api"
+import { useDateFormatter } from "@/hooks/use-date-formatter"
 import { useConversation } from "@/contexts/conversation-context"
 import type { ConversationResponse } from "@/types/conversation"
 
@@ -42,9 +43,16 @@ function formatRelativeTime(
 function groupResultsByTime(
   results: ConversationResponse[],
   labels: { today: string; pastWeek: string; pastMonth: string; older: string },
+  timezone?: string,
 ) {
   const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  let today: Date
+  if (timezone) {
+    const localDateStr = now.toLocaleDateString("en-CA", { timeZone: timezone })
+    today = new Date(localDateStr + "T00:00:00")
+  } else {
+    today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  }
   const weekAgo = new Date(today.getTime() - 7 * 86400000)
   const monthAgo = new Date(today.getTime() - 30 * 86400000)
 
@@ -71,6 +79,7 @@ export function ChatSearchDialog({ open, onOpenChange }: ChatSearchDialogProps) 
   const t = useTranslations("layout")
   const tc = useTranslations("common")
   const { selectConversation } = useConversation()
+  const { timezone } = useDateFormatter()
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")
   const [results, setResults] = useState<ConversationResponse[]>([])
@@ -132,7 +141,7 @@ export function ChatSearchDialog({ open, onOpenChange }: ChatSearchDialogProps) 
     pastWeek: t("pastWeek"),
     pastMonth: t("pastMonth"),
     older: tc("older"),
-  })
+  }, timezone)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
