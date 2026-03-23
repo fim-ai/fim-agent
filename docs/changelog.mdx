@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **On-demand tool loading** — When tool selection filters the available set, a `request_tools` meta-tool lets the agent dynamically load additional tools mid-conversation instead of being stuck with the initial selection.
 - **Per-turn token budget circuit breaker** — `REACT_MAX_TURN_TOKENS` env var provides an emergency stop for runaway agent loops. Default `0` (unlimited) — use per-user `token_quota` for daily cost control instead.
 - **Per-model Native Function Calling toggle** — `tool_choice_enabled` setting (ENV + Admin per-model) lets models that reject forced tool selection skip Level 1 and go directly to JSON Mode. Configurable in Settings → Models → Advanced.
 - **DAG quality overhaul** — Five improvements: default model upgrade to general model for non-fast steps; skill auto-discovery in planning; citation verifier for legal/medical/financial domains; structured content context preservation with configurable truncation multiplier; domain classification in router with domain-aware model selection.
