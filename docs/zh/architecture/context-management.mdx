@@ -30,17 +30,17 @@ FIM One 通过五层纵深防御架构解决了这个问题。每一层解决问
 
 ```mermaid
 flowchart TD
-    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output</i>"]
-    L4["Layer 4: DbMemory<br/><i>Load history, compact on load</i>"]
-    L3["Layer 3: ContextGuard<br/><i>Per-iteration enforcement</i>"]
-    L2["Layer 2: CompactUtils<br/><i>Estimation, truncation, LLM compact</i>"]
-    L1["Layer 1: Memory Implementations<br/><i>BaseMemory, WindowMemory, SummaryMemory, DbMemory</i>"]
+    L5["第 5 层：预算配置<br/><i>context_size - max_output</i>"]
+    L4["第 4 层：DbMemory<br/><i>加载历史，加载时压缩</i>"]
+    L3["第 3 层：ContextGuard<br/><i>每轮迭代预算执行</i>"]
+    L2["第 2 层：CompactUtils<br/><i>估算、截断、LLM 压缩</i>"]
+    L1["第 1 层：内存实现<br/><i>BaseMemory, WindowMemory, SummaryMemory, DbMemory</i>"]
 
-    L5 -->|"budget"| L4
-    L5 -->|"budget"| L3
-    L4 -->|"calls"| L2
-    L3 -->|"calls"| L2
-    L4 -.->|"implements"| L1
+    L5 -->|"预算"| L4
+    L5 -->|"预算"| L3
+    L4 -->|"调用"| L2
+    L3 -->|"调用"| L2
+    L4 -.->|"实现"| L1
 ```
 
 ### 第 5 层 — 预算配置
@@ -65,7 +65,7 @@ usable_input_tokens = context_size - max_output_tokens
 
 强制执行 4,000 token 的下限 — 如果配置错误的值会产生更小的预算，系统会固定到 4K，而不是无声地失败。
 
-### Layer 4 — DbMemory
+### 第 4 层 — DbMemory
 
 `DbMemory` 是生产环境中的内存实现。它从数据库加载持久化的对话历史，并将其压缩以适应令牌预算，然后才会被智能体看到。
 
@@ -105,7 +105,7 @@ usable_input_tokens = context_size - max_output_tokens
 
 如果 LLM 压缩失败（网络错误、空响应、任何异常），ContextGuard 会无声地回退到 `smart_truncate`。智能体永远不会看到失败。这是一个刻意的可靠性选择：通过启发式截断丢失一些上下文比让迭代崩溃要好。
 
-### Layer 2 — CompactUtils
+### 第 2 层 — CompactUtils
 
 `CompactUtils` 是一个无状态的实用工具类——没有实例，没有状态，只有纯函数。它提供了第 3 层和第 4 层构建的三种能力。
 
@@ -144,28 +144,28 @@ sequenceDiagram
     participant CG as ContextGuard
     participant LLM as LLM API
 
-    Chat->>Db: get_messages(budget)
-    Db->>Db: Load from DB, compact
-    Db-->>Chat: history (within budget)
+    Chat->>Db: get_messages(预算)
+    Db->>Db: 从 DB 加载，压缩
+    Db-->>Chat: 历史记录（预算内）
 
     Chat->>Agent: run(query)
-    Agent->>Agent: Assemble: system + history + pinned query
+    Agent->>Agent: 组装：系统提示 + 历史 + 固定查询
 
-    loop Each iteration (non-streaming)
+    loop 每轮迭代（非流式）
         Agent->>CG: check_and_compact(messages, hint="react_iteration")
-        CG->>CG: Truncate oversized, estimate, compact if needed
-        CG-->>Agent: messages (within budget)
+        CG->>CG: 截断超大消息，估算 token，需要时压缩
+        CG-->>Agent: 消息列表（预算内）
         Agent->>LLM: chat(messages)
-        LLM-->>Agent: response
-        Agent->>Agent: Parse action, execute tool, append result
+        LLM-->>Agent: 响应
+        Agent->>Agent: 解析动作，执行工具，追加结果
     end
 
-    Agent-->>Chat: AgentResult (tool trace + brief answer)
+    Agent-->>Chat: AgentResult（工具轨迹 + 简要回答）
     Chat->>Agent: stream_answer(query, result)
-    Agent->>LLM: stream_chat(synthesis prompt)
-    LLM-->>Agent: token stream
-    Agent-->>Chat: streamed answer → SSE to frontend
-    Chat->>Chat: Persist, emit compact SSE if compacted
+    Agent->>LLM: stream_chat(合成提示词)
+    LLM-->>Agent: token 流
+    Agent-->>Chat: 流式回答 → SSE 到前端
+    Chat->>Chat: 持久化，如已压缩则发送 compact SSE
 ```
 
 工具迭代使用非流式 `chat()` 以提高速度；答案合成使用通过 `stream_answer()` 的流式 `stream_chat()`。这种两阶段分割——快速工具循环后跟流式合成——优化了延迟和用户体验。有关包括双模式执行和工具选择的完整 ReAct 引擎架构，请参阅 [ReAct 引擎](/architecture/react-engine)。
@@ -180,23 +180,23 @@ DAG 模式的上下文形状与 ReAct 根本不同。它不是一个长对话线
 
 ```mermaid
 flowchart TD
-    A["1. Load history via DbMemory"] --> B["2. Build enriched_query"]
+    A["1. 通过 DbMemory 加载历史"] --> B["2. 构建 enriched_query"]
     B --> C{"enriched_query > 16K tokens?"}
-    C -->|Yes| D["LLM summarize with planner_input prompt"]
-    C -->|No| E["Use as-is"]
-    D --> F["3. DAGPlanner (structured_llm_call)"]
+    C -->|是| D["LLM 使用 planner_input 提示词摘要"]
+    C -->|否| E["直接使用"]
+    D --> F["3. DAGPlanner（structured_llm_call）"]
     E --> F
-    F --> G["4. Execution: parallel steps"]
-    G --> H["Step 1: independent ReAct"]
-    G --> I["Step 2: independent ReAct"]
-    G --> J["Step N: independent ReAct"]
-    H --> K["5. PlanAnalyzer (structured_llm_call)"]
+    F --> G["4. 执行：并行步骤"]
+    G --> H["步骤 1：独立 ReAct"]
+    G --> I["步骤 2：独立 ReAct"]
+    G --> J["步骤 N：独立 ReAct"]
+    H --> K["5. PlanAnalyzer（structured_llm_call）"]
     I --> K
     J --> K
-    K --> L{"Achieved?"}
-    L -->|No, low confidence| M["6. Replan: 500-char step summaries"]
+    K --> L{"达成目标？"}
+    L -->|否，置信度低| M["6. 重新规划：500 字符步骤摘要"]
     M --> F
-    L -->|Yes| N["stream_synthesize → Final answer"]
+    L -->|是| N["stream_synthesize → 最终回答"]
 ```
 
 **阶段 1 — 历史加载。** DbMemory 加载并压缩对话历史，与 ReAct 相同。压缩后的历史被格式化为以 `"Previous conversation:"` 为前缀的文本块。
