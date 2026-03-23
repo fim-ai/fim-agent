@@ -44,51 +44,51 @@ L'effet pratique : les utilisateurs peuvent commencer à discuter immédiatement
 
 ### Ce que chaque mode découvre
 
-Les deux modes diffèrent par leur **portée**, non par leur nature. Les deux produisent un `ToolRegistry` — ils le remplissent simplement différemment.
+Les deux modes diffèrent par leur **portée**, pas par leur nature. Les deux produisent un `ToolRegistry` — ils le remplissent simplement différemment.
 
-**Mode de découverte automatique (aucun Agent sélectionné) :**
+**Mode de découverte automatique (aucun agent sélectionné) :**
 
 | Ressource | Découverte | Forme d'outil |
 |---|---|---|
 | Connecteurs (API) | `resolve_visibility()` — tous visibles pour l'utilisateur | `ConnectorMetaTool` (progressive) |
 | Connecteurs (BD) | `resolve_visibility()` — tous visibles pour l'utilisateur | `DatabaseMetaTool` (progressive) |
-| Bases de connaissances | Toutes les BCs accessibles | `kb_retrieve` |
-| Compétences | `resolve_visibility()` — toutes actives | `read_skill` (stubs progressifs) |
-| Serveurs MCP | `resolve_visibility()` — tous visibles pour l'utilisateur | `MCPServerMetaTool` (progressive) |
-| Agents | `resolve_visibility()` — tous actifs, non-constructeur | `call_agent` (catalogue) |
+| Bases de connaissances | Toutes les KB accessibles | `kb_retrieve` |
+| Compétences | `resolve_visibility()` — toutes actives | `read_skill` (progressive stubs) |
+| Serveurs MCP | `resolve_visibility()` — tous visibles par l'utilisateur | `MCPServerMetaTool` (progressive) |
+| Agents | `resolve_visibility()` — tous actifs, non-constructeur | `call_agent` (catalog) |
 | Outils intégrés | `discover_builtin_tools()` — ensemble complet | Aucun filtre de catégorie appliqué |
 
-**Mode contraint par Agent (Agent sélectionné) :**
+**Mode contraint par agent (agent sélectionné) :**
 
 | Ressource | Découverte | Forme d'outil |
 |---|---|---|
-| Connecteurs | Seulement `agent.connector_ids` | `ConnectorMetaTool` ou par action hérité |
-| Bases de connaissances | Seulement `agent.kb_ids` | `GroundedRetrieveTool` / `KBRetrieveTool` |
-| Compétences | Global — **non contraint par l'Agent** | `read_skill` |
-| Serveurs MCP | Portée utilisateur — **non contraint par l'Agent** | `MCPServerMetaTool` (progressive) |
+| Connecteurs | Uniquement `agent.connector_ids` | `ConnectorMetaTool` ou hérité par action |
+| Bases de connaissances | Uniquement `agent.kb_ids` | `GroundedRetrieveTool` / `KBRetrieveTool` |
+| Compétences | Global — **non contraint par l'agent** | `read_skill` |
+| Serveurs MCP | Scoped utilisateur — **non contraint par l'agent** | `MCPServerMetaTool` (progressive) |
 | Agents | Global — `call_agent` toujours disponible | `call_agent` |
 | Outils intégrés | Filtre `agent.tool_categories` | Sous-ensemble par catégorie |
 
-L'asymétrie clé : les Connecteurs et les Bases de connaissances sont limités par l'Agent, mais les Compétences, les Serveurs MCP et CallAgent sont toujours globaux. Cela reflète l'intention de conception — les Compétences sont des règles organisationnelles (tout le monde suit les mêmes procédures), tandis que les Connecteurs et les BCs sont des liaisons de capacités (différents agents se connectent à différents systèmes).
+L'asymétrie clé : les connecteurs et les bases de connaissances sont scoped par l'agent, mais les compétences, les serveurs MCP et CallAgent sont toujours globaux. Cela reflète l'intention de conception — les compétences sont des règles organisationnelles (tout le monde suit les mêmes procédures), tandis que les connecteurs et les KB sont des liaisons de capacité (différents agents se connectent à différents systèmes).
 
 ## Tout est un outil
 
-Au niveau du LLM, tous les types de ressources convergent en une liste plate d'outils appelables. Le LLM n'a pas de conscience structurelle de savoir s'il appelle un connecteur, un serveur MCP ou une base de connaissances. Il voit un `ToolRegistry` — un ensemble de fonctions avec des noms, des descriptions et des schémas de paramètres.
+Au niveau du LLM, tous les types de ressources convergent en une liste plate d'outils appelables. Le LLM n'a aucune conscience structurelle de s'il appelle un Connecteur, un serveur MCP, ou une Base de Connaissances. Il voit un `ToolRegistry` — un ensemble de fonctions avec des noms, des descriptions et des schémas de paramètres.
 
-| Type de ressource | Devient au niveau du LLM | Modèle de nom d'outil |
+| Type de Ressource | Devient au Niveau du LLM | Motif du Nom de l'Outil |
 |---|---|---|
 | Connecteur (progressif) | Outil méta unique | `connector` |
 | Connecteur (hérité) | N outils par action | `{connector}__{action}` |
-| Connecteur de base de données (progressif) | Outil méta unique | `database` |
-| Connecteur de base de données (hérité) | 3 outils par base de données | `{db}__list_tables`, `{db}__describe_table`, `{db}__query` |
+| Connecteur de Base de Données (progressif) | Outil méta unique | `database` |
+| Connecteur de Base de Données (hérité) | 3 outils par base de données | `{db}__list_tables`, `{db}__describe_table`, `{db}__query` |
 | Serveur MCP (progressif) | Outil méta unique | `mcp` |
 | Serveur MCP (hérité) | N outils par serveur | `{server}__{tool}` |
-| Base de connaissances | Outil de récupération | `kb_retrieve` ou `grounded_retrieve` |
+| Base de Connaissances | Outil de récupération | `kb_retrieve` ou `grounded_retrieve` |
 | Compétence (progressive) | Outil de lecture + stubs de prompt système | `read_skill` |
-| Compétence (en ligne) | Texte de prompt système uniquement | _(pas d'outil)_ |
+| Compétence (inline) | Texte de prompt système uniquement | _(pas d'outil)_ |
 | Agent lui-même | Non visible comme un outil | _(instructions + assemblage d'outils)_ |
 
-L'idée clé : **un agent n'est pas un outil — c'est l'entité qui utilise les outils.** L'agent contribue ses instructions au prompt système et détermine quels outils sont disponibles. Mais du point de vue du LLM, il n'y a pas de concept « d'agent » — seulement un prompt système et un ensemble de fonctions appelables.
+L'insight clé : **un Agent n'est pas un outil — c'est l'entité qui utilise les outils.** L'Agent contribue ses instructions au prompt système et détermine quels outils sont disponibles. Mais du point de vue du LLM, il n'y a aucun concept « d'agent » — seulement un prompt système et un ensemble de fonctions appelables.
 
 Cette uniformité est ce qui rend le système extensible. Ajouter un nouveau type de ressource signifie implémenter le protocole `Tool` (`name`, `description`, `parameters_schema`, `run()`). Les moteurs d'exécution, la gestion du contexte et la couche d'interaction avec le LLM restent inchangés.
 
@@ -104,7 +104,7 @@ Les compétences sont globales par conception — ce sont des règles d'entrepri
 
 ### Deux modes d'injection
 
-Les compétences supportent deux modes d'injection -- **progressif** (par défaut) et **inline** -- contrôlés par `SKILL_TOOL_MODE` ou par `model_config_json.skill_tool_mode` de l'Agent. En mode progressif, seuls des stubs compacts apparaissent dans le message système ; le LLM appelle `read_skill(name)` à la demande pour charger le contenu complet. Cela fait partie de l'architecture plus large [Progressive Disclosure](/architecture/progressive-disclosure) de FIM One qui minimise la consommation de contexte sur tous les types de ressources.
+Les compétences supportent deux modes d'injection -- **progressif** (par défaut) et **inline** -- contrôlés par `SKILL_TOOL_MODE` ou la `model_config_json.skill_tool_mode` de l'agent. En mode progressif, seuls des stubs compacts apparaissent dans le prompt système ; le LLM appelle `read_skill(name)` à la demande pour charger le contenu complet. Cela fait partie de l'architecture [Progressive Disclosure](/architecture/progressive-disclosure) plus large de FIM One qui minimise la consommation de contexte sur tous les types de ressources.
 
 ## Agent en tant que persona, non conteneur
 
