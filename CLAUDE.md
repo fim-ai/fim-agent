@@ -111,8 +111,16 @@ Dev uses SQLite, production uses PostgreSQL. One set of migration files must wor
 
 - Type hints on all public functions
 - Async-first: `async def` for I/O-bound operations
-- Tests alongside features: every new module → `tests/test_*.py`
 - Keep `__init__.py` imports minimal — only re-export public API
+
+## Test Rules (MANDATORY)
+
+- **Every new module MUST have a corresponding test file** — `src/fim_one/core/foo/bar.py` → `tests/test_bar.py`. No exceptions.
+- **Every feat commit MUST include tests** for the new functionality — features without tests will not be accepted.
+- **All existing tests MUST pass before committing** — run `uv run pytest tests/ -x -q` and fix any failures before `git commit`.
+- **Type checks MUST pass** — run `uv run mypy <changed_files>` on all new/modified `.py` files. The project uses `mypy strict=true`; do not add `type: ignore` comments to bypass errors — fix the actual types.
+- **Tests MUST NOT depend on external services** — mock databases, MCP servers, HTTP endpoints, and LLM calls. Use `unittest.mock` / `AsyncMock`.
+- **Test naming convention** — file: `tests/test_{module}.py`, class: `Test{Feature}`, method: `test_{behavior_under_test}`.
 
 ## Task Completion Report (MANDATORY)
 

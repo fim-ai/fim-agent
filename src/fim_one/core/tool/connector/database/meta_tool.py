@@ -513,7 +513,7 @@ def get_database_tool_mode(agent_cfg: dict[str, Any] | None = None) -> str:
         model_cfg = agent_cfg.get("model_config_json") or {}
         if isinstance(model_cfg, dict):
             agent_mode = model_cfg.get("database_tool_mode")
-            if agent_mode in ("progressive", "legacy"):
+            if isinstance(agent_mode, str) and agent_mode in ("progressive", "legacy"):
                 return agent_mode
 
     # Fall back to environment variable

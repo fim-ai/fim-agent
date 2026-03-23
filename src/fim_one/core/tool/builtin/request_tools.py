@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fim_one.core.tool.base import BaseTool
+from fim_one.core.tool.base import BaseTool, Tool
 from fim_one.core.tool.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ class RequestToolsTool(BaseTool):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _get_unloaded_tools(self) -> list:
+    def _get_unloaded_tools(self) -> list["Tool"]:
         """Return tools in the full registry that are not yet active."""
         active_names = {t.name for t in self._active_tools.list_tools()}
         return [
