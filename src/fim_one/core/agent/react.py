@@ -233,6 +233,7 @@ class ReActAgent:
         user_timezone: str | None = None,
         agent_directive: str | None = None,
         pinned_tools: list[str] | None = None,
+        max_turn_tokens: int = int(os.getenv("REACT_MAX_TURN_TOKENS", "0")),
     ) -> None:
         self._llm = llm
         self._fast_llm = fast_llm
@@ -248,6 +249,7 @@ class ReActAgent:
         self._context_guard = context_guard
         self._hook_registry = hook_registry
         self._workspace = workspace
+        self._max_turn_tokens = max_turn_tokens
 
         # Auto-register workspace tools when a workspace is provided.
         if workspace is not None:
@@ -634,6 +636,28 @@ class ReActAgent:
         for iteration in range(1, self._max_iterations + 1):
             logger.debug("ReAct iteration %d", iteration)
 
+            # --- Per-turn token budget check ---
+            if self._max_turn_tokens > 0:
+                current_usage = usage_tracker.get_summary()
+                if current_usage.total_tokens >= self._max_turn_tokens:
+                    logger.warning(
+                        "ReAct token budget exhausted: %d >= %d after %d iterations",
+                        current_usage.total_tokens, self._max_turn_tokens, iteration - 1,
+                    )
+                    answer = (
+                        f"I've reached the token budget ({self._max_turn_tokens:,} tokens) "
+                        f"after {iteration - 1} iterations. Here is what I have so far:\n"
+                        + self._summarise_steps(steps)
+                    )
+                    await self._save_to_memory(query, answer)
+                    return AgentResult(
+                        answer=answer,
+                        steps=steps,
+                        iterations=iteration - 1,
+                        usage=usage_tracker.get_summary(),
+                        messages=messages,
+                    )
+
             # Signal thinking start before LLM call.
             if on_iteration is not None:
                 on_iteration(
@@ -853,6 +877,28 @@ class ReActAgent:
 
         for iteration in range(1, self._max_iterations + 1):
             logger.debug("Native ReAct iteration %d", iteration)
+
+            # --- Per-turn token budget check ---
+            if self._max_turn_tokens > 0:
+                current_usage = usage_tracker.get_summary()
+                if current_usage.total_tokens >= self._max_turn_tokens:
+                    logger.warning(
+                        "Native ReAct token budget exhausted: %d >= %d after %d iterations",
+                        current_usage.total_tokens, self._max_turn_tokens, iteration - 1,
+                    )
+                    answer = (
+                        f"I've reached the token budget ({self._max_turn_tokens:,} tokens) "
+                        f"after {iteration - 1} iterations. Here is what I have so far:\n"
+                        + self._summarise_steps(steps)
+                    )
+                    await self._save_to_memory(query, answer)
+                    return AgentResult(
+                        answer=answer,
+                        steps=steps,
+                        iterations=iteration - 1,
+                        usage=usage_tracker.get_summary(),
+                        messages=messages,
+                    )
 
             # Signal thinking start before LLM call.
             if on_iteration is not None:

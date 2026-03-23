@@ -131,6 +131,8 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
   const [injectedMessages, setInjectedMessages] = useState<{id?: string; content: string; ts: number}[]>([])
   const failedInjectRef = useRef<string | null>(null)
   const pendingNextTurnRef = useRef<string | null>(null)
+  // Synchronous guard against duplicate submissions (React state is async)
+  const sendingRef = useRef(false)
 
   // Detect post-processing phase directly from SSE messages
   const isPostProcessing = useMemo(() => {
@@ -320,7 +322,8 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
         return
       }
 
-      if (isRunning) return
+      if (isRunning || sendingRef.current) return
+      sendingRef.current = true
 
       // Clear input and show user message immediately
       setQuery("")
@@ -341,6 +344,7 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
           selfCreatedIdRef.current = convId
         } catch (err) {
           console.error("Failed to create conversation:", err)
+          sendingRef.current = false
           return
         }
       } else {
@@ -363,7 +367,15 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
       if (imageIds?.length) body.image_ids = imageIds.join(",")
       if (userMetadata) body.user_metadata = JSON.stringify(userMetadata)
       setSourceMode(mode)
-      start(url, { body, onError: (err) => toast.error(getErrorMessage(err, tError)) })
+      start(url, {
+        body,
+        onError: (err) => {
+          sendingRef.current = false
+          toast.error(getErrorMessage(err, tError))
+        },
+      })
+      // Release the sync guard — isRunning (from useSSE) will take over
+      sendingRef.current = false
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isRunning, mode, start, activeId, createConversation, selectConversation, selectedAgent, setInjectedMessages, isPostProcessing],

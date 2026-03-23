@@ -80,6 +80,7 @@ from ..deps import (
     get_max_concurrency,
     get_model_registry_with_group,
     get_react_max_iterations,
+    get_react_max_turn_tokens,
     get_tools,
 )
 from fim_one.db import get_session
@@ -2158,6 +2159,7 @@ async def react_endpoint(
                 user_timezone=user_timezone,
                 agent_directive=agent_instructions,
                 pinned_tools=_pinned,
+                max_turn_tokens=get_react_max_turn_tokens(),
             )
 
             image_urls = [url for _, _, url in image_data] if image_data else None

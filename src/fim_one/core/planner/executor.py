@@ -420,7 +420,9 @@ class DAGExecutor:
 
         The budget formula mirrors ``_compute_input_budget`` from
         ``fim_one.web.deps``:
-        ``context_size - max_output_tokens - system_prompt_reserve``.
+        ``context_size - max_output_tokens``.
+        No static system_prompt_reserve is subtracted — ContextGuard
+        accounts for the system prompt dynamically when estimating tokens.
         """
         if self._context_guard is None:
             return None
@@ -433,9 +435,8 @@ class DAGExecutor:
         # otherwise use a sensible default.
         raw_max_output = getattr(llm, "_default_max_tokens", None)
         max_output = raw_max_output if isinstance(raw_max_output, int) else 64000
-        system_prompt_reserve = 4000
 
-        budget = model_ctx - max_output - system_prompt_reserve
+        budget = model_ctx - max_output
         budget = max(budget, 4000)
 
         # If the computed budget matches the existing guard's default, reuse it.

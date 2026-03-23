@@ -227,17 +227,27 @@ def get_react_max_iterations() -> int:
     return int(os.environ.get("REACT_MAX_ITERATIONS", "20"))
 
 
-# Reserve for system prompt + tool descriptions in the context window.
-_SYSTEM_PROMPT_RESERVE = int(os.getenv("SYSTEM_PROMPT_RESERVE", "4000"))
+def get_react_max_turn_tokens() -> int:
+    """Max tokens per ReAct turn (env: REACT_MAX_TURN_TOKENS). 0 = unlimited."""
+    return int(os.environ.get("REACT_MAX_TURN_TOKENS", "0"))
+
+
+# NOTE: No static SYSTEM_PROMPT_RESERVE is subtracted here.
+# ContextGuard.check_and_compact() estimates ALL messages (including the
+# system prompt) dynamically, so a fixed reserve would double-count it.
+# The budget represents the total input window available to the full
+# message list (system prompt + conversation history + current query).
 
 
 def _compute_input_budget(context_size: int, max_output: int) -> int:
     """Compute usable input token budget from model specs.
 
-    Formula: ``context_size - max_output_tokens - system_prompt_reserve``.
+    Formula: ``context_size - max_output_tokens``.
+    The system prompt is NOT subtracted here — ContextGuard accounts for
+    it dynamically when estimating message list tokens.
     Ensures the budget is at least 4 000 tokens.
     """
-    budget = context_size - max_output - _SYSTEM_PROMPT_RESERVE
+    budget = context_size - max_output
     return max(budget, 4_000)
 
 
