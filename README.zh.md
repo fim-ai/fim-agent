@@ -114,9 +114,9 @@ cd frontend && pnpm install && cd ..
 ## 主要功能
 
 #### 连接器中心
-- **三种交付模式** — 独立助手、嵌入式 Copilot 或中央 Hub；相同的智能体核心。
-- **任何系统，统一模式** — 连接 API、数据库、MCP 服务器。操作自动注册为智能体工具，并注入身份验证。
-- **数据库连接器** — PostgreSQL、MySQL、Oracle、SQL Server，以及国产遗留数据库（DM、KingbaseES、GBase、Highgo）。模式内省和 AI 驱动的注释。
+- **三种交付模式** — 独立助手、嵌入式 Copilot 或中央 Hub；同一个智能体核心。
+- **任何系统，统一模式** — 连接 API、数据库、MCP 服务器。操作自动注册为智能体工具并注入身份验证。渐进式披露元工具可将所有工具类型的令牌使用量减少 80% 以上。
+- **数据库连接器** — PostgreSQL、MySQL、Oracle、SQL Server，以及国产遗留数据库（DM、KingbaseES、GBase、Highgo）。Schema 内省和 AI 驱动的注解。
 - **三种构建方式** — 导入 OpenAPI 规范、AI 聊天构建器或直接连接 MCP 服务器。
 
 #### 规划与执行

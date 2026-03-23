@@ -310,12 +310,14 @@ Enregistre automatiquement l'outil intégré `email_send` lorsque `SMTP_HOST`, `
 
 ## Connecteurs
 
-| Variable | Requis | Défaut | Description |
+| Variable | Requis | Par défaut | Description |
 |---|---|---|---|
 | `CONNECTOR_RESPONSE_MAX_CHARS` | Non | `50000` | Nombre maximum de caractères pour les réponses de connecteur JSON non-tableau / texte brut |
 | `CONNECTOR_RESPONSE_MAX_ITEMS` | Non | `10` | Nombre maximum d'éléments de tableau à conserver lorsque la réponse du connecteur est un tableau JSON |
-| `CREDENTIAL_ENCRYPTION_KEY` | Non | _(non défini)_ | Clé de chiffrement Fernet pour les blobs d'authentification du connecteur. Lorsqu'elle est définie, les jetons d'authentification stockés dans `connector_credentials` sont chiffrés au repos. Si elle n'est pas définie, les authentifications sont stockées en tant que JSON en texte brut (rétro-compatible). La modification de cette clé invalide toutes les authentifications chiffrées existantes. |
-| `CONNECTOR_TOOL_MODE` | Non | `progressive` | Comment les outils de connecteur sont exposés aux agents. `progressive` : un seul `ConnectorMetaTool` avec des sous-commandes `discover`/`execute` (~30 jetons/connecteur). `classic` : un outil par action (hérité, ~250 jetons/action). |
+| `CREDENTIAL_ENCRYPTION_KEY` | Non | _(non défini)_ | Clé de chiffrement Fernet pour les blobs d'identifiants de connecteur. Lorsqu'elle est définie, les jetons d'authentification stockés dans `connector_credentials` sont chiffrés au repos. Si elle n'est pas définie, les identifiants sont stockés en JSON en texte brut (rétrocompatible). La modification de cette clé invalide tous les identifiants chiffrés existants. |
+| `CONNECTOR_TOOL_MODE` | Non | `progressive` | Comment les outils de connecteur sont exposés aux agents. `progressive` : un seul `ConnectorMetaTool` avec les sous-commandes `discover`/`execute` (~30 jetons/connecteur). `classic` : un outil par action (hérité, ~250 jetons/action). |
+| `DATABASE_TOOL_MODE` | Non | `progressive` | Comment les outils de connecteur de base de données sont exposés aux agents. `progressive` : un seul `DatabaseMetaTool` avec les sous-commandes `list_tables`/`discover`/`query`. `legacy` : un outil par action par connecteur de base de données (3 outils chacun). |
+| `MCP_TOOL_MODE` | Non | `progressive` | Comment les outils du serveur MCP sont exposés aux agents. `progressive` : un seul `MCPServerMetaTool` avec les sous-commandes `discover`/`call`. `legacy` : un outil par action du serveur MCP (outils individuels originaux). |
 
 ---
 

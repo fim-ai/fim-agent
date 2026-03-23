@@ -1,0 +1,252 @@
+---
+title: "Progressive Offenlegung"
+icon: "filter"
+description: "Wie FIM One den Kontextverbrauch minimiert, indem Werkzeugdefinitionen bei Bedarf geladen werden -- Stub-First, Details auf Anfrage."
+---
+
+## Das Problem
+
+LLMs zahlen für Kontext in zwei Währungen: Token und Aufmerksamkeit. Jede Werkzeugdefinition, die in den System-Prompt injiziert wird, kostet beide. Ein einzelner MCP-Server kann 90+ Werkzeuge bereitstellen. Fünf API-Konnektoren mit je 20 Aktionen erzeugen 100 Werkzeugdefinitionen. Drei Datenbank-Konnektoren mit je 30 Tabellen generieren weitere 90 Schemabeschreibungen. Bevor der Benutzer auch nur ein Wort tippt, kann der System-Prompt bereits 50–100 KB Kontext verbrauchen – die Hälfte des Budgets eines 128K-Modells.
+
+Die Kosten sind nicht nur Token. Forschung und Praxis zeigen konsistent, dass **die Genauigkeit von LLMs mit wachsendem irrelevantem Kontext abnimmt.** Ein Agent mit 80 Werkzeugdefinitionen in seinem System-Prompt schneidet bei der Werkzeugauswahl messbar schlechter ab als einer mit 6. Das Modell verschwendet Aufmerksamkeit auf Werkzeugschemas, die es nie verwenden wird, und schwächt damit seinen Fokus auf die Werkzeuge und Anweisungen ab, die wichtig sind.
+
+Die naive Lösung – alles injizieren und das Modell sortieren lassen – skaliert nicht. FIM One verfolgt den gegenteiligen Ansatz: **Zeige dem LLM das Minimum, das es für eine Entscheidung braucht, und lass es mehr anfordern, wenn es mehr braucht.**
+
+## Das Muster
+
+Progressive Offenlegung folgt einer zweistufigen Architektur über alle Ressourcentypen:
+
+1. **Stufe 1 -- Stubs im System-Prompt.** Leichte Zusammenfassungen: ein Name, eine kurze Beschreibung und genug Metadaten (Aktionsanzahl, Tabellenanzahl, Werkzeuganzahl), damit das LLM entscheiden kann, ob es mehr braucht.
+
+2. **Stufe 2 -- Vollständige Details auf Anfrage.** Das LLM ruft ein Meta-Werkzeug auf, um vollständige Schemas, Parameter und Ausführungsfunktionen abzurufen. Die vollständigen Details werden als Werkzeugergebnis-Nachricht in das Gespräch eingegeben -- begrenzt auf diese Runde, nicht dauerhaft im System-Prompt.
+
+```mermaid
+sequenceDiagram
+    participant SP as System Prompt
+    participant LLM as LLM
+    participant MT as Meta-Tool
+    participant T as Actual Tool/API
+
+    SP->>LLM: Stubs only (name + description)
+    LLM->>LLM: Decides which resource to use
+    LLM->>MT: discover("salesforce")
+    MT-->>LLM: Full action schemas (JSON)
+    LLM->>MT: execute("salesforce", "get_contacts", {...})
+    MT->>T: Proxied execution
+    T-->>MT: Result
+    MT-->>LLM: Formatted result
+```
+
+Die Kernidee: **Vollständige Werkzeug-Schemas sind gesprächsbezogen, nicht prompt-bezogen.** Sie erscheinen als Werkzeugergebnis-Nachrichten, die das Kontextmanagementsystem in späteren Runden zusammenfassen oder kürzen kann. Im Gegensatz dazu bleibt der Inhalt des System-Prompts während des gesamten Gesprächs in voller Größe erhalten.
+
+## Fünf Offenlegungsmechanismen
+
+FIM One wendet progressive Offenlegung einheitlich auf fünf Ressourcentypen an. Jeder verwendet das gleiche zweistufige Muster, aber mit einem Meta-Tool, das auf seine Semantik zugeschnitten ist.
+
+| Ressource | Meta-Tool | Stubs zeigen | On-Demand-Rückgabe | Config-Variable | Standard |
+|---|---|---|---|---|---|
+| Skills | `read_skill` | Name + Beschreibung (120 Zeichen) | Vollständiger SOP-Inhalt + eingebettetes Skript | `SKILL_TOOL_MODE` | `progressive` |
+| API-Konnektoren | `connector` | Konnektor-Name + Aktionsliste | Vollständige Action-Schemas mit Parametern | `CONNECTOR_TOOL_MODE` | `progressive` |
+| Datenbank-Konnektoren | `database` | DB-Name + Tabellennamen + Anzahl | Spalten-Schemas, SQL-Query-Ausführung | `DATABASE_TOOL_MODE` | `progressive` |
+| MCP-Server | `mcp` | Server-Name + Tool-Liste | Vollständige Tool-Schemas + Aufruf | `MCP_TOOL_MODE` | `progressive` |
+| Integrierte Tools | `request_tools` | Kompakter Katalog (Name + 80-Zeichen-Beschreibung) | Vollständiges Tool-Schema in Session eingefügt | _(auto)_ | Auto bei >12 Tools |
+
+### Fähigkeiten -- `read_skill`
+
+**Was das LLM anfangs sieht:**
+
+```
+## Available Skills
+Call read_skill(name) to load full content before executing any of these:
+- Customer Complaint SOP: Handle escalations per company policy...
+- Refund Processing: Step-by-step refund workflow with approval gates...
+```
+
+Jeder Stub umfasst ungefähr 30 Token -- einen Namen plus eine auf 120 Zeichen gekürzte Beschreibung aus dem vollständigen Fähigkeitsinhalt.
+
+**Was bei Bedarf geschieht:** Das LLM ruft `read_skill("Customer Complaint SOP")` auf und erhält den vollständigen SOP-Text -- möglicherweise Tausende von Token mit Schritt-für-Schritt-Anweisungen, Entscheidungsbäumen und eingebetteten Skripten. Dieser Inhalt wird als Toolergebnis eingegeben, nicht als Systemaufforderungstext, daher unterliegt er dem normalen Kontextmanagement (Zusammenfassung, Kürzung) in späteren Durchläufen.
+
+**Legacy-Modus:** `SKILL_TOOL_MODE=inline` bettet den vollständigen Fähigkeitsinhalt direkt in die Systemaufforderung ein. Geeignet, wenn Sie wenige, kleine Fähigkeiten haben -- skaliert aber schlecht.
+
+**Kontexteinsparungen:** Eine Bereitstellung mit 10 Fähigkeiten mit durchschnittlich 2.000 Token pro Stück verbraucht ~300 Token im progressiven Modus (nur Stubs) gegenüber ~20.000 Token im Inline-Modus. Das ist eine 98%ige Reduktion der persistenten Kontextkosten.
+
+### API-Konnektoren -- `connector`
+
+**Was der LLM anfangs sieht:**
+
+```
+Interact with external services. Available connectors:
+  - salesforce: CRM system -- actions: get_contacts, create_lead, update_opportunity
+  - jira: Project management -- actions: create_issue, get_issue, search_issues
+
+Subcommands:
+  discover <name> -- list actions with full parameter schemas
+  execute <name> <action> {"param": "value"} -- run an action
+```
+
+Jeder Konnektor-Stub listet Aktionsnamen auf, aber nicht die Parameterschemas. Das LLM weiß, *welche* Aktionen existieren, aber nicht, *wie* man sie aufruft -- genau die richtige Detailebene, um zu entscheiden, ob ein Konnektor verwendet werden soll.
+
+**Was bei Bedarf passiert:** `connector("discover", "salesforce")` gibt die vollständigen Aktionsschemas zurück, einschließlich HTTP-Methoden, URL-Pfade, Parameter-JSON-Schemas und Request-Body-Vorlagen. `connector("execute", "salesforce", "get_contacts", {"limit": 10})` leitet die Ausführung durch `ConnectorToolAdapter` mit vollständiger Auth-Injektion und Audit-Logging weiter.
+
+**Legacy-Modus:** `CONNECTOR_TOOL_MODE=legacy` registriert jede Aktion als separates Tool (`salesforce__get_contacts`, `salesforce__create_lead`, usw.). Ein Konnektor mit 20 Aktionen wird zu 20 Tool-Definitionen im System-Prompt.
+
+**Kontexteinsparungen:** Ein Konnektor mit 15 Aktionen generiert ~50 Token Stub gegenüber ~3.000 Token vollständiger Schemas. Fünf Konnektoren: ~250 Token progressiv gegenüber ~15.000 Token Legacy.
+
+### Datenbank-Konnektoren -- `database`
+
+**Was das LLM zunächst sieht:**
+
+```
+Query connected databases. Available databases:
+  - hr_postgres: HR system (12 tables: employees, departments, salaries ...)
+  - analytics_db: Analytics warehouse (45 tables: events, sessions, users ...)
+
+Subcommands:
+  list_tables <database> -- table names, descriptions, column counts
+  discover <database> [table] -- full column schemas for one or all tables
+  query <database> <sql> -- execute a SQL query
+```
+
+Datenbank-Stubs enthalten Tabellennamen (bis zu 10) und Zählungen, was dem LLM genug Informationen gibt, um zu entscheiden, welche Datenbank abgefragt werden soll, ohne Spaltenschemas zu laden.
+
+**Was auf Anfrage geschieht:** Drei Unterbefehle bilden einen natürlichen Erkennungsfluss:
+
+1. `database("list_tables", "hr_postgres")` -- gibt alle Tabellennamen mit Beschreibungen und Spaltenzählungen zurück.
+2. `database("discover", "hr_postgres", table="employees")` -- gibt vollständige Spaltenschemas zurück (Name, Typ, nullable, Primärschlüssel, Beschreibungen).
+3. `database("query", "hr_postgres", sql="SELECT ...")` -- führt eine validierte SQL-Abfrage mit Sicherheitsprüfungen und Zeilenlimits aus.
+
+Der dreistufige Fluss spiegelt wider, wie ein Entwickler eine neue Datenbank erkundet: Tabellen durchsuchen, Schema inspizieren, dann abfragen. Das LLM folgt natürlicherweise dem gleichen Muster.
+
+**Legacy-Modus:** `DATABASE_TOOL_MODE=legacy` registriert drei Tools pro Datenbank (`{db}__list_tables`, `{db}__describe_table`, `{db}__query`). Bei 5 Datenbank-Konnektoren sind das 15 Tool-Definitionen statt 1.
+
+**Kontexteinsparungen:** Eine Datenbank mit 30 Tabellen und 200 Spalten generiert ~80 Token Stub gegenüber ~5.000 Token vollständigem Schema. Die Einsparungen verstärken sich bei mehreren Datenbanken.
+
+### MCP-Server -- `mcp`
+
+**Was der LLM anfangs sieht:**
+
+```
+Interact with MCP servers. Available servers:
+  - github: GitHub (35 tools: create_issue, list_repos, get_pull_request ...)
+  - slack: Slack (12 tools: send_message, list_channels, upload_file ...)
+
+Subcommands:
+  discover <server> -- list tools with full parameter schemas
+  call <server> <tool> {"param": "value"} -- invoke an MCP tool
+```
+
+MCP-Server sind der extremste Fall für progressive Offenlegung. Ein GitHub-MCP-Server stellt 35+ Tools bereit. Ein Dateisystem-Server stellt 20+ bereit. Ohne progressive Offenlegung könnte das Verbinden von 3 MCP-Servern 70+ Tool-Definitionen in den System-Prompt injizieren -- jede mit vollständigen JSON-Schema-Parametern.
+
+**Was auf Anfrage geschieht:** `mcp("discover", "github")` gibt den vollständigen Tool-Katalog mit Parameter-Schemas zurück. `mcp("call", "github", "create_issue", {"title": "Bug report", "body": "..."})` delegiert an den gespeicherten `MCPToolAdapter`, der mit dem MCP-Server-Prozess kommuniziert.
+
+**Legacy-Modus:** `MCP_TOOL_MODE=legacy` registriert jedes MCP-Tool als separates Tool (`github__create_issue`, `github__list_repos`, usw.). Dies kann leicht die Tool-Auswahlschwelle überschreiten und unnötige Auswahlphasen auslösen.
+
+**Kontext-Einsparungen:** Die Einsparungen hier sind extrem. Die 35 Tools eines GitHub-MCP-Servers könnten 10.000+ Token Schema verbrauchen. Im Progressive-Modus kostet der Stub ~100 Token. Wenn der Benutzer GitHub in diesem Gespräch nie benötigt, werden diese 10.000 Token nie ausgegeben.
+
+### Integrierte Tools -- `request_tools`
+
+Der fünfte Mechanismus unterscheidet sich architektonisch von den anderen vier. Er konsolidiert keinen Ressourcentyp hinter einem Meta-Tool. Stattdessen adressiert er den **Engpass bei der Tool-Auswahl** -- was passiert, wenn der Agent mehr als 12 Tools zur Verfügung hat.
+
+**Funktionsweise:** Wenn die Gesamtanzahl der Tools `REACT_TOOL_SELECTION_THRESHOLD` überschreitet (Standard: 12), führt die ReAct-Engine einen leichtgewichtigen LLM-Aufruf durch, um die 6 relevantesten Tools für die aktuelle Anfrage auszuwählen. Die verbleibenden Tools werden in einer vollständigen Registry gespeichert. Ein `request_tools` Meta-Tool wird automatisch registriert, das alle nicht geladenen Tools als kompakten Katalog auflistet (Name + 80-Zeichen-Beschreibung).
+
+```mermaid
+flowchart TD
+    A["30 tools available"] --> B{"Count > 12?"}
+    B -->|Yes| C["LLM selects top 6"]
+    C --> D["6 active tools +<br/>request_tools meta-tool"]
+    D --> E["LLM uses active tools"]
+    E --> F{"Needs a tool<br/>not in active set?"}
+    F -->|Yes| G["request_tools(['web_search', 'email_send'])"]
+    G --> H["Tools loaded into active set"]
+    H --> I["System prompt rebuilt<br/>with new tools"]
+    F -->|No| J["Continue normally"]
+```
+
+**Was das LLM anfangs sieht:**
+
+```
+Load additional tools into the current session.
+Available tools not yet loaded:
+- web_search: Search the web for current information and return relevant results...
+- email_send: Send an email to one or more recipients with subject, body, and opt...
+- python_exec: Execute Python code in a sandboxed environment and return the output...
+```
+
+**Was bei Bedarf passiert:** `request_tools(tool_names=["web_search", "email_send"])` kopiert diese Tools aus der vollständigen Registry in die aktive Registry. Der System-Prompt wird in der nächsten Iteration neu erstellt, damit das LLM die vollständigen Schemas sieht. Dies ist eine Nebenwirkung -- das Tool mutiert die aktive Tool-Menge während des Gesprächs.
+
+**Keine Umgebungsvariable:** Dieser Mechanismus aktiviert sich automatisch, wenn die Tool-Auswahl den Satz filtert. Es gibt keine `REQUEST_TOOLS_MODE` Umgebungsvariable. Wenn Sie die Tool-Auswahl vollständig deaktivieren möchten, setzen Sie `REACT_TOOL_SELECTION_THRESHOLD` auf eine sehr hohe Zahl.
+
+**Kontexteinsparungen:** Die Einsparungen hängen davon ab, wie viele Tools verfügbar sind und wie viele die Auswahl auswählt. Ein Agent mit 30 Tools, der nur 6 aktive Schemas + den `request_tools` Katalog sieht, spart ungefähr 60--70% des Tool-Schema-Kontexts.
+
+## Wie es in die Werkzeugassembly-Pipeline passt
+
+Die [Systemübersicht](/architecture/system-overview) beschreibt eine 8-Schritte-pro-Anfrage-Werkzeugassembly-Pipeline. Progressive Offenlegung wirkt sich an mehreren Punkten aus:
+
+| Pipeline-Schritt | Rolle der progressiven Offenlegung |
+|---|---|
+| **1. Basis-Discovery** | Keine Auswirkung -- integrierte Werkzeuge werden normal geladen |
+| **2. Agent-Kategorie-Filter** | Keine Auswirkung -- Kategoriefilterung wird unabhängig vom Modus angewendet |
+| **3. KB-Injektion** | Keine Auswirkung -- KB-Werkzeuge sind von Natur aus leichtgewichtig (1--2 Werkzeuge) |
+| **4. Connector-Laden** | `ConnectorMetaTool` konsolidiert alle API-Connectoren; `DatabaseMetaTool` konsolidiert alle DB-Connectoren |
+| **5. MCP-Laden** | `MCPServerMetaTool` konsolidiert alle MCP-Server in ein Werkzeug |
+| **6. Skills-Injektion** | `ReadSkillTool` ersetzt vollständigen Inhalt durch kompakte Stubs im System-Prompt |
+| **7. CallAgent-Registrierung** | Keine Auswirkung -- `call_agent` ist bereits ein einzelnes Werkzeug mit einem Katalog |
+| **8. Laufzeit-Auswahl** | `request_tools` Meta-Werkzeug registriert, wenn die Auswahl die Menge filtert |
+
+Der Nettoeffekt: Die Schritte 4--6 reduzieren jeweils ihre Werkzeuganzahl auf 1 (oder eine kleine Konstante), und Schritt 8 fügt ein Sicherheitsnetz für das dynamische Laden hinzu, das die Auswahlphase möglicherweise übersehen hat. Ein Hub-Agent, der im Legacy-Modus 50+ Werkzeuge hätte, könnte im Progressive-Modus 8--10 präsentieren -- deutlich unter der Auswahlschwelle.
+
+## Konfiguration
+
+Vier Umgebungsvariablen steuern die progressive Offenlegung, eine pro Ressourcentyp:
+
+| Variable | Werte | Standard | Effekt |
+|---|---|---|---|
+| `SKILL_TOOL_MODE` | `progressive` / `inline` | `progressive` | Skills: Stubs + `read_skill` vs. vollständiger Inhalt im System-Prompt |
+| `CONNECTOR_TOOL_MODE` | `progressive` / `legacy` | `progressive` | API-Konnektoren: einzelnes `connector` Meta-Tool vs. einzelne Action-Tools |
+| `DATABASE_TOOL_MODE` | `progressive` / `legacy` | `progressive` | DB-Konnektoren: einzelnes `database` Meta-Tool vs. 3 Tools pro Datenbank |
+| `MCP_TOOL_MODE` | `progressive` / `legacy` | `progressive` | MCP-Server: einzelnes `mcp` Meta-Tool vs. einzelne Server-Tools |
+
+**Außerkraftsetzung auf Agent-Ebene.** Jede Umgebungsvariable kann pro Agent über das Feld `model_config_json` außer Kraft gesetzt werden:
+
+```json
+{
+  "model_config_json": {
+    "skill_tool_mode": "inline",
+    "connector_tool_mode": "legacy",
+    "database_tool_mode": "progressive",
+    "mcp_tool_mode": "progressive"
+  }
+}
+```
+
+**Prioritätsreihenfolge:** Agent-Konfiguration > Umgebungsvariable > Standard.
+
+Dies bedeutet, dass Sie `progressive` global (Standard) ausführen und selektiv für bestimmte Agenten außer Kraft setzen können. Ein Agent mit einer einzelnen kleinen Skill könnte den `inline`-Modus verwenden. Ein Agent, der das LLM alle Konnektoren-Aktionen im Voraus sehen muss (z. B. für feinabgestimmte Modelle, die Meta-Tools nicht zuverlässig aufrufen), könnte den `legacy`-Modus verwenden.
+
+**`request_tools` hat keine Konfiguration.** Es wird automatisch aktiviert, wenn die Tool-Auswahl eine gefilterte Teilmenge erzeugt. Der Schwellenwert wird durch `REACT_TOOL_SELECTION_THRESHOLD` (Standard: 12) und die maximale Auswahlanzahl durch `REACT_TOOL_SELECTION_MAX` (Standard: 6) gesteuert.
+
+## Designentscheidungen
+
+### Warum explizit (LLM-gesteuert) statt implizit (Framework-gesteuert)?
+
+Ein alternatives Design würde das Framework automatisch Tool-Schemas basierend auf Heuristiken erweitern -- z. B. durch Erkennung, welcher Konnektor die Abfrage des Benutzers betrifft, und Einspeisung seiner Schemas, bevor das LLM den Prompt sieht. FIM One hat sich bewusst für den LLM-gesteuerten Ansatz aus drei Gründen entschieden:
+
+1. **Das LLM ist besser bei der Absichtserkennung als Heuristiken.** Eine Abfrage wie "check if the customer has an open ticket and update their profile" betrifft zwei Konnektoren. Heuristische Schlüsselwortabstimmung ist fehleranfällig; das LLM identifiziert beide natürlicherweise.
+
+2. **Transparenz.** Wenn das LLM `connector("discover", "jira")` aufruft, wird die Aktion in der Tool-Ablaufverfolgung angezeigt. Der Benutzer (und der Entwickler beim Debugging) kann genau sehen, welche Schemas geladen wurden und wann. Implizite Erweiterung ist unsichtbar.
+
+3. **Kontexteffizienz.** Das Framework kann nicht wissen, welche Aktionen innerhalb eines Konnektors das LLM benötigt. Das Erweitern aller Aktionen für einen Konnektor verschwendet Tokens für irrelevante. Das LLM sieht zuerst die Aktionsnamen (über den Stub), fordert dann nur das Schema der spezifischen Aktion an -- zweistufige Offenlegung in ihrer reinsten Form.
+
+### Warum Pro-Ressourcen-Meta-Tools statt eines universellen Tools?
+
+Ein einzelnes `discover_resource(type, name)` Tool wäre einfacher zu implementieren, aber schlechter für das LLM. Pro-Ressourcen-Meta-Tools bieten:
+
+- **Typisierte Parameter.** `connector` hat `subcommand`, `connector`, `action`, `parameters`. `database` hat `subcommand`, `database`, `table`, `sql`. Die Parameterschemas teilen dem LLM genau mit, was erwartet wird.
+- **Enum-Constraints.** Jedes Meta-Tool listet seine gültigen Namen (Connector-Namen, Datenbanknamen, Servernamen) als Enum-Werte im Schema auf. Das LLM kann einen Connector-Namen nicht erfinden.
+- **Kategorie-Semantik.** Das `connector` Tool hat die Kategorie `connector`, `database` hat die Kategorie `database`, `mcp` hat die Kategorie `mcp`. Dies fließt in die Agenten-Kategoriefilterung ein -- ein Agent, der nur mit der Kategorie `connector` konfiguriert ist, sieht die `database` oder `mcp` Meta-Tools nicht.
+
+### Warum sowohl Progressive als auch Legacy-Modi?
+
+Nicht alle LLMs handhaben Meta-Tools gleich gut. Kleinere oder feinabgestimmte Modelle können mit dem zweistufigen Discover-then-Execute-Muster Schwierigkeiten haben. Der Legacy-Modus bietet einen direkten Fallback, bei dem jede Aktion ein eigenständiges Tool mit seinem vollständigen Schema ist – keine Meta-Tool-Umleitung erforderlich.
+
+Das Dual-Mode-Design unterstützt auch die Migration. Bestehende Bereitstellungen können schrittweise in den Progressive-Modus wechseln und einen Ressourcentyp nach dem anderen testen, indem sie eine einzelne Umgebungsvariable ändern.

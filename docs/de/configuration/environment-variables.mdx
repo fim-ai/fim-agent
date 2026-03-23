@@ -314,10 +314,12 @@ Registriert das `email_send` Built-in-Tool automatisch, wenn `SMTP_HOST`, `SMTP_
 
 | Variable | Erforderlich | Standard | Beschreibung |
 |---|---|---|---|
-| `CONNECTOR_RESPONSE_MAX_CHARS` | Nein | `50000` | Maximale Zeichen für JSON-Antworten ohne Array / Klartext-Konnektoren-Antworten |
-| `CONNECTOR_RESPONSE_MAX_ITEMS` | Nein | `10` | Maximale Array-Elemente, die beibehalten werden, wenn die Konnektoren-Antwort ein JSON-Array ist |
-| `CREDENTIAL_ENCRYPTION_KEY` | Nein | _(nicht gesetzt)_ | Fernet-Verschlüsselungsschlüssel für Konnektoren-Anmeldedaten-Blobs. Wenn gesetzt, werden Auth-Token in `connector_credentials` im Ruhezustand verschlüsselt. Wenn nicht gesetzt, werden Anmeldedaten als einfaches JSON gespeichert (abwärtskompatibel). Das Ändern dieses Schlüssels macht alle vorhandenen verschlüsselten Anmeldedaten ungültig. |
-| `CONNECTOR_TOOL_MODE` | Nein | `progressive` | Wie Konnektoren-Tools für Agenten verfügbar gemacht werden. `progressive`: einzelnes `ConnectorMetaTool` mit `discover`/`execute`-Unterbefehlen (~30 Token/Konnektor). `classic`: ein Tool pro Aktion (Vermächtnis, ~250 Token/Aktion). |
+| `CONNECTOR_RESPONSE_MAX_CHARS` | Nein | `50000` | Maximale Anzahl von Zeichen für Antworten von Nicht-Array-JSON-/Klartext-Konnektoren |
+| `CONNECTOR_RESPONSE_MAX_ITEMS` | Nein | `10` | Maximale Array-Elemente, die beibehalten werden, wenn die Konnektor-Antwort ein JSON-Array ist |
+| `CREDENTIAL_ENCRYPTION_KEY` | Nein | _(nicht gesetzt)_ | Fernet-Verschlüsselungsschlüssel für Konnektor-Anmeldedaten-Blobs. Wenn gesetzt, werden Auth-Token in `connector_credentials` im Ruhezustand verschlüsselt. Wenn nicht gesetzt, werden Anmeldedaten als einfaches JSON gespeichert (abwärtskompatibel). Das Ändern dieses Schlüssels macht alle vorhandenen verschlüsselten Anmeldedaten ungültig. |
+| `CONNECTOR_TOOL_MODE` | Nein | `progressive` | Wie Konnektor-Tools für Agenten verfügbar gemacht werden. `progressive`: einzelnes `ConnectorMetaTool` mit `discover`/`execute`-Unterbefehlen (~30 Token/Konnektor). `classic`: ein Tool pro Aktion (Legacy, ~250 Token/Aktion). |
+| `DATABASE_TOOL_MODE` | Nein | `progressive` | Wie Datenbank-Konnektor-Tools für Agenten verfügbar gemacht werden. `progressive`: einzelnes `DatabaseMetaTool` mit `list_tables`/`discover`/`query`-Unterbefehlen. `legacy`: ein Tool pro Aktion pro Datenbank-Konnektor (3 Tools jeweils). |
+| `MCP_TOOL_MODE` | Nein | `progressive` | Wie MCP-Server-Tools für Agenten verfügbar gemacht werden. `progressive`: einzelnes `MCPServerMetaTool` mit `discover`/`call`-Unterbefehlen. `legacy`: ein Tool pro MCP-Server-Aktion (ursprüngliche einzelne Tools). |
 
 ---
 

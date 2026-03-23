@@ -115,7 +115,7 @@ cd frontend && pnpm install && cd ..
 
 #### Connector Hub
 - **Three delivery modes** — Standalone assistant, embedded Copilot, or central Hub; same agent core.
-- **Any system, one pattern** — Connect APIs, databases, MCP servers. Actions auto-register as agent tools with auth injection.
+- **Any system, one pattern** — Connect APIs, databases, MCP servers. Actions auto-register as agent tools with auth injection. Progressive disclosure meta-tools reduce token usage by 80%+ across all tool types.
 - **Database connectors** — PostgreSQL, MySQL, Oracle, SQL Server, plus Chinese legacy DBs (DM, KingbaseES, GBase, Highgo). Schema introspection and AI-powered annotation.
 - **Three ways to build** — Import OpenAPI spec, AI chat builder, or connect MCP servers directly.
 

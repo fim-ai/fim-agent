@@ -45,11 +45,11 @@ Les serveurs MCP externes fournissent des outils tiers via le protocole standard
 
 ### Compétences
 
-Les compétences sont des procédures opérationnelles standard (SOP) réutilisables -- politiques d'entreprise, procédures de traitement, flux de travail étape par étape -- qui s'appliquent globalement quel que soit l'agent sélectionné. Contrairement aux connecteurs et aux bases de connaissances (qui peuvent être limités à des agents spécifiques), les compétences sont toujours chargées pour chaque utilisateur en fonction de la visibilité (personnelle, partagée au niveau de l'organisation ou abonnée au marché).
+Les compétences sont des procédures opérationnelles standard (POS) réutilisables -- politiques d'entreprise, procédures de traitement, flux de travail étape par étape -- qui s'appliquent globalement quel que soit l'Agent sélectionné. Contrairement aux Connecteurs et aux Bases de Connaissances (qui peuvent être limités à des Agents spécifiques), les Compétences sont toujours chargées pour chaque utilisateur en fonction de la visibilité (personnelle, partagée au niveau de l'organisation ou abonnée au Marché).
 
-Les compétences prennent en charge deux modes d'injection. En **mode progressif** (par défaut), l'invite système contient des stubs compacts (nom + description), et le LLM appelle `read_skill(name)` à la demande pour charger le contenu complet -- économisant les jetons de contexte quand de nombreuses compétences sont disponibles. En **mode inline**, le contenu complet de la compétence est intégré directement dans l'invite système -- adapté quand peu de compétences petites sont en usage.
+Les Compétences supportent deux modes d'injection -- **progressif** (par défaut) et **en ligne** -- contrôlés par `SKILL_TOOL_MODE`. En mode progressif, des stubs compacts apparaissent dans l'invite système et le LLM appelle `read_skill(name)` à la demande. Cela fait partie de l'architecture plus large [Progressive Disclosure](/architecture/progressive-disclosure) qui applique le même modèle stub-first, detail-on-request sur les Compétences, les Connecteurs, les Bases de Données et les Serveurs MCP.
 
-Pour une analyse plus approfondie de la raison pour laquelle les compétences sont globales (non liées à l'agent) et comment elles interagissent avec la découverte de ressources en mode dual, consultez [Découverte d'agent et de ressources](/architecture/agent-discovery).
+Pour une analyse plus approfondie de la raison pour laquelle les Compétences sont globales (non liées à un Agent) et comment elles interagissent avec la découverte de ressources en mode dual, consultez [Agent & Resource Discovery](/architecture/agent-discovery).
 
 ## Assemblage d'outils par requête
 
@@ -59,8 +59,8 @@ Chaque requête de chat assemble un ensemble d'outils frais via un pipeline de f
 flowchart LR
     A["discover_builtin_tools()"] --> B["filter_by_category()"]
     B --> C["KB injection"]
-    C --> D["Connector loading"]
-    D --> E["MCP loading"]
+    C --> D["Connector + DB loading\n(progressive)"]
+    D --> E["MCP loading\n(progressive)"]
     E --> SK["Skills injection"]
     SK --> CA["CallAgent registration"]
     CA --> F{"Tools > 12?"}
@@ -75,13 +75,13 @@ Les huit étapes :
 1. **Découverte de base.** `discover_builtin_tools()` charge tous les outils intégrés, limités au sandbox de la conversation.
 2. **Filtre de catégorie d'agent.** `filter_by_category(*agent.tool_categories)` restreint uniquement aux catégories que l'agent est autorisé à utiliser.
 3. **Injection de KB.** Si l'agent a `kb_ids`, l'outil de récupération générique est remplacé par `KBRetrieveTool` ou `GroundedRetrieveTool` selon le mode de récupération.
-4. **Chargement des connecteurs.** En mode contraint par agent, seuls les connecteurs liés à l'agent sont chargés. En mode découverte automatique (aucun agent sélectionné), tous les connecteurs visibles pour l'utilisateur sont chargés -- en utilisant `ConnectorMetaTool` pour les connecteurs API (découverte progressive) et des outils individuels pour les connecteurs de base de données.
-5. **Chargement MCP.** Les serveurs MCP personnels de l'utilisateur plus les serveurs MCP globaux provisionnés par l'administrateur sont chargés, connectés, et leurs outils enregistrés.
-6. **Injection de Skills.** Tous les Skills actifs visibles pour l'utilisateur sont chargés -- indépendamment de la sélection d'agent. En mode progressif, `ReadSkillTool` est enregistré avec des stubs compacts dans l'invite système. En mode inline, le contenu complet du Skill est intégré directement.
-7. **Enregistrement de CallAgent.** Tous les Agents actifs et visibles sont assemblés dans un catalogue et exposés via `CallAgentTool`, permettant au LLM de déléguer des tâches à des sous-agents spécialisés. Les sous-agents reçoivent un `ToolRegistry` complet construit à partir de leur propre configuration mais excluent `call_agent` pour éviter la récursion infinie.
-8. **Sélection à l'exécution.** Si le nombre total d'outils dépasse 12, un appel LLM léger sélectionne le sous-ensemble le plus pertinent (jusqu'à 6) pour cette requête spécifique. L'échec de la sélection n'est pas fatal -- l'agent revient à l'ensemble complet.
+4. **Chargement des connecteurs.** En mode contraint par agent, seuls les connecteurs liés à l'agent sont chargés. En mode découverte automatique (aucun agent sélectionné), tous les connecteurs visibles par l'utilisateur sont chargés. Les connecteurs API (`ConnectorMetaTool`) et les connecteurs de base de données (`DatabaseMetaTool`) utilisent la [divulgation progressive](/architecture/progressive-disclosure) par défaut -- des stubs légers dans l'invite système, les schémas complets chargés à la demande.
+5. **Chargement MCP.** Les serveurs MCP personnels de l'utilisateur plus les serveurs MCP globaux provisionnés par l'administrateur sont chargés et connectés. En mode progressif (par défaut), un seul `MCPServerMetaTool` consolide tous les serveurs ; le LLM appelle les sous-commandes `discover` et `call` à la demande. Voir [Divulgation progressive](/architecture/progressive-disclosure).
+6. **Injection de compétences.** Toutes les compétences actives visibles par l'utilisateur sont chargées -- indépendamment de la sélection d'agent. En mode progressif, `ReadSkillTool` est enregistré avec des stubs compacts dans l'invite système. En mode inline, le contenu complet de la compétence est intégré directement.
+7. **Enregistrement de CallAgent.** Tous les agents actifs et visibles sont assemblés dans un catalogue et exposés via `CallAgentTool`, permettant au LLM de déléguer des tâches à des sous-agents spécialisés. Les sous-agents reçoivent un `ToolRegistry` complet construit à partir de leur propre configuration mais excluent `call_agent` pour éviter la récursion infinie.
+8. **Sélection à l'exécution.** Si le nombre total d'outils dépasse 12, un appel LLM léger sélectionne le sous-ensemble le plus pertinent (jusqu'à 6) pour cette requête spécifique. Un méta-outil `request_tools` est automatiquement enregistré, permettant au LLM de charger dynamiquement des outils supplémentaires en cours de conversation si la sélection initiale a manqué un outil nécessaire. L'échec de sélection n'est pas fatal -- l'agent revient à l'ensemble complet. Voir [Divulgation progressive](/architecture/progressive-disclosure).
 
-Le résultat : l'agent voit exactement les outils dont il a besoin, pas plus. Un agent simple sans connecteurs et sans KB pourrait voir 5 outils. Un agent Hub connecté à 3 systèmes d'entreprise avec une base de connaissances ancrée et 2 serveurs MCP pourrait voir 30 -- mais après sélection, seulement les 6 plus pertinents font leur entrée dans le contexte.
+Le résultat : l'agent voit exactement les outils dont il a besoin, pas plus. Un agent simple sans connecteurs et sans KB pourrait voir 5 outils. Un agent Hub connecté à 3 systèmes d'entreprise avec une base de connaissances ancrée et 2 serveurs MCP pourrait voir 30 -- mais après sélection, seuls les 6 plus pertinents font leur entrée dans le contexte.
 
 ## Quand utiliser quoi
 

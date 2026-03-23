@@ -113,11 +113,11 @@ cd frontend && pnpm install && cd ..
 
 ## Hauptfunktionen
 
-#### Connector-Hub
+#### Connector Hub
 - **Drei Bereitstellungsmodi** — Eigenständiger Assistent, eingebetteter Copilot oder zentraler Hub; gleicher Agent-Kern.
-- **Jedes System, ein Muster** — Verbinden Sie APIs, Datenbanken, MCP-Server. Aktionen werden automatisch als Agent-Tools mit Authentifizierungsinjektion registriert.
-- **Datenbank-Konnektoren** — PostgreSQL, MySQL, Oracle, SQL Server, plus chinesische Legacy-Datenbanken (DM, KingbaseES, GBase, Highgo). Schema-Introspection und KI-gestützte Annotation.
-- **Drei Wege zum Erstellen** — OpenAPI-Spezifikation importieren, KI-Chat-Builder oder MCP-Server direkt verbinden.
+- **Beliebiges System, ein Muster** — Verbinden Sie APIs, Datenbanken, MCP-Server. Aktionen werden automatisch als Agent-Tools mit Authentifizierungsinjektion registriert. Progressive Disclosure Meta-Tools reduzieren die Token-Nutzung um über 80% bei allen Tool-Typen.
+- **Datenbank-Connectoren** — PostgreSQL, MySQL, Oracle, SQL Server, plus chinesische Legacy-Datenbanken (DM, KingbaseES, GBase, Highgo). Schema-Introspection und KI-gestützte Annotation.
+- **Drei Wege zum Erstellen** — Importieren Sie OpenAPI-Spezifikationen, nutzen Sie den KI-Chat-Builder oder verbinden Sie MCP-Server direkt.
 
 #### Planung & Ausführung
 - **Dynamische DAG-Planung** — LLM zerlegt Ziele zur Laufzeit in Abhängigkeitsgraphen. Keine hartcodierten Workflows.

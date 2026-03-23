@@ -314,10 +314,12 @@ Rerankerは取得したドキュメントを再スコアリングして関連性
 
 | 変数 | 必須 | デフォルト | 説明 |
 |---|---|---|---|
-| `CONNECTOR_RESPONSE_MAX_CHARS` | いいえ | `50000` | 非配列 JSON / プレーンテキストコネクタレスポンスの最大文字数 |
-| `CONNECTOR_RESPONSE_MAX_ITEMS` | いいえ | `10` | コネクタレスポンスが JSON 配列の場合に保持する最大配列項目数 |
-| `CREDENTIAL_ENCRYPTION_KEY` | いいえ | _(未設定)_ | コネクタ認証情報ブロブの Fernet 暗号化キー。設定すると、`connector_credentials` に保存される認証トークンは保存時に暗号化されます。未設定の場合、認証情報はプレーンテキスト JSON として保存されます（後方互換性あり）。このキーを変更すると、既存のすべての暗号化された認証情報が無効になります。 |
-| `CONNECTOR_TOOL_MODE` | いいえ | `progressive` | コネクタツールがエージェントに公開される方法。`progressive`: `discover`/`execute` サブコマンド付きの単一 `ConnectorMetaTool`（コネクタあたり約 30 トークン）。`classic`: アクション毎に 1 つのツール（レガシー、アクションあたり約 250 トークン）。 |
+| `CONNECTOR_RESPONSE_MAX_CHARS` | いいえ | `50000` | 非配列JSON/プレーンテキストコネクタレスポンスの最大文字数 |
+| `CONNECTOR_RESPONSE_MAX_ITEMS` | いいえ | `10` | コネクタレスポンスがJSON配列の場合に保持する最大配列項目数 |
+| `CREDENTIAL_ENCRYPTION_KEY` | いいえ | _(未設定)_ | コネクタ認証情報ブロブのFernet暗号化キー。設定時、`connector_credentials`に保存された認証トークンは保存時に暗号化されます。未設定の場合、認証情報はプレーンテキストJSON（後方互換性あり）として保存されます。このキーを変更すると、既存のすべての暗号化認証情報が無効になります。 |
+| `CONNECTOR_TOOL_MODE` | いいえ | `progressive` | コネクタツールがエージェントに公開される方法。`progressive`: `discover`/`execute`サブコマンド付きの単一`ConnectorMetaTool`（コネクタあたり約30トークン）。`classic`: アクションごとに1つのツール（レガシー、アクションあたり約250トークン）。 |
+| `DATABASE_TOOL_MODE` | いいえ | `progressive` | データベースコネクタツールがエージェントに公開される方法。`progressive`: `list_tables`/`discover`/`query`サブコマンド付きの単一`DatabaseMetaTool`。`legacy`: データベースコネクタごとにアクションごとに1つのツール（各3つのツール）。 |
+| `MCP_TOOL_MODE` | いいえ | `progressive` | MCPサーバーツールがエージェントに公開される方法。`progressive`: `discover`/`call`サブコマンド付きの単一`MCPServerMetaTool`。`legacy`: MCPサーバーアクションごとに1つのツール（元の個別ツール）。 |
 
 ---
 

@@ -42,52 +42,55 @@ flowchart TD
 
 实际效果：用户可以立即开始聊天，无需配置智能体。系统发现可用资源并将其公开为工具。选择智能体会缩小范围 — 它不会解锁新功能，而是聚焦现有功能。
 
-### 各模式发现的内容
+### 每种模式发现的内容
 
-两种模式在**范围**上有所不同，但本质相同。两者都生成一个 `ToolRegistry` — 只是填充方式不同。
+两种模式在**范围**上有所不同，但本质相同。两者都会生成一个 `ToolRegistry` — 只是填充方式不同。
 
 **自动发现模式（未选择智能体）：**
 
-| 资源 | 发现方式 | 工具形式 |
+| 资源 | 发现 | 工具形式 |
 |---|---|---|
-| 连接器 (API) | `resolve_visibility()` — 用户可见的全部 | `ConnectorMetaTool`（渐进式） |
-| 连接器 (DB) | `resolve_visibility()` — 用户可见的全部 | 每个 schema 的单独 DB 工具 |
-| 知识库 | 所有可访问的 KB | `kb_retrieve` |
+| 连接器（API） | `resolve_visibility()` — 用户可见的全部 | `ConnectorMetaTool`（渐进式） |
+| 连接器（DB） | `resolve_visibility()` — 用户可见的全部 | `DatabaseMetaTool`（渐进式） |
+| 知识库 | 所有可访问的知识库 | `kb_retrieve` |
 | 技能 | `resolve_visibility()` — 所有活跃的 | `read_skill`（渐进式存根） |
-| MCP 服务器 | `resolve_visibility()` — 所有用户可见的 | `{server}__{tool}` |
+| MCP 服务器 | `resolve_visibility()` — 所有用户可见的 | `MCPServerMetaTool`（渐进式） |
 | 智能体 | `resolve_visibility()` — 所有活跃的、非构建器 | `call_agent`（目录） |
 | 内置工具 | `discover_builtin_tools()` — 完整集合 | 不应用类别过滤 |
 
 **智能体约束模式（已选择智能体）：**
 
-| 资源 | 发现方式 | 工具形式 |
+| 资源 | 发现 | 工具形式 |
 |---|---|---|
-| 连接器 | 仅 `agent.connector_ids` | `ConnectorMetaTool` 或旧版按操作 |
+| 连接器 | 仅 `agent.connector_ids` | `ConnectorMetaTool` 或按操作的旧版 |
 | 知识库 | 仅 `agent.kb_ids` | `GroundedRetrieveTool` / `KBRetrieveTool` |
 | 技能 | 全局 — **不受智能体约束** | `read_skill` |
-| MCP 服务器 | 用户范围 — **不受智能体约束** | `{server}__{tool}` |
+| MCP 服务器 | 用户范围 — **不受智能体约束** | `MCPServerMetaTool`（渐进式） |
 | 智能体 | 全局 — `call_agent` 始终可用 | `call_agent` |
 | 内置工具 | `agent.tool_categories` 过滤 | 按类别的子集 |
 
-关键的不对称性：连接器和知识库由智能体限定范围，但技能、MCP 服务器和 CallAgent 始终是全局的。这反映了设计意图 — 技能是组织规则（每个人都遵循相同的标准操作程序），而连接器和 KB 是能力绑定（不同的智能体连接到不同的系统）。
+关键的不对称性：连接器和知识库由智能体确定范围，但技能、MCP 服务器和 CallAgent 始终是全局的。这反映了设计意图 — 技能是组织规则（每个人都遵循相同的标准操作程序），而连接器和知识库是能力绑定（不同的智能体连接到不同的系统）。
 
 ## 一切皆工具
 
-在 LLM 层级，所有资源类型汇聚成一个平面的可调用工具列表。LLM 对于它调用的是连接器、MCP 服务器还是知识库没有结构感知。它看到的是 `ToolRegistry` — 一组具有名称、描述和参数模式的函数。
+在 LLM 层面，所有资源类型都汇聚成一个平面的可调用工具列表。LLM 对于它调用的是连接器、MCP 服务器还是知识库没有结构感知。它看到的是 `ToolRegistry` — 一组具有名称、描述和参数模式的函数。
 
-| 资源类型 | 在 LLM 层级变为 | 工具名称模式 |
+| 资源类型 | 在 LLM 层变成 | 工具名称模式 |
 |---|---|---|
 | 连接器（渐进式） | 单个元工具 | `connector` |
 | 连接器（遗留） | 每个操作 N 个工具 | `{connector}__{action}` |
-| MCP 服务器 | 每个服务器 N 个工具 | `{server}__{tool}` |
+| 数据库连接器（渐进式） | 单个元工具 | `database` |
+| 数据库连接器（遗留） | 每个数据库 3 个工具 | `{db}__list_tables`, `{db}__describe_table`, `{db}__query` |
+| MCP 服务器（渐进式） | 单个元工具 | `mcp` |
+| MCP 服务器（遗留） | 每个服务器 N 个工具 | `{server}__{tool}` |
 | 知识库 | 检索工具 | `kb_retrieve` 或 `grounded_retrieve` |
 | 技能（渐进式） | 读取工具 + 系统提示存根 | `read_skill` |
 | 技能（内联） | 仅系统提示文本 | _（无工具）_ |
 | 智能体本身 | 不作为工具可见 | _（指令 + 工具组装）_ |
 
-关键洞察：**智能体不是工具 — 它是使用工具的实体。** 智能体将其指令贡献给系统提示，并确定哪些工具可用。但从 LLM 的角度来看，不存在"智能体"概念 — 只有系统提示和一组可调用的函数。
+关键洞察：**智能体不是工具 — 它是使用工具的实体。** 智能体将其指令贡献给系统提示，并确定哪些工具可用。但从 LLM 的角度来看，不存在"智能体"概念 — 只有系统提示和一组可调用函数。
 
-这种统一性使系统具有可扩展性。添加新的资源类型意味着实现 `Tool` 协议（`name`、`description`、`parameters_schema`、`run()`）。执行引擎、上下文管理和 LLM 交互层保持不变。
+这种统一性正是使系统可扩展的原因。添加新的资源类型意味着实现 `Tool` 协议（`name`、`description`、`parameters_schema`、`run()`）。执行引擎、上下文管理和 LLM 交互层保持不变。
 
 ## 技能作为全局标准操作流程
 
@@ -101,23 +104,7 @@ flowchart TD
 
 ### 两种注入模式
 
-技能支持两种注入策略，由 `SKILL_TOOL_MODE`（环境变量）或智能体的 `model_config_json.skill_tool_mode` 控制：
-
-| 模式 | 系统提示 | 工具 | 使用场景 |
-|---|---|---|---|
-| **渐进式**（默认） | 仅名称 + 描述摘要 | `read_skill(name)` 按需加载完整内容 | 技能众多或内容庞大 — 节省上下文令牌 |
-| **内联** | 嵌入完整技能内容 | 无 | 技能少且内容小 — 无工具调用开销 |
-
-在渐进式模式下，系统提示包含紧凑的摘要，如：
-
-```
-## Available Skills
-Call read_skill(name) to load full content before executing any of these:
-- **Customer Complaint SOP**: Handle escalations per company policy...
-- **Refund Processing**: Step-by-step refund workflow...
-```
-
-LLM 仅在需要完整流程时调用 `read_skill("Customer Complaint SOP")`，在无关的轮次中保持上下文精简。
+技能支持两种注入模式 -- **渐进式**（默认）和**内联式** -- 由 `SKILL_TOOL_MODE` 或智能体的 `model_config_json.skill_tool_mode` 控制。在渐进式模式下，系统提示中仅显示紧凑的存根；LLM 按需调用 `read_skill(name)` 来加载完整内容。这是 FIM One 更广泛的[渐进式披露](/architecture/progressive-disclosure)架构的一部分，该架构可最小化所有资源类型的上下文消耗。
 
 ## 智能体作为角色，而非容器
 

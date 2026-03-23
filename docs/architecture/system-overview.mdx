@@ -47,7 +47,7 @@ External MCP servers provide third-party tools via the standard protocol. Each s
 
 Skills are reusable Standard Operating Procedures (SOPs) -- company policies, handling procedures, step-by-step workflows -- that apply globally regardless of which Agent is selected. Unlike Connectors and Knowledge Bases (which can be scoped to specific Agents), Skills are always loaded for every user based on visibility (personal, org-shared, or Market-subscribed).
 
-Skills support two injection modes. In **progressive mode** (default), the system prompt contains compact stubs (name + description), and the LLM calls `read_skill(name)` on demand to load the full content -- saving context tokens when many Skills are available. In **inline mode**, the full Skill content is embedded directly in the system prompt -- suitable when few, small Skills are in use.
+Skills support two injection modes -- **progressive** (default) and **inline** -- controlled by `SKILL_TOOL_MODE`. In progressive mode, compact stubs appear in the system prompt and the LLM calls `read_skill(name)` on demand. This is part of the broader [Progressive Disclosure](/architecture/progressive-disclosure) architecture that applies the same stub-first, detail-on-request pattern across Skills, Connectors, Databases, and MCP Servers.
 
 For a deeper look at why Skills are global (not Agent-bound) and how they interact with the dual-mode resource discovery, see [Agent & Resource Discovery](/architecture/agent-discovery).
 
@@ -59,8 +59,8 @@ Every chat request assembles a fresh tool set through a filtering pipeline in `_
 flowchart LR
     A["discover_builtin_tools()"] --> B["filter_by_category()"]
     B --> C["KB injection"]
-    C --> D["Connector loading"]
-    D --> E["MCP loading"]
+    C --> D["Connector + DB loading\n(progressive)"]
+    D --> E["MCP loading\n(progressive)"]
     E --> SK["Skills injection"]
     SK --> CA["CallAgent registration"]
     CA --> F{"Tools > 12?"}
@@ -75,11 +75,11 @@ The eight steps:
 1. **Base discovery.** `discover_builtin_tools()` loads all built-in tools, scoped to the conversation's sandbox.
 2. **Agent category filter.** `filter_by_category(*agent.tool_categories)` restricts to only the categories the agent is allowed to use.
 3. **KB injection.** If the agent has `kb_ids`, the generic retrieval tool is replaced with `KBRetrieveTool` or `GroundedRetrieveTool` based on retrieval mode.
-4. **Connector loading.** In agent-constrained mode, only the agent's bound connectors are loaded. In auto-discovery mode (no agent selected), all connectors visible to the user are loaded -- using `ConnectorMetaTool` for API connectors (progressive discovery) and individual tools for database connectors.
-5. **MCP loading.** The user's personal MCP servers plus admin-provisioned global MCP servers are loaded, connected, and their tools registered.
+4. **Connector loading.** In agent-constrained mode, only the agent's bound connectors are loaded. In auto-discovery mode (no agent selected), all connectors visible to the user are loaded. Both API connectors (`ConnectorMetaTool`) and database connectors (`DatabaseMetaTool`) use [progressive disclosure](/architecture/progressive-disclosure) by default -- lightweight stubs in the system prompt, full schemas loaded on demand.
+5. **MCP loading.** The user's personal MCP servers plus admin-provisioned global MCP servers are loaded and connected. In progressive mode (default), a single `MCPServerMetaTool` consolidates all servers; the LLM calls `discover` and `call` subcommands on demand. See [Progressive Disclosure](/architecture/progressive-disclosure).
 6. **Skills injection.** All active Skills visible to the user are loaded -- regardless of agent selection. In progressive mode, `ReadSkillTool` is registered with compact stubs in the system prompt. In inline mode, full Skill content is embedded directly.
 7. **CallAgent registration.** All active, visible Agents are assembled into a catalog and exposed via `CallAgentTool`, enabling the LLM to delegate tasks to specialist sub-agents. Sub-agents receive a full `ToolRegistry` built from their own configuration but exclude `call_agent` to prevent infinite recursion.
-8. **Runtime selection.** If the total tool count exceeds 12, a lightweight LLM call picks the most relevant subset (up to 6) for this specific query. Selection failure is non-fatal -- the agent falls back to the full set.
+8. **Runtime selection.** If the total tool count exceeds 12, a lightweight LLM call picks the most relevant subset (up to 6) for this specific query. A `request_tools` meta-tool is automatically registered, allowing the LLM to dynamically load additional tools mid-conversation if the initial selection missed a needed tool. Selection failure is non-fatal -- the agent falls back to the full set. See [Progressive Disclosure](/architecture/progressive-disclosure).
 
 The result: the agent sees exactly the tools it needs, no more. A simple agent with no connectors and no KB might see 5 tools. A Hub agent connected to 3 enterprise systems with a grounded knowledge base and 2 MCP servers might see 30 -- but after selection, only the 6 most relevant make it into the context.
 

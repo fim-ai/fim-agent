@@ -45,22 +45,22 @@ Externe MCP-Server stellen Tools von Drittanbietern über das Standardprotokoll 
 
 ### Fähigkeiten
 
-Fähigkeiten sind wiederverwendbare Standard Operating Procedures (SOPs) – Unternehmensrichtlinien, Handlungsverfahren, schrittweise Arbeitsabläufe – die global gelten, unabhängig davon, welcher Agent ausgewählt ist. Im Gegensatz zu Konnektoren und Wissensdatenbanken (die auf bestimmte Agenten beschränkt werden können) werden Fähigkeiten immer für jeden Benutzer basierend auf der Sichtbarkeit (persönlich, organisationsweit freigegeben oder Market-abonniert) geladen.
+Fähigkeiten sind wiederverwendbare Standard Operating Procedures (SOPs) – Unternehmensrichtlinien, Handlungsverfahren, schrittweise Workflows – die global gelten, unabhängig davon, welcher Agent ausgewählt ist. Im Gegensatz zu Konnektoren und Knowledge Bases (die auf bestimmte Agenten beschränkt werden können), werden Fähigkeiten immer für jeden Benutzer basierend auf der Sichtbarkeit (persönlich, organisationsweit oder Market-abonniert) geladen.
 
-Fähigkeiten unterstützen zwei Injektionsmodi. Im **progressiven Modus** (Standard) enthält die Systemaufforderung kompakte Stubs (Name + Beschreibung), und das LLM ruft `read_skill(name)` bei Bedarf auf, um den vollständigen Inhalt zu laden – was Kontexttokens spart, wenn viele Fähigkeiten verfügbar sind. Im **Inline-Modus** wird der vollständige Inhalt der Fähigkeit direkt in die Systemaufforderung eingebettet – geeignet, wenn wenige, kleine Fähigkeiten verwendet werden.
+Fähigkeiten unterstützen zwei Injektionsmodi – **progressiv** (Standard) und **inline** – gesteuert durch `SKILL_TOOL_MODE`. Im progressiven Modus erscheinen kompakte Stubs im System-Prompt und der LLM ruft `read_skill(name)` bei Bedarf auf. Dies ist Teil der umfassenderen [Progressive Disclosure](/architecture/progressive-disclosure)-Architektur, die das gleiche Stub-First-, Detail-on-Request-Muster auf Fähigkeiten, Konnektoren, Datenbanken und MCP Server anwendet.
 
-Für einen tieferen Einblick, warum Fähigkeiten global sind (nicht an Agenten gebunden) und wie sie mit der dualen Ressourcenerkennung interagieren, siehe [Agent & Ressourcenerkennung](/architecture/agent-discovery).
+Für einen tieferen Einblick, warum Fähigkeiten global sind (nicht Agent-gebunden) und wie sie mit der dualen Ressourcenermittlung interagieren, siehe [Agent & Resource Discovery](/architecture/agent-discovery).
 
 ## Werkzeugzusammensetzung pro Anfrage
 
-Jede Chat-Anfrage stellt einen neuen Werkzeugsatz durch eine Filterpipeline in `_resolve_tools()` zusammen. Dies ist keine statische Konfiguration -- sie wird pro Anfrage basierend auf den Einstellungen des Agenten, der Identität des Benutzers und den verfügbaren Konnektoren und MCP-Servern berechnet.
+Jede Chat-Anfrage stellt einen frischen Werkzeugsatz durch eine Filterpipeline in `_resolve_tools()` zusammen. Dies ist keine statische Konfiguration -- sie wird pro Anfrage basierend auf den Einstellungen des Agenten, der Identität des Benutzers und den verfügbaren Konnektoren und MCP-Servern berechnet.
 
 ```mermaid
 flowchart LR
     A["discover_builtin_tools()"] --> B["filter_by_category()"]
     B --> C["KB injection"]
-    C --> D["Connector loading"]
-    D --> E["MCP loading"]
+    C --> D["Connector + DB loading\n(progressive)"]
+    D --> E["MCP loading\n(progressive)"]
     E --> SK["Skills injection"]
     SK --> CA["CallAgent registration"]
     CA --> F{"Tools > 12?"}
@@ -72,16 +72,16 @@ flowchart LR
 
 Die acht Schritte:
 
-1. **Basis-Erkennung.** `discover_builtin_tools()` lädt alle integrierten Werkzeuge, begrenzt auf die Sandbox der Konversation.
-2. **Agenten-Kategoriefilter.** `filter_by_category(*agent.tool_categories)` beschränkt sich nur auf die Kategorien, die der Agent verwenden darf.
+1. **Basis-Erkennung.** `discover_builtin_tools()` lädt alle integrierten Werkzeuge, begrenzt auf die Sandbox des Gesprächs.
+2. **Agenten-Kategorie-Filter.** `filter_by_category(*agent.tool_categories)` beschränkt auf nur die Kategorien, die der Agent verwenden darf.
 3. **KB-Injektion.** Wenn der Agent `kb_ids` hat, wird das generische Abrufwerkzeug durch `KBRetrieveTool` oder `GroundedRetrieveTool` basierend auf dem Abrufmodus ersetzt.
-4. **Konnektoren-Laden.** Im agenten-beschränkten Modus werden nur die an den Agenten gebundenen Konnektoren geladen. Im Auto-Discovery-Modus (kein Agent ausgewählt) werden alle für den Benutzer sichtbaren Konnektoren geladen -- mit `ConnectorMetaTool` für API-Konnektoren (progressive Erkennung) und einzelnen Werkzeugen für Datenbank-Konnektoren.
-5. **MCP-Laden.** Die persönlichen MCP-Server des Benutzers plus von Administratoren bereitgestellte globale MCP-Server werden geladen, verbunden und ihre Werkzeuge registriert.
-6. **Skills-Injektion.** Alle aktiven Skills, die für den Benutzer sichtbar sind, werden geladen -- unabhängig von der Agenten-Auswahl. Im progressiven Modus wird `ReadSkillTool` mit kompakten Stubs in der Systemaufforderung registriert. Im Inline-Modus wird der vollständige Skill-Inhalt direkt eingebettet.
+4. **Konnektoren-Laden.** Im agentenbeschränkten Modus werden nur die an den Agenten gebundenen Konnektoren geladen. Im Auto-Discovery-Modus (kein Agent ausgewählt) werden alle für den Benutzer sichtbaren Konnektoren geladen. Sowohl API-Konnektoren (`ConnectorMetaTool`) als auch Datenbank-Konnektoren (`DatabaseMetaTool`) verwenden standardmäßig [progressive Offenlegung](/architecture/progressive-disclosure) -- leichte Stubs im System-Prompt, vollständige Schemas bei Bedarf geladen.
+5. **MCP-Laden.** Die persönlichen MCP-Server des Benutzers plus von Administratoren bereitgestellte globale MCP-Server werden geladen und verbunden. Im Progressive-Modus (Standard) konsolidiert ein einzelnes `MCPServerMetaTool` alle Server; das LLM ruft `discover`- und `call`-Unterbefehle bei Bedarf auf. Siehe [Progressive Offenlegung](/architecture/progressive-disclosure).
+6. **Skills-Injektion.** Alle aktiven Skills, die für den Benutzer sichtbar sind, werden geladen -- unabhängig von der Agenten-Auswahl. Im Progressive-Modus wird `ReadSkillTool` mit kompakten Stubs im System-Prompt registriert. Im Inline-Modus wird der vollständige Skill-Inhalt direkt eingebettet.
 7. **CallAgent-Registrierung.** Alle aktiven, sichtbaren Agenten werden in einem Katalog zusammengefasst und über `CallAgentTool` verfügbar gemacht, was dem LLM ermöglicht, Aufgaben an spezialisierte Sub-Agenten zu delegieren. Sub-Agenten erhalten eine vollständige `ToolRegistry`, die aus ihrer eigenen Konfiguration erstellt wird, schließt aber `call_agent` aus, um unendliche Rekursion zu verhindern.
-8. **Laufzeit-Auswahl.** Wenn die Gesamtzahl der Werkzeuge 12 überschreitet, wählt ein leichter LLM-Aufruf die relevanteste Teilmenge (bis zu 6) für diese spezifische Anfrage aus. Auswahlfehlschlag ist nicht fatal -- der Agent fällt auf den vollständigen Satz zurück.
+8. **Laufzeit-Auswahl.** Wenn die Gesamtwerkzeuganzahl 12 überschreitet, wählt ein leichter LLM-Aufruf die relevanteste Teilmenge (bis zu 6) für diese spezifische Anfrage aus. Ein `request_tools` Meta-Werkzeug wird automatisch registriert, das dem LLM ermöglicht, während des Gesprächs dynamisch zusätzliche Werkzeuge zu laden, falls die anfängliche Auswahl ein benötigtes Werkzeug übersehen hat. Auswahlfehlschlag ist nicht fatal -- der Agent fällt auf den vollständigen Satz zurück. Siehe [Progressive Offenlegung](/architecture/progressive-disclosure).
 
-Das Ergebnis: Der Agent sieht genau die Werkzeuge, die er benötigt, nicht mehr. Ein einfacher Agent ohne Konnektoren und ohne KB könnte 5 Werkzeuge sehen. Ein Hub-Agent, der mit 3 Unternehmenssystemen verbunden ist, eine fundierte Wissensdatenbank hat und 2 MCP-Server nutzt, könnte 30 sehen -- aber nach der Auswahl schaffen es nur die 6 relevantesten in den Kontext.
+Das Ergebnis: Der Agent sieht genau die Werkzeuge, die er braucht, nicht mehr. Ein einfacher Agent ohne Konnektoren und ohne KB könnte 5 Werkzeuge sehen. Ein Hub-Agent, der mit 3 Unternehmenssystemen verbunden ist, mit einer fundierten Wissensdatenbank und 2 MCP-Servern, könnte 30 sehen -- aber nach der Auswahl schaffen es nur die 6 relevantesten in den Kontext.
 
 ## Wann man was verwendet
 

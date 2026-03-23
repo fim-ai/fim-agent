@@ -115,8 +115,8 @@ cd frontend && pnpm install && cd ..
 
 #### 커넥터 허브
 - **세 가지 배포 모드** — 독립형 어시스턴트, 임베디드 코파일럿, 또는 중앙 허브; 동일한 에이전트 코어.
-- **모든 시스템, 하나의 패턴** — API, 데이터베이스, MCP 서버 연결. 작업이 인증 주입과 함께 에이전트 도구로 자동 등록됩니다.
-- **데이터베이스 커넥터** — PostgreSQL, MySQL, Oracle, SQL Server, 그리고 중국 레거시 DB (DM, KingbaseES, GBase, Highgo). 스키마 내부 검사 및 AI 기반 주석.
+- **모든 시스템, 하나의 패턴** — API, 데이터베이스, MCP 서버 연결. 작업은 인증 주입과 함께 에이전트 도구로 자동 등록됩니다. 점진적 공개 메타 도구는 모든 도구 유형에서 토큰 사용량을 80% 이상 감소시킵니다.
+- **데이터베이스 커넥터** — PostgreSQL, MySQL, Oracle, SQL Server, 그리고 중국 레거시 DB(DM, KingbaseES, GBase, Highgo). 스키마 내부 검사 및 AI 기반 주석.
 - **세 가지 구축 방법** — OpenAPI 스펙 가져오기, AI 채팅 빌더, 또는 MCP 서버 직접 연결.
 
 #### 계획 및 실행

@@ -318,8 +318,10 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 |---|---|---|---|
 | `CONNECTOR_RESPONSE_MAX_CHARS` | 否 | `50000` | 非数组 JSON / 纯文本连接器响应的最大字符数 |
 | `CONNECTOR_RESPONSE_MAX_ITEMS` | 否 | `10` | 当连接器响应为 JSON 数组时保留的最大数组项数 |
-| `CREDENTIAL_ENCRYPTION_KEY` | 否 | _(未设置)_ | 用于连接器凭证 blob 的 Fernet 加密密钥。设置后，存储在 `connector_credentials` 中的身份验证令牌将在静止时加密。如果未设置，凭证将存储为纯文本 JSON（向后兼容）。更改此密钥会使所有现有加密凭证失效。 |
+| `CREDENTIAL_ENCRYPTION_KEY` | 否 | _(未设置)_ | 用于连接器凭证 blob 的 Fernet 加密密钥。设置后，存储在 `connector_credentials` 中的身份验证令牌将被加密存储。如果未设置，凭证将以纯文本 JSON 形式存储（向后兼容）。更改此密钥将使所有现有加密凭证失效。 |
 | `CONNECTOR_TOOL_MODE` | 否 | `progressive` | 连接器工具如何暴露给智能体。`progressive`：单个 `ConnectorMetaTool`，带有 `discover`/`execute` 子命令（~30 tokens/连接器）。`classic`：每个操作一个工具（旧版，~250 tokens/操作）。 |
+| `DATABASE_TOOL_MODE` | 否 | `progressive` | 数据库连接器工具如何暴露给智能体。`progressive`：单个 `DatabaseMetaTool`，带有 `list_tables`/`discover`/`query` 子命令。`legacy`：每个数据库连接器每个操作一个工具（3 个工具）。 |
+| `MCP_TOOL_MODE` | 否 | `progressive` | MCP 服务器工具如何暴露给智能体。`progressive`：单个 `MCPServerMetaTool`，带有 `discover`/`call` 子命令。`legacy`：每个 MCP 服务器操作一个工具（原始单个工具）。 |
 
 ---
 
