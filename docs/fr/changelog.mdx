@@ -12,21 +12,24 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ### Ajouté
 
-- **Bascule Native Function Calling par modèle** — Le paramètre `tool_choice_enabled` (ENV + Admin par modèle) permet aux modèles qui rejettent la sélection forcée d'outils de sauter le Niveau 1 et d'aller directement au Mode JSON. Configurable dans Paramètres → Modèles → Avancé.
-- **Révision complète de la qualité du DAG** — Cinq améliorations : mise à niveau du modèle par défaut vers le modèle général pour les étapes non-rapides ; découverte automatique des compétences dans la planification ; vérificateur de citations pour les domaines juridique/médical/financier ; préservation du contexte de contenu structuré avec multiplicateur de troncature configurable ; classification de domaine dans le routeur avec sélection de modèle consciente du domaine.
-- **Escalade de modèle de domaine dans ReAct** — Les domaines spécialisés (juridique/médical/financier) s'escaladent automatiquement vers le modèle de raisonnement avec recherche web obligatoire et vérification des citations.
-- **Téléchargement de pièce jointe** — Les cartes de fichiers dans les messages de chat sont maintenant cliquables pour télécharger le fichier original.
+- **Circuit breaker de budget de jetons par tour** — La variable d'environnement `REACT_MAX_TURN_TOKENS` fournit un arrêt d'urgence pour les boucles d'agent incontrôlées. Par défaut `0` (illimité) — utilisez `token_quota` par utilisateur pour le contrôle des coûts quotidiens à la place.
+- **Basculement de fonction native par modèle** — Le paramètre `tool_choice_enabled` (ENV + Admin par modèle) permet aux modèles qui rejettent la sélection d'outil forcée de sauter le niveau 1 et d'aller directement au mode JSON. Configurable dans Paramètres → Modèles → Avancé.
+- **Révision de la qualité du DAG** — Cinq améliorations : mise à niveau du modèle par défaut vers le modèle général pour les étapes non-rapides ; découverte automatique des compétences dans la planification ; vérificateur de citations pour les domaines juridique/médical/financier ; préservation du contexte de contenu structuré avec multiplicateur de troncature configurable ; classification de domaine dans le routeur avec sélection de modèle consciente du domaine.
+- **Escalade de modèle de domaine dans ReAct** — Les domaines spécialisés (juridique/médical/financier) s'escaladent automatiquement vers le modèle de raisonnement avec recherche web obligatoire et vérification de citation.
+- **Téléchargement de pièce jointe** — Les cartes de fichier dans les messages de chat sont maintenant cliquables pour télécharger le fichier original.
 
 ### Modifié
 
-- **Troncature d'outil centralisée** — Tous les types d'outils délèguent désormais la troncature à un module partagé. Les valeurs par défaut sont configurables via les variables d'environnement `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES`.
-- **Détection de domaine découplée** — La classification de domaine s'exécute indépendamment dans chaque point de terminaison, n'est plus regroupée avec le routage automatique. Les instructions SOP de domaine assouplies pour guider plutôt que de mandater la recherche web.
+- **Budgétisation dynamique de l'invite système** — Suppression de la réserve fixe `SYSTEM_PROMPT_RESERVE` (4K tokens) du calcul du budget de contexte. ContextGuard tient maintenant compte de l'invite système de manière dynamique, donnant à chaque itération ~4K de contexte utilisable supplémentaire.
+- **Troncature centralisée des outils** — Tous les types d'outils délèguent maintenant la troncature à un module partagé. Les valeurs par défaut sont configurables via les variables d'environnement `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES`.
+- **Détection de domaine découplée** — La classification de domaine s'exécute indépendamment dans chaque point de terminaison, n'étant plus regroupée avec le routage automatique. Les instructions SOP de domaine assouplies pour guider plutôt que de mandater la recherche web.
 - **Variable d'environnement `AUTO_ROUTING` supprimée** — Le point de terminaison automatique classe toujours les requêtes.
 
 ### Corrigé
 
+- **Soumission de message en double** — L'entrée de chat utilise désormais un garde synchrone pour empêcher la soumission du même message plusieurs fois lors de clics rapides.
 - **Chaîne de dégradation de sortie structurée** — Le fallback à 3 niveaux (FC natif → mode JSON → texte brut) traverse maintenant correctement tous les niveaux.
-- **Valeur DB `json_mode_enabled` ignorée** — Les modèles configurés via Admin utilisent maintenant correctement leur paramètre par modèle au lieu de toujours revenir à la variable d'environnement.
+- **Valeur `json_mode_enabled` DB ignorée** — Les modèles configurés via Admin utilisent désormais correctement leur paramètre par modèle au lieu de toujours revenir à la variable d'environnement.
 - **Message d'échec de planification DAG** — Affiche maintenant un message bilingue convivial au lieu de l'erreur de pipeline brute.
 - **Contournement du propriétaire du serveur MCP pour allow_fallback** — Le propriétaire du serveur n'est plus bloqué par `allow_fallback=False`.
 

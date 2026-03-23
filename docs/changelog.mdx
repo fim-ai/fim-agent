@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Per-turn token budget circuit breaker** — `REACT_MAX_TURN_TOKENS` env var provides an emergency stop for runaway agent loops. Default `0` (unlimited) — use per-user `token_quota` for daily cost control instead.
 - **Per-model Native Function Calling toggle** — `tool_choice_enabled` setting (ENV + Admin per-model) lets models that reject forced tool selection skip Level 1 and go directly to JSON Mode. Configurable in Settings → Models → Advanced.
 - **DAG quality overhaul** — Five improvements: default model upgrade to general model for non-fast steps; skill auto-discovery in planning; citation verifier for legal/medical/financial domains; structured content context preservation with configurable truncation multiplier; domain classification in router with domain-aware model selection.
 - **Domain model escalation in ReAct** — Specialist domains (legal/medical/financial) auto-escalate to reasoning model with mandatory web search and citation verification.
@@ -19,12 +20,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Changed
 
+- **Dynamic system prompt budgeting** — Removed the fixed `SYSTEM_PROMPT_RESERVE` (4K tokens) from context budget calculation. ContextGuard now accounts for the system prompt dynamically, giving each iteration ~4K more usable context.
 - **Centralized tool truncation** — All tool types now delegate truncation to a shared module. Defaults configurable via `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES` env vars.
 - **Domain detection decoupled** — Domain classification runs independently in each endpoint, no longer bundled with auto-routing. Domain SOP instructions softened to guide rather than mandate web search.
 - **`AUTO_ROUTING` env var removed** — Auto endpoint always classifies queries.
 
 ### Fixed
 
+- **Duplicate message submission** — Chat input now uses a synchronous guard to prevent the same message from being submitted multiple times on rapid clicks.
 - **Structured output degradation chain** — The 3-level fallback (native FC → JSON mode → plain text) now properly falls through all levels.
 - **`json_mode_enabled` DB value ignored** — Models configured via Admin now correctly use their per-model setting instead of always falling back to the env var.
 - **DAG planning failure message** — Now shows user-friendly bilingual message instead of raw pipeline error.

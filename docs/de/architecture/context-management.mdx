@@ -16,21 +16,21 @@ FIM One löst dies mit einer fünfschichtigen Defense-in-Depth-Architektur. Jede
 
 ## Fünf Verteidigungsebenen
 
-Kontextmanagement ist nicht ein einzelner Mechanismus. Es ist ein Stapel, bei dem jede Ebene eine spezifische Aufgabe auf einer spezifischen Granularität handhabt:
+Kontextmanagement ist kein einzelner Mechanismus. Es ist ein Stapel, bei dem jede Ebene eine spezifische Aufgabe auf einer spezifischen Granularität handhabt:
 
 | Ebene | Komponente | Funktion | Zeitpunkt |
 |-------|-----------|-------------|-------------|
-| **5** | Budget-Konfiguration | Berechnet nutzbares Input-Token-Budget aus Modellspezifikationen | Beim Start / pro Anfrage |
+| **5** | Budget Configuration | Berechnet nutzbares Input-Token-Budget aus Modellspezifikationen | Beim Start / pro Anfrage |
 | **4** | DbMemory | Lädt persistierte Historie, komprimiert beim Laden | Einmal pro Anfrage |
 | **3** | ContextGuard | Budget-Durchsetzung pro Iteration | Bei jeder ReAct-Iteration |
 | **2** | CompactUtils | Token-Schätzung, intelligente Kürzung, LLM-Komprimierung | Aufgerufen von Ebenen 3 und 4 |
-| **1** | Memory-Implementierungen | Abstrakte Schnittstelle + konkrete Strategien | Framework-Ebene |
+| **1** | Memory Implementations | Abstrakte Schnittstelle + konkrete Strategien | Framework-Ebene |
 
-Die Ebenen sind von unten nach oben nummeriert, da höhere Ebenen von niedrigeren abhängen. Ebene 5 setzt das Budget. Ebene 4 führt die anfängliche Komprimierung beim Laden durch. Ebene 3 setzt das Budget bei jeder Iteration durch. Die Ebenen 2 und 1 stellen die Grundelemente bereit, die die Ebenen 3 und 4 verwenden.
+Die Ebenen sind von unten nach oben nummeriert, da höhere Ebenen von niedrigeren abhängen. Ebene 5 setzt das Budget. Ebene 4 führt die initiale Komprimierung beim Laden durch. Ebene 3 setzt das Budget bei jeder Iteration durch. Ebenen 2 und 1 stellen die Primitive bereit, die Ebenen 3 und 4 verwenden.
 
 ```mermaid
 flowchart TD
-    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output - 4K reserve</i>"]
+    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output</i>"]
     L4["Layer 4: DbMemory<br/><i>Load history, compact on load</i>"]
     L3["Layer 3: ContextGuard<br/><i>Per-iteration enforcement</i>"]
     L2["Layer 2: CompactUtils<br/><i>Estimation, truncation, LLM compact</i>"]
@@ -45,25 +45,25 @@ flowchart TD
 
 ### Layer 5 — Budget-Konfiguration
 
-Das Budget wird aus drei Werten berechnet:
+Das Budget wird aus zwei Werten berechnet:
 
 ```
-usable_input_tokens = context_size - max_output_tokens - system_prompt_reserve
+usable_input_tokens = context_size - max_output_tokens
 ```
 
-Mit Standardwerten: `128,000 - 64,000 - 4,000 = 60,000 tokens`.
+Mit Standardwerten: `128.000 - 64.000 = 64.000 Token`.
 
-Die 4.000-Token-Systemanfrage-Reserve deckt die Systemaufforderung des Agenten, Werkzeugbeschreibungen und Formatierungsaufwand ab. Dies ist eine feste Konstante — großzügig genug, um Systemanfragen in der Praxis nicht zu kürzen, klein genug, um das Budget nicht zu verschwenden.
+Es wird keine statische Systemanfrage-Reserve abgezogen. Die Systemanfrage (Agent-Anweisungen, Werkzeugbeschreibungen, Formatierungsaufwand) ist in der Nachrichtenliste enthalten, die ContextGuard dynamisch schätzt – das Abziehen einer festen Reserve würde zu Doppelzählung führen und Budget verschwenden. Eine typische Systemanfrage verbraucht 3K-5K Token; Agenten mit vielen Werkzeugen oder langen Anweisungen können mehr verbrauchen. ContextGuard berücksichtigt die tatsächliche Größe automatisch.
 
 Budget-Werte können aus drei Quellen stammen, aufgelöst in Prioritätsreihenfolge:
 
-1. **Database ModelConfig** — pro-Modell `context_size` und `max_output_tokens` vom Administrator festgelegt.
+1. **Database ModelConfig** — pro-Modell `context_size` und `max_output_tokens`, die vom Administrator festgelegt werden.
 2. **Umgebungsvariablen** — `LLM_CONTEXT_SIZE` und `LLM_MAX_OUTPUT_TOKENS`.
 3. **Hartcodierte Standardwerte** — 128K Kontext, 64K Ausgabe.
 
-Das Haupt-LLM und das schnelle LLM haben unabhängige Budgets. Die DAG-Schrittausführung verwendet das Budget des schnellen LLM; der ReAct-Modus verwendet das Budget des Haupt-LLM. Dies ist wichtig, da Operatoren häufig ein großes Kontextmodell für ReAct (wo sich der Verlauf ansammelt) mit einem kleineren, schnelleren Modell für DAG-Schritte (wo jeder Schritt von vorne beginnt) kombinieren.
+Das Haupt-LLM und das schnelle LLM haben unabhängige Budgets. Die DAG-Schrittausführung verwendet das Budget des schnellen LLM; ReAct-Modus verwendet das Budget des Haupt-LLM. Dies ist wichtig, da Operatoren häufig ein großes Kontextmodell für ReAct (wo sich der Verlauf ansammelt) mit einem kleineren, schnelleren Modell für DAG-Schritte (wo jeder Schritt neu beginnt) kombinieren.
 
-Ein Minimum von 4.000 Tokens wird erzwungen — wenn falsch konfigurierte Werte ein kleineres Budget ergeben würden, begrenzt das System auf 4K, anstatt stillschweigend zu fehlschlagen.
+Ein Minimum von 4.000 Token wird erzwungen – wenn falsch konfigurierte Werte zu einem kleineren Budget führen würden, wird das System auf 4K begrenzt, anstatt stillschweigend zu fehlschlagen.
 
 ### Layer 4 — DbMemory
 
@@ -231,16 +231,16 @@ FIM One verwendet heuristische Token-Schätzung statt eines echten Tokenizers. D
 
 **Warum kein echter Tokenizer?** Drei Gründe:
 
-1. **Abhängigkeitskosten.** `tiktoken` (OpenAIs Tokenizer) ist 15MB kompilierte Rust-Bindings. `sentencepiece` (von einigen Open-Source-Modellen verwendet) hat eigene Build-Anforderungen. Für ein Framework, das mehrere LLM-Anbieter unterstützt, gibt es keinen einzigen korrekten Tokenizer — jede Modellfamilie verwendet einen anderen.
+1. **Abhängigkeitskosten.** `tiktoken` (OpenAIs Tokenizer) ist 15MB kompilierte Rust-Bindings. `sentencepiece` (verwendet von einigen Open-Source-Modellen) hat eigene Build-Anforderungen. Für ein Framework, das mehrere LLM-Anbieter unterstützt, gibt es keinen einzigen korrekten Tokenizer — jede Modellfamilie verwendet einen anderen.
 
-2. **Geschwindigkeit.** Heuristische Schätzung ist ein einzelner Durchgang durch den String. Echte Tokenisierung beinhaltet Vokabular-Lookup, BPE-Merge-Operationen und spezielle Token-Behandlung. ContextGuard ruft die Schätzung bei jeder Iteration auf, manchmal mehrfach — der Geschwindigkeitsunterschied ist relevant.
+2. **Geschwindigkeit.** Heuristische Schätzung ist ein einzelner Durchlauf über den String. Echte Tokenisierung beinhaltet Vokabular-Lookup, BPE-Merge-Operationen und spezielle Token-Behandlung. ContextGuard ruft die Schätzung bei jeder Iteration auf, manchmal mehrfach — der Geschwindigkeitsunterschied ist relevant.
 
-3. **Ausreichend gut.** Die Heuristik ist für mehrsprachigen Text optimiert (die ASCII/CJK-Aufteilung deckt die zwei Hauptfälle ab). Sie kann bei Grenzfällen um das 1,5-2fache daneben liegen (stark punktierter Code, ungewöhnliches Unicode), aber Kontext-Management ist von Natur aus ungefähr. Um 30% daneben zu liegen bei einem 60K-Budget lässt immer noch eine komfortable Marge.
+3. **Ausreichend gut.** Die Heuristik ist für mehrsprachigen Text optimiert (die ASCII/CJK-Aufteilung deckt die zwei Hauptfälle ab). Sie kann bei Grenzfällen um das 1,5-2fache abweichen (stark gepunkteter Code, ungewöhnliches Unicode), aber Kontext-Management ist von Natur aus ungefähr. Um 30% daneben zu liegen bei einem 64K-Budget lässt immer noch eine komfortable Marge.
 
 Die konkreten Heuristiken:
 
 | Inhaltstyp | Verhältnis | Begründung |
-|-------------|-------|-----------|
+|-------------|-----------|-----------|
 | ASCII-Text | ~4 Zeichen/Token | Englische Prosa und Code durchschnittlich 3,5-4,5 Zeichen/Token über GPT/Claude-Tokenizer |
 | CJK / Nicht-ASCII | ~1,5 Zeichen/Token | Jedes CJK-Zeichen ist typischerweise 1-2 Token; 1,5 ist das geometrische Mittel |
 | Bilder | 765 Token/Bild | Ungefähre Kosten eines Base64-codierten Bildes in der Vision-API |

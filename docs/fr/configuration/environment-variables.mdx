@@ -122,13 +122,14 @@ Pour OpenAI et Gemini, le fournisseur gère l'allocation de tokens en interne en
 
 ### Agent ReAct
 
-| Variable | Requis | Par défaut | Description |
+| Variable | Required | Default | Description |
 |---|---|---|---|
-| `REACT_MAX_ITERATIONS` | Non | `20` | Nombre maximum d'itérations d'appels d'outils par requête ReAct. Plus élevé = plus complet mais plus lent et plus coûteux |
-| `REACT_TOOL_SELECTION_THRESHOLD` | Non | `12` | Lorsque le nombre total d'outils enregistrés dépasse ce seuil, un appel LLM léger sélectionne le sous-ensemble le plus pertinent avant chaque requête |
-| `REACT_TOOL_SELECTION_MAX` | Non | `6` | Nombre maximum d'outils à conserver après la sélection intelligente (effectif uniquement lorsque le nombre d'outils dépasse `REACT_TOOL_SELECTION_THRESHOLD`) |
-| `REACT_SELF_REFLECTION_INTERVAL` | Non | `6` | Injecter une invite d'auto-réflexion tous les N appels d'outils pour aider l'agent à se corriger et éviter les boucles |
-| `REACT_TOOL_OBS_TRUNCATION` | Non | `8000` | Nombre maximum de caractères par observation d'outil lors de la synthèse de la réponse finale. Les valeurs plus élevées préservent plus de données structurées (JSON, tableaux) au détriment de plus de jetons |
+| `REACT_MAX_ITERATIONS` | No | `20` | Nombre maximal d'itérations d'appels d'outils par requête ReAct. Plus élevé = plus approfondi mais plus lent et plus coûteux |
+| `REACT_MAX_TURN_TOKENS` | No | `0` | Disjoncteur d'urgence : nombre maximal de jetons cumulatifs (prompt + complétions sur toutes les itérations) par tour ReAct unique. Par défaut `0` = illimité. **Ceci n'est PAS pour le contrôle des jetons quotidiens** — utilisez `token_quota` par utilisateur pour cela. C'est une soupape de sécurité de dernier recours pour les scénarios extrêmes comme un agent bloqué dans une boucle infinie d'appels d'outils. Atteindre cette limite abandonne la tâche en cours d'exécution, gaspillant tous les jetons consommés jusqu'à présent et renvoyant un résultat incomplet. Gardez à `0` sauf si vous avez un problème spécifique d'agent incontrôlable à contenir |
+| `REACT_TOOL_SELECTION_THRESHOLD` | No | `12` | Lorsque le nombre total d'outils enregistrés dépasse ce seuil, un appel LLM léger sélectionne le sous-ensemble le plus pertinent avant chaque requête |
+| `REACT_TOOL_SELECTION_MAX` | No | `6` | Nombre maximal d'outils à conserver après sélection intelligente (effectif uniquement lorsque le nombre d'outils dépasse `REACT_TOOL_SELECTION_THRESHOLD`) |
+| `REACT_SELF_REFLECTION_INTERVAL` | No | `6` | Injecter une invite d'auto-réflexion tous les N appels d'outils pour aider l'agent à corriger sa trajectoire et éviter les boucles |
+| `REACT_TOOL_OBS_TRUNCATION` | No | `8000` | Nombre maximal de caractères par observation d'outil lors de la synthèse de la réponse finale. Les valeurs plus élevées conservent plus de données structurées (JSON, tableaux) au détriment de plus de jetons |
 
 ### Planificateur DAG
 
@@ -176,9 +177,9 @@ Contrôle la gestion automatique de la fenêtre de contexte qui empêche les con
 
 ### Système
 
-| Variable | Requis | Par défaut | Description |
+| Variable | Requise | Par défaut | Description |
 |---|---|---|---|
-| `SYSTEM_PROMPT_RESERVE` | Non | `4000` | Caractères réservés pour l'invite système lors du calcul du budget de contexte disponible |
+| ~~`SYSTEM_PROMPT_RESERVE`~~ | — | — | **Supprimée.** Précédemment, elle soustrayait une réserve fixe de 4K du budget de contexte pour les invites système. Cela causait un double comptage car ContextGuard inclut déjà l'invite système lors de l'estimation des jetons de la liste de messages. La formule de budget est maintenant simplement `context_size - max_output_tokens`, et la taille réelle de l'invite système est comptabilisée dynamiquement |
 
 ---
 

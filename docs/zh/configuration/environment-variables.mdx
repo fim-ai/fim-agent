@@ -127,10 +127,11 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 | 变量 | 必需 | 默认值 | 描述 |
 |---|---|---|---|
 | `REACT_MAX_ITERATIONS` | 否 | `20` | 每个 ReAct 请求的最大工具调用迭代次数。更高的值 = 更彻底但更慢且成本更高 |
-| `REACT_TOOL_SELECTION_THRESHOLD` | 否 | `12` | 当注册的工具总数超过此阈值时，轻量级 LLM 调用会在每个请求前选择最相关的子集 |
-| `REACT_TOOL_SELECTION_MAX` | 否 | `6` | 智能选择后保留的最大工具数（仅在工具数超过 `REACT_TOOL_SELECTION_THRESHOLD` 时有效） |
-| `REACT_SELF_REFLECTION_INTERVAL` | 否 | `6` | 每 N 次工具调用注入一次自反思提示，帮助智能体纠正方向并避免循环 |
-| `REACT_TOOL_OBS_TRUNCATION` | 否 | `8000` | 综合最终答案时每个工具观察的最大字符数。更高的值可保留更多结构化数据（JSON、表格），但会消耗更多令牌 |
+| `REACT_MAX_TURN_TOKENS` | 否 | `0` | 紧急断路器：单个 ReAct 轮次的最大累积令牌数（所有迭代的提示 + 完成）。默认 `0` = 无限制。**这不是用于日常令牌控制的** — 请使用每用户 `token_quota` 来实现。这是针对极端情况（如智能体陷入无限工具调用循环）的最后手段安全阀。达到此限制会中止任务执行，浪费所有已消耗的令牌并返回不完整的结果。除非您有特定的失控智能体问题需要控制，否则保持 `0` |
+| `REACT_TOOL_SELECTION_THRESHOLD` | 否 | `12` | 当注册工具总数超过此阈值时，在每个请求前进行轻量级 LLM 调用以选择最相关的子集 |
+| `REACT_TOOL_SELECTION_MAX` | 否 | `6` | 智能选择后保留的最大工具数（仅当工具数超过 `REACT_TOOL_SELECTION_THRESHOLD` 时有效） |
+| `REACT_SELF_REFLECTION_INTERVAL` | 否 | `6` | 每 N 次工具调用后注入自我反思提示，帮助智能体纠正方向并避免循环 |
+| `REACT_TOOL_OBS_TRUNCATION` | 否 | `8000` | 合成最终答案时每个工具观察的最大字符数。更高的值以更多令牌为代价保留更多结构化数据（JSON、表格） |
 
 ### DAG 规划器
 
@@ -180,7 +181,7 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 
 | 变量 | 必需 | 默认值 | 描述 |
 |---|---|---|---|
-| `SYSTEM_PROMPT_RESERVE` | 否 | `4000` | 计算可用上下文预算时为系统提示保留的字符数 |
+| ~~`SYSTEM_PROMPT_RESERVE`~~ | — | — | **已移除。** 之前从上下文预算中减去固定的 4K 保留用于系统提示。这导致了重复计算，因为 ContextGuard 在估计消息列表令牌时已经包含了系统提示。预算公式现在简单为 `context_size - max_output_tokens`，系统提示的实际大小动态计算 |
 
 ---
 

@@ -18,19 +18,19 @@ FIM One résout ce problème avec une architecture de défense en profondeur à 
 
 La gestion du contexte n'est pas un mécanisme unique. C'est une pile, où chaque couche gère une préoccupation spécifique à une granularité spécifique :
 
-| Couche | Composant | Fonction | Moment d'action |
-|--------|-----------|----------|-----------------|
+| Couche | Composant | Ce qu'il fait | Quand il agit |
+|-------|-----------|-------------|-------------|
 | **5** | Budget Configuration | Calcule le budget de jetons d'entrée utilisable à partir des spécifications du modèle | Au démarrage / par requête |
 | **4** | DbMemory | Charge l'historique persisté, compacte au chargement | Une fois par requête |
 | **3** | ContextGuard | Application du budget par itération | À chaque itération ReAct |
 | **2** | CompactUtils | Estimation des jetons, troncature intelligente, compaction LLM | Appelé par les couches 3 et 4 |
-| **1** | Memory Implementations | Interface abstraite + stratégies concrètes | Niveau framework |
+| **1** | Memory Implementations | Interface abstraite + stratégies concrètes | Niveau du framework |
 
 Les couches sont numérotées de bas en haut car les couches supérieures dépendent des couches inférieures. La couche 5 définit le budget. La couche 4 effectue la compaction initiale au moment du chargement. La couche 3 applique le budget à chaque itération. Les couches 2 et 1 fournissent les primitives que les couches 3 et 4 utilisent.
 
 ```mermaid
 flowchart TD
-    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output - 4K reserve</i>"]
+    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output</i>"]
     L4["Layer 4: DbMemory<br/><i>Load history, compact on load</i>"]
     L3["Layer 3: ContextGuard<br/><i>Per-iteration enforcement</i>"]
     L2["Layer 2: CompactUtils<br/><i>Estimation, truncation, LLM compact</i>"]
@@ -45,15 +45,15 @@ flowchart TD
 
 ### Couche 5 — Configuration du budget
 
-Le budget est calculé à partir de trois valeurs :
+Le budget est calculé à partir de deux valeurs :
 
 ```
-usable_input_tokens = context_size - max_output_tokens - system_prompt_reserve
+usable_input_tokens = context_size - max_output_tokens
 ```
 
-Avec les valeurs par défaut : `128 000 - 64 000 - 4 000 = 60 000 tokens`.
+Avec les valeurs par défaut : `128 000 - 64 000 = 64 000 tokens`.
 
-La réserve de 4 000 tokens pour le système prompt couvre le système prompt de l'agent, les descriptions d'outils et les frais généraux de formatage. C'est une constante fixe — suffisamment généreuse pour éviter de tronquer les système prompts en pratique, assez petite pour ne pas gaspiller le budget.
+Aucune réserve de message système statique n'est soustraite. Le message système (instructions de l'agent, descriptions des outils, surcharge de formatage) est inclus dans la liste des messages que ContextGuard estime dynamiquement — soustraire une réserve fixe en plus créerait un double comptage et gaspillerait le budget. Un message système typique consomme 3K-5K tokens ; les agents avec de nombreux outils ou des instructions longues peuvent en utiliser davantage. ContextGuard tient compte de la taille réelle automatiquement.
 
 Les valeurs de budget peuvent provenir de trois sources, résolues par ordre de priorité :
 
@@ -61,9 +61,9 @@ Les valeurs de budget peuvent provenir de trois sources, résolues par ordre de 
 2. **Variables d'environnement** — `LLM_CONTEXT_SIZE` et `LLM_MAX_OUTPUT_TOKENS`.
 3. **Valeurs par défaut codées en dur** — contexte 128K, sortie 64K.
 
-Le LLM principal et le LLM rapide ont des budgets indépendants. L'exécution des étapes DAG utilise le budget du LLM rapide ; le mode ReAct utilise le budget du LLM principal. Cela a de l'importance car les opérateurs associent souvent un modèle à grand contexte pour ReAct (où l'historique s'accumule) avec un modèle plus petit et plus rapide pour les étapes DAG (où chaque étape recommence de zéro).
+Le LLM principal et le LLM rapide ont des budgets indépendants. L'exécution des étapes du DAG utilise le budget du LLM rapide ; le mode ReAct utilise le budget du LLM principal. Cela importe car les opérateurs associent souvent un modèle à grand contexte pour ReAct (où l'historique s'accumule) avec un modèle plus petit et plus rapide pour les étapes du DAG (où chaque étape recommence à zéro).
 
-Un plancher de 4 000 tokens est appliqué — si les valeurs mal configurées produisaient un budget plus petit, le système le limite à 4K plutôt que d'échouer silencieusement.
+Un plancher de 4 000 tokens est appliqué — si les valeurs mal configurées produisaient un budget plus petit, le système se limite à 4K plutôt que d'échouer silencieusement.
 
 ### Couche 4 — DbMemory
 
@@ -231,11 +231,11 @@ FIM One utilise une estimation heuristique des jetons plutôt qu'un vrai tokenis
 
 **Pourquoi pas un vrai tokeniseur ?** Trois raisons :
 
-1. **Coût de dépendance.** `tiktoken` (le tokeniseur d'OpenAI) pèse 15 Mo de liaisons Rust compilées. `sentencepiece` (utilisé par certains modèles open-source) a ses propres exigences de compilation. Pour un framework qui cible plusieurs fournisseurs de LLM, il n'existe pas de tokeniseur unique correct — chaque famille de modèles en utilise un différent.
+1. **Coût de dépendance.** `tiktoken` (le tokeniseur d'OpenAI) représente 15 Mo de liaisons Rust compilées. `sentencepiece` (utilisé par certains modèles open-source) a ses propres exigences de compilation. Pour un framework qui cible plusieurs fournisseurs de LLM, il n'existe pas de tokeniseur unique correct — chaque famille de modèles en utilise un différent.
 
 2. **Vitesse.** L'estimation heuristique est un seul passage sur la chaîne. La vrai tokenisation implique une recherche dans le vocabulaire, des opérations de fusion BPE et la gestion des jetons spéciaux. ContextGuard appelle l'estimation à chaque itération, parfois plusieurs fois — la différence de vitesse compte.
 
-3. **Suffisamment bon.** L'heuristique est ajustée pour le texte multilingue (la division ASCII/CJK couvre les deux cas majeurs). Elle peut être 1,5 à 2 fois décalée pour les cas limites (code fortement ponctué, Unicode inhabituel), mais la gestion du contexte est intrinsèquement approximative. Être décalé de 30 % sur un budget de 60 K laisse toujours une marge confortable.
+3. **Suffisant.** L'heuristique est ajustée pour le texte multilingue (la division ASCII/CJK couvre les deux cas majeurs). Elle peut être 1,5 à 2 fois décalée pour les cas limites (code fortement ponctué, Unicode inhabituel), mais la gestion du contexte est intrinsèquement approximative. Être décalé de 30 % sur un budget de 64 K laisse encore une marge confortable.
 
 Les heuristiques concrètes :
 
@@ -243,10 +243,10 @@ Les heuristiques concrètes :
 |-------------|-------|-----------|
 | Texte ASCII | ~4 caractères/jeton | La prose anglaise et le code font en moyenne 3,5-4,5 caractères/jeton sur les tokeniseurs GPT/Claude |
 | CJK / non-ASCII | ~1,5 caractères/jeton | Chaque caractère CJK représente généralement 1-2 jetons ; 1,5 est la moyenne géométrique |
-| Images | 765 jetons/image | Coût approximatif d'une image codée en base64 dans l'API de vision |
+| Images | 765 jetons/image | Coût approximatif d'une image encodée en base64 dans l'API de vision |
 | Surcharge par message | 4 jetons | Marqueur de rôle, délimiteurs, formatage |
 
-L'estimation retourne toujours au moins 1 jeton pour un contenu non vide. Cela prévient les cas limites de division par zéro dans l'arithmétique du budget.
+L'estimation retourne toujours au moins 1 jeton pour un contenu non vide. Cela évite les cas limites de division par zéro dans l'arithmétique du budget.
 
 ## Ce que l'utilisateur voit
 

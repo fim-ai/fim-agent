@@ -30,7 +30,7 @@ The layers are numbered bottom-up because higher layers depend on lower ones. La
 
 ```mermaid
 flowchart TD
-    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output - 4K reserve</i>"]
+    L5["Layer 5: Budget Configuration<br/><i>context_size - max_output</i>"]
     L4["Layer 4: DbMemory<br/><i>Load history, compact on load</i>"]
     L3["Layer 3: ContextGuard<br/><i>Per-iteration enforcement</i>"]
     L2["Layer 2: CompactUtils<br/><i>Estimation, truncation, LLM compact</i>"]
@@ -45,15 +45,15 @@ flowchart TD
 
 ### Layer 5 — Budget Configuration
 
-The budget is computed from three values:
+The budget is computed from two values:
 
 ```
-usable_input_tokens = context_size - max_output_tokens - system_prompt_reserve
+usable_input_tokens = context_size - max_output_tokens
 ```
 
-With defaults: `128,000 - 64,000 - 4,000 = 60,000 tokens`.
+With defaults: `128,000 - 64,000 = 64,000 tokens`.
 
-The 4,000-token system prompt reserve covers the agent's system prompt, tool descriptions, and formatting overhead. This is a fixed constant — generous enough to avoid clipping system prompts in practice, small enough not to waste budget.
+No static system prompt reserve is subtracted. The system prompt (agent instructions, tool descriptions, formatting overhead) is included in the message list that ContextGuard estimates dynamically — subtracting a fixed reserve on top would double-count it and waste budget. A typical system prompt consumes 3K-5K tokens; agents with many tools or long instructions may use more. ContextGuard accounts for the actual size automatically.
 
 Budget values can come from three sources, resolved in priority order:
 
@@ -235,7 +235,7 @@ FIM One uses heuristic token estimation rather than a real tokenizer. This is a 
 
 2. **Speed.** Heuristic estimation is a single pass over the string. Real tokenization involves vocabulary lookup, BPE merge operations, and special token handling. ContextGuard calls estimation on every iteration, sometimes multiple times — the speed difference matters.
 
-3. **Good enough.** The heuristic is tuned for mixed-language text (the ASCII/CJK split covers the two major cases). It can be 1.5-2x off for edge cases (heavily punctuated code, unusual Unicode), but context management is inherently approximate. Being 30% off on a 60K budget still leaves a comfortable margin.
+3. **Good enough.** The heuristic is tuned for mixed-language text (the ASCII/CJK split covers the two major cases). It can be 1.5-2x off for edge cases (heavily punctuated code, unusual Unicode), but context management is inherently approximate. Being 30% off on a 64K budget still leaves a comfortable margin.
 
 The concrete heuristics:
 

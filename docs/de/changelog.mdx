@@ -12,23 +12,26 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Hinzugefügt
 
-- **Pro-Modell Native Function Calling Toggle** — `tool_choice_enabled` Einstellung (ENV + Admin pro Modell) ermöglicht es Modellen, die erzwungene Werkzeugauswahl ablehnen, Level 1 zu überspringen und direkt zum JSON Mode zu gehen. Konfigurierbar unter Einstellungen → Modelle → Erweitert.
-- **DAG-Qualitätsüberholung** — Fünf Verbesserungen: Standard-Modell-Upgrade auf allgemeines Modell für Nicht-Fast-Schritte; automatische Skill-Erkennung in der Planung; Citation Verifier für Legal/Medical/Financial-Domänen; strukturierte Inhaltskontext-Beibehaltung mit konfigurierbarem Kürzungsmultiplikator; Domain-Klassifizierung im Router mit Domain-bewusster Modellauswahl.
-- **Domain-Modell-Eskalation in ReAct** — Spezialisierte Domänen (Legal/Medical/Financial) eskalieren automatisch zum Reasoning-Modell mit obligatorischer Web-Suche und Citation-Verifikation.
-- **Dateianhang-Download** — Dateikarten in Chat-Nachrichten sind jetzt anklickbar, um die ursprüngliche Datei herunterzuladen.
+- **Pro-Turn-Token-Budget-Schutzschalter** — `REACT_MAX_TURN_TOKENS` Umgebungsvariable bietet einen Notausschalter für unkontrollierte Agent-Schleifen. Standard `0` (unbegrenzt) — verwenden Sie stattdessen `token_quota` pro Benutzer für die tägliche Kostenkontrolle.
+- **Pro-Modell Native Function Calling-Umschalter** — `tool_choice_enabled` Einstellung (ENV + Admin pro Modell) ermöglicht es Modellen, die erzwungene Werkzeugauswahl ablehnen, Level 1 zu überspringen und direkt zum JSON-Modus zu gehen. Konfigurierbar unter Einstellungen → Modelle → Erweitert.
+- **DAG-Qualitätsüberholung** — Fünf Verbesserungen: Standard-Modell-Upgrade auf allgemeines Modell für Nicht-Fast-Schritte; automatische Skill-Erkennung in der Planung; Zitierprüfer für Rechts-/Medizin-/Finanzbereiche; strukturierte Inhaltskontext-Beibehaltung mit konfigurierbarem Kürzungsmultiplikator; Domänenklassifizierung im Router mit domänenabhängiger Modellauswahl.
+- **Domänen-Modell-Eskalation in ReAct** — Spezialisierte Domänen (Rechts-/Medizin-/Finanzbereiche) eskalieren automatisch zum Reasoning-Modell mit obligatorischer Websuche und Zitierverifikation.
+- **Dateianhang-Download** — Dateikarten in Chat-Nachrichten können jetzt angeklickt werden, um die ursprüngliche Datei herunterzuladen.
 
 ### Geändert
 
-- **Zentralisierte Tool-Kürzung** — Alle Tool-Typen delegieren die Kürzung jetzt an ein gemeinsames Modul. Standardwerte konfigurierbar über `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES` Umgebungsvariablen.
-- **Domain-Erkennung entkoppelt** — Domain-Klassifizierung läuft unabhängig in jedem Endpunkt, nicht mehr mit Auto-Routing gebündelt. Domain-SOP-Anweisungen wurden gelockert, um eher zu leiten als zu erzwingen, dass Websuche verwendet wird.
-- **`AUTO_ROUTING` Umgebungsvariable entfernt** — Auto-Endpunkt klassifiziert Abfragen immer.
+- **Dynamische System-Prompt-Budgetierung** — Die feste `SYSTEM_PROMPT_RESERVE` (4K Token) wurde aus der Kontextbudgetberechnung entfernt. ContextGuard berücksichtigt den System-Prompt jetzt dynamisch und bietet jeder Iteration ~4K mehr nutzbaren Kontext.
+- **Zentralisierte Tool-Kürzung** — Alle Tool-Typen delegieren die Kürzung jetzt an ein gemeinsames Modul. Standardwerte konfigurierbar über die Umgebungsvariablen `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES`.
+- **Domänenerkennung entkoppelt** — Die Domänenklassifizierung läuft unabhängig in jedem Endpunkt und ist nicht mehr mit dem Auto-Routing gebündelt. Domänen-SOP-Anweisungen wurden gelockert, um eher zu leiten als vorzuschreiben, ob eine Websuche durchgeführt wird.
+- **`AUTO_ROUTING` Umgebungsvariable entfernt** — Der Auto-Endpunkt klassifiziert Anfragen immer.
 
 ### Behoben
 
-- **Strukturierte Ausgabe-Degradationskette** — Das 3-stufige Fallback (native FC → JSON mode → Klartext) durchläuft nun korrekt alle Ebenen.
-- **`json_mode_enabled` DB-Wert ignoriert** — Modelle, die über Admin konfiguriert werden, verwenden nun korrekt ihre Pro-Modell-Einstellung, anstatt immer auf die Umgebungsvariable zurückzugreifen.
-- **DAG-Planungsfehler-Nachricht** — Zeigt nun benutzerfreundliche zweisprachige Nachricht anstelle von Rohpipeline-Fehler.
-- **MCP-Server-Eigentümer-Umgehung für allow_fallback** — Der Server-Eigentümer wird nicht mehr durch `allow_fallback=False` blockiert.
+- **Doppelte Nachrichtenübermittlung** — Die Chat-Eingabe verwendet jetzt eine synchrone Schutzvorrichtung, um zu verhindern, dass dieselbe Nachricht bei schnellen Klicks mehrmals eingereicht wird.
+- **Strukturierte Ausgabe-Degradationskette** — Das 3-stufige Fallback (native FC → JSON mode → Klartext) fällt jetzt ordnungsgemäß durch alle Ebenen.
+- **`json_mode_enabled` DB-Wert ignoriert** — Modelle, die über Admin konfiguriert werden, verwenden jetzt korrekt ihre modellspezifische Einstellung, anstatt immer auf die Umgebungsvariable zurückzugreifen.
+- **DAG-Planungsfehler-Meldung** — Zeigt jetzt benutzerfreundliche zweisprachige Meldung statt rohem Pipeline-Fehler.
+- **MCP-Server-Besitzer-Umgehung für allow_fallback** — Der Server-Besitzer wird nicht mehr durch `allow_fallback=False` blockiert.
 
 ## [v0.8] - 2026-03-20
 
