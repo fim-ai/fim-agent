@@ -249,4 +249,6 @@ A single `discover_resource(type, name)` tool would be simpler to implement but 
 
 Not all LLMs handle meta-tools equally well. Smaller or fine-tuned models may struggle with the two-step discover-then-execute pattern. Legacy mode provides a direct fallback where every action is a standalone tool with its full schema visible -- no meta-tool indirection required.
 
-The dual-mode design also supports migration. Existing deployments can switch to progressive mode incrementally, testing one resource type at a time by changing a single environment variable.
+The dual-mode design also supports migration. Existing deployments can switch to progressive mode incrementally, testing one resource type at a time by changing a single environment variable. Each environment variable acts as a feature flag -- blast radius is limited to a single resource type, and rollback is a one-line config change.
+
+A third, more practical reason: **debugging.** In legacy mode every tool call is explicit and self-contained -- `salesforce__get_contacts(limit=10)` is immediately readable in logs and traces. In progressive mode the same call is `connector("execute", "salesforce", "get_contacts", {"limit": 10})` -- an extra layer of indirection that requires parsing the meta-tool arguments to understand what actually happened. During development and troubleshooting, switching a single resource type back to legacy mode can significantly speed up diagnosis without affecting other resource types.

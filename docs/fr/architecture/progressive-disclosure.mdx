@@ -245,8 +245,10 @@ Un seul outil `discover_resource(type, name)` serait plus simple à implémenter
 - **Contraintes d'énumération.** Chaque méta-outil liste ses noms valides (noms de connecteur, noms de base de données, noms de serveur) comme valeurs d'énumération dans le schéma. Le LLM ne peut pas inventer un nom de connecteur.
 - **Sémantique de catégorie.** L'outil `connector` a la catégorie `connector`, `database` a la catégorie `database`, `mcp` a la catégorie `mcp`. Cela s'intègre au filtrage de catégorie de l'agent -- un Agent configuré avec uniquement la catégorie `connector` ne verra pas les méta-outils `database` ou `mcp`.
 
-### Pourquoi à la fois les modes progressif et hérité ?
+### Pourquoi les deux modes progressif et hérité ?
 
-Tous les LLM ne gèrent pas les méta-outils de la même manière. Les modèles plus petits ou affinés peuvent avoir du mal avec le modèle découverte-puis-exécution en deux étapes. Le mode hérité fournit un repli direct où chaque action est un outil autonome avec son schéma complet visible -- aucune indirection de méta-outil requise.
+Tous les LLMs ne gèrent pas les méta-outils de la même manière. Les modèles plus petits ou affinés peuvent avoir du mal avec le modèle en deux étapes découvrir-puis-exécuter. Le mode hérité fournit un repli direct où chaque action est un outil autonome avec son schéma complet visible -- aucune indirection de méta-outil requise.
 
-La conception à double mode supporte également la migration. Les déploiements existants peuvent basculer vers le mode progressif progressivement, en testant un type de ressource à la fois en changeant une seule variable d'environnement.
+La conception en mode dual soutient également la migration. Les déploiements existants peuvent basculer vers le mode progressif de manière progressive, en testant un type de ressource à la fois en changeant une seule variable d'environnement. Chaque variable d'environnement agit comme un drapeau de fonctionnalité -- le rayon d'impact est limité à un seul type de ressource, et la restauration est un changement de configuration d'une ligne.
+
+Une troisième raison, plus pratique : **le débogage.** En mode hérité, chaque appel d'outil est explicite et autonome -- `salesforce__get_contacts(limit=10)` est immédiatement lisible dans les journaux et les traces. En mode progressif, le même appel est `connector("execute", "salesforce", "get_contacts", {"limit": 10})` -- une couche d'indirection supplémentaire qui nécessite d'analyser les arguments du méta-outil pour comprendre ce qui s'est réellement passé. Pendant le développement et le dépannage, basculer un seul type de ressource en mode hérité peut accélérer considérablement le diagnostic sans affecter les autres types de ressources.

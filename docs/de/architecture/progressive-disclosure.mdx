@@ -245,8 +245,10 @@ Ein einzelnes `discover_resource(type, name)`-Tool wäre einfacher zu implementi
 - **Enum-Einschränkungen.** Jedes Meta-Tool listet seine gültigen Namen (Connector-Namen, Datenbanknamen, Servernamen) als Enum-Werte im Schema auf. Das LLM kann einen Connector-Namen nicht halluzinieren.
 - **Kategorie-Semantik.** Das `connector`-Tool hat die Kategorie `connector`, `database` hat die Kategorie `database`, `mcp` hat die Kategorie `mcp`. Dies fließt in die Agent-Kategoriefilterung ein – ein Agent, der nur mit der Kategorie `connector` konfiguriert ist, sieht die Meta-Tools `database` oder `mcp` nicht.
 
-### Warum beide progressive und Legacy-Modi?
+### Warum sowohl Progressive als auch Legacy-Modi?
 
-Nicht alle LLMs handhaben Meta-Tools gleich gut. Kleinere oder feinabgestimmte Modelle können mit dem zweistufigen Discover-then-Execute-Muster Schwierigkeiten haben. Der Legacy-Modus bietet einen direkten Fallback, bei dem jede Aktion ein eigenständiges Tool mit seinem vollständigen Schema ist – keine Meta-Tool-Umleitung erforderlich.
+Nicht alle LLMs handhaben Meta-Tools gleich gut. Kleinere oder fein abgestimmte Modelle können mit dem zweistufigen Discover-then-Execute-Muster kämpfen. Der Legacy-Modus bietet einen direkten Fallback, bei dem jede Aktion ein eigenständiges Tool mit seinem vollständigen Schema ist -- keine Meta-Tool-Umleitung erforderlich.
 
-Das Dual-Mode-Design unterstützt auch die Migration. Bestehende Bereitstellungen können schrittweise zum Progressive-Modus wechseln, einen Ressourcentyp nach dem anderen testen, indem sie eine einzelne Umgebungsvariable ändern.
+Das Dual-Mode-Design unterstützt auch die Migration. Bestehende Bereitstellungen können schrittweise in den Progressive-Modus wechseln und einen Ressourcentyp nach dem anderen testen, indem sie eine einzelne Umgebungsvariable ändern. Jede Umgebungsvariable fungiert als Feature-Flag -- der Auswirkungsbereich ist auf einen einzelnen Ressourcentyp begrenzt, und ein Rollback ist eine einzeilige Konfigurationsänderung.
+
+Ein dritter, praktischerer Grund: **Debugging.** Im Legacy-Modus ist jeder Tool-Aufruf explizit und in sich geschlossen -- `salesforce__get_contacts(limit=10)` ist sofort in Logs und Traces lesbar. Im Progressive-Modus ist derselbe Aufruf `connector("execute", "salesforce", "get_contacts", {"limit": 10})` -- eine zusätzliche Indirektionsebene, die das Parsen der Meta-Tool-Argumente erfordert, um zu verstehen, was tatsächlich passiert ist. Während der Entwicklung und Fehlerbehebung kann das Umschalten eines einzelnen Ressourcentyps zurück in den Legacy-Modus die Diagnose erheblich beschleunigen, ohne andere Ressourcentypen zu beeinflussen.
