@@ -50,6 +50,7 @@
               {
                 "group": "Features",
                 "icon": "puzzle-piece",
+                "tag": "CORE",
                 "pages": [
                   "concepts/execution-modes",
                   "concepts/ai-builder",
@@ -61,9 +62,12 @@
               {
                 "group": "Extending FIM One",
                 "icon": "plug",
+                "tag": "NEW",
                 "pages": [
                   "extension-guide",
-                  "contributing"
+                  "contributing",
+                  "security",
+                  "license"
                 ]
               }
             ]
@@ -90,6 +94,7 @@
               {
                 "group": "Execution Engines",
                 "icon": "gears",
+                "tag": "CORE",
                 "pages": [
                   "architecture/react-engine",
                   "architecture/dag-engine",
@@ -99,6 +104,7 @@
               {
                 "group": "Strategy",
                 "icon": "chess",
+                "tag": "INSIGHT",
                 "pages": [
                   "strategy/competitive-landscape",
                   "strategy/orthogonality-strategy"
@@ -178,6 +184,7 @@
               {
                 "group": "功能",
                 "icon": "puzzle-piece",
+                "tag": "CORE",
                 "pages": [
                   "zh/concepts/execution-modes",
                   "zh/concepts/ai-builder",
@@ -189,9 +196,12 @@
               {
                 "group": "扩展 FIM One",
                 "icon": "plug",
+                "tag": "NEW",
                 "pages": [
                   "zh/extension-guide",
-                  "zh/contributing"
+                  "zh/contributing",
+                  "zh/security",
+                  "zh/license"
                 ]
               }
             ]
@@ -218,6 +228,7 @@
               {
                 "group": "执行引擎",
                 "icon": "gears",
+                "tag": "CORE",
                 "pages": [
                   "zh/architecture/react-engine",
                   "zh/architecture/dag-engine",
@@ -227,6 +238,7 @@
               {
                 "group": "策略",
                 "icon": "chess",
+                "tag": "INSIGHT",
                 "pages": [
                   "zh/strategy/competitive-landscape",
                   "zh/strategy/orthogonality-strategy"
@@ -299,6 +311,7 @@
               {
                 "group": "機能",
                 "icon": "puzzle-piece",
+                "tag": "CORE",
                 "pages": [
                   "ja/concepts/execution-modes",
                   "ja/concepts/ai-builder",
@@ -310,9 +323,12 @@
               {
                 "group": "FIM One の拡張",
                 "icon": "plug",
+                "tag": "NEW",
                 "pages": [
                   "ja/extension-guide",
-                  "ja/contributing"
+                  "ja/contributing",
+                  "ja/security",
+                  "ja/license"
                 ]
               }
             ]
@@ -339,6 +355,7 @@
               {
                 "group": "実行エンジン",
                 "icon": "gears",
+                "tag": "CORE",
                 "pages": [
                   "ja/architecture/react-engine",
                   "ja/architecture/dag-engine",
@@ -348,6 +365,7 @@
               {
                 "group": "戦略",
                 "icon": "chess",
+                "tag": "INSIGHT",
                 "pages": [
                   "ja/strategy/competitive-landscape",
                   "ja/strategy/orthogonality-strategy"
@@ -420,6 +438,7 @@
               {
                 "group": "기능",
                 "icon": "puzzle-piece",
+                "tag": "CORE",
                 "pages": [
                   "ko/concepts/execution-modes",
                   "ko/concepts/ai-builder",
@@ -431,9 +450,12 @@
               {
                 "group": "FIM One 확장",
                 "icon": "plug",
+                "tag": "NEW",
                 "pages": [
                   "ko/extension-guide",
-                  "ko/contributing"
+                  "ko/contributing",
+                  "ko/security",
+                  "ko/license"
                 ]
               }
             ]
@@ -460,6 +482,7 @@
               {
                 "group": "실행 엔진",
                 "icon": "gears",
+                "tag": "CORE",
                 "pages": [
                   "ko/architecture/react-engine",
                   "ko/architecture/dag-engine",
@@ -469,6 +492,7 @@
               {
                 "group": "전략",
                 "icon": "chess",
+                "tag": "INSIGHT",
                 "pages": [
                   "ko/strategy/competitive-landscape",
                   "ko/strategy/orthogonality-strategy"
@@ -541,6 +565,7 @@
               {
                 "group": "Funktionen",
                 "icon": "puzzle-piece",
+                "tag": "CORE",
                 "pages": [
                   "de/concepts/execution-modes",
                   "de/concepts/ai-builder",
@@ -552,9 +577,12 @@
               {
                 "group": "FIM One erweitern",
                 "icon": "plug",
+                "tag": "NEW",
                 "pages": [
                   "de/extension-guide",
-                  "de/contributing"
+                  "de/contributing",
+                  "de/security",
+                  "de/license"
                 ]
               }
             ]
@@ -581,6 +609,7 @@
               {
                 "group": "Ausführungsmaschinen",
                 "icon": "gears",
+                "tag": "CORE",
                 "pages": [
                   "de/architecture/react-engine",
                   "de/architecture/dag-engine",
@@ -590,6 +619,7 @@
               {
                 "group": "Strategie",
                 "icon": "chess",
+                "tag": "INSIGHT",
                 "pages": [
                   "de/strategy/competitive-landscape",
                   "de/strategy/orthogonality-strategy"
@@ -662,6 +692,7 @@
               {
                 "group": "Fonctionnalités",
                 "icon": "puzzle-piece",
+                "tag": "CORE",
                 "pages": [
                   "fr/concepts/execution-modes",
                   "fr/concepts/ai-builder",
@@ -673,9 +704,12 @@
               {
                 "group": "Extension de FIM One",
                 "icon": "plug",
+                "tag": "NEW",
                 "pages": [
                   "fr/extension-guide",
-                  "fr/contributing"
+                  "fr/contributing",
+                  "fr/security",
+                  "fr/license"
                 ]
               }
             ]
@@ -702,6 +736,7 @@
               {
                 "group": "Moteurs d'exécution",
                 "icon": "gears",
+                "tag": "CORE",
                 "pages": [
                   "fr/architecture/react-engine",
                   "fr/architecture/dag-engine",
@@ -711,6 +746,7 @@
               {
                 "group": "Stratégie",
                 "icon": "chess",
+                "tag": "INSIGHT",
                 "pages": [
                   "fr/strategy/competitive-landscape",
                   "fr/strategy/orthogonality-strategy"

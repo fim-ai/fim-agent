@@ -1,5 +1,7 @@
 # Security Policy
 
+> See also: [Security on the docs site](https://docs.fim.ai/security) for a quick overview with self-hosted best practices.
+
 ## Supported Versions
 
 | Version | Supported |

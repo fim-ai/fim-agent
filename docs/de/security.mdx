@@ -1,0 +1,74 @@
+---
+title: "Sicherheit"
+icon: "shield"
+description: "Wie Sie Sicherheitslücken melden, Reaktionszeiten und Best Practices für die Sicherheit von selbst gehosteten FIM One-Bereitstellungen."
+---
+
+FIM One nimmt Sicherheit ernst. Wenn Sie eine Sicherheitslücke entdecken, möchten wir davon erfahren – und wir werden Sie für verantwortungsvolle Offenlegung anerkennen.
+
+## Sicherheitslücken melden
+
+<Warning>
+  **Öffnen Sie KEIN öffentliches GitHub-Issue für Sicherheitslücken.** Verwenden Sie einen der privaten Kanäle unten.
+</Warning>
+
+**Zwei Möglichkeiten zum Melden:**
+
+1. **GitHub Security Advisories** (bevorzugt) — [Erstellen Sie eine private Empfehlung](https://github.com/fim-ai/fim-one/security/advisories/new). Nur Betreuer können diese sehen, bis ein Fix veröffentlicht wird.
+2. **E-Mail** — Senden Sie Details an **security@fim.ai** mit einer Beschreibung, Reproduktionsschritten, betroffenen Versionen und einer Auswirkungsbewertung.
+
+Bei Problemen mit niedriger Schweregrad (z. B. fehlende Sicherheits-Header, die keine sensiblen Daten offenlegen), können Sie ein reguläres GitHub-Issue mit dem Label `security` öffnen.
+
+## Antwort-Zeitplan
+
+| Phase | Ziel |
+|---|---|
+| **Bestätigung** | Innerhalb von 48 Stunden (Geschäftstage) |
+| **Erste Bewertung** | Innerhalb von 5 Geschäftstagen |
+| **Fehlerbehebung** | Kritisch: Sofort. Hoch: 2 Wochen. Mittel/Niedrig: nächste Version. |
+| **Öffentliche Offenlegung** | Nach der Veröffentlichung der Fehlerbehebung und nachdem Benutzer Zeit zum Aktualisieren hatten |
+
+## Umfang
+
+### Im Geltungsbereich
+
+- Umgehung von Authentifizierung und Autorisierung
+- SQL-Injection, Command-Injection oder Code-Ausführung
+- Cross-Site-Scripting (XSS) oder Cross-Site-Request-Forgery (CSRF)
+- Offenlegung von Anmeldedaten oder API-Schlüsseln
+- Privilegienerweiterung zwischen Benutzern oder Organisationen
+- Datenlecks über Mandantengrenzen hinweg
+
+### Außerhalb des Geltungsbereichs
+
+- Sicherheitslücken in Abhängigkeiten von Drittanbietern (bitte upstream melden; wir überwachen über Dependabot)
+- Social-Engineering-Angriffe
+- Denial-of-Service-Angriffe (DoS) ohne realistischen Angriffsvektor
+- Probleme in der Demo-/Cloud-Umgebung, die sich nicht auf selbstgehostete Bereitstellungen auswirken
+
+## Self-Hosted Security Best Practices
+
+Wenn Sie FIM One auf Ihrer eigenen Infrastruktur ausführen, befolgen Sie diese Empfehlungen, um Ihre Bereitstellung zu sichern.
+
+<Tip>
+  Diese Praktiken gelten für Produktionsbereitstellungen. Für die lokale Entwicklung sind die Standardeinstellungen ausreichend.
+</Tip>
+
+| Praktik | Details |
+|---|---|
+| **`.env` schützen** | Halten Sie sie aus der Versionskontrolle heraus (`.gitignore` enthält sie standardmäßig). Beschränken Sie Dateiberechtigungen nur auf den Anwendungsbenutzer. |
+| **Starker `JWT_SECRET_KEY`** | Verwenden Sie einen kryptografisch zufälligen Wert (mindestens 32 Zeichen). Verwenden Sie Geheimnisse nie umgebungsübergreifend erneut. |
+| **Reverse Proxy mit TLS** | Führen Sie hinter nginx, Caddy oder einem Cloud-Load-Balancer mit aktiviertem HTTPS aus. Stellen Sie den Anwendungsport nie direkt dem Internet aus. |
+| **PostgreSQL verwenden** | SQLite ist für Entwicklung und Single-User-Setups geeignet. Verwenden Sie für Multi-User-Produktionsbereitstellungen PostgreSQL für ordnungsgemäße Parallelität und Datenintegrität. |
+| **Aktuell bleiben** | Rufen Sie regelmäßig die neueste Version ab. Sicherheitspatches werden nach bestem Bemühen auf die vorherige Nebenversion zurückportiert. |
+| **Netzwerkzugriff begrenzen** | Beschränken Sie Datenbank- und Anwendungsports auf vertrauenswürdige Netzwerke. Verwenden Sie Firewall-Regeln oder Sicherheitsgruppen. |
+
+## Sicherheits-Ruhmeshalle
+
+Wir würdigen alle bestätigten Meldungen von Sicherheitslücken (sofern diese nicht anonym bleiben möchten). Meldende qualifizieren sich auch für das [Pioneer-Programm](/contributing).
+
+*Seien Sie der erste Sicherheitsforscher, der hier erwähnt wird.*
+
+## Vollständige Sicherheitsrichtlinie
+
+Diese Seite fasst die wichtigsten Punkte zusammen. Die vollständige Sicherheitsrichtlinie finden Sie unter [SECURITY.md auf GitHub](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md).

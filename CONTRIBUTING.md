@@ -74,8 +74,8 @@ Bug fixes and improvements are welcome. New features are accepted too — we'll 
 
 If you discover a security issue, please report it responsibly:
 
-1. **Email**: security@fim.ai (preferred)
-2. **GitHub**: Use [Security Advisories](https://github.com/fim-ai/fim-one/security/advisories/new) (private)
+1. **GitHub**: Use [Security Advisories](https://github.com/fim-ai/fim-one/security/advisories/new) (preferred — private by default)
+2. **Email**: security@fim.ai
 
 What we're looking for:
 
@@ -90,7 +90,7 @@ What we're looking for:
 **Response timeline:**
 
 - Acknowledgment: within 48 hours
-- Assessment: within 7 days
+- Assessment: within 5 business days
 - Fix: as fast as possible, coordinated disclosure
 
 **Recognition**: All confirmed security reporters are credited in the [Security Hall of Fame](#security-hall-of-fame) (unless they prefer anonymity) and count toward the Pioneer Program.
@@ -262,6 +262,8 @@ docs/                # Mintlify documentation
 ```
 
 ## Coding Conventions
+
+> **Quick reference:** For a concise summary of development conventions (type safety, testing, code style, git hooks), see the [docs site contributing page](https://docs.fim.ai/contributing).
 
 ### Python (Backend)
 

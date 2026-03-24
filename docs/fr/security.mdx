@@ -1,0 +1,74 @@
+---
+title: "Sécurité"
+icon: "shield"
+description: "Comment signaler les vulnérabilités, les délais de réponse et les meilleures pratiques de sécurité pour les déploiements FIM One auto-hébergés."
+---
+
+FIM One prend la sécurité au sérieux. Si vous découvrez une vulnérabilité, nous voulons en être informés — et nous vous créditerons pour la divulgation responsable.
+
+## Signaler les vulnérabilités
+
+<Warning>
+  **N'ouvrez PAS de problème public GitHub pour les vulnérabilités de sécurité.** Utilisez l'un des canaux privés ci-dessous.
+</Warning>
+
+**Deux façons de signaler :**
+
+1. **GitHub Security Advisories** (préféré) — [Créer un avis privé](https://github.com/fim-ai/fim-one/security/advisories/new). Seuls les responsables peuvent le voir jusqu'à la publication d'un correctif.
+2. **Email** — Envoyez les détails à **security@fim.ai** avec une description, les étapes de reproduction, les versions affectées et une évaluation de l'impact.
+
+Pour les problèmes de faible gravité (par exemple, les en-têtes de sécurité manquants qui n'exposent pas de données sensibles), vous pouvez ouvrir un problème GitHub ordinaire avec l'étiquette `security`.
+
+## Chronologie de réponse
+
+| Étape | Objectif |
+|---|---|
+| **Accusé de réception** | Dans les 48 heures (jours ouvrables) |
+| **Évaluation initiale** | Dans les 5 jours ouvrables |
+| **Développement du correctif** | Critique : dès que possible. Élevé : 2 semaines. Moyen/Faible : prochaine version. |
+| **Divulgation publique** | Après la publication du correctif et que les utilisateurs aient eu le temps de mettre à jour |
+
+## Portée
+
+### Dans le champ d'application
+
+- Contournement de l'authentification et de l'autorisation
+- Injection SQL, injection de commande ou exécution de code
+- Scripting intersite (XSS) ou falsification de requête intersite (CSRF)
+- Exposition des identifiants ou clés API
+- Escalade de privilèges entre utilisateurs ou organisations
+- Fuite de données au-delà des limites des locataires
+
+### Hors de portée
+
+- Les vulnérabilités dans les dépendances tierces (signalez en amont ; nous surveillons via Dependabot)
+- Les attaques d'ingénierie sociale
+- Les attaques par déni de service (DoS) sans vecteur d'attaque réaliste
+- Les problèmes dans l'environnement de démonstration/cloud qui n'affectent pas les déploiements auto-hébergés
+
+## Meilleures pratiques de sécurité pour les déploiements auto-hébergés
+
+Si vous exécutez FIM One sur votre propre infrastructure, suivez ces recommandations pour renforcer votre déploiement.
+
+<Tip>
+  Ces pratiques s'appliquent aux déploiements en production. Pour le développement local, les valeurs par défaut conviennent.
+</Tip>
+
+| Pratique | Détails |
+|---|---|
+| **Protéger `.env`** | Gardez-le hors du contrôle de version (`.gitignore` l'inclut par défaut). Limitez les permissions de fichier à l'utilisateur de l'application uniquement. |
+| **Clé `JWT_SECRET_KEY` forte** | Utilisez une valeur aléatoire cryptographiquement sécurisée (au moins 32 caractères). Ne réutilisez jamais les secrets entre les environnements. |
+| **Proxy inverse avec TLS** | Exécutez derrière nginx, Caddy, ou un équilibreur de charge cloud avec HTTPS activé. N'exposez jamais le port de l'application directement à Internet. |
+| **Utiliser PostgreSQL** | SQLite convient au développement et aux configurations mono-utilisateur. Pour les déploiements en production multi-utilisateurs, utilisez PostgreSQL pour une concurrence appropriée et l'intégrité des données. |
+| **Rester à jour** | Tirez régulièrement la dernière version. Les correctifs de sécurité sont rétroportés vers la version mineure précédente au mieux. |
+| **Limiter l'accès réseau** | Limitez les ports de base de données et d'application aux réseaux de confiance. Utilisez des règles de pare-feu ou des groupes de sécurité. |
+
+## Galerie de la sécurité
+
+Nous créditons tous les rapporteurs de vulnérabilités confirmées (sauf s'ils préfèrent rester anonymes). Les rapporteurs sont également éligibles au [Programme Pioneer](/contributing).
+
+*Soyez le premier chercheur en sécurité crédité ici.*
+
+## Politique de sécurité complète
+
+Cette page résume les points clés. Pour la politique de sécurité complète, consultez [SECURITY.md sur GitHub](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md).

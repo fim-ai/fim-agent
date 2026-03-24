@@ -1,0 +1,74 @@
+---
+title: "Security"
+icon: "shield"
+description: "How to report vulnerabilities, response timelines, and security best practices for self-hosted FIM One deployments."
+---
+
+FIM One takes security seriously. If you discover a vulnerability, we want to hear about it — and we will credit you for responsible disclosure.
+
+## Reporting Vulnerabilities
+
+<Warning>
+  **Do NOT open a public GitHub issue for security vulnerabilities.** Use one of the private channels below.
+</Warning>
+
+**Two ways to report:**
+
+1. **GitHub Security Advisories** (preferred) — [Create a private advisory](https://github.com/fim-ai/fim-one/security/advisories/new). Only maintainers can see it until a fix is released.
+2. **Email** — Send details to **security@fim.ai** with a description, reproduction steps, affected versions, and impact assessment.
+
+For low-severity issues (e.g., missing security headers that don't expose sensitive data), you may open a regular GitHub issue with the `security` label.
+
+## Response Timeline
+
+| Stage | Target |
+|---|---|
+| **Acknowledgment** | Within 48 hours (business days) |
+| **Initial assessment** | Within 5 business days |
+| **Fix development** | Critical: ASAP. High: 2 weeks. Medium/Low: next release. |
+| **Public disclosure** | After the fix is released and users have had time to update |
+
+## Scope
+
+### In scope
+
+- Authentication and authorization bypass
+- SQL injection, command injection, or code execution
+- Cross-site scripting (XSS) or cross-site request forgery (CSRF)
+- Credential or API key exposure
+- Privilege escalation between users or organizations
+- Data leakage across tenant boundaries
+
+### Out of scope
+
+- Vulnerabilities in third-party dependencies (report upstream; we monitor via Dependabot)
+- Social engineering attacks
+- Denial of service (DoS) without a realistic attack vector
+- Issues in the demo/cloud environment that don't affect self-hosted deployments
+
+## Self-Hosted Security Best Practices
+
+If you are running FIM One on your own infrastructure, follow these recommendations to harden your deployment.
+
+<Tip>
+  These practices apply to production deployments. For local development, the defaults are fine.
+</Tip>
+
+| Practice | Details |
+|---|---|
+| **Protect `.env`** | Keep it out of version control (`.gitignore` includes it by default). Restrict file permissions to the application user only. |
+| **Strong `JWT_SECRET_KEY`** | Use a cryptographically random value (at least 32 characters). Never reuse secrets across environments. |
+| **Reverse proxy with TLS** | Run behind nginx, Caddy, or a cloud load balancer with HTTPS enabled. Never expose the application port directly to the internet. |
+| **Use PostgreSQL** | SQLite is suitable for development and single-user setups. For multi-user production deployments, use PostgreSQL for proper concurrency and data integrity. |
+| **Keep up to date** | Regularly pull the latest release. Security patches are backported to the previous minor version on a best-effort basis. |
+| **Limit network access** | Restrict database and application ports to trusted networks. Use firewall rules or security groups. |
+
+## Security Hall of Fame
+
+We credit all confirmed vulnerability reporters (unless they prefer to remain anonymous). Reporters also qualify for the [Pioneer Program](/contributing).
+
+*Be the first security researcher credited here.*
+
+## Full Security Policy
+
+This page summarizes the key points. For the complete security policy, see [SECURITY.md on GitHub](https://github.com/fim-ai/fim-one/blob/master/SECURITY.md).
