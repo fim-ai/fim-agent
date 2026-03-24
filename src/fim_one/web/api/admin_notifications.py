@@ -289,11 +289,11 @@ async def test_notification(
             message="SMTP is not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.",
         )
 
-    from fim_one.web.admin_notify import _build_admin_email_html, _get_admin_emails
+    from fim_one.web.admin_notify import _build_admin_email_html, _get_admin_recipients
     from fim_one.web.email import _send_email
 
-    admin_emails = await _get_admin_emails()
-    if not admin_emails:
+    recipients = await _get_admin_recipients()
+    if not recipients:
         return TestNotificationResponse(
             success=False,
             message="No active admin users found.",
@@ -309,6 +309,7 @@ async def test_notification(
         ],
     )
 
+    admin_emails = [email for email, _tz in recipients]
     errors = []
     for email in admin_emails:
         try:

@@ -357,8 +357,8 @@ async def register(
                 "New User Registered",
                 [
                     f"Email: {body.email}",
-                    f"Time: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
                 ],
+                event_time=datetime.now(UTC),
             )
         )
 

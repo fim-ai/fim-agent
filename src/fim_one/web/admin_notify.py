@@ -50,20 +50,34 @@ async def _load_notification_config() -> dict[str, bool]:
     return defaults
 
 
-async def _get_admin_emails() -> list[str]:
-    """Get email addresses of all active admin users."""
+async def _get_admin_recipients() -> list[tuple[str, str | None]]:
+    """Get email and timezone of all active admin users."""
     try:
         async with create_session() as db:
             result = await db.execute(
-                select(User.email).where(
+                select(User.email, User.timezone).where(
                     User.is_admin == True,  # noqa: E712
                     User.is_active == True,  # noqa: E712
                 )
             )
-            return [row[0] for row in result.all()]
+            return [(row[0], row[1]) for row in result.all()]
     except Exception:
-        logger.warning("Failed to get admin emails", exc_info=True)
+        logger.warning("Failed to get admin recipients", exc_info=True)
         return []
+
+
+def _format_event_time(utc_dt: datetime, tz_name: str | None) -> str:
+    """Format a UTC datetime in the recipient's timezone."""
+    if tz_name:
+        try:
+            import zoneinfo
+
+            tz = zoneinfo.ZoneInfo(tz_name)
+            local_dt = utc_dt.astimezone(tz)
+            return local_dt.strftime(f"%Y-%m-%d %H:%M ({tz_name})")
+        except (KeyError, Exception):
+            pass
+    return utc_dt.strftime("%Y-%m-%d %H:%M UTC")
 
 
 def _build_admin_email_html(title: str, body_lines: list[str]) -> str:
@@ -129,6 +143,8 @@ async def notify_admins(
     event_type: str,
     title: str,
     body_lines: list[str],
+    *,
+    event_time: datetime | None = None,
 ) -> None:
     """Send an admin notification email. Safe for fire-and-forget via create_task.
 
@@ -136,6 +152,8 @@ async def notify_admins(
         event_type: Config key, e.g. "new_user_registration".
         title: Email subject suffix and heading.
         body_lines: List of "Label: Value" lines for the email body.
+        event_time: Optional UTC datetime to append as a timezone-aware
+            "Time" line, formatted per-recipient using their timezone.
     """
     if not _smtp_configured():
         return
@@ -149,17 +167,24 @@ async def notify_admins(
             logger.debug("Admin notification '%s' is disabled, skipping", event_type)
             return
 
-        admin_emails = await _get_admin_emails()
-        if not admin_emails:
-            logger.debug("No admin emails found, skipping notification")
+        recipients = await _get_admin_recipients()
+        if not recipients:
+            logger.debug("No admin recipients found, skipping notification")
             return
 
         app_name = os.getenv("APP_NAME", "FIM One")
         subject = f"[{app_name}] {title}"
-        body_html = _build_admin_email_html(title, body_lines)
 
-        for email in admin_emails:
+        for email, tz_name in recipients:
             try:
+                if event_time is not None:
+                    per_recipient_lines = [
+                        *body_lines,
+                        f"Time: {_format_event_time(event_time, tz_name)}",
+                    ]
+                else:
+                    per_recipient_lines = body_lines
+                body_html = _build_admin_email_html(title, per_recipient_lines)
                 await asyncio.to_thread(_send_email, email, subject, body_html)
                 logger.info("Admin notification sent to %s: %s", email, event_type)
             except Exception:
