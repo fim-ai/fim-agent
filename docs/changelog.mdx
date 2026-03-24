@@ -23,6 +23,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **File attachment download** — File cards in chat messages are now clickable to download the original file.
 - **Admin notification master switch** — Global on/off toggle for admin email notifications with runtime SMTP detection. Shows a warning banner when SMTP is not configured and disables all notification controls.
 - **SMTP Reply-To header** — New `SMTP_REPLY_TO` env var allows replies to go to a different address than the sender.
+- **Resource Fork Phase 1 (MCP Server + Skill)** — `POST /api/mcp-servers/{id}/fork` and `POST /api/skills/{id}/fork` endpoints create user-owned deep copies with `visibility=personal` and `forked_from` lineage tracking. Encrypted env/headers are skipped on MCP Server fork; publish status is skipped on Skill fork. Alembic migration adds `forked_from` column to both tables. 41 tests.
+- **Workflow Connection Dep Auto-Subscribe** — `DependencyAnalyzer._resolve_workflow` now recursively resolves sub-workflow dependencies with cycle detection (visited set). Agent and sub-workflow nodes correctly added as content deps in dependency manifests. Missing resources handled gracefully (log warning, no failure). 19 tests.
+- **Prebuilt Solution Templates (Market Seed Content)** — 8 vertical solution templates bootstrapped idempotently on first-user registration: Financial Audit, Contract Review, Data Reporting, IT Helpdesk, HR Onboarding, Sales Assistant, Content Writer, Meeting Summary. Each bundles an Agent + Skill with Chinese SOPs. Published to Market org (`visibility=org`, `publish_status=approved`) for immediate marketplace availability. 4 tests.
 
 ### Changed
 

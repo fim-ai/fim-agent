@@ -133,8 +133,8 @@
 
 @utility glass-overlay {
   /* Frosted glass overlay — used by Dialog/Sheet/AlertDialog backdrops */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
 }
 
 @layer base {
