@@ -7,6 +7,7 @@ function correctly wires per-conversation paths.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -271,3 +272,20 @@ class TestDiscoverBuiltinToolsSandbox:
         assert "web_fetch" in tool_names
         assert "web_search" in tool_names
         assert "http_request" in tool_names
+
+    def test_no_instantiation_failures(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Every non-skipped BaseTool subclass must instantiate without error.
+
+        Catches the case where a new tool is added to the builtin/ package but
+        requires constructor arguments — it must be added to _SKIP_AUTO_DISCOVER.
+        """
+        with caplog.at_level(logging.WARNING, logger="fim_one.core.tool.builtin"):
+            discover_builtin_tools()
+        failures = [
+            r.message for r in caplog.records
+            if "Failed to instantiate" in r.message
+        ]
+        assert failures == [], (
+            f"Builtin tools failed to instantiate (add to _SKIP_AUTO_DISCOVER?): "
+            f"{failures}"
+        )

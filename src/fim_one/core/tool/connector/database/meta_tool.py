@@ -453,12 +453,17 @@ def build_database_meta_tool(
         A fully configured DatabaseMetaTool instance.
     """
     stubs: list[DatabaseStub] = []
+    seen_names: set[str] = set()
 
     for conn, db_config, schema_tables in db_connectors:
         # Sanitise connector name to safe identifier
         safe_name = re.sub(r"[^a-zA-Z0-9]", "_", conn.name.lower()).strip("_")
         if not safe_name:
             safe_name = f"db_{getattr(conn, 'id', '')[:8] or len(stubs)}"
+        # Deduplicate: append connector ID prefix on collision
+        if safe_name in seen_names:
+            safe_name = f"{safe_name}_{getattr(conn, 'id', '')[:8]}"
+        seen_names.add(safe_name)
 
         # Build lightweight table stubs for the description
         table_stubs = [

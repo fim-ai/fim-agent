@@ -342,6 +342,7 @@ def build_connector_meta_tool(
     resolved_credentials = resolved_credentials or {}
     stubs: list[ConnectorStub] = []
     configs: dict[str, dict[str, Any]] = {}
+    seen_names: set[str] = set()
 
     for conn in connectors:
         # Sanitize connector name to match ConnectorToolAdapter convention.
@@ -349,6 +350,10 @@ def build_connector_meta_tool(
         safe_name = re.sub(r"[^a-zA-Z0-9]", "_", conn.name.lower()).strip("_")
         if not safe_name:
             safe_name = f"connector_{getattr(conn, 'id', '')[:8] or len(stubs)}"
+        # Deduplicate: append connector ID prefix on collision
+        if safe_name in seen_names:
+            safe_name = f"{safe_name}_{getattr(conn, 'id', '')[:8]}"
+        seen_names.add(safe_name)
 
         actions: list[ActionStub] = []
         for action in (conn.actions or []):

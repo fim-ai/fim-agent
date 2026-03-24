@@ -1147,6 +1147,76 @@ class TestGetDatabaseToolMode:
 
 
 # ---------------------------------------------------------------------------
+# Test: name deduplication
+# ---------------------------------------------------------------------------
+
+
+class TestNameDeduplication:
+    """Verify that connectors with colliding safe_names get deduplicated."""
+
+    def _make_mock_connector(
+        self,
+        conn_id: str = "conn-1",
+        name: str = "My DB",
+        description: str = "A database",
+    ) -> MagicMock:
+        conn = MagicMock()
+        conn.id = conn_id
+        conn.name = name
+        conn.description = description
+        return conn
+
+    def test_chinese_names_that_collapse_to_same_safe_name(self) -> None:
+        """Two connectors whose names differ only in CJK chars must not collide."""
+        conn_a = self._make_mock_connector("aaaa-1111", "智合staging", "DB A")
+        conn_b = self._make_mock_connector("bbbb-2222", "测试staging", "DB B")
+        schema: list[dict[str, Any]] = []
+        db_config: dict[str, Any] = {"read_only": True}
+
+        tool = build_database_meta_tool([
+            (conn_a, db_config, schema),
+            (conn_b, db_config, schema),
+        ])
+
+        names = list(tool._stubs.keys())
+        assert len(names) == 2, f"Expected 2 stubs, got {len(names)}: {names}"
+        assert "staging" in names
+        assert any("bbbb" in n for n in names), (
+            f"Colliding name should contain connector ID prefix: {names}"
+        )
+
+    def test_pure_ascii_duplicates(self) -> None:
+        """Two connectors with identical ASCII names get deduplicated."""
+        conn_a = self._make_mock_connector("aaaa-1111", "staging", "DB A")
+        conn_b = self._make_mock_connector("bbbb-2222", "staging", "DB B")
+        schema: list[dict[str, Any]] = []
+        db_config: dict[str, Any] = {"read_only": True}
+
+        tool = build_database_meta_tool([
+            (conn_a, db_config, schema),
+            (conn_b, db_config, schema),
+        ])
+
+        names = list(tool._stubs.keys())
+        assert len(names) == 2, f"Expected 2 stubs, got {len(names)}: {names}"
+
+    def test_no_collision_no_suffix(self) -> None:
+        """Distinct names should not get a suffix."""
+        conn_a = self._make_mock_connector("aaaa-1111", "staging", "DB A")
+        conn_b = self._make_mock_connector("bbbb-2222", "production", "DB B")
+        schema: list[dict[str, Any]] = []
+        db_config: dict[str, Any] = {"read_only": True}
+
+        tool = build_database_meta_tool([
+            (conn_a, db_config, schema),
+            (conn_b, db_config, schema),
+        ])
+
+        names = list(tool._stubs.keys())
+        assert names == ["staging", "production"]
+
+
+# ---------------------------------------------------------------------------
 # Test: token efficiency
 # ---------------------------------------------------------------------------
 

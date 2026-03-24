@@ -542,6 +542,58 @@ class TestBuildConnectorMetaTool:
 
 
 # ---------------------------------------------------------------------------
+# Test: name deduplication
+# ---------------------------------------------------------------------------
+
+
+class TestConnectorNameDeduplication:
+    """Verify that connectors with colliding safe_names get deduplicated."""
+
+    def _make_mock_connector(
+        self,
+        conn_id: str = "conn-1",
+        name: str = "My API",
+        description: str = "An API",
+        base_url: str = "https://api.example.com",
+        auth_type: str = "bearer",
+        actions: list | None = None,
+    ) -> MagicMock:
+        conn = MagicMock()
+        conn.id = conn_id
+        conn.name = name
+        conn.description = description
+        conn.base_url = base_url
+        conn.auth_type = auth_type
+        conn.auth_config = {}
+        conn.actions = actions or []
+        return conn
+
+    def test_chinese_names_that_collapse_to_same_safe_name(self) -> None:
+        """Two connectors whose names differ only in CJK chars must not collide."""
+        conn_a = self._make_mock_connector("aaaa-1111", "智合API")
+        conn_b = self._make_mock_connector("bbbb-2222", "测试API")
+
+        tool = build_connector_meta_tool([conn_a, conn_b])
+
+        names = list(tool._stubs.keys())
+        assert len(names) == 2, f"Expected 2 stubs, got {len(names)}: {names}"
+        assert "api" in names
+        assert any("bbbb" in n for n in names), (
+            f"Colliding name should contain connector ID prefix: {names}"
+        )
+
+    def test_no_collision_no_suffix(self) -> None:
+        """Distinct names should not get a suffix."""
+        conn_a = self._make_mock_connector("aaaa-1111", "Salesforce")
+        conn_b = self._make_mock_connector("bbbb-2222", "Stripe")
+
+        tool = build_connector_meta_tool([conn_a, conn_b])
+
+        names = list(tool._stubs.keys())
+        assert names == ["salesforce", "stripe"]
+
+
+# ---------------------------------------------------------------------------
 # Test: get_connector_tool_mode
 # ---------------------------------------------------------------------------
 
