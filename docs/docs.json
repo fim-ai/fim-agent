@@ -16,8 +16,10 @@
   "colors": {
     "primary": "#D97706",
     "light": "#C8922A",
-    "dark": "#FBBF24",
-    "background": {
+    "dark": "#FBBF24"
+  },
+  "background": {
+    "color": {
       "light": "#FBF9F7",
       "dark": "#120E0C"
     }
