@@ -150,6 +150,30 @@ Der Zähler verfolgt **nur tatsächliche Tool-Aufrufe** — JSON-Parse-Wiederhol
 
 Dies kostet ~100 Token pro Injektion (kein zusätzlicher LLM-Aufruf) und hat keine Auswirkung auf kurze Läufe (`< 6` Tool-Aufrufe). Es ergänzt ContextGuard (das Token-Budgets verwaltet) und schrittweise Verifizierung (die einzelne Ergebnisse validiert), indem es einen anderen Fehlermodus adressiert: dass der Agent über viele Iterationen hinweg sein Ziel aus den Augen verliert.
 
+## Zyklenerkennung
+
+Selbstreflexion fragt das LLM, ob es sich im Kreis dreht — aber das LLM antwortet oft mit „nein" und schleift weiter. Zyklenerkennung ist eine deterministische Alternative, die nicht umgangen werden kann.
+
+Nach jeder Werkzeugausführung erstellt der Agent einen Hash des Paares `(tool_name, arguments)`. Wenn derselbe Hash `_CYCLE_DETECTION_THRESHOLD` Mal erscheint (Standard: **3**, konfigurierbar über `REACT_CYCLE_DETECTION_THRESHOLD`), wird eine Warnmeldung in das Gespräch eingefügt:
+
+> You have called `{tool}` with identical arguments N times and received the same result. Please try a different approach or tool.
+
+Die Warnung ist eine reguläre Benutzermeldung im internen Verlauf des Agenten — sie wird dem Endbenutzer nicht als separates UI-Ereignis angezeigt. Der Agent sieht die Warnung bei seinem nächsten LLM-Aufruf und wird gezwungen, die Strategie zu ändern. Der Tracker wird bei jedem `run()`-Aufruf zurückgesetzt.
+
+Da DAG-Schritte über ReActAgent ausgeführt werden, schützt die Zyklenerkennung auch einzelne DAG-Schritte vor Werkzeugaufrufen-Schleifen.
+
+## Abschluss-Checkliste
+
+Wenn der Agent mindestens ein Tool verwendet hat und sich entschließt, eine endgültige Antwort zu geben, wird vor der Annahme der Antwort eine einmalige Verifizierungsaufforderung eingefügt:
+
+1. Beantwortet die Antwort die ursprüngliche Frage vollständig?
+2. Wurden wichtige Fakten aus den Tool-Ergebnissen überprüft?
+3. Gibt es Widersprüche in den gesammelten Informationen?
+
+Wenn der Agent bestätigt, wird die endgültige Antwort gegeben. Wenn er entscheidet, dass etwas fehlt, wird die Tool-Call-Schleife fortgesetzt. Die Checkliste wird höchstens einmal pro Ausführung ausgelöst und wird nicht für einfache Gesprächsantworten ausgelöst (keine Tools verwendet).
+
+Die Funktion ist standardmäßig aktiviert (`completion_check=True` auf `ReActAgent`) und kann pro Agent-Instanz deaktiviert werden. DAG-Schritte erben den Standard — jeder Schritt erhält seine eigene einmalige Checkliste.
+
 ## Antwortsynthese (stream_answer)
 
 Die Trennung zwischen der Werkzeugschleife und der Antwortsynthese ist eine grundlegende architektonische Entscheidung. Werkzeugiterationen erzeugen Rohdaten — JSON-Aktionen, Werkzeugbeobachtungen, Fehlermeldungen. Der Benutzer benötigt eine kohärente, gut formatierte Antwort, keine Ausgabe der internen Verfolgung des Agenten.

@@ -150,6 +150,30 @@ The counter tracks **actual tool calls only** — JSON parse retries, thinking e
 
 This costs ~100 tokens per injection (no extra LLM call) and has no effect on short runs (`< 6` tool calls). It complements ContextGuard (which manages token budgets) and per-step verification (which validates individual results) by addressing a different failure mode: the agent losing sight of its goal over many iterations.
 
+## Cycle detection
+
+Self-reflection asks the LLM whether it is going in circles — but the LLM often answers "no" and keeps looping. Cycle detection is a deterministic alternative that cannot be bypassed.
+
+After every tool execution, the agent hashes the `(tool_name, arguments)` pair. When the same hash appears `_CYCLE_DETECTION_THRESHOLD` times (default: **3**, configurable via `REACT_CYCLE_DETECTION_THRESHOLD`), a warning message is injected into the conversation:
+
+> You have called `{tool}` with identical arguments N times and received the same result. Please try a different approach or tool.
+
+The warning is a regular user message in the agent's internal history — it is not surfaced to the end user as a separate UI event. The agent sees the warning on its next LLM call and is forced to change strategy. The tracker resets at the start of each `run()` call.
+
+Because DAG steps execute via ReActAgent, cycle detection also protects individual DAG steps from tool-call loops.
+
+## Completion checklist
+
+When the agent has used at least one tool and decides to produce a final answer, a one-time verification prompt is injected before the answer is accepted:
+
+1. Does the answer fully address the original question?
+2. Were key facts verified from tool results?
+3. Are there contradictions in the gathered information?
+
+If the agent confirms, it proceeds to final answer. If it decides something is missing, it resumes the tool-call loop. The checklist fires at most once per run and does not trigger for simple conversational responses (no tools used).
+
+The feature is enabled by default (`completion_check=True` on `ReActAgent`) and can be disabled per agent instance. DAG steps inherit the default — each step gets its own one-shot checklist.
+
 ## Answer synthesis (stream_answer)
 
 The separation between the tool loop and answer synthesis is a core architectural decision. Tool iterations produce raw data — JSON actions, tool observations, error messages. The user needs a coherent, well-formatted answer, not a dump of the agent's internal trace.

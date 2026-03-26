@@ -150,6 +150,30 @@ Le compteur suit **uniquement les appels d'outils réels** — les nouvelles ten
 
 Cela coûte ~100 jetons par injection (pas d'appel LLM supplémentaire) et n'a aucun effet sur les exécutions courtes (`< 6` appels d'outils). Il complète ContextGuard (qui gère les budgets de jetons) et la vérification par étape (qui valide les résultats individuels) en abordant un mode de défaillance différent : l'agent perdant de vue son objectif sur de nombreuses itérations.
 
+## Détection de cycles
+
+L'auto-réflexion demande au LLM s'il tourne en boucle — mais le LLM répond souvent « non » et continue à boucler. La détection de cycles est une alternative déterministe qui ne peut pas être contournée.
+
+Après chaque exécution d'outil, l'agent hache la paire `(tool_name, arguments)`. Quand le même hash apparaît `_CYCLE_DETECTION_THRESHOLD` fois (par défaut : **3**, configurable via `REACT_CYCLE_DETECTION_THRESHOLD`), un message d'avertissement est injecté dans la conversation :
+
+> You have called `{tool}` with identical arguments N times and received the same result. Please try a different approach or tool.
+
+L'avertissement est un message utilisateur régulier dans l'historique interne de l'agent — il n'est pas affiché à l'utilisateur final comme un événement UI distinct. L'agent voit l'avertissement lors de son prochain appel LLM et est forcé de changer de stratégie. Le suivi se réinitialise au début de chaque appel `run()`.
+
+Parce que les étapes DAG s'exécutent via ReActAgent, la détection de cycles protège également les étapes DAG individuelles des boucles d'appels d'outils.
+
+## Liste de vérification d'achèvement
+
+Lorsque l'agent a utilisé au moins un outil et décide de produire une réponse finale, une invite de vérification unique est injectée avant que la réponse soit acceptée :
+
+1. La réponse aborde-t-elle pleinement la question originale ?
+2. Les faits clés ont-ils été vérifiés à partir des résultats des outils ?
+3. Y a-t-il des contradictions dans les informations recueillies ?
+
+Si l'agent confirme, il procède à la réponse finale. S'il décide que quelque chose manque, il reprend la boucle d'appel d'outils. La liste de vérification s'exécute au maximum une fois par exécution et ne se déclenche pas pour les réponses conversationnelles simples (aucun outil utilisé).
+
+La fonctionnalité est activée par défaut (`completion_check=True` sur `ReActAgent`) et peut être désactivée par instance d'agent. Les étapes DAG héritent de la valeur par défaut — chaque étape obtient sa propre liste de vérification unique.
+
 ## Synthèse des réponses (stream_answer)
 
 La séparation entre la boucle d'outils et la synthèse des réponses est une décision architecturale fondamentale. Les itérations d'outils produisent des données brutes — actions JSON, observations d'outils, messages d'erreur. L'utilisateur a besoin d'une réponse cohérente et bien formatée, pas un vidage de la trace interne de l'agent.
