@@ -31,8 +31,9 @@ description: "FIM One 的所有重要更改。"
 
 ### 已更改
 
+- **完成检查清单最小工具阈值** — 清单现在仅在智能体进行了 3+ 次工具调用时触发（可通过 `REACT_COMPLETION_CHECK_MIN_TOOLS` 配置）。简单的 1-2 个工具任务会跳过验证以避免不必要的延迟。
 - **动态系统提示预算** — 从上下文预算计算中移除了固定的 `SYSTEM_PROMPT_RESERVE`（4K 令牌）。ContextGuard 现在动态考虑系统提示，为每次迭代提供约 4K 更多可用上下文。
-- **集中式工具截断** — 所有工具类型现在委托截断到共享模块。默认值可通过 `TOOL_OUTPUT_MAX_CHARS`、`TOOL_OUTPUT_MAX_ITEMS`、`TOOL_OUTPUT_MAX_BYTES` 环境变量配置。
+- **集中式工具截断** — 所有工具类型现在都委托截断到共享模块。默认值可通过 `TOOL_OUTPUT_MAX_CHARS`、`TOOL_OUTPUT_MAX_ITEMS`、`TOOL_OUTPUT_MAX_BYTES` 环境变量配置。
 - **域检测解耦** — 域分类在每个端点中独立运行，不再与自动路由捆绑。域 SOP 指令已软化为指导而非强制网络搜索。
 - **`AUTO_ROUTING` 环境变量已移除** — 自动端点始终对查询进行分类。
 

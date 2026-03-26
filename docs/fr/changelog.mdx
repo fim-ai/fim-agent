@@ -29,11 +29,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 - **Détection de cycle ReAct** — Détection déterministe des appels d'outil identiques répétés. Injecte un avertissement après 3 appels consécutifs avec les mêmes arguments, empêchant les agents de boucler sur les outils défaillants. Configurable via `REACT_CYCLE_DETECTION_THRESHOLD`.
 - **Liste de contrôle d'achèvement ReAct** — Invite de vérification unique avant d'accepter les réponses finales lorsque des outils ont été utilisés, réduisant les réponses prématurées ou incomplètes. Basculable par instance d'agent.
 
-### Modifié
+### Modifications
 
-- **Budgétisation dynamique de l'invite système** — Suppression de la réserve fixe `SYSTEM_PROMPT_RESERVE` (4K tokens) du calcul du budget de contexte. ContextGuard tient maintenant compte de l'invite système de manière dynamique, donnant à chaque itération ~4K de contexte utilisable supplémentaire.
-- **Troncature centralisée des outils** — Tous les types d'outils délèguent maintenant la troncature à un module partagé. Les valeurs par défaut sont configurables via les variables d'environnement `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES`.
-- **Détection de domaine découplée** — La classification de domaine s'exécute indépendamment dans chaque point de terminaison, n'étant plus regroupée avec le routage automatique. Les instructions SOP de domaine assouplies pour guider plutôt que de mandater la recherche web.
+- **Seuil minimum d'outils de la liste de contrôle d'achèvement** — La liste de contrôle ne s'active désormais que lorsque l'agent a effectué 3+ appels d'outils (configurable via `REACT_COMPLETION_CHECK_MIN_TOOLS`). Les tâches simples avec 1-2 outils ignorent la vérification pour éviter une latence inutile.
+- **Budget de système dynamique** — Suppression de la réserve fixe `SYSTEM_PROMPT_RESERVE` (4K tokens) du calcul du budget de contexte. ContextGuard tient désormais compte du système dynamiquement, donnant à chaque itération ~4K de contexte utilisable supplémentaire.
+- **Troncature d'outils centralisée** — Tous les types d'outils délèguent désormais la troncature à un module partagé. Les valeurs par défaut sont configurables via les variables d'environnement `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES`.
+- **Détection de domaine découplée** — La classification de domaine s'exécute indépendamment dans chaque point de terminaison, n'est plus regroupée avec le routage automatique. Les instructions SOP de domaine assouplies pour guider plutôt que de mandater la recherche web.
 - **Variable d'environnement `AUTO_ROUTING` supprimée** — Le point de terminaison automatique classe toujours les requêtes.
 
 ### Corrigé

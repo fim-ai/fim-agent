@@ -31,10 +31,11 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Geändert
 
-- **Dynamische System-Prompt-Budgetierung** — Die feste `SYSTEM_PROMPT_RESERVE` (4K Token) wurde aus der Kontextbudgetberechnung entfernt. ContextGuard berücksichtigt den System-Prompt jetzt dynamisch und bietet jeder Iteration ~4K mehr nutzbaren Kontext.
+- **Completion-Checklisten-Mindestanzahl für Tools** — Die Checkliste wird jetzt nur ausgelöst, wenn der Agent 3+ Tool-Aufrufe getätigt hat (konfigurierbar über `REACT_COMPLETION_CHECK_MIN_TOOLS`). Einfache 1-2-Tool-Aufgaben überspringen die Verifizierung, um unnötige Latenz zu vermeiden.
+- **Dynamische System-Prompt-Budgetierung** — Die feste `SYSTEM_PROMPT_RESERVE` (4K Token) wurde aus der Kontextbudgetberechnung entfernt. ContextGuard berücksichtigt den System-Prompt jetzt dynamisch und gibt jeder Iteration ~4K mehr nutzbaren Kontext.
 - **Zentralisierte Tool-Kürzung** — Alle Tool-Typen delegieren die Kürzung jetzt an ein gemeinsames Modul. Standardwerte konfigurierbar über die Umgebungsvariablen `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES`.
-- **Domänenerkennung entkoppelt** — Die Domänenklassifizierung läuft unabhängig in jedem Endpunkt und ist nicht mehr mit dem Auto-Routing gebündelt. Domänen-SOP-Anweisungen wurden gelockert, um eher zu leiten als vorzuschreiben, ob eine Websuche durchgeführt wird.
-- **`AUTO_ROUTING` Umgebungsvariable entfernt** — Der Auto-Endpunkt klassifiziert Anfragen immer.
+- **Domain-Erkennung entkoppelt** — Die Domain-Klassifizierung läuft unabhängig in jedem Endpunkt und ist nicht mehr mit dem automatischen Routing gebündelt. Domain-SOP-Anweisungen wurden abgeschwächt, um eher zu leiten als vorzuschreiben, ob eine Websuche durchgeführt werden soll.
+- **`AUTO_ROUTING` Umgebungsvariable entfernt** — Der automatische Endpunkt klassifiziert Abfragen immer.
 
 ### Behoben
 

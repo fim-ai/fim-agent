@@ -31,6 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Changed
 
+- **Completion checklist min-tools threshold** — Checklist now only fires when the agent has made 3+ tool calls (configurable via `REACT_COMPLETION_CHECK_MIN_TOOLS`). Simple 1-2 tool tasks skip verification to avoid unnecessary latency.
 - **Dynamic system prompt budgeting** — Removed the fixed `SYSTEM_PROMPT_RESERVE` (4K tokens) from context budget calculation. ContextGuard now accounts for the system prompt dynamically, giving each iteration ~4K more usable context.
 - **Centralized tool truncation** — All tool types now delegate truncation to a shared module. Defaults configurable via `TOOL_OUTPUT_MAX_CHARS`, `TOOL_OUTPUT_MAX_ITEMS`, `TOOL_OUTPUT_MAX_BYTES` env vars.
 - **Domain detection decoupled** — Domain classification runs independently in each endpoint, no longer bundled with auto-routing. Domain SOP instructions softened to guide rather than mandate web search.
