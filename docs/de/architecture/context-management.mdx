@@ -157,7 +157,17 @@ sequenceDiagram
         CG-->>Agent: messages (within budget)
         Agent->>LLM: chat(messages)
         LLM-->>Agent: response
-        Agent->>Agent: Parse action, execute tool, append result
+        alt tool_call
+            Agent->>Agent: Execute tool, append observation
+            opt cycle detected
+                Agent->>Agent: Inject warning message into context
+            end
+        else final_answer
+            opt tools ≥ threshold, not yet checked
+                Agent->>Agent: Inject checklist prompt into context
+                Agent->>Agent: Continue loop (one more iteration)
+            end
+        end
     end
 
     Agent-->>Chat: AgentResult (tool trace + brief answer)
@@ -168,11 +178,11 @@ sequenceDiagram
     Chat->>Chat: Persist, emit compact SSE if compacted
 ```
 
-Werkzeugiterationen verwenden nicht-streamendes `chat()` für Geschwindigkeit; die Antwontsynthese verwendet Streaming `stream_chat()` über `stream_answer()`. Diese zweigeteilte Aufteilung – schnelle Werkzeugschleife gefolgt von Streaming-Synthese – optimiert sowohl Latenz als auch Benutzererlebnis. Für die vollständige ReAct-Engine-Architektur einschließlich Dual-Mode-Ausführung und Werkzeugauswahl siehe [ReAct Engine](/architecture/react-engine).
+Tool-Iterationen verwenden nicht-streamendes `chat()` für Geschwindigkeit; die Antwortsynthesenutzt Streaming `stream_chat()` über `stream_answer()`. Diese zweiphasige Aufteilung — schnelle Tool-Schleife gefolgt von Streaming-Synthese — optimiert sowohl Latenz als auch Benutzererlebnis. Für die vollständige ReAct-Engine-Architektur einschließlich Dual-Mode-Ausführung und Tool-Auswahl siehe [ReAct Engine](/architecture/react-engine).
 
-Die Schlüsseleinsicht: **DbMemory behandelt das historische Kontextproblem (Züge aus vorherigen Anfragen), während ContextGuard das Wachstumsproblem innerhalb der Anfrage behandelt (Werkzeugergebnisse, die sich während einer Agent-Schleife ansammeln).** Sie arbeiten auf unterschiedlichen Zeitskalen und erfassen unterschiedliche Fehlermodi.
+Die wichtigste Erkenntnis: **DbMemory behandelt das historische Kontextproblem (Turns aus vorherigen Anfragen), während ContextGuard das Wachstumsproblem innerhalb der Anfrage behandelt (Tool-Ergebnisse, die sich während einer Agent-Schleife ansammeln).** Sie arbeiten auf unterschiedlichen Zeitskalen und erfassen unterschiedliche Fehlermodi.
 
-Die aktuelle Abfrage des Benutzers ist immer mit `pinned=True` gekennzeichnet. Dies stellt sicher, dass sie alle Komprimierungen übersteht – sowohl `smart_truncate` als auch `llm_compact` bewahren angeheftete Nachrichten bedingungslos. Egal wie aggressiv die Historie komprimiert wird, die eigentliche Frage des Benutzers geht nie verloren.
+Die aktuelle Abfrage des Benutzers ist immer als `pinned=True` gekennzeichnet. Dies stellt sicher, dass sie alle Komprimierungen übersteht — sowohl `smart_truncate` als auch `llm_compact` bewahren angeheftete Nachrichten bedingungslos. Egal wie aggressiv die Historie komprimiert wird, die eigentliche Frage des Benutzers geht nie verloren.
 
 ## Wie der Kontext durch DAG fließt
 

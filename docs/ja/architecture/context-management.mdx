@@ -132,7 +132,7 @@ LLM 圧縮が失敗した場合（ネットワーク エラー、空の応答、
 
 WindowMemory と SummaryMemory はコードベースに残っています。これらはテストに役立つプリミティブとして機能し、Web レイヤーなしで FIM One のコアライブラリを組み込むユーザーにとって有用だからです。これらはデッドコードではなく、アーキテクチャが成長した単純なケースです。
 
-## ReActを通じたコンテキストフロー
+## ReActを通じたコンテキストの流れ
 
 ReActエージェントは、ロード時と反復時の2つの異なるフェーズでコンテキスト管理を使用します。
 
@@ -157,7 +157,17 @@ sequenceDiagram
         CG-->>Agent: messages (within budget)
         Agent->>LLM: chat(messages)
         LLM-->>Agent: response
-        Agent->>Agent: Parse action, execute tool, append result
+        alt tool_call
+            Agent->>Agent: Execute tool, append observation
+            opt cycle detected
+                Agent->>Agent: Inject warning message into context
+            end
+        else final_answer
+            opt tools ≥ threshold, not yet checked
+                Agent->>Agent: Inject checklist prompt into context
+                Agent->>Agent: Continue loop (one more iteration)
+            end
+        end
     end
 
     Agent-->>Chat: AgentResult (tool trace + brief answer)
@@ -168,11 +178,11 @@ sequenceDiagram
     Chat->>Chat: Persist, emit compact SSE if compacted
 ```
 
-ツール反復は高速化のため非ストリーミング`chat()`を使用し、回答合成はストリーミング`stream_chat()`を`stream_answer()`経由で使用します。このツーフェーズ分割（高速ツールループの後にストリーミング合成）は、レイテンシとユーザー体験の両方を最適化します。デュアルモード実行とツール選択を含むReActエンジンの完全なアーキテクチャについては、[ReActエンジン](/architecture/react-engine)を参照してください。
+ツール反復は速度のために非ストリーミング`chat()`を使用し、回答合成はストリーミング`stream_chat()`を`stream_answer()`経由で使用します。この2フェーズの分割 — 高速ツールループの後にストリーミング合成 — はレイテンシとユーザー体験の両方を最適化します。デュアルモード実行とツール選択を含むReActエンジンアーキテクチャの詳細については、[ReActエンジン](/architecture/react-engine)を参照してください。
 
-重要な洞察：**DbMemoryは履歴コンテキストの問題（前のリクエストからのターン）を処理し、ContextGuardはリクエスト内の成長の問題（エージェントループ中に蓄積するツール結果）を処理します。** これらは異なるタイムスケールで動作し、異なる障害モードをキャッチします。
+重要な洞察: **DbMemoryは履歴コンテキストの問題（前のリクエストからのターン）を処理し、ContextGuardはリクエスト内の成長の問題（エージェントループ中に蓄積するツール結果）を処理します。** これらは異なる時間スケールで動作し、異なる障害モードをキャッチします。
 
-ユーザーの現在のクエリは常に`pinned=True`としてマークされます。これにより、すべてのコンパクション（`smart_truncate`と`llm_compact`の両方）を通じて生き残ることが保証されます。ピン留めされたメッセージは無条件に保持されます。履歴がどれほど積極的に圧縮されても、ユーザーの実際の質問は決して失われません。
+ユーザーの現在のクエリは常に`pinned=True`としてマークされます。これにより、すべての圧縮 — `smart_truncate`と`llm_compact`の両方 — を通じて生き残ることが保証されます。履歴がどれほど積極的に圧縮されても、ユーザーの実際の質問は決して失われません。
 
 ## DAGを通じたコンテキストの流れ
 

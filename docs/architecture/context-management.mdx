@@ -157,7 +157,17 @@ sequenceDiagram
         CG-->>Agent: messages (within budget)
         Agent->>LLM: chat(messages)
         LLM-->>Agent: response
-        Agent->>Agent: Parse action, execute tool, append result
+        alt tool_call
+            Agent->>Agent: Execute tool, append observation
+            opt cycle detected
+                Agent->>Agent: Inject warning message into context
+            end
+        else final_answer
+            opt tools ≥ threshold, not yet checked
+                Agent->>Agent: Inject checklist prompt into context
+                Agent->>Agent: Continue loop (one more iteration)
+            end
+        end
     end
 
     Agent-->>Chat: AgentResult (tool trace + brief answer)

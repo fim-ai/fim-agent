@@ -157,7 +157,17 @@ sequenceDiagram
         CG-->>Agent: messages (within budget)
         Agent->>LLM: chat(messages)
         LLM-->>Agent: response
-        Agent->>Agent: Parse action, execute tool, append result
+        alt tool_call
+            Agent->>Agent: Execute tool, append observation
+            opt cycle detected
+                Agent->>Agent: Inject warning message into context
+            end
+        else final_answer
+            opt tools ≥ threshold, not yet checked
+                Agent->>Agent: Inject checklist prompt into context
+                Agent->>Agent: Continue loop (one more iteration)
+            end
+        end
     end
 
     Agent-->>Chat: AgentResult (tool trace + brief answer)
@@ -168,11 +178,11 @@ sequenceDiagram
     Chat->>Chat: Persist, emit compact SSE if compacted
 ```
 
-Les itérations d'outils utilisent `chat()` sans streaming pour la rapidité ; la synthèse de réponse utilise `stream_chat()` avec streaming via `stream_answer()`. Cette division en deux phases — boucle d'outils rapide suivie d'une synthèse en streaming — optimise à la fois la latence et l'expérience utilisateur. Pour l'architecture complète du moteur ReAct incluant l'exécution en mode dual et la sélection d'outils, voir [Moteur ReAct](/architecture/react-engine).
+Les itérations d'outils utilisent `chat()` sans streaming pour la rapidité ; la synthèse de réponse utilise `stream_chat()` via `stream_answer()` avec streaming. Cette division en deux phases — boucle d'outils rapide suivie d'une synthèse en streaming — optimise à la fois la latence et l'expérience utilisateur. Pour l'architecture complète du moteur ReAct incluant l'exécution en mode dual et la sélection d'outils, voir [Moteur ReAct](/architecture/react-engine).
 
-L'insight clé : **DbMemory gère le problème du contexte historique (tours des requêtes précédentes), tandis que ContextGuard gère le problème de croissance intra-requête (résultats d'outils s'accumulant pendant une boucle d'agent).** Ils opèrent à des échelles de temps différentes et détectent des modes de défaillance différents.
+L'insight clé : **DbMemory gère le problème du contexte historique (tours des requêtes précédentes), tandis que ContextGuard gère le problème de croissance intra-requête (résultats d'outils s'accumulant pendant une boucle d'agent).** Ils opèrent à des échelles de temps différentes et capturent des modes de défaillance différents.
 
-La requête actuelle de l'utilisateur est toujours marquée comme `pinned=True`. Cela garantit qu'elle survit à toute compaction — à la fois `smart_truncate` et `llm_compact` préservent les messages épinglés sans condition. Peu importe à quel point l'historique est compressé, la question réelle de l'utilisateur n'est jamais perdue.
+La requête actuelle de l'utilisateur est toujours marquée comme `pinned=True`. Cela garantit qu'elle survit à toute compaction — à la fois `smart_truncate` et `llm_compact` préservent les messages épinglés sans condition. Peu importe la compression agressive de l'historique, la question réelle de l'utilisateur n'est jamais perdue.
 
 ## Comment le contexte circule dans le DAG
 
