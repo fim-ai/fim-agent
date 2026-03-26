@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -23,6 +24,11 @@ from .types import ChatMessage, LLMResult, StreamChunk, ToolCallRequest
 
 logger = logging.getLogger(__name__)
 
+# Regex to extract <think>…</think> blocks from model content.
+# Some providers (MiniMax, QwQ, etc.) wrap CoT reasoning this way
+# instead of using an API-level reasoning_content field.
+_THINK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
+
 # ---------------------------------------------------------------------------
 # LiteLLM global configuration
 # ---------------------------------------------------------------------------
@@ -34,7 +40,11 @@ litellm.suppress_debug_info = True
 # Provider resolution
 # ---------------------------------------------------------------------------
 
-# Domain → provider for official API endpoints.
+# Domain → LiteLLM provider prefix for endpoints that LiteLLM can route
+# natively (no api_base needed).  Only providers with built-in endpoint
+# routing in LiteLLM belong here.  All other OpenAI-compatible providers
+# (MiniMax, DashScope, Moonshot, etc.) are handled by the generic fallback
+# which passes api_base so requests reach the correct server.
 KNOWN_DOMAINS: dict[str, str] = {
     "api.openai.com": "openai",
     "anthropic.com": "anthropic",
@@ -50,10 +60,6 @@ PATH_PROVIDER_HINTS: dict[str, str] = {
     "/anthropic": "anthropic",
     "/gemini": "gemini",
 }
-
-# Providers whose native protocol LiteLLM handles — these need api_base
-# when the domain isn't the official one (i.e. relay/proxy scenarios).
-_NATIVE_PROVIDERS = frozenset(KNOWN_DOMAINS.values())
 
 
 def _resolve_litellm_model(
@@ -80,7 +86,7 @@ def _resolve_litellm_model(
                 return f"{provider}/{model}", None  # Official endpoint
         return f"{provider}/{model}", base_url  # Relay/proxy
 
-    # 2. Domain match (official APIs)
+    # 2. Domain match (official APIs — LiteLLM routes natively)
     for domain, prov in KNOWN_DOMAINS.items():
         if domain in base_url:
             return f"{prov}/{model}", None
@@ -298,6 +304,7 @@ class OpenAICompatibleLLM(BaseLLM):
             pending_tool_calls: dict[int, _PartialToolCall] = {}
             stream_usage: dict[str, int] | None = None
             usage_yielded = False
+            think_parser = _ThinkTagStreamParser()
 
             async for chunk in stream:
                 # Extract usage from any chunk that carries it (typically the
@@ -318,6 +325,17 @@ class OpenAICompatibleLLM(BaseLLM):
                 # --- content / reasoning fragments ---
                 delta_content = getattr(delta, "content", None)
                 delta_reasoning = getattr(delta, "reasoning_content", None)
+
+                # Re-route <think>...</think> from content to reasoning.
+                if delta_content:
+                    parsed_content, parsed_reasoning = think_parser.feed(
+                        delta_content,
+                    )
+                    delta_content = parsed_content or None
+                    if parsed_reasoning:
+                        delta_reasoning = (
+                            (delta_reasoning or "") + parsed_reasoning
+                        ) or None
 
                 # --- tool-call fragments ---
                 if delta.tool_calls:
@@ -363,6 +381,14 @@ class OpenAICompatibleLLM(BaseLLM):
                     # Final chunk with no tool calls (normal stop).
                     yield StreamChunk(finish_reason=finish_reason, usage=stream_usage)
                     usage_yielded = stream_usage is not None
+
+            # Flush any remaining buffered <think> content.
+            flush_content, flush_reasoning = think_parser.flush()
+            if flush_content or flush_reasoning:
+                yield StreamChunk(
+                    delta_content=flush_content or None,
+                    delta_reasoning=flush_reasoning or None,
+                )
 
             # Emit trailing usage if it arrived on a separate empty-choices
             # chunk after finish_reason was already processed.
@@ -511,9 +537,27 @@ class OpenAICompatibleLLM(BaseLLM):
         # Guard against the field being a non-string (e.g. dict from some proxies).
         if reasoning_content and not isinstance(reasoning_content, str):
             reasoning_content = None
+        # Strip <think>...</think> from content (providers like MiniMax embed
+        # CoT this way instead of using an API-level reasoning field).
+        content = msg.content
+        if isinstance(content, str) and "<think>" in content:
+            think_parts: list[str] = []
+
+            def _collect(m: re.Match[str]) -> str:
+                think_parts.append(m.group(1).strip())
+                return ""
+
+            content = _THINK_RE.sub(_collect, content).strip() or None
+            if think_parts:
+                extracted = "\n".join(think_parts)
+                reasoning_content = (
+                    reasoning_content + "\n" + extracted
+                    if reasoning_content
+                    else extracted
+                )
         return ChatMessage(
             role=msg.role,
-            content=msg.content,
+            content=content,
             tool_calls=tool_calls,
             reasoning_content=reasoning_content,
         )
@@ -542,6 +586,98 @@ class OpenAICompatibleLLM(BaseLLM):
                 )
             )
         return completed
+
+
+class _ThinkTagStreamParser:
+    """Re-routes ``<think>...</think>`` from streamed content to reasoning.
+
+    Some providers (MiniMax, QwQ) embed chain-of-thought inside the
+    ``content`` field wrapped in ``<think>`` tags rather than using an
+    API-level ``reasoning_content`` field.  This parser detects the pattern
+    and transparently reroutes the thinking portion to ``delta_reasoning``
+    so it renders in the Reasoning panel instead of the Answer.
+
+    State machine:
+        DETECT  -- did stream start with ``<think>``?
+        THINKING -- inside the think block, emit as reasoning
+        CONTENT  -- normal content passthrough
+    """
+
+    DETECT = 0
+    THINKING = 1
+    CONTENT = 2
+
+    _OPEN = "<think>"
+    _CLOSE = "</think>"
+
+    def __init__(self) -> None:
+        self._state = self.DETECT
+        self._buf = ""
+
+    def feed(self, text: str) -> tuple[str, str]:
+        """Process a content delta.
+
+        Returns:
+            ``(content_to_emit, reasoning_to_emit)`` -- either may be empty.
+        """
+        self._buf += text
+
+        # --- DETECT: decide if stream starts with <think> ---
+        if self._state == self.DETECT:
+            stripped = self._buf.lstrip()
+            if len(stripped) < len(self._OPEN):
+                # Not enough data yet -- check if it could still be a prefix
+                if self._OPEN.startswith(stripped):
+                    return "", ""  # keep buffering
+                # Not a <think> prefix -- passthrough
+                self._state = self.CONTENT
+                out = self._buf
+                self._buf = ""
+                return out, ""
+
+            if stripped.startswith(self._OPEN):
+                self._state = self.THINKING
+                # Drop everything up to and including <think>
+                self._buf = stripped[len(self._OPEN):]
+                # Fall through to THINKING
+            else:
+                self._state = self.CONTENT
+                out = self._buf
+                self._buf = ""
+                return out, ""
+
+        # --- THINKING: emit as reasoning until </think> ---
+        if self._state == self.THINKING:
+            close_idx = self._buf.find(self._CLOSE)
+            if close_idx != -1:
+                reasoning = self._buf[:close_idx]
+                after = self._buf[close_idx + len(self._CLOSE):]
+                self._buf = ""
+                self._state = self.CONTENT
+                content = after.lstrip("\n") if after.strip() else ""
+                return content, reasoning
+            # Keep a tail buffer in case </think> is split across chunks
+            safe = len(self._buf) - (len(self._CLOSE) - 1)
+            if safe > 0:
+                reasoning = self._buf[:safe]
+                self._buf = self._buf[safe:]
+                return "", reasoning
+            return "", ""
+
+        # --- CONTENT: passthrough ---
+        out = self._buf
+        self._buf = ""
+        return out, ""
+
+    def flush(self) -> tuple[str, str]:
+        """Flush remaining buffer at end of stream."""
+        if not self._buf:
+            return "", ""
+        buf = self._buf
+        self._buf = ""
+        if self._state == self.THINKING:
+            return "", buf
+        return buf, ""
 
 
 class _PartialToolCall:
