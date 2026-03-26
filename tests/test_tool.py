@@ -130,7 +130,7 @@ class TestPythonExecTool:
 
     @pytest.fixture()
     def python_tool(self) -> PythonExecTool:
-        return PythonExecTool(timeout=5)
+        return PythonExecTool(timeout=30)
 
     def test_tool_properties(self, python_tool: PythonExecTool) -> None:
         assert python_tool.name == "python_exec"

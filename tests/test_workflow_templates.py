@@ -559,6 +559,7 @@ class TestCreateWorkflowFromTemplate:
         wf_mock.schedule_timezone = "UTC"
         wf_mock.api_key = None
         wf_mock.change_summary = None
+        wf_mock.forked_from = None
         wf_mock.created_at = datetime.now(timezone.utc)
         wf_mock.updated_at = None
 
@@ -617,6 +618,7 @@ class TestCreateWorkflowFromTemplate:
         wf_mock.schedule_inputs = None
         wf_mock.schedule_timezone = "UTC"
         wf_mock.api_key = None
+        wf_mock.forked_from = None
         wf_mock.created_at = datetime.now(timezone.utc)
         wf_mock.updated_at = None
 
