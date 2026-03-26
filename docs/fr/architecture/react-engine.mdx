@@ -8,20 +8,26 @@ description: "Fonctionnement du moteur ReAct de FIM One — exécution en mode d
 
 Le moteur ReAct implémente un modèle d'exécution en deux phases. La première phase est une boucle itérative d'utilisation d'outils : l'agent demande à plusieurs reprises au LLM une action, exécute tout outil demandé, ajoute l'observation et continue jusqu'à ce que le LLM signale « terminé ». La deuxième phase est la synthèse de la réponse : un appel LLM de streaming séparé qui lit la trace d'exécution complète et produit la réponse destinée à l'utilisateur.
 
-Cette séparation est délibérée. Les itérations d'outils sont optimisées pour la vitesse — chaque appel LLM dans la boucle utilise `chat()` sans streaming, car l'utilisateur n'a pas besoin de voir les actions JSON partielles ou les jetons de raisonnement intermédiaires. La génération de réponses est optimisée pour l'expérience utilisateur — elle utilise `stream_chat()` pour que l'utilisateur voie les jetons apparaître en temps réel. Le résultat est le meilleur des deux mondes : exécution d'outils rapide avec livraison de réponses réactive.
+Cette séparation est intentionnelle. Les itérations d'outils sont optimisées pour la vitesse — chaque appel LLM dans la boucle utilise `chat()` sans streaming, car l'utilisateur n'a pas besoin de voir les actions JSON partielles ou les jetons de raisonnement intermédiaires. La génération de réponses est optimisée pour l'expérience utilisateur — elle utilise `stream_chat()` pour que l'utilisateur voie les jetons apparaître en temps réel. Le résultat est le meilleur des deux mondes : exécution rapide des outils avec livraison de réponses réactive.
 
 ```mermaid
 flowchart TD
     A["User query"] --> B["Tool loop<br/>(non-streaming chat() x N)"]
     B -->|"tool_call"| E["Execute tool"]
-    E -->|"observation"| B
-    B -->|"done signal"| C["stream_answer()<br/>(streaming)"]
+    E --> F{"Cycle<br/>detected?"}
+    F -->|"No"| B
+    F -->|"Yes"| G["Inject warning:<br/>try different approach"]
+    G --> B
+    B -->|"done signal"| H{"tools ≥<br/>threshold?"}
+    H -->|"Yes (once)"| I["Completion checklist:<br/>verify answer"]
+    I --> B
+    H -->|"No / already checked"| C["stream_answer()<br/>(streaming)"]
     C --> D["SSE token stream → frontend"]
 ```
 
-La boucle d'outils produit un `AgentResult` contenant l'historique complet de la conversation — invite système, requête utilisateur, chaque message d'assistant, chaque résultat d'outil. La méthode `stream_answer()` distille cette trace en une réponse concise et cohérente. Les résultats d'outils sont tronqués à 2 000 caractères chacun dans le contexte de synthèse, gardant l'invite allégée même après des flux de travail multi-outils complexes.
+La boucle d'outils produit un `AgentResult` contenant l'historique complet de la conversation — invite système, requête utilisateur, chaque message d'assistant, chaque résultat d'outil. La méthode `stream_answer()` distille cette trace en une réponse concise et cohérente. Les résultats des outils sont tronqués à 2 000 caractères chacun dans le contexte de synthèse, gardant l'invite allégée même après des flux de travail multi-outils complexes.
 
-**Liaison de modèle.** Le LLM est injecté dans `ReActAgent.__init__()` et stocké en tant que `self._llm`. Chaque appel au sein d'une seule invocation `run()` — toutes les itérations de la boucle d'outils et la synthèse de réponse finale — utilise cette même instance. Le modèle ne change pas entre les itérations. Pour utiliser un modèle différent, un nouveau `ReActAgent` doit être construit. En mode DAG, `DAGExecutor._resolve_agent()` exploite ce modèle : il crée un agent frais par étape (en sélectionnant le modèle à partir de `ModelRegistry` en fonction de `step.model_hint`) immédiatement avant que la boucle ReAct de cette étape ne commence. Voir [DAG Engine — Per-step override](/architecture/dag-engine#two-llm-architecture) pour plus de détails.
+**Liaison du modèle.** Le LLM est injecté dans `ReActAgent.__init__()` et stocké comme `self._llm`. Chaque appel au sein d'une seule invocation `run()` — toutes les itérations de la boucle d'outils et la synthèse de réponse finale — utilise cette même instance. Le modèle ne change pas entre les itérations. Pour utiliser un modèle différent, un nouveau `ReActAgent` doit être construit. En mode DAG, `DAGExecutor._resolve_agent()` exploite ce modèle : il crée un agent frais par étape (en sélectionnant le modèle dans `ModelRegistry` en fonction de `step.model_hint`) immédiatement avant le début de la boucle ReAct de cette étape. Voir [Moteur DAG — Remplacement par étape](/architecture/dag-engine#two-llm-architecture) pour plus de détails.
 
 ## Exécution en mode dual
 
@@ -101,7 +107,7 @@ L'échec de la sélection est volontairement non fatal. Si le LLM retourne une s
 
 ## La boucle d'itération
 
-La boucle centrale pilote à la fois le mode JSON et le mode natif, avec des différences mineures dans la gestion des messages. Chaque itération suit le même modèle de haut niveau : vérifier le budget de contexte, appeler le LLM, traiter la réponse, et soit exécuter un outil, soit s'arrêter.
+La boucle principale pilote à la fois le mode JSON et le mode natif, avec des différences mineures dans la gestion des messages. Chaque itération suit le même modèle de haut niveau : vérifier le budget de contexte, appeler le LLM, traiter la réponse, et soit exécuter un outil, soit s'arrêter.
 
 ```mermaid
 sequenceDiagram
@@ -118,8 +124,16 @@ sequenceDiagram
         alt tool_call action
             Agent->>Tool: execute(tool_name, args)
             Tool-->>Agent: observation
+            Agent->>Agent: cycle check (hash args)
+            opt identical call ≥ threshold
+                Agent->>Agent: inject "try different approach" warning
+            end
             Agent->>Agent: append observation, continue
         else final_answer action
+            opt tools used ≥ threshold AND not yet checked
+                Agent->>Agent: inject completion checklist
+                Agent->>Agent: continue (one more LLM call)
+            end
             Agent->>Agent: break loop
         end
     end
@@ -127,13 +141,13 @@ sequenceDiagram
     LLM-->>Agent: token stream → SSE to client
 ```
 
-**Boucle en mode JSON.** La réponse du LLM est analysée via `_parse_action()`, qui utilise `extract_json()` pour trouver un objet JSON dans le contenu. Si l'analyse échoue, l'agent ajoute la réponse brute et une demande de reformatage, puis continue — cela compte contre `max_iterations`, empêchant les boucles de retry infinies. En cas de succès, l'action est soit un `tool_call` (exécuter l'outil, ajouter l'observation comme message utilisateur) soit une `final_answer` (s'arrêter et procéder à la synthèse).
+**Boucle en mode JSON.** La réponse du LLM est analysée via `_parse_action()`, qui utilise `extract_json()` pour trouver un objet JSON dans le contenu. Si l'analyse échoue, l'agent ajoute la réponse brute et une demande de reformatage, puis continue — cela compte par rapport à `max_iterations`, ce qui empêche les boucles de retry infinies. En cas de succès, l'action est soit un `tool_call` (exécuter l'outil, ajouter l'observation comme message utilisateur) soit une `final_answer` (s'arrêter et procéder à la synthèse).
 
 **Boucle en mode natif.** La réponse du LLM peut contenir un ou plusieurs `tool_calls`. Tous les appels d'outils dans une seule réponse sont exécutés en parallèle via `asyncio.gather`, et tous les messages de résultats d'outils sont ajoutés avant tout autre message. Cette contrainte d'ordre est critique — l'API OpenAI (et les fournisseurs compatibles) exige que les messages `tool` suivent immédiatement le message `assistant` qui a produit les `tool_calls`. Insérer tout autre message (comme une interruption utilisateur) entre eux briserait le protocole. Quand aucun `tool_calls` n'est présent, la réponse est traitée comme la réponse finale.
 
-**Limite d'itérations.** La limite par défaut est 50 itérations. Si la boucle épuise cette limite sans produire une `final_answer`, l'agent synthétise une réponse de secours à partir des résultats d'étapes accumulés — un résumé des outils appelés et de leur succès ou échec. C'est un filet de sécurité, pas un chemin de sortie normal.
+**Itérations maximales.** La limite par défaut est 50 itérations. Si la boucle épuise cette limite sans produire une `final_answer`, l'agent synthétise une réponse de secours à partir des résultats d'étapes accumulés — un résumé des outils qui ont été appelés et s'ils ont réussi ou échoué. C'est un filet de sécurité, pas un chemin de sortie normal.
 
-[Context Management](/architecture/context-management) explique comment ContextGuard applique le budget de tokens à chaque itération, y compris le système d'indices qui indique au LLM de compaction de préserver les chaînes de raisonnement récentes.
+[Gestion du contexte](/architecture/context-management) explique comment ContextGuard applique le budget de tokens à chaque itération, y compris le système d'indices qui indique au LLM de compaction de préserver les chaînes de raisonnement récentes.
 
 ## Auto-réflexion en cours d'exécution
 

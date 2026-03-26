@@ -14,8 +14,14 @@ This split is deliberate. Tool iterations are optimized for speed — every LLM 
 flowchart TD
     A["User query"] --> B["Tool loop<br/>(non-streaming chat() x N)"]
     B -->|"tool_call"| E["Execute tool"]
-    E -->|"observation"| B
-    B -->|"done signal"| C["stream_answer()<br/>(streaming)"]
+    E --> F{"Cycle<br/>detected?"}
+    F -->|"No"| B
+    F -->|"Yes"| G["Inject warning:<br/>try different approach"]
+    G --> B
+    B -->|"done signal"| H{"tools ≥<br/>threshold?"}
+    H -->|"Yes (once)"| I["Completion checklist:<br/>verify answer"]
+    I --> B
+    H -->|"No / already checked"| C["stream_answer()<br/>(streaming)"]
     C --> D["SSE token stream → frontend"]
 ```
 
@@ -118,8 +124,16 @@ sequenceDiagram
         alt tool_call action
             Agent->>Tool: execute(tool_name, args)
             Tool-->>Agent: observation
+            Agent->>Agent: cycle check (hash args)
+            opt identical call ≥ threshold
+                Agent->>Agent: inject "try different approach" warning
+            end
             Agent->>Agent: append observation, continue
         else final_answer action
+            opt tools used ≥ threshold AND not yet checked
+                Agent->>Agent: inject completion checklist
+                Agent->>Agent: continue (one more LLM call)
+            end
             Agent->>Agent: break loop
         end
     end

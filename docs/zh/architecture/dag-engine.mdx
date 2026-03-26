@@ -93,15 +93,15 @@ flowchart TD
 
 **并发模型。** 一个 `asyncio.Semaphore` 将并行步骤执行限制为 `max_concurrency`（默认为 5，可通过 `MAX_CONCURRENCY` 环境变量配置）。调度循环识别所有依赖项已完成的步骤，将它们作为 `asyncio.Task` 实例启动，并等待至少一个完成后再次检查。步骤按排序的 ID 顺序启动，以确保确定性行为。
 
-**每步 ReAct 智能体。** 每个步骤作为由 `_resolve_agent()` 创建的独立 ReAct 智能体运行。如果步骤有一个 `model_hint` 与 `ModelRegistry` 中的角色匹配，则会创建一个具有相应 LLM 的临时智能体。否则，使用注册表的默认（通用）模型。这些每步智能体**没有记忆** — 它们从零开始，仅包含任务描述、原始目标、任何工具提示和已完成依赖项的结果。这种隔离是有意的：DAG 步骤应该是自包含的工作单元，不应在图中泄露状态。
+**每步 ReAct 智能体。** 每个步骤作为由 `_resolve_agent()` 创建的独立 ReAct 智能体运行。如果步骤有一个 `model_hint` 与 `ModelRegistry` 中的角色匹配，则会创建一个具有相应 LLM 的临时智能体。否则，使用注册表的默认（通用）模型。这些每步智能体**没有内存** — 它们从头开始，仅包含任务描述、原始目标、任何工具提示和已完成依赖项的结果。这种隔离是有意的：DAG 步骤应该是自包含的工作单元，不会在图中泄漏状态。由于每个步骤都是标准的 `ReActAgent` 实例，它会自动继承所有工具的功能：[循环检测](/architecture/react-engine#cycle-detection)防止步骤在相同的失败工具上循环，[完成检查清单](/architecture/react-engine#completion-checklist)在步骤完成其结果前验证结论。
 
-**依赖上下文注入。** `_build_step_context()` 将所有已完成依赖步骤的结果格式化为文本块：每个依赖项的 ID、状态、任务描述和结果。如果配置了 `ContextGuard` 且组合上下文超过 `max_message_chars`，则会使用 `[Dependency context truncated]` 后缀进行硬截断。这可以防止依赖于多个冗长前置步骤的步骤超出其自身的上下文窗口。
+**依赖上下文注入。** `_build_step_context()` 将所有已完成依赖步骤的结果格式化为文本块：每个依赖项的 ID、状态、任务描述和结果。如果配置了 `ContextGuard` 且组合上下文超过 `max_message_chars`，则会硬截断并添加 `[Dependency context truncated]` 后缀。这可防止依赖于多个冗长前置步骤的步骤超出其自身的上下文窗口。
 
-**结构化内容乘数。** 当依赖结果包含结构化内容 — 法律引用、markdown 表格或代码块时，`_build_step_context()` 对截断预算应用乘数（默认 `3.0`，可通过 `DAG_STRUCTURED_CONTEXT_MULTIPLIER` 配置）。这确保引用、表格数据和其他结构化工件在步骤边界间得到保留，而不是被截断。
+**结构化内容乘数。** 当依赖结果包含结构化内容 — 法律引用、markdown 表格或代码块时，`_build_step_context()` 对截断预算应用乘数（默认 `3.0`，可通过 `DAG_STRUCTURED_CONTEXT_MULTIPLIER` 配置）。这确保引用、表格数据和其他结构化工件在步骤边界间被保留，而不是被截断在参考中间。
 
-**步骤超时。** 每个步骤都用 `asyncio.wait_for` 包装，默认超时为 600 秒（10 分钟）。如果步骤超过此时间，它将被取消并标记为 `"failed"`，并附带超时消息。超时是按步骤的，而不是按计划的 — 一个 5 步计划如果步骤按顺序执行，理论上可以运行 50 分钟。
+**步骤超时。** 每个步骤都用 `asyncio.wait_for` 包装，默认超时为 600 秒（10 分钟）。如果步骤超过此时间，它会被取消并标记为 `"failed"`，并显示超时消息。超时是按步骤的，而不是按计划的 — 一个 5 步计划如果步骤按顺序执行，理论上可以运行 50 分钟。
 
-**中断和取消。** 执行器有两条不同的取消路径，每条由不同的事件触发：
+**中断和取消。** 执行器有两条不同的取消路径，各由不同的事件触发：
 
 ```mermaid
 flowchart LR
@@ -109,15 +109,15 @@ flowchart LR
     C["HTTP client disconnects"] -->|"run_task.cancel()"| D["Running step tasks cancelled\nasyncio.gather awaits cleanup"]
 ```
 
-*优雅跳过 — 停止事件。* 当用户在执行期间发送后续消息时，`chat.py` 中的编排器设置 `exec_stop_event`。执行器在每个调度循环的顶部检查此标志：如果设置，所有剩余的 `pending` 步骤立即标记为 `"skipped"`，原因为 `"Skipped — user changed requirements"`，循环退出。已运行的步骤允许完成 — 仅未启动的步骤被放弃。这种快速退出让管道能够围绕用户的更新意图重新规划，而无需等待完整的原始计划完成。
+*优雅跳过 — 停止事件。* 当用户在执行期间发送后续消息时，`chat.py` 中的编排器设置 `exec_stop_event`。执行器在每个调度循环的顶部检查此标志：如果设置，所有剩余的 `pending` 步骤立即标记为 `"skipped"`，原因为 `"Skipped — user changed requirements"`，循环退出。已运行的步骤可以完成 — 仅未启动的步骤被放弃。这种快速退出让管道能够围绕用户的更新意图重新规划，而无需等待完整的原始计划完成。
 
-*立即中止 — asyncio 取消。* 当 HTTP 客户端断开连接时，`chat.py` 通过 `asyncio.Task.cancel()` 取消顶级 `run_task`。执行器捕获 `asyncio.CancelledError`，取消所有当前运行的步骤任务，通过 `asyncio.gather(..., return_exceptions=True)` 等待它们确认，然后重新抛出。客户端断开连接通过在 SSE 事件循环内每 0.5 秒轮询一次 `await request.is_disconnected()` 来检测。
+*立即中止 — asyncio 取消。* 当 HTTP 客户端断开连接时，`chat.py` 通过 `asyncio.Task.cancel()` 取消顶级 `run_task`。执行器捕获 `asyncio.CancelledError`，取消所有当前运行的步骤任务，通过 `asyncio.gather(..., return_exceptions=True)` 等待它们确认，然后重新抛出。客户端断开连接通过在 SSE 事件循环内每 0.5 秒轮询 `await request.is_disconnected()` 来检测。
 
 语义差异很重要：**停止事件**意味着"跳过尚未启动的内容，但保留已运行的内容" — 已完成的步骤结果保持可用以通知重新规划。**CancelledError** 意味着"立即中止所有内容" — 所有进行中的工作被丢弃，无法恢复结果。
 
-**死锁检测。** 如果调度循环发现没有任务运行且没有步骤准备启动（因为它们的依赖项失败），所有剩余的待处理步骤都标记为 `"failed"`，并附带说明其依赖项从未完成的消息。这可以防止执行器无限期挂起。
+**死锁检测。** 如果调度循环发现没有任务运行且没有步骤准备启动（因为它们的依赖项失败），所有剩余的待处理步骤都标记为 `"failed"`，并显示说明其依赖项从未完成的消息。这可防止执行器无限期挂起。
 
-**进度回调。** 执行器为三种事件类型触发 `(step_id, event, data)` 回调：`"started"`（步骤启动）、`"iteration"`（步骤内的工具调用）和 `"completed"`（步骤完成）。`chat.py` 中的 SSE 层将这些回调桥接到前端用于渲染实时 DAG 可视化的 `step_progress` 事件。
+**进度回调。** 执行器为三种事件类型触发 `(step_id, event, data)` 回调：`"started"`（步骤已启动）、`"iteration"`（步骤内的工具调用）和 `"completed"`（步骤已完成）。`chat.py` 中的 SSE 层将这些回调桥接到 `step_progress` 事件，前端使用这些事件来呈现实时 DAG 可视化。
 
 ## 引用验证
 
