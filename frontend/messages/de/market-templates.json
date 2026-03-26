@@ -1,0 +1,50 @@
+{
+  "financial-audit": {
+    "agentName": "Finanzprüfungs-Assistent",
+    "agentDescription": "Professioneller KI-Assistent für Finanzprüfungen, der Finanzberichte überprüft, Berechnungslogik verifiziert, Datenanomalien und Compliance-Risiken identifiziert und Prüfern hilft, Effizienz und Genauigkeit zu verbessern.",
+    "skillName": "SOP zur Überprüfung von Finanzberichten",
+    "skillDescription": "Standardisierter Prozess zur Überprüfung von Finanzberichten mit systematischen Überprüfungsmethoden für Bilanzen, Gewinn- und Verlustrechnungen sowie Kapitalflussrechnungen."
+  },
+  "contract-review": {
+    "agentName": "Vertragsüberprüfungs-Assistent",
+    "agentDescription": "Professioneller KI-Assistent zur Vertragsüberprüfung, der Vertragsbedingungen analysiert, Risikoclauseln identifiziert, Compliance-Anforderungen überprüft und Änderungsvorschläge bereitstellt, um Rechtsteams bei der Verbesserung der Überprüfungseffizienz zu unterstützen.",
+    "skillName": "SOP zur Überprüfung von Vertragsbedingungen",
+    "skillDescription": "Standardisierter Prozess zur Überprüfung von Vertragsbedingungen mit systematischen Überprüfungsmethoden für Rechte, Pflichten, Haftungen und Risikoclauseln."
+  },
+  "data-reporting": {
+    "agentName": "Datenberichts-Assistent",
+    "agentDescription": "Professioneller KI-Assistent für Datenanalyse, der Rohdaten verarbeitet, visuelle Berichte erstellt, Trends und Erkenntnisse entdeckt und Geschäftsteams bei datengestützten Entscheidungen unterstützt.",
+    "skillName": "SOP für Datenanalysebericht",
+    "skillDescription": "Standardisierter Prozess für Datenanalysebericht mit Datenerfassung, Bereinigung, Analyse, Visualisierung und Erkenntnisgewinnung."
+  },
+  "it-operations": {
+    "agentName": "IT-Betriebsassistent",
+    "agentDescription": "Professioneller KI-Assistent für IT-Betrieb, der Systemfehler diagnostiziert, Lösungsvorschläge zur Fehlerbehebung bereitstellt, die Systemgesundheit überwacht und IT-Teams hilft, schnell auf technische Probleme zu reagieren.",
+    "skillName": "SOP zur IT-Fehlerbehebung",
+    "skillDescription": "Standardisierter Prozess zur IT-Fehlerbehebung mit systematischen Diagnosemethoden für Netzwerk-, Server-, Anwendungs- und Sicherheitsprobleme."
+  },
+  "hr-onboarding": {
+    "agentName": "HR-Onboarding-Assistent",
+    "agentDescription": "Professioneller KI-Assistent für HR-Onboarding, der neue Mitarbeiter durch Onboarding-Verfahren führt, häufig gestellte Fragen beantwortet, Schulungsressourcen bereitstellt und HR-Teams hilft, konsistente Onboarding-Erfahrungen zu liefern.",
+    "skillName": "SOP zum Onboarding neuer Mitarbeiter",
+    "skillDescription": "Standardisierter Prozess zum Onboarding neuer Mitarbeiter mit Vorbereitung vor Arbeitsbeginn, Orientierung am ersten Tag, Schulungsplänen und Probezeit-Management."
+  },
+  "sales": {
+    "agentName": "Verkaufsassistent",
+    "agentDescription": "Professioneller KI-Assistent für Vertrieb, der Angebote entwirft, Kundenbedürfnisse analysiert, Wettbewerbsanalysen erstellt und Vertriebsteams hilft, Gewinnquoten und Deal-Effizienz zu verbessern.",
+    "skillName": "SOP zum Schreiben von Verkaufsangeboten",
+    "skillDescription": "Standardisierter Prozess zum Schreiben von Verkaufsangeboten mit Kundenforschung, Bedarfsanalyse, Lösungsdesign und Angebotspräsentation."
+  },
+  "content-creation": {
+    "agentName": "Content-Erstellungs-Assistent",
+    "agentDescription": "Professioneller KI-Assistent zur Content-Erstellung, der Marketingtexte, Social-Media-Inhalte und Blog-Artikel generiert und Marketing-Teams hilft, eine konsistente Markenidentität und Content-Qualität zu bewahren.",
+    "skillName": "SOP zur Erstellung von Marketing-Inhalten",
+    "skillDescription": "Standardisierter Prozess zur Erstellung von Marketing-Inhalten mit Content-Planung, Schreiben, Überprüfung, Optimierung und Verbreitung."
+  },
+  "meeting-summary": {
+    "agentName": "Besprechungsnotizen-Assistent",
+    "agentDescription": "Professioneller KI-Assistent für Besprechungsnotizen, der Besprechungsnotizen organisiert, Maßnahmenpunkte extrahiert, Nachverfolgungen verfolgt und Teams hilft, die Besprechungseffizienz und Verantwortlichkeit zu verbessern.",
+    "skillName": "SOP zur Organisation von Besprechungsprotokollen",
+    "skillDescription": "Standardisierter Prozess zur Verwaltung von Besprechungsprotokollen, der Notizen, wichtige Entscheidungen, Maßnahmen und Nachverfolgung abdeckt."
+  }
+}

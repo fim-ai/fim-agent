@@ -1,17 +1,19 @@
-"""Prebuilt Solution Templates — seed content for the Market organisation.
+"""Market Solution Templates — admin-importable seed content.
 
-On first startup (first admin registration), these 8 vertical Solutions are
-created inside the Market org so that every new user has ready-to-use Agents
-and Skills they can subscribe to and fork.
+Contains 8 vertical Solution Templates (Agent + Skill bundles) that an admin
+can import into the Market organisation on demand via the admin API endpoint
+``POST /api/admin/market/import-templates``.
 
-Each template bundles one Agent and one Skill.  The Skill contains a detailed
-SOP (Standard Operating Procedure) in Chinese, targeting the enterprise market.
+Templates are **not** auto-seeded on startup or first-admin registration.
+The ``import_solution_templates()`` function uses upsert-by-name semantics:
+existing agents are updated, new ones are created.
 """
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import TypedDict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,481 +23,578 @@ from fim_one.web.models.skill import Skill
 
 logger = logging.getLogger(__name__)
 
+
 # ---------------------------------------------------------------------------
-# Template definitions
+# Type definitions
 # ---------------------------------------------------------------------------
 
-SOLUTION_TEMPLATES: list[dict[str, dict[str, str]]] = [
-    # 1. Financial Audit Agent / 财务审计助手
+
+class _SkillDef(TypedDict):
+    name: str
+    description: str
+    content: str
+
+
+class _AgentDef(TypedDict):
+    name: str
+    description: str
+    instructions: str
+    execution_mode: str
+
+
+class _TemplateDef(TypedDict):
+    agent: _AgentDef
+    skill: _SkillDef
+    alias: str
+
+
+# ---------------------------------------------------------------------------
+# Template definitions (English)
+# ---------------------------------------------------------------------------
+
+SOLUTION_TEMPLATES: list[_TemplateDef] = [
+    # 1. Financial Audit Assistant
     {
+        "alias": "financial-audit",
         "agent": {
-            "name": "财务审计助手",
-            "description": "专业财务审计 AI 助手，能够审查财务报告、核验计算逻辑、识别数据异常和合规风险，帮助审计人员提升工作效率和准确性。",
+            "name": "Financial Audit Assistant",
+            "description": (
+                "A professional financial audit AI assistant that reviews financial reports, "
+                "verifies calculation logic, identifies data anomalies and compliance risks, "
+                "helping auditors improve efficiency and accuracy."
+            ),
             "instructions": (
-                "你是一名资深财务审计专家 AI 助手。你的核心职责是协助审计人员完成财务报告审查工作。\n\n"
-                "工作准则：\n"
-                "1. 始终以专业、严谨的态度对待每一份财务数据\n"
-                "2. 对发现的异常和风险进行分级（高/中/低），并给出具体的审查建议\n"
-                "3. 引用具体的会计准则和法规条款来支撑你的分析结论\n"
-                "4. 保持客观中立，不做主观臆断，区分事实和推测\n"
-                "5. 输出结构化的审计报告，包含发现、风险等级、建议和依据"
+                "You are a senior financial audit expert AI assistant. Your core responsibility is to "
+                "help auditors complete financial report review tasks.\n\n"
+                "Working principles:\n"
+                "1. Always approach every piece of financial data with professionalism and rigour\n"
+                "2. Grade discovered anomalies and risks (High / Medium / Low) and provide specific review recommendations\n"
+                "3. Cite specific accounting standards and regulatory provisions to support your analytical conclusions\n"
+                "4. Remain objective and neutral — do not speculate; distinguish facts from assumptions\n"
+                "5. Output structured audit reports containing findings, risk level, recommendations, and references"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "财务报告审查 SOP",
-            "description": "标准化财务报告审查流程，涵盖资产负债表、利润表、现金流量表的系统性审查方法。",
+            "name": "Financial Report Review SOP",
+            "description": (
+                "A standardised financial report review process covering systematic review methods "
+                "for the balance sheet, income statement, and cash flow statement."
+            ),
             "content": (
-                "# 财务报告审查标准操作流程\n\n"
-                "## 一、审查准备\n"
-                "1. 确认审查范围：明确需要审查的报表类型（资产负债表、利润表、现金流量表）和报告期间\n"
-                "2. 收集基础资料：获取当期和前期（至少两期）的财务报表数据，以及相关附注说明\n"
-                "3. 了解行业背景：确认被审计单位所属行业的特殊会计处理要求\n\n"
-                "## 二、数据校验\n"
-                "1. 勾稽关系检查：验证表内勾稽（如资产=负债+所有者权益）和表间勾稽（如利润表净利润与资产负债表未分配利润的衔接）\n"
-                "2. 计算复核：对报表中涉及计算的项目逐一复核，包括小计、合计、比率指标\n"
-                "3. 数据一致性：检查同一数据在不同报表或附注中的披露是否一致\n\n"
-                "## 三、异常识别\n"
-                "1. 趋势分析：对比多期数据，识别异常波动（超过20%的变动需重点关注）\n"
-                "2. 比率分析：计算关键财务比率（流动比率、速动比率、资产负债率、毛利率等），与行业均值对比\n"
-                "3. 重大交易：关注大额、异常或关联方交易，检查是否有充分披露\n"
-                "4. 会计估计：审查涉及重大判断的项目（坏账准备、折旧政策、减值测试等）\n\n"
-                "## 四、合规审查\n"
-                "1. 会计准则符合性：检查会计政策选择和披露是否符合适用的会计准则（CAS/IFRS）\n"
-                "2. 信息披露完整性：验证必要的附注披露是否齐全，内容是否充分\n"
-                "3. 法规遵从：确认报表编制是否满足监管机构的特殊要求\n\n"
-                "## 五、报告输出\n"
-                "按以下格式输出审查结果：\n"
-                "- **发现编号**：FIN-YYYY-NNN\n"
-                "- **风险等级**：高 / 中 / 低\n"
-                "- **发现描述**：具体说明问题所在\n"
-                "- **影响分析**：对财务报表整体公允性的影响\n"
-                "- **建议措施**：需要进一步核实或调整的事项\n"
-                "- **依据**：相关会计准则或法规条款"
+                "# Financial Report Review Standard Operating Procedure\n\n"
+                "## 1. Review Preparation\n"
+                "1. Confirm review scope: clarify the statement types (balance sheet, income statement, cash flow statement) and the reporting period\n"
+                "2. Gather base materials: obtain current-period and prior-period (at least two periods) financial statements along with related notes\n"
+                "3. Understand industry context: confirm any special accounting treatment requirements for the auditee's industry\n\n"
+                "## 2. Data Verification\n"
+                "1. Cross-referencing checks: verify intra-statement relationships (e.g., Assets = Liabilities + Equity) and inter-statement relationships (e.g., net profit on the income statement ties to retained earnings on the balance sheet)\n"
+                "2. Calculation re-performance: re-perform calculations for all computed line items, including subtotals, totals, and ratio metrics\n"
+                "3. Data consistency: check whether the same data point is disclosed consistently across different statements and notes\n\n"
+                "## 3. Anomaly Identification\n"
+                "1. Trend analysis: compare multi-period data and flag unusual fluctuations (changes exceeding 20% require focused attention)\n"
+                "2. Ratio analysis: compute key financial ratios (current ratio, quick ratio, debt-to-equity ratio, gross margin, etc.) and benchmark against industry averages\n"
+                "3. Significant transactions: scrutinise large, unusual, or related-party transactions for adequate disclosure\n"
+                "4. Accounting estimates: review items involving significant judgement (bad-debt provisions, depreciation policies, impairment testing, etc.)\n\n"
+                "## 4. Compliance Review\n"
+                "1. Accounting standard compliance: verify that accounting policies and disclosures comply with applicable standards (GAAP / IFRS)\n"
+                "2. Disclosure completeness: confirm that all required note disclosures are present and sufficiently detailed\n"
+                "3. Regulatory compliance: ensure the financial statements meet any special requirements of relevant regulatory bodies\n\n"
+                "## 5. Report Output\n"
+                "Output review results in the following format:\n"
+                "- **Finding ID**: FIN-YYYY-NNN\n"
+                "- **Risk Level**: High / Medium / Low\n"
+                "- **Finding Description**: specific explanation of the issue\n"
+                "- **Impact Analysis**: impact on the overall fair presentation of financial statements\n"
+                "- **Recommended Actions**: items requiring further verification or adjustment\n"
+                "- **Reference**: applicable accounting standard or regulatory provision"
             ),
         },
     },
-    # 2. Contract Review Agent / 合同审查助手
+    # 2. Contract Review Assistant
     {
+        "alias": "contract-review",
         "agent": {
-            "name": "合同审查助手",
-            "description": "专业合同审查 AI 助手，能够阅读合同全文、识别风险条款、提示法律隐患，并给出修改建议，适用于商务合同、采购合同、劳动合同等多种场景。",
+            "name": "Contract Review Assistant",
+            "description": (
+                "A professional contract review AI assistant that reads entire contracts, "
+                "identifies risk clauses, flags legal pitfalls, and provides amendment suggestions. "
+                "Suitable for commercial, procurement, employment, and other contract types."
+            ),
             "instructions": (
-                "你是一名经验丰富的法务合同审查 AI 助手。你的核心职责是帮助用户快速、准确地审查合同文本。\n\n"
-                "工作准则：\n"
-                "1. 逐条审查合同条款，重点关注权利义务、违约责任、争议解决等核心条款\n"
-                "2. 对风险条款进行标注和分级（高风险/中风险/低风险），说明具体风险所在\n"
-                "3. 提供具体的修改建议文本，而非抽象的原则性指导\n"
-                "4. 提示可能遗漏的重要条款（如不可抗力、保密义务、知识产权归属等）\n"
-                "5. 使用清晰的对比格式展示原文和建议修改后的文本"
+                "You are an experienced legal contract review AI assistant. Your core responsibility is to "
+                "help users review contract texts quickly and accurately.\n\n"
+                "Working principles:\n"
+                "1. Review contract clauses one by one, focusing on rights and obligations, breach penalties, and dispute resolution\n"
+                "2. Flag and grade risk clauses (High Risk / Medium Risk / Low Risk) with specific risk explanations\n"
+                "3. Provide concrete suggested amendment text rather than abstract, principled guidance\n"
+                "4. Flag potentially missing important clauses (force majeure, confidentiality, IP ownership, etc.)\n"
+                "5. Use a clear comparison format showing original text and suggested revisions side by side"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "合同条款审查 SOP",
-            "description": "系统化的合同审查流程，覆盖合同核心条款的风险识别和修改建议方法论。",
+            "name": "Contract Clause Review SOP",
+            "description": (
+                "A systematic contract review process covering risk identification and "
+                "amendment suggestions for core contract clauses."
+            ),
             "content": (
-                "# 合同条款审查标准操作流程\n\n"
-                "## 一、合同基本信息核验\n"
-                "1. 确认合同主体：核实签约双方（多方）的名称、地址、法定代表人/授权代表信息是否完整准确\n"
-                "2. 合同类型判断：明确合同性质（买卖、服务、租赁、合作、劳动等），确定适用的法律法规\n"
-                "3. 合同期限：检查生效条件、有效期限、续展条款和终止条件\n\n"
-                "## 二、核心条款审查\n"
-                "1. **标的条款**：审查合同标的描述是否明确、具体，数量/质量标准是否可量化可验证\n"
-                "2. **价款与支付**：检查价格条款（含税/不含税）、支付方式、支付时间节点、发票条款\n"
-                "3. **交付与验收**：审查交付时间、地点、方式、验收标准和验收流程\n"
-                "4. **违约责任**：评估违约金比例是否合理（通常不超过合同金额的30%），赔偿范围是否明确\n"
-                "5. **争议解决**：确认管辖法院或仲裁机构的选择是否对己方有利\n\n"
-                "## 三、风险条款识别\n"
-                "重点关注以下高风险条款：\n"
-                "1. 排他性条款：是否存在不合理的独家/排他约定\n"
-                "2. 自动续约条款：是否设置了过短的退出通知期\n"
-                "3. 无限责任条款：是否有未设上限的赔偿承诺\n"
-                "4. 单方变更条款：一方是否保留了单方面修改合同条件的权利\n"
-                "5. 竞业限制条款：限制范围和期限是否合理\n"
-                "6. 知识产权条款：IP 归属是否清晰，许可范围是否合理\n\n"
-                "## 四、遗漏条款检查\n"
-                "确认以下必要条款是否包含在合同中：\n"
-                "- 不可抗力条款\n"
-                "- 保密义务条款\n"
-                "- 通知送达条款\n"
-                "- 转让限制条款\n"
-                "- 完整协议条款\n"
-                "- 可分割性条款\n\n"
-                "## 五、审查报告输出\n"
-                "按以下格式输出：\n"
-                "- **条款位置**：第X条第X款\n"
-                "- **风险等级**：高 / 中 / 低\n"
-                "- **原文摘录**：相关条款原文\n"
-                "- **风险说明**：具体风险分析\n"
-                "- **修改建议**：建议修改后的条款文本"
+                "# Contract Clause Review Standard Operating Procedure\n\n"
+                "## 1. Basic Contract Information Verification\n"
+                "1. Confirm contracting parties: verify that the names, addresses, and legal/authorised representatives of all parties are complete and accurate\n"
+                "2. Determine contract type: identify the contract nature (sale, service, lease, partnership, employment, etc.) and determine applicable laws and regulations\n"
+                "3. Contract term: check effective conditions, validity period, renewal clauses, and termination conditions\n\n"
+                "## 2. Core Clause Review\n"
+                "1. **Subject matter clause**: verify that the contract subject is described clearly and specifically, and that quantity/quality standards are quantifiable and verifiable\n"
+                "2. **Price and payment**: check pricing clauses (tax-inclusive/exclusive), payment methods, payment milestones, and invoicing terms\n"
+                "3. **Delivery and acceptance**: review delivery timing, location, method, acceptance criteria, and acceptance procedures\n"
+                "4. **Breach of contract**: evaluate whether penalty rates are reasonable (typically not exceeding 30% of contract value) and whether the scope of damages is clearly defined\n"
+                "5. **Dispute resolution**: confirm whether the chosen jurisdiction or arbitration institution is favourable to your party\n\n"
+                "## 3. Risk Clause Identification\n"
+                "Focus on the following high-risk clauses:\n"
+                "1. Exclusivity clauses: whether there are unreasonable exclusive/sole arrangements\n"
+                "2. Auto-renewal clauses: whether the exit notice period is unreasonably short\n"
+                "3. Unlimited liability clauses: whether there are uncapped liability commitments\n"
+                "4. Unilateral amendment clauses: whether one party retains the right to unilaterally modify contract terms\n"
+                "5. Non-compete clauses: whether the scope and duration of restrictions are reasonable\n"
+                "6. Intellectual property clauses: whether IP ownership is clear and licensing scope is reasonable\n\n"
+                "## 4. Missing Clause Check\n"
+                "Confirm that the following essential clauses are included in the contract:\n"
+                "- Force majeure clause\n"
+                "- Confidentiality obligation clause\n"
+                "- Notice and service clause\n"
+                "- Assignment restriction clause\n"
+                "- Entire agreement clause\n"
+                "- Severability clause\n\n"
+                "## 5. Review Report Output\n"
+                "Output in the following format:\n"
+                "- **Clause Location**: Article X, Section X\n"
+                "- **Risk Level**: High / Medium / Low\n"
+                "- **Original Text**: excerpt of the relevant clause\n"
+                "- **Risk Explanation**: specific risk analysis\n"
+                "- **Amendment Suggestion**: suggested revised clause text"
             ),
         },
     },
-    # 3. Data Reporting Agent / 数据报告助手
+    # 3. Data Reporting Assistant
     {
+        "alias": "data-reporting",
         "agent": {
-            "name": "数据报告助手",
-            "description": "专业数据分析与报告生成 AI 助手，能够分析结构化数据、发现数据洞察、生成专业的数据分析报告，支持周报、月报、专题分析等多种报告类型。",
+            "name": "Data Reporting Assistant",
+            "description": (
+                "A professional data analysis and report generation AI assistant that analyses "
+                "structured data, discovers insights, and produces professional reports. Supports "
+                "weekly reports, monthly reports, ad-hoc analyses, and more."
+            ),
             "instructions": (
-                "你是一名专业的数据分析 AI 助手，擅长将原始数据转化为有价值的商业洞察和结构化报告。\n\n"
-                "工作准则：\n"
-                "1. 先理解数据结构和业务背景，再进行分析\n"
-                "2. 使用数据驱动的方式得出结论，所有观点必须有数据支撑\n"
-                "3. 报告层次清晰：概要 → 详细分析 → 洞察发现 → 行动建议\n"
-                "4. 适当使用表格、列表等结构化格式展示数据对比和趋势\n"
-                "5. 对异常数据进行标注和深入分析，提出可能的原因假设"
+                "You are a professional data analysis AI assistant skilled at transforming raw data "
+                "into valuable business insights and structured reports.\n\n"
+                "Working principles:\n"
+                "1. First understand the data structure and business context before analysing\n"
+                "2. Use a data-driven approach — all conclusions must be supported by evidence\n"
+                "3. Reports should be clearly layered: summary -> detailed analysis -> insights -> action items\n"
+                "4. Use tables, lists, and other structured formats to present comparisons and trends\n"
+                "5. Flag anomalous data points for deeper analysis and hypothesise possible causes"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "数据分析报告 SOP",
-            "description": "标准化数据分析报告编制流程，从数据清洗到洞察输出的完整方法论。",
+            "name": "Data Analysis Report SOP",
+            "description": (
+                "A standardised data analysis report preparation process — a complete methodology "
+                "from data cleaning to insight delivery."
+            ),
             "content": (
-                "# 数据分析报告标准操作流程\n\n"
-                "## 一、数据理解\n"
-                "1. 数据概览：确认数据集的字段含义、数据类型、数据量和时间范围\n"
-                "2. 业务背景：了解数据对应的业务场景和分析目的\n"
-                "3. 质量评估：检查缺失值、异常值、重复数据的情况\n\n"
-                "## 二、数据清洗与预处理\n"
-                "1. 缺失值处理：记录缺失比例，说明处理策略（删除/填充/标记）\n"
-                "2. 异常值处理：使用统计方法（如 IQR、3-sigma）识别异常值，判断是否保留\n"
-                "3. 数据转换：必要的格式统一、单位转换、分类编码\n\n"
-                "## 三、分析方法\n"
-                "根据分析目的选择合适的方法：\n"
-                "1. **描述性分析**：计算核心指标的均值、中位数、标准差、分布特征\n"
-                "2. **对比分析**：环比（月/周）、同比（年）的变化趋势和幅度\n"
-                "3. **构成分析**：各维度的占比和结构变化\n"
-                "4. **相关性分析**：关键指标之间的关联关系\n"
-                "5. **排名分析**：Top N / Bottom N 的排序和特征归纳\n\n"
-                "## 四、洞察提炼\n"
-                "1. 从数据中提取 3-5 个核心发现\n"
-                "2. 每个发现需要：具体数据支撑 + 业务含义解读 + 可能的原因分析\n"
-                "3. 区分确定性结论和探索性假设\n\n"
-                "## 五、报告结构\n"
-                "按以下结构输出报告：\n"
-                "1. **执行摘要**：一段话概括核心结论（50-100字）\n"
-                "2. **关键指标看板**：用表格展示核心 KPI 及其变化\n"
-                "3. **详细分析**：按维度分章节展开分析\n"
-                "4. **异常预警**：标注需要关注的异常数据点\n"
-                "5. **行动建议**：基于数据分析提出具体的改进建议\n"
-                "6. **数据说明**：数据来源、口径、局限性说明"
+                "# Data Analysis Report Standard Operating Procedure\n\n"
+                "## 1. Data Understanding\n"
+                "1. Data overview: confirm field definitions, data types, volume, and time range of the dataset\n"
+                "2. Business context: understand the business scenario and the purpose of the analysis\n"
+                "3. Quality assessment: check for missing values, outliers, and duplicate records\n\n"
+                "## 2. Data Cleaning and Preprocessing\n"
+                "1. Missing values: document the missing ratio and state the handling strategy (delete / impute / flag)\n"
+                "2. Outliers: identify outliers using statistical methods (e.g., IQR, 3-sigma) and decide whether to retain them\n"
+                "3. Data transformation: unify formats, convert units, and encode categories as needed\n\n"
+                "## 3. Analysis Methods\n"
+                "Select appropriate methods based on the analysis objective:\n"
+                "1. **Descriptive analysis**: compute core metric means, medians, standard deviations, and distribution characteristics\n"
+                "2. **Comparative analysis**: period-over-period (MoM / WoW) and year-over-year (YoY) trends and magnitudes of change\n"
+                "3. **Composition analysis**: proportions by dimension and structural shifts\n"
+                "4. **Correlation analysis**: relationships among key metrics\n"
+                "5. **Ranking analysis**: Top N / Bottom N rankings and pattern identification\n\n"
+                "## 4. Insight Extraction\n"
+                "1. Extract 3-5 core findings from the data\n"
+                "2. Each finding requires: supporting data + business interpretation + possible causal analysis\n"
+                "3. Distinguish definitive conclusions from exploratory hypotheses\n\n"
+                "## 5. Report Structure\n"
+                "Output the report with the following structure:\n"
+                "1. **Executive Summary**: a single paragraph summarising the core conclusions (50-100 words)\n"
+                "2. **Key Metrics Dashboard**: a table of core KPIs and their changes\n"
+                "3. **Detailed Analysis**: analysis expanded by dimension in separate sections\n"
+                "4. **Anomaly Alerts**: flagged data points requiring attention\n"
+                "5. **Action Recommendations**: specific improvement suggestions based on the analysis\n"
+                "6. **Data Notes**: data sources, definitions, and limitations"
             ),
         },
     },
-    # 4. IT Helpdesk Agent / IT运维助手
+    # 4. IT Operations Assistant
     {
+        "alias": "it-operations",
         "agent": {
-            "name": "IT运维助手",
-            "description": "智能 IT 运维支持助手，能够诊断常见技术问题、提供解决方案指导、协助故障排查，覆盖网络、系统、软件、账户权限等常见运维场景。",
+            "name": "IT Operations Assistant",
+            "description": (
+                "An intelligent IT operations support assistant that diagnoses common technical issues, "
+                "provides solution guidance, and assists with troubleshooting across networking, systems, "
+                "software, and account/permission scenarios."
+            ),
             "instructions": (
-                "你是一名专业的 IT 运维支持 AI 助手，负责帮助用户解决日常 IT 技术问题。\n\n"
-                "工作准则：\n"
-                "1. 先通过提问明确问题现象、环境信息和已尝试的操作\n"
-                "2. 提供分步骤的解决方案，每步骤都要清晰明确，适合非技术人员理解\n"
-                "3. 优先推荐最简单、风险最低的解决方案\n"
-                "4. 涉及数据操作时，提醒用户先备份\n"
-                "5. 如果问题超出自助解决范围，明确说明需要升级到人工处理，并建议提供哪些信息给运维团队"
+                "You are a professional IT operations support AI assistant responsible for helping users "
+                "resolve day-to-day IT technical issues.\n\n"
+                "Working principles:\n"
+                "1. First ask clarifying questions about symptoms, environment, and actions already attempted\n"
+                "2. Provide step-by-step solutions — each step should be clear and understandable for non-technical users\n"
+                "3. Recommend the simplest, lowest-risk solution first\n"
+                "4. When data operations are involved, remind the user to back up first\n"
+                "5. If the issue exceeds self-service scope, clearly state that escalation is needed and suggest what information to provide to the operations team"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "IT 故障排查 SOP",
-            "description": "常见 IT 故障的标准化排查流程，覆盖网络、系统、软件、账户权限等高频问题场景。",
+            "name": "IT Troubleshooting SOP",
+            "description": (
+                "A standardised IT troubleshooting process covering high-frequency issue categories "
+                "including networking, systems, software, and account/permission problems."
+            ),
             "content": (
-                "# IT 故障排查标准操作流程\n\n"
-                "## 一、问题收集\n"
-                "在排查前，需要确认以下信息：\n"
-                "1. 问题描述：具体的故障现象是什么？何时开始出现？\n"
-                "2. 影响范围：单人还是多人受影响？特定设备还是所有设备？\n"
-                "3. 环境信息：操作系统版本、浏览器版本、网络环境（内网/外网/VPN）\n"
-                "4. 已尝试操作：用户已经做过哪些排查或修复操作？\n"
-                "5. 错误信息：是否有报错提示（截图或文字）？\n\n"
-                "## 二、网络问题排查\n"
-                "1. 基础连通性：检查网线连接/WiFi状态，尝试重启路由器/交换机\n"
-                "2. IP 配置：确认 IP 地址获取方式（DHCP/静态），检查是否有 IP 冲突\n"
-                "3. DNS 解析：尝试 ping 域名和 IP 地址，判断是 DNS 问题还是网络问题\n"
-                "4. 代理设置：检查系统/浏览器代理配置是否正确\n"
-                "5. 防火墙：确认是否有防火墙规则阻断了访问\n\n"
-                "## 三、系统问题排查\n"
-                "1. 性能问题：检查 CPU/内存/磁盘使用率，识别资源瓶颈\n"
-                "2. 系统更新：确认操作系统补丁是否最新，近期更新是否导致兼容性问题\n"
-                "3. 驱动问题：检查设备管理器中是否有异常设备，尝试更新或回滚驱动\n"
-                "4. 启动问题：安全模式启动测试，排除第三方软件干扰\n\n"
-                "## 四、软件问题排查\n"
-                "1. 版本确认：检查软件版本是否为公司要求的标准版本\n"
-                "2. 缓存清理：清除应用缓存和临时文件\n"
-                "3. 重新安装：卸载后重新安装软件（注意保存用户数据）\n"
-                "4. 兼容性：检查软件与操作系统的兼容性要求\n"
-                "5. 日志分析：查看应用日志中的错误信息\n\n"
-                "## 五、账户权限问题\n"
-                "1. 账户状态：确认账户是否被锁定或禁用\n"
-                "2. 密码重置：引导用户通过自助或管理员渠道重置密码\n"
-                "3. 权限检查：确认用户所属的权限组和权限配置\n"
-                "4. SSO/MFA：排查单点登录或多因素认证相关的问题\n\n"
-                "## 六、问题升级\n"
-                "如果以上步骤无法解决，需提供以下信息给运维团队：\n"
-                "- 完整的问题描述和重现步骤\n"
-                "- 已排查的步骤和结果\n"
-                "- 相关日志和截图\n"
-                "- 影响范围和紧急程度评估"
+                "# IT Troubleshooting Standard Operating Procedure\n\n"
+                "## 1. Information Gathering\n"
+                "Before troubleshooting, confirm the following:\n"
+                "1. Problem description: what exactly is the symptom? When did it start?\n"
+                "2. Scope of impact: is it affecting one person or many? A specific device or all devices?\n"
+                "3. Environment info: OS version, browser version, network type (LAN / WAN / VPN)\n"
+                "4. Actions already taken: what troubleshooting or remediation has the user already attempted?\n"
+                "5. Error messages: are there any error prompts (screenshots or text)?\n\n"
+                "## 2. Network Issue Troubleshooting\n"
+                "1. Basic connectivity: check cable connections / Wi-Fi status; try restarting the router/switch\n"
+                "2. IP configuration: confirm IP address acquisition method (DHCP / static); check for IP conflicts\n"
+                "3. DNS resolution: try pinging both domain names and IP addresses to determine whether the issue is DNS or network\n"
+                "4. Proxy settings: check system/browser proxy configuration\n"
+                "5. Firewall: confirm whether firewall rules are blocking access\n\n"
+                "## 3. System Issue Troubleshooting\n"
+                "1. Performance: check CPU / memory / disk utilisation to identify resource bottlenecks\n"
+                "2. System updates: confirm OS patches are current; determine whether a recent update caused compatibility issues\n"
+                "3. Driver issues: check Device Manager for abnormal devices; try updating or rolling back drivers\n"
+                "4. Boot issues: test in Safe Mode to rule out third-party software interference\n\n"
+                "## 4. Software Issue Troubleshooting\n"
+                "1. Version check: verify the software version matches the company's required standard version\n"
+                "2. Cache clearing: clear application cache and temporary files\n"
+                "3. Reinstallation: uninstall and reinstall the software (remember to preserve user data)\n"
+                "4. Compatibility: check the software's OS compatibility requirements\n"
+                "5. Log analysis: review application logs for error messages\n\n"
+                "## 5. Account and Permission Issues\n"
+                "1. Account status: confirm whether the account is locked or disabled\n"
+                "2. Password reset: guide the user through self-service or admin-assisted password reset\n"
+                "3. Permission check: verify the user's assigned permission groups and access settings\n"
+                "4. SSO / MFA: troubleshoot single sign-on or multi-factor authentication issues\n\n"
+                "## 6. Escalation\n"
+                "If the above steps cannot resolve the issue, provide the following to the operations team:\n"
+                "- Complete problem description and reproduction steps\n"
+                "- Steps already investigated and their results\n"
+                "- Relevant logs and screenshots\n"
+                "- Assessment of impact scope and urgency level"
             ),
         },
     },
-    # 5. HR Onboarding Agent / 人事入职助手
+    # 5. HR Onboarding Assistant
     {
+        "alias": "hr-onboarding",
         "agent": {
-            "name": "人事入职助手",
-            "description": "智能人事入职引导助手，帮助新员工了解入职流程、公司制度和福利政策，解答人事相关常见问题，提升入职体验和 HR 工作效率。",
+            "name": "HR Onboarding Assistant",
+            "description": (
+                "An intelligent HR onboarding assistant that helps new employees understand the "
+                "onboarding process, company policies, and benefits, answers common HR questions, "
+                "and improves the onboarding experience and HR team efficiency."
+            ),
             "instructions": (
-                "你是一名专业的人事入职引导 AI 助手，负责帮助新员工顺利完成入职流程并快速融入公司。\n\n"
-                "工作准则：\n"
-                "1. 以友好、耐心的态度对待每一位新员工的问题\n"
-                "2. 回答要准确、具体，涉及制度条款时引用具体规定\n"
-                "3. 主动提供入职各阶段需要注意的事项和截止时间\n"
-                "4. 对于涉及个人隐私的问题（如薪资细节），引导员工联系 HR 专员\n"
-                "5. 使用清单和步骤格式帮助新员工跟踪入职进度"
+                "You are a professional HR onboarding AI assistant responsible for helping new employees "
+                "complete the onboarding process smoothly and integrate into the company quickly.\n\n"
+                "Working principles:\n"
+                "1. Be friendly and patient with every new employee's questions\n"
+                "2. Answers should be accurate and specific — cite specific policy provisions when relevant\n"
+                "3. Proactively share important deadlines and considerations for each onboarding stage\n"
+                "4. For questions involving personal privacy (e.g., salary details), direct the employee to their HR representative\n"
+                "5. Use checklists and step-by-step formats to help new employees track their onboarding progress"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "新员工入职引导 SOP",
-            "description": "标准化新员工入职流程指引，覆盖从录用通知到试用期结束的全流程。",
+            "name": "New Employee Onboarding SOP",
+            "description": (
+                "A standardised new-employee onboarding guide covering the entire process "
+                "from offer acceptance through probation completion."
+            ),
             "content": (
-                "# 新员工入职引导标准操作流程\n\n"
-                "## 一、入职前准备（录用通知后至入职日前）\n"
-                "1. **材料准备清单**：\n"
-                "   - 身份证原件及复印件 2 份\n"
-                "   - 学历证书、学位证书原件及复印件\n"
-                "   - 离职证明原件\n"
-                "   - 近期一寸白底证件照 4 张\n"
-                "   - 银行卡信息（工资卡开户行及卡号）\n"
-                "   - 体检报告（入职体检）\n"
-                "2. **信息登记**：填写并提交员工信息登记表、紧急联系人信息\n"
-                "3. **预告须知**：确认入职日期、报到时间和地点、着装要求\n\n"
-                "## 二、入职当日流程\n"
-                "1. **签到报到**：前往 HR 部门签到，提交入职材料\n"
-                "2. **合同签署**：签署劳动合同、保密协议、知识产权协议\n"
-                "3. **账户开通**：领取工牌、开通企业邮箱、OA 系统、VPN 等账号\n"
-                "4. **设备领取**：到 IT 部门领取办公电脑和配件\n"
-                "5. **工位安排**：由部门对接人带领熟悉工位和周边设施\n"
-                "6. **团队介绍**：由直属上级介绍团队成员和协作方式\n\n"
-                "## 三、入职首周\n"
-                "1. **公司文化培训**：了解公司使命愿景、核心价值观和行为规范\n"
-                "2. **制度学习**：阅读并确认员工手册，了解考勤、请假、报销等制度\n"
-                "3. **业务培训**：参加部门级业务培训，了解工作内容和目标\n"
-                "4. **导师对接**：与入职导师建立联系，制定首月学习计划\n\n"
-                "## 四、常见问题解答\n"
-                "1. **考勤制度**：标准工作时间、打卡规则、弹性工作政策\n"
-                "2. **假期制度**：年假天数、病假流程、事假申请方式\n"
-                "3. **福利政策**：五险一金缴纳比例、补充商业保险、餐补、交通补助\n"
-                "4. **报销流程**：费用报销的审批流程、标准和时限\n"
-                "5. **培训发展**：内部培训资源、学习平台、晋升通道\n\n"
-                "## 五、试用期管理\n"
-                "1. 试用期时长：通常为 3-6 个月（以合同约定为准）\n"
-                "2. 月度沟通：每月与直属上级进行一次工作反馈面谈\n"
-                "3. 转正评估：试用期结束前 2 周提交转正申请和自评报告\n"
-                "4. 转正流程：自评 → 上级评估 → HR 审批 → 正式转正通知"
+                "# New Employee Onboarding Standard Operating Procedure\n\n"
+                "## 1. Pre-Boarding (After Offer Acceptance, Before Start Date)\n"
+                "1. **Document preparation checklist**:\n"
+                "   - Government-issued photo ID (original + 2 copies)\n"
+                "   - Academic certificates and diplomas (originals + copies)\n"
+                "   - Employment separation certificate from previous employer\n"
+                "   - Recent passport-size photos (4 copies)\n"
+                "   - Bank account details for payroll (bank name and account number)\n"
+                "   - Pre-employment medical check-up report\n"
+                "2. **Information registration**: complete and submit the employee information form and emergency contact details\n"
+                "3. **Pre-arrival notice**: confirm start date, reporting time and location, and dress code\n\n"
+                "## 2. First Day\n"
+                "1. **Check-in**: report to the HR department, submit onboarding documents\n"
+                "2. **Contract signing**: sign the employment contract, NDA, and IP assignment agreement\n"
+                "3. **Account setup**: receive employee badge; set up corporate email, HR portal, VPN, and other system accounts\n"
+                "4. **Equipment pickup**: collect laptop and peripherals from the IT department\n"
+                "5. **Workspace arrangement**: be guided to your workstation and shown nearby facilities\n"
+                "6. **Team introduction**: your direct manager introduces the team and collaboration practices\n\n"
+                "## 3. First Week\n"
+                "1. **Company culture orientation**: learn about the company's mission, vision, core values, and code of conduct\n"
+                "2. **Policy review**: read and acknowledge the employee handbook; learn about attendance, leave, and expense reimbursement policies\n"
+                "3. **Role training**: attend department-level training to understand job responsibilities and goals\n"
+                "4. **Buddy assignment**: connect with your onboarding buddy and set a first-month learning plan\n\n"
+                "## 4. Frequently Asked Questions\n"
+                "1. **Attendance policy**: standard working hours, clock-in rules, flexible work arrangements\n"
+                "2. **Leave policy**: annual leave entitlement, sick leave procedures, personal leave requests\n"
+                "3. **Benefits**: statutory insurance contributions, supplemental insurance, meal allowance, transport subsidy\n"
+                "4. **Expense reimbursement**: approval workflow, eligible amounts, and processing timelines\n"
+                "5. **Learning and development**: internal training resources, learning platforms, career progression paths\n\n"
+                "## 5. Probation Period Management\n"
+                "1. Probation duration: typically 3-6 months (as specified in the employment contract)\n"
+                "2. Monthly check-ins: a feedback session with your direct manager once a month\n"
+                "3. Confirmation review: submit a confirmation application and self-assessment 2 weeks before probation ends\n"
+                "4. Confirmation process: self-assessment -> manager evaluation -> HR approval -> official confirmation notice"
             ),
         },
     },
-    # 6. Sales Assistant Agent / 销售助手
+    # 6. Sales Assistant
     {
+        "alias": "sales",
         "agent": {
-            "name": "销售助手",
-            "description": "智能销售支持助手，协助销售人员分析客户需求、撰写销售方案、准备报价文档，提供销售策略建议和客户沟通话术指导。",
+            "name": "Sales Assistant",
+            "description": (
+                "An intelligent sales support assistant that helps sales teams analyse customer needs, "
+                "draft proposals, prepare quotation documents, and provides strategic advice and "
+                "customer communication scripts."
+            ),
             "instructions": (
-                "你是一名经验丰富的销售支持 AI 助手，帮助销售团队提升效率和成单率。\n\n"
-                "工作准则：\n"
-                "1. 以客户需求为中心，帮助销售人员深入理解客户痛点和决策因素\n"
-                "2. 提供的方案和话术要专业且有说服力，突出差异化价值\n"
-                "3. 分析竞争态势时保持客观，既看到优势也正视不足\n"
-                "4. 输出的文档要格式规范、用语专业、可直接提交给客户\n"
-                "5. 根据销售阶段（线索/需求/方案/谈判/成交）提供针对性的支持"
+                "You are an experienced sales support AI assistant helping sales teams improve "
+                "efficiency and close rates.\n\n"
+                "Working principles:\n"
+                "1. Focus on customer needs — help salespeople deeply understand pain points and decision factors\n"
+                "2. Proposals and scripts should be professional and persuasive, highlighting differentiated value\n"
+                "3. Remain objective when analysing the competitive landscape — acknowledge both strengths and weaknesses\n"
+                "4. Output documents should be well-formatted, use professional language, and be ready for customer delivery\n"
+                "5. Provide stage-specific support based on the sales phase (lead / discovery / proposal / negotiation / close)"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "销售方案撰写 SOP",
-            "description": "标准化销售方案撰写流程，从客户需求分析到报价文档输出的完整方法论。",
+            "name": "Sales Proposal Writing SOP",
+            "description": (
+                "A standardised sales proposal creation process — a complete methodology from "
+                "customer needs analysis to quotation document delivery."
+            ),
             "content": (
-                "# 销售方案撰写标准操作流程\n\n"
-                "## 一、客户需求分析\n"
-                "1. **基本信息收集**：公司名称、行业、规模、决策人及其角色\n"
-                "2. **痛点挖掘**：当前面临的核心问题是什么？造成了哪些业务影响？\n"
-                "3. **需求优先级**：将客户需求按紧迫程度和重要性排序\n"
-                "4. **预算范围**：了解客户的预算范围和采购周期\n"
-                "5. **竞品分析**：客户是否在评估竞品？竞品方案的优劣势\n\n"
-                "## 二、方案框架设计\n"
-                "1. **价值主张**：一句话说明我们的方案如何解决客户核心痛点\n"
-                "2. **方案概述**：简明扼要地描述整体解决方案\n"
-                "3. **功能匹配**：将产品功能与客户需求逐一对应\n"
-                "4. **实施计划**：分阶段的实施时间表和里程碑\n"
-                "5. **投资回报**：量化的 ROI 分析和预期收益\n\n"
-                "## 三、方案文档撰写\n"
-                "标准方案文档结构：\n"
-                "1. **封面**：项目名称、客户名称、日期、版本号\n"
-                "2. **执行摘要**：一页纸概括核心价值和推荐方案\n"
-                "3. **客户现状分析**：梳理客户当前业务流程和痛点\n"
-                "4. **解决方案详述**：方案架构、功能模块、技术优势\n"
-                "5. **成功案例**：2-3 个相似行业/场景的客户成功案例\n"
-                "6. **实施方案**：项目计划、团队配置、交付物清单\n"
-                "7. **投资清单**：分项报价、付款方式、优惠政策\n"
-                "8. **服务保障**：售后支持、SLA 承诺、培训计划\n\n"
-                "## 四、报价策略\n"
-                "1. 定价原则：基于价值定价，而非成本加成\n"
-                "2. 方案组合：提供 2-3 个档次的方案组合（基础/标准/高级）\n"
-                "3. 折扣策略：明确折扣审批权限和底线价格\n"
-                "4. 付款方式：分期、预付、按节点付款等灵活方案\n\n"
-                "## 五、跟进策略\n"
-                "1. 方案发送后 2 个工作日内电话跟进\n"
-                "2. 准备常见异议的回应话术\n"
-                "3. 记录客户反馈，及时调整方案\n"
-                "4. 明确下一步行动计划和时间节点"
+                "# Sales Proposal Writing Standard Operating Procedure\n\n"
+                "## 1. Customer Needs Analysis\n"
+                "1. **Basic information gathering**: company name, industry, size, decision-maker and their role\n"
+                "2. **Pain point discovery**: what core problems are they facing? What business impact do those problems cause?\n"
+                "3. **Needs prioritisation**: rank customer requirements by urgency and importance\n"
+                "4. **Budget range**: understand the customer's budget range and procurement cycle\n"
+                "5. **Competitive analysis**: is the customer evaluating competitors? Strengths and weaknesses of competing proposals\n\n"
+                "## 2. Proposal Framework Design\n"
+                "1. **Value proposition**: a single sentence explaining how our solution addresses the customer's core pain point\n"
+                "2. **Solution overview**: a concise description of the overall solution\n"
+                "3. **Feature mapping**: map product capabilities to customer requirements one by one\n"
+                "4. **Implementation plan**: a phased timeline with milestones\n"
+                "5. **Return on investment**: quantified ROI analysis and expected benefits\n\n"
+                "## 3. Proposal Document Writing\n"
+                "Standard proposal document structure:\n"
+                "1. **Cover page**: project name, customer name, date, version number\n"
+                "2. **Executive summary**: a one-page overview of core value and recommended approach\n"
+                "3. **Current state analysis**: outline the customer's current processes and pain points\n"
+                "4. **Detailed solution**: solution architecture, feature modules, and technical advantages\n"
+                "5. **Case studies**: 2-3 success stories from similar industries or scenarios\n"
+                "6. **Implementation plan**: project timeline, team composition, and deliverables checklist\n"
+                "7. **Investment summary**: itemised pricing, payment terms, and discount offers\n"
+                "8. **Service commitment**: post-sale support, SLA commitments, and training plan\n\n"
+                "## 4. Pricing Strategy\n"
+                "1. Pricing principle: value-based pricing, not cost-plus\n"
+                "2. Package tiers: offer 2-3 tiers (Basic / Standard / Premium)\n"
+                "3. Discount policy: define discount approval authority and floor prices\n"
+                "4. Payment terms: flexible options such as instalments, prepayment, or milestone-based payments\n\n"
+                "## 5. Follow-Up Strategy\n"
+                "1. Follow up by phone within 2 business days of sending the proposal\n"
+                "2. Prepare objection-handling scripts for common concerns\n"
+                "3. Record customer feedback and adjust the proposal promptly\n"
+                "4. Define next steps and timeline for each interaction"
             ),
         },
     },
-    # 7. Content Writer Agent / 内容创作助手
+    # 7. Content Creation Assistant
     {
+        "alias": "content-creation",
         "agent": {
-            "name": "内容创作助手",
-            "description": "专业内容创作 AI 助手，擅长撰写营销文案、公众号文章、产品介绍、新闻稿等多种内容形式，帮助企业提升内容营销效率和质量。",
+            "name": "Content Creation Assistant",
+            "description": (
+                "A professional content creation AI assistant skilled at writing marketing copy, "
+                "blog articles, product descriptions, press releases, and other content formats to "
+                "help organisations improve content marketing efficiency and quality."
+            ),
             "instructions": (
-                "你是一名专业的内容创作 AI 助手，擅长将业务信息转化为吸引目标受众的优质内容。\n\n"
-                "工作准则：\n"
-                "1. 创作前先明确目标受众、内容目的和发布渠道\n"
-                "2. 内容要有清晰的结构、有力的观点和流畅的叙述\n"
-                "3. 标题要有吸引力，能在 3 秒内抓住读者注意力\n"
-                "4. 适当使用数据、案例、故事来增强内容说服力\n"
-                "5. 注意不同平台的内容调性和格式要求（公众号、知乎、小红书等）"
+                "You are a professional content creation AI assistant skilled at transforming business "
+                "information into high-quality content that engages the target audience.\n\n"
+                "Working principles:\n"
+                "1. Before writing, clarify the target audience, content purpose, and distribution channel\n"
+                "2. Content should have a clear structure, strong perspectives, and smooth narrative flow\n"
+                "3. Headlines should be compelling — able to capture attention within 3 seconds\n"
+                "4. Use data, case studies, and storytelling to strengthen persuasiveness\n"
+                "5. Adapt tone and format to the platform (blog, LinkedIn, newsletter, social media, etc.)"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "营销内容创作 SOP",
-            "description": "标准化营销内容创作流程，覆盖从选题策划到发布优化的完整方法论。",
+            "name": "Marketing Content Creation SOP",
+            "description": (
+                "A standardised marketing content creation process covering the full methodology "
+                "from topic planning to publication optimisation."
+            ),
             "content": (
-                "# 营销内容创作标准操作流程\n\n"
-                "## 一、创作前准备\n"
-                "1. **目标确定**：\n"
-                "   - 内容目的：品牌曝光 / 线索获取 / 用户教育 / 销售转化\n"
-                "   - 目标受众：用户画像（行业、职位、痛点、关注点）\n"
-                "   - 发布渠道：公众号 / 知乎 / 官网博客 / 小红书 / LinkedIn\n"
-                "   - KPI 指标：阅读量 / 转发量 / 互动率 / 转化率\n\n"
-                "2. **选题策划**：\n"
-                "   - 热点选题：结合行业热点、政策变化、节日节点\n"
-                "   - 痛点选题：针对目标用户的核心痛点和常见问题\n"
-                "   - 趋势选题：行业发展趋势、技术变革、市场预测\n"
-                "   - 案例选题：客户成功案例、最佳实践分享\n\n"
-                "## 二、内容结构设计\n"
-                "通用文章结构（可根据具体类型调整）：\n"
-                "1. **标题**：吸引点击，包含核心关键词，控制在 20 字以内\n"
-                "2. **导语**：前 100 字抓住读者，提出问题或给出价值承诺\n"
-                "3. **正文**：分 3-5 个核心观点展开，每个观点配有论据支撑\n"
-                "4. **案例/数据**：增强可信度的事实依据\n"
-                "5. **总结/CTA**：概括核心要点，引导读者采取行动\n\n"
-                "## 三、写作规范\n"
-                "1. **语言风格**：根据渠道调整（公众号偏口语化，官网偏正式）\n"
-                "2. **段落长度**：移动端每段不超过 4 行（约 100 字）\n"
-                "3. **排版格式**：善用小标题、加粗、列表提升可读性\n"
-                "4. **SEO 优化**：自然融入核心关键词，不堆砌\n"
-                "5. **合规检查**：避免绝对化用语（最、第一、唯一等广告法禁用词）\n\n"
-                "## 四、审校流程\n"
-                "1. 事实核查：数据和案例来源是否可靠\n"
-                "2. 逻辑检查：论点是否有充分论据支撑，论证是否合理\n"
-                "3. 文字校对：错别字、标点符号、格式一致性\n"
-                "4. 品牌一致性：用语和调性是否符合品牌规范\n"
-                "5. 合规审查：是否涉及敏感话题或违规表述\n\n"
-                "## 五、发布优化\n"
-                "1. 发布时间：选择目标受众活跃的时间段发布\n"
-                "2. 封面图片：设计与标题匹配的封面图\n"
-                "3. 摘要设置：撰写吸引人的摘要/描述文本\n"
-                "4. 互动引导：设置评论区引导语，促进读者互动"
+                "# Marketing Content Creation Standard Operating Procedure\n\n"
+                "## 1. Pre-Writing Preparation\n"
+                "1. **Goal setting**:\n"
+                "   - Content purpose: brand awareness / lead generation / user education / sales conversion\n"
+                "   - Target audience: persona (industry, role, pain points, interests)\n"
+                "   - Distribution channel: blog / LinkedIn / company website / newsletter / social media\n"
+                "   - KPI targets: views / shares / engagement rate / conversion rate\n\n"
+                "2. **Topic planning**:\n"
+                "   - Trending topics: tie in with industry news, policy changes, or seasonal events\n"
+                "   - Pain-point topics: address the target audience's core challenges and common questions\n"
+                "   - Thought-leadership topics: industry trends, technology shifts, market forecasts\n"
+                "   - Case-study topics: customer success stories and best-practice showcases\n\n"
+                "## 2. Content Structure Design\n"
+                "General article structure (adjust for specific content type):\n"
+                "1. **Headline**: compelling, includes core keywords, under 70 characters\n"
+                "2. **Lead**: the first 100 words must hook the reader by posing a problem or promising value\n"
+                "3. **Body**: develop 3-5 core points, each supported by evidence\n"
+                "4. **Proof points**: data, case studies, or testimonials that build credibility\n"
+                "5. **Summary / CTA**: recap key takeaways and guide the reader to take action\n\n"
+                "## 3. Writing Standards\n"
+                "1. **Tone**: adjust for channel (blog is conversational, website copy is more formal)\n"
+                "2. **Paragraph length**: keep paragraphs under 4 lines on mobile (~100 words)\n"
+                "3. **Formatting**: use subheadings, bold text, and lists to improve readability\n"
+                "4. **SEO optimisation**: weave in core keywords naturally — do not keyword-stuff\n"
+                "5. **Compliance check**: avoid superlative claims unless substantiated (best, only, first, etc.)\n\n"
+                "## 4. Review Process\n"
+                "1. Fact-checking: are data points and case study sources reliable?\n"
+                "2. Logic check: are arguments fully supported and reasoning sound?\n"
+                "3. Proofreading: spelling, punctuation, and formatting consistency\n"
+                "4. Brand consistency: does the tone and terminology match brand guidelines?\n"
+                "5. Compliance review: any sensitive topics or non-compliant language?\n\n"
+                "## 5. Publication Optimisation\n"
+                "1. Publish timing: schedule for when the target audience is most active\n"
+                "2. Featured image: design a cover image that aligns with the headline\n"
+                "3. Meta description: write an engaging summary/description\n"
+                "4. Engagement prompts: add discussion starters to encourage reader interaction"
             ),
         },
     },
-    # 8. Meeting Summary Agent / 会议纪要助手
+    # 8. Meeting Summary Assistant
     {
+        "alias": "meeting-summary",
         "agent": {
-            "name": "会议纪要助手",
-            "description": "智能会议纪要 AI 助手，能够整理会议记录和语音转录文本，提取关键决策和行动项，生成结构化会议纪要，支持定期例会和专题会议等多种场景。",
+            "name": "Meeting Summary Assistant",
+            "description": (
+                "An intelligent meeting summary AI assistant that organises meeting notes and "
+                "transcripts, extracts key decisions and action items, and generates structured "
+                "meeting minutes. Supports recurring meetings and ad-hoc sessions."
+            ),
             "instructions": (
-                "你是一名专业的会议纪要 AI 助手，擅长将散乱的会议记录转化为清晰、有条理的会议纪要。\n\n"
-                "工作准则：\n"
-                "1. 准确提取会议中的关键信息，不添加原文中没有的内容\n"
-                "2. 区分决策事项、讨论事项和待跟进事项\n"
-                "3. 每个行动项必须明确责任人和完成时间\n"
-                "4. 保持客观记录，不加入个人评价或偏见\n"
-                "5. 使用简洁明了的语言，避免冗余表述"
+                "You are a professional meeting summary AI assistant skilled at transforming "
+                "unstructured meeting notes into clear, well-organised meeting minutes.\n\n"
+                "Working principles:\n"
+                "1. Accurately extract key information from the meeting — do not add content not in the source\n"
+                "2. Distinguish between decisions, discussion items, and follow-up tasks\n"
+                "3. Every action item must have a clear owner and due date\n"
+                "4. Maintain an objective record — do not inject personal opinions or bias\n"
+                "5. Use concise, clear language and avoid redundancy"
             ),
             "execution_mode": "auto",
         },
         "skill": {
-            "name": "会议纪要整理 SOP",
-            "description": "标准化会议纪要整理流程，从原始记录到结构化输出的完整方法论。",
+            "name": "Meeting Minutes SOP",
+            "description": (
+                "A standardised meeting minutes preparation process — a complete methodology "
+                "from raw notes to structured output."
+            ),
             "content": (
-                "# 会议纪要整理标准操作流程\n\n"
-                "## 一、信息收集\n"
-                "整理前需确认以下基本信息：\n"
-                "1. **会议名称**：会议的正式名称或主题\n"
-                "2. **会议时间**：开始和结束时间\n"
-                "3. **会议地点**：线下地点或线上会议链接\n"
-                "4. **参会人员**：出席人、列席人、缺席人名单\n"
-                "5. **主持人**：会议主持人\n"
-                "6. **记录人**：会议记录人\n\n"
-                "## 二、内容分类\n"
-                "将会议内容按以下类别进行分类整理：\n\n"
-                "### 1. 议题回顾\n"
-                "按会议议程顺序，逐项记录讨论内容：\n"
-                "- 议题标题\n"
-                "- 汇报人/发起人\n"
-                "- 讨论要点摘要（保留关键论点，去除重复和无关内容）\n"
-                "- 各方意见和分歧点\n\n"
-                "### 2. 决策事项\n"
-                "明确记录会议做出的所有决定：\n"
-                "- 决策内容描述\n"
-                "- 决策依据或背景\n"
-                "- 是否全体通过 / 投票结果\n\n"
-                "### 3. 行动项（Action Items）\n"
-                "每个行动项必须包含：\n"
-                "- **任务描述**：具体需要完成的工作\n"
-                "- **责任人**：明确到个人（非部门）\n"
-                "- **完成时间**：具体日期（非「尽快」等模糊表述）\n"
-                "- **交付物**：需要提交的成果物\n"
-                "- **协作人**：需要配合的其他人员\n\n"
-                "### 4. 遗留问题\n"
-                "记录未在本次会议解决的问题：\n"
-                "- 问题描述\n"
-                "- 计划解决方式（下次会议讨论/线下沟通/专题研究）\n"
-                "- 跟进责任人\n\n"
-                "## 三、纪要格式\n"
-                "标准输出格式：\n"
+                "# Meeting Minutes Standard Operating Procedure\n\n"
+                "## 1. Information Gathering\n"
+                "Before organising, confirm the following basic information:\n"
+                "1. **Meeting title**: the official name or topic of the meeting\n"
+                "2. **Date and time**: start and end times\n"
+                "3. **Location**: physical location or virtual meeting link\n"
+                "4. **Attendees**: list of participants, observers, and absentees\n"
+                "5. **Chairperson**: the meeting facilitator\n"
+                "6. **Note-taker**: the person recording the meeting\n\n"
+                "## 2. Content Categorisation\n"
+                "Classify meeting content into the following categories:\n\n"
+                "### 2.1 Agenda Review\n"
+                "Record discussion content item by item following the agenda:\n"
+                "- Topic title\n"
+                "- Presenter / initiator\n"
+                "- Summary of key discussion points (retain essential arguments, remove repetition and tangents)\n"
+                "- Different viewpoints and areas of disagreement\n\n"
+                "### 2.2 Decisions\n"
+                "Clearly record all decisions made during the meeting:\n"
+                "- Description of the decision\n"
+                "- Rationale or context\n"
+                "- Whether it was unanimous / vote outcome\n\n"
+                "### 2.3 Action Items\n"
+                "Each action item must include:\n"
+                "- **Task description**: the specific work to be completed\n"
+                "- **Owner**: assigned to a named individual (not a department)\n"
+                "- **Due date**: a specific date (not vague terms like \"ASAP\")\n"
+                "- **Deliverable**: the expected output or artefact\n"
+                "- **Collaborators**: other people who need to contribute\n\n"
+                "### 2.4 Open Issues\n"
+                "Record issues not resolved in this meeting:\n"
+                "- Problem description\n"
+                "- Planned resolution path (next meeting / offline discussion / dedicated review)\n"
+                "- Follow-up owner\n\n"
+                "## 3. Minutes Format\n"
+                "Standard output format:\n"
                 "```\n"
-                "# 会议纪要\n"
-                "会议名称：XXX\n"
-                "会议时间：YYYY-MM-DD HH:MM - HH:MM\n"
-                "会议地点：XXX\n"
-                "主持人：XXX\n"
-                "记录人：XXX\n"
-                "出席人员：XXX、XXX、XXX\n\n"
-                "## 一、议题讨论\n"
-                "### 1.1 [议题名称]\n"
+                "# Meeting Minutes\n"
+                "Meeting Title: XXX\n"
+                "Date & Time: YYYY-MM-DD HH:MM - HH:MM\n"
+                "Location: XXX\n"
+                "Chairperson: XXX\n"
+                "Note-taker: XXX\n"
+                "Attendees: XXX, XXX, XXX\n\n"
+                "## 1. Agenda Discussion\n"
+                "### 1.1 [Topic Title]\n"
                 "...\n\n"
-                "## 二、决策事项\n"
-                "1. [决策1]...\n\n"
-                "## 三、行动项\n"
-                "| 序号 | 任务 | 责任人 | 截止日期 | 备注 |\n"
+                "## 2. Decisions\n"
+                "1. [Decision 1]...\n\n"
+                "## 3. Action Items\n"
+                "| # | Task | Owner | Due Date | Notes |\n"
                 "| --- | --- | --- | --- | --- |\n\n"
-                "## 四、遗留问题\n"
-                "1. [问题1]...\n\n"
-                "## 五、下次会议\n"
-                "时间：XXX  议题：XXX\n"
+                "## 4. Open Issues\n"
+                "1. [Issue 1]...\n\n"
+                "## 5. Next Meeting\n"
+                "Date: XXX  Topics: XXX\n"
                 "```\n\n"
-                "## 四、质量检查\n"
-                "1. 确认所有行动项都有明确的责任人和截止日期\n"
-                "2. 确认决策事项记录完整且无歧义\n"
-                "3. 确认参会人员名单与实际出席情况一致\n"
-                "4. 确认会议纪要在会后 24 小时内发出"
+                "## 4. Quality Check\n"
+                "1. Confirm all action items have a clear owner and due date\n"
+                "2. Confirm decisions are recorded completely and without ambiguity\n"
+                "3. Confirm the attendee list matches actual attendance\n"
+                "4. Confirm the meeting minutes are distributed within 24 hours of the meeting"
             ),
         },
     },
@@ -503,85 +602,165 @@ SOLUTION_TEMPLATES: list[dict[str, dict[str, str]]] = [
 
 
 # ---------------------------------------------------------------------------
-# Bootstrap function
+# Import function (upsert-by-name)
 # ---------------------------------------------------------------------------
 
 
-async def ensure_solution_templates(
-    db: AsyncSession, market_org_id: str, owner_id: str
-) -> None:
-    """Create prebuilt Solution Templates in the Market org (idempotent).
+class ImportResult(TypedDict):
+    created: int
+    updated: int
+    skipped: int
 
-    For each template definition, creates an Agent and a Skill record.
-    The Skill is linked to the Agent via the ``skill_ids`` JSON field.
-    Skips any template whose Agent name already exists in the Market org.
+
+async def import_solution_templates(
+    db: AsyncSession,
+    market_org_id: str,
+    owner_id: str,
+) -> ImportResult:
+    """Import solution templates into the Market org using upsert-by-name.
+
+    For each template:
+    - If an Agent with the same name already exists in the Market org,
+      update the agent's description, instructions, and execution_mode,
+      then find and update the linked skill's description, content, and
+      resource_refs.
+    - If no matching Agent exists, create a new Agent first, then create
+      a Skill with ``resource_refs`` pointing back to the Agent.
+
+    Binding direction: Skill -> Agent via ``Skill.resource_refs``.
+    ``Agent.skill_ids`` is NOT set by this function (deprecated).
+
+    The function flushes but does **not** commit — the caller is responsible
+    for committing the transaction.
 
     Parameters
     ----------
     db:
-        An active async database session (will be flushed but NOT committed).
+        An active async database session.
     market_org_id:
-        The Market organisation ID (``MARKET_ORG_ID``).
+        The Market organisation ID.
     owner_id:
-        The user ID of the Market org owner (first admin).
+        The user ID to assign as owner for newly created records.
+
+    Returns
+    -------
+    ImportResult
+        Counts of created, updated, and skipped templates.
     """
-    created_count = 0
+    created = 0
+    updated = 0
 
     for template in SOLUTION_TEMPLATES:
         agent_cfg = template["agent"]
         skill_cfg = template["skill"]
+        alias = template["alias"]
 
-        # Idempotency: skip if an agent with this name already exists in the Market org
-        existing = await db.execute(
+        # Check if agent with this name already exists in Market org
+        result = await db.execute(
             select(Agent).where(
                 Agent.name == agent_cfg["name"],
                 Agent.org_id == market_org_id,
             )
         )
-        if existing.scalar_one_or_none() is not None:
-            continue
+        existing_agent = result.scalar_one_or_none()
 
-        # Create the Skill first so we have its ID for the Agent
-        now = datetime.now(timezone.utc)
-        skill = Skill(
-            name=skill_cfg["name"],
-            description=skill_cfg["description"],
-            content=skill_cfg["content"],
-            user_id=owner_id,
-            visibility="org",
-            org_id=market_org_id,
-            is_active=True,
-            status="published",
-            publish_status="approved",
-            published_at=now,
-        )
-        db.add(skill)
-        await db.flush()  # generate skill.id
+        if existing_agent is not None:
+            # UPDATE existing agent
+            existing_agent.description = agent_cfg["description"]
+            existing_agent.instructions = agent_cfg["instructions"]
+            existing_agent.execution_mode = agent_cfg["execution_mode"]
 
-        # Create the Agent, linking the Skill
-        agent = Agent(
-            name=agent_cfg["name"],
-            description=agent_cfg["description"],
-            instructions=agent_cfg["instructions"],
-            execution_mode=agent_cfg["execution_mode"],
-            user_id=owner_id,
-            visibility="org",
-            org_id=market_org_id,
-            is_active=True,
-            status="published",
-            publish_status="approved",
-            published_at=now,
-            skill_ids=[skill.id],
-        )
-        db.add(agent)
-        created_count += 1
+            # Find linked skill by name in Market org
+            existing_skill_result = await db.execute(
+                select(Skill).where(
+                    Skill.name == skill_cfg["name"],
+                    Skill.org_id == market_org_id,
+                )
+            )
+            existing_skill = existing_skill_result.scalar_one_or_none()
 
-    if created_count > 0:
-        await db.flush()
+            resource_ref = {
+                "type": "agent",
+                "id": existing_agent.id,
+                "name": existing_agent.name,
+                "alias": f"@{alias}",
+            }
+
+            if existing_skill is not None:
+                existing_skill.description = skill_cfg["description"]
+                existing_skill.content = skill_cfg["content"]
+                existing_skill.resource_refs = [resource_ref]
+            else:
+                # Skill doesn't exist yet, create it
+                now = datetime.now(timezone.utc)
+                skill = Skill(
+                    name=skill_cfg["name"],
+                    description=skill_cfg["description"],
+                    content=skill_cfg["content"],
+                    user_id=owner_id,
+                    visibility="org",
+                    org_id=market_org_id,
+                    is_active=True,
+                    status="published",
+                    publish_status="approved",
+                    published_at=now,
+                    resource_refs=[resource_ref],
+                )
+                db.add(skill)
+
+            updated += 1
+        else:
+            # CREATE new Agent first, then Skill with resource_refs
+            now = datetime.now(timezone.utc)
+            agent = Agent(
+                name=agent_cfg["name"],
+                description=agent_cfg["description"],
+                instructions=agent_cfg["instructions"],
+                execution_mode=agent_cfg["execution_mode"],
+                user_id=owner_id,
+                visibility="org",
+                org_id=market_org_id,
+                is_active=True,
+                status="published",
+                publish_status="approved",
+                published_at=now,
+            )
+            db.add(agent)
+            await db.flush()  # generate agent.id
+
+            skill = Skill(
+                name=skill_cfg["name"],
+                description=skill_cfg["description"],
+                content=skill_cfg["content"],
+                user_id=owner_id,
+                visibility="org",
+                org_id=market_org_id,
+                is_active=True,
+                status="published",
+                publish_status="approved",
+                published_at=now,
+                resource_refs=[
+                    {
+                        "type": "agent",
+                        "id": agent.id,
+                        "name": agent.name,
+                        "alias": f"@{alias}",
+                    }
+                ],
+            )
+            db.add(skill)
+            created += 1
+
+    await db.flush()
+
+    if created > 0 or updated > 0:
         logger.info(
-            "Created %d solution templates in Market org %s",
-            created_count,
+            "Solution template import: created=%d, updated=%d (Market org %s)",
+            created,
+            updated,
             market_org_id,
         )
     else:
-        logger.debug("Solution templates already exist, skipping seed")
+        logger.debug("Solution templates already up to date, nothing to import")
+
+    return ImportResult(created=created, updated=updated, skipped=0)

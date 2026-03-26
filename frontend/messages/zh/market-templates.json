@@ -1,0 +1,50 @@
+{
+  "financial-audit": {
+    "agentName": "财务审计助手",
+    "agentDescription": "专业财务审计AI助手，审查财务报告、验证计算逻辑、识别数据异常和合规风险，帮助审计人员提高效率和准确性。",
+    "skillName": "财务报告审查SOP",
+    "skillDescription": "标准化财务报告审查流程，涵盖资产负债表、损益表和现金流量表的系统审查方法。"
+  },
+  "contract-review": {
+    "agentName": "合同审查助手",
+    "agentDescription": "专业合同审查AI助手，分析合同条款、识别风险条款、检查合规要求，并提供修改建议，帮助法律团队提高审查效率。",
+    "skillName": "合同条款审查SOP",
+    "skillDescription": "标准化合同条款审查流程，涵盖权利、义务、责任和风险条款的系统审查方法。"
+  },
+  "data-reporting": {
+    "agentName": "数据报告助手",
+    "agentDescription": "专业数据分析AI助手，处理原始数据、生成可视化报告、发现趋势和洞察，帮助业务团队做出数据驱动的决策。",
+    "skillName": "数据分析报告SOP",
+    "skillDescription": "标准化数据分析报告流程，涵盖数据收集、清洗、分析、可视化和洞察生成。"
+  },
+  "it-operations": {
+    "agentName": "IT运维助手",
+    "agentDescription": "专业IT运维AI助手，诊断系统故障、提供故障排除方案、监控系统健康状况，帮助IT团队快速响应技术问题。",
+    "skillName": "IT故障排除SOP",
+    "skillDescription": "标准化IT故障排除流程，涵盖网络、服务器、应用和安全问题的系统诊断方法。"
+  },
+  "hr-onboarding": {
+    "agentName": "HR入职助手",
+    "agentDescription": "专业HR入职AI助手，指导新员工完成入职流程、回答常见问题、提供培训资源，帮助HR团队提供一致的入职体验。",
+    "skillName": "新员工入职SOP",
+    "skillDescription": "标准化新员工入职流程，涵盖入职前准备、第一天入职、培训计划和试用期管理。"
+  },
+  "sales": {
+    "agentName": "销售助手",
+    "agentDescription": "专业销售AI助手，起草提案、分析客户需求、准备竞争分析，帮助销售团队提高成交率和交易效率。",
+    "skillName": "销售提案写作SOP",
+    "skillDescription": "标准化销售提案写作流程，涵盖客户研究、需求分析、解决方案设计和提案呈现。"
+  },
+  "content-creation": {
+    "agentName": "内容创作助手",
+    "agentDescription": "专业内容创作AI助手，生成营销文案、社交媒体内容、博客文章，帮助营销团队保持一致的品牌声音和内容质量。",
+    "skillName": "营销内容创作SOP",
+    "skillDescription": "标准化营销内容创作流程，涵盖内容规划、写作、审核、优化和分发。"
+  },
+  "meeting-summary": {
+    "agentName": "会议总结助手",
+    "agentDescription": "专业会议总结AI助手，整理会议记录、提取行动项、跟踪后续事项，帮助团队提高会议效率和问责制。",
+    "skillName": "会议记录整理SOP",
+    "skillDescription": "标准化的会议记录整理流程，涵盖笔记记录、关键决策、行动项和后续跟踪。"
+  }
+}

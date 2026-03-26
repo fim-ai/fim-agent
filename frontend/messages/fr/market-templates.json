@@ -1,0 +1,50 @@
+{
+  "financial-audit": {
+    "agentName": "Assistant d'audit financier",
+    "agentDescription": "Assistant IA professionnel d'audit financier qui examine les rapports financiers, vérifie la logique des calculs, identifie les anomalies de données et les risques de conformité, aidant les auditeurs à améliorer l'efficacité et la précision.",
+    "skillName": "PNT d'examen des rapports financiers",
+    "skillDescription": "Processus standardisé d'examen des rapports financiers couvrant les méthodes d'examen systématique des bilans, des comptes de résultats et des tableaux de flux de trésorerie."
+  },
+  "contract-review": {
+    "agentName": "Assistant d'examen de contrats",
+    "agentDescription": "Assistant IA professionnel d'examen de contrats qui analyse les termes des contrats, identifie les clauses à risque, vérifie les exigences de conformité et fournit des suggestions de modification pour aider les équipes juridiques à améliorer l'efficacité de l'examen.",
+    "skillName": "PNT d'examen des termes de contrats",
+    "skillDescription": "Processus standardisé d'examen des termes de contrats couvrant les méthodes d'examen systématique des droits, obligations, responsabilités et clauses à risque."
+  },
+  "data-reporting": {
+    "agentName": "Assistant de rapports de données",
+    "agentDescription": "Assistant IA professionnel d'analyse de données qui traite les données brutes, génère des rapports visuels, découvre les tendances et les insights, aidant les équipes métier à prendre des décisions basées sur les données.",
+    "skillName": "PNT de rapport d'analyse de données",
+    "skillDescription": "Processus standardisé de rapport d'analyse de données couvrant la collecte, le nettoyage, l'analyse, la visualisation et la génération d'insights."
+  },
+  "it-operations": {
+    "agentName": "Assistant des opérations informatiques",
+    "agentDescription": "Assistant IA professionnel des opérations informatiques qui diagnostique les défaillances système, fournit des solutions de dépannage, surveille la santé du système, aidant les équipes informatiques à répondre rapidement aux problèmes techniques.",
+    "skillName": "PNT de dépannage informatique",
+    "skillDescription": "Processus standardisé de dépannage informatique couvrant les méthodes de diagnostic systématique pour les problèmes de réseau, serveur, application et sécurité."
+  },
+  "hr-onboarding": {
+    "agentName": "Assistant d'intégration RH",
+    "agentDescription": "Assistant IA professionnel d'intégration RH qui guide les nouveaux employés dans les procédures d'intégration, répond aux questions courantes, fournit des ressources de formation, aidant les équipes RH à offrir des expériences d'intégration cohérentes.",
+    "skillName": "PNT d'intégration des nouveaux employés",
+    "skillDescription": "Processus standardisé d'intégration des nouveaux employés couvrant la préparation pré-intégration, l'orientation du premier jour, les plans de formation et la gestion de la période d'essai."
+  },
+  "sales": {
+    "agentName": "Assistant commercial",
+    "agentDescription": "Assistant IA professionnel commercial qui rédige des propositions, analyse les besoins des clients, prépare des analyses concurrentielles, aidant les équipes commerciales à améliorer les taux de réussite et l'efficacité des transactions.",
+    "skillName": "PNT de rédaction de propositions commerciales",
+    "skillDescription": "Processus standardisé de rédaction de propositions commerciales couvrant la recherche client, l'analyse des besoins, la conception de solutions et la présentation de propositions."
+  },
+  "content-creation": {
+    "agentName": "Assistant de création de contenu",
+    "agentDescription": "Assistant IA professionnel de création de contenu qui génère des copies marketing, du contenu pour les réseaux sociaux, des articles de blog, aidant les équipes marketing à maintenir une voix de marque cohérente et une qualité de contenu.",
+    "skillName": "PNT de création de contenu marketing",
+    "skillDescription": "Processus standardisé de création de contenu marketing couvrant la planification du contenu, la rédaction, l'examen, l'optimisation et la distribution."
+  },
+  "meeting-summary": {
+    "agentName": "Assistant de résumé de réunion",
+    "agentDescription": "Assistant IA professionnel de résumé de réunion qui organise les notes de réunion, extrait les éléments d'action, suit les suites, aidant les équipes à améliorer l'efficacité des réunions et la responsabilité.",
+    "skillName": "PNT d'organisation des procès-verbaux de réunion",
+    "skillDescription": "Processus standardisé d'organisation des procès-verbaux de réunion couvrant la prise de notes, les décisions clés, les éléments d'action et le suivi des actions."
+  }
+}

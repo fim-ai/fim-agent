@@ -44,6 +44,8 @@ class Agent(UUIDPKMixin, TimestampMixin, Base):
     kb_ids: Any = Column(JSON, nullable=True)
     connector_ids: Any = Column(JSON, nullable=True)
     mcp_server_ids: Any = Column(JSON, nullable=True)  # list[str]
+    # Deprecated: use Skill.resource_refs to bind Skills → Agents instead.
+    # Kept for backward compatibility (dependency_analyzer reads it for existing data).
     skill_ids: Any = Column(JSON, nullable=True)  # list[str]
     compact_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     grounding_config: Any = Column(JSON, nullable=True)

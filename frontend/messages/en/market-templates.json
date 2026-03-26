@@ -1,0 +1,50 @@
+{
+  "financial-audit": {
+    "agentName": "Financial Audit Assistant",
+    "agentDescription": "Professional financial audit AI assistant that reviews financial reports, verifies calculation logic, identifies data anomalies and compliance risks, helping auditors improve efficiency and accuracy.",
+    "skillName": "Financial Report Review SOP",
+    "skillDescription": "Standardized financial report review process covering systematic review methods for balance sheets, income statements, and cash flow statements."
+  },
+  "contract-review": {
+    "agentName": "Contract Review Assistant",
+    "agentDescription": "Professional contract review AI assistant that analyzes contract terms, identifies risk clauses, checks compliance requirements, and provides modification suggestions to help legal teams improve review efficiency.",
+    "skillName": "Contract Terms Review SOP",
+    "skillDescription": "Standardized contract terms review process covering systematic review methods for rights, obligations, liabilities, and risk clauses."
+  },
+  "data-reporting": {
+    "agentName": "Data Reporting Assistant",
+    "agentDescription": "Professional data analysis AI assistant that processes raw data, generates visual reports, discovers trends and insights, helping business teams make data-driven decisions.",
+    "skillName": "Data Analysis Report SOP",
+    "skillDescription": "Standardized data analysis report process covering data collection, cleaning, analysis, visualization, and insight generation."
+  },
+  "it-operations": {
+    "agentName": "IT Operations Assistant",
+    "agentDescription": "Professional IT operations AI assistant that diagnoses system faults, provides troubleshooting solutions, monitors system health, helping IT teams respond quickly to technical issues.",
+    "skillName": "IT Troubleshooting SOP",
+    "skillDescription": "Standardized IT troubleshooting process covering systematic diagnosis methods for network, server, application, and security issues."
+  },
+  "hr-onboarding": {
+    "agentName": "HR Onboarding Assistant",
+    "agentDescription": "Professional HR onboarding AI assistant that guides new employees through onboarding procedures, answers common questions, provides training resources, helping HR teams deliver consistent onboarding experiences.",
+    "skillName": "New Employee Onboarding SOP",
+    "skillDescription": "Standardized new employee onboarding process covering pre-boarding preparation, first-day orientation, training plans, and probation management."
+  },
+  "sales": {
+    "agentName": "Sales Assistant",
+    "agentDescription": "Professional sales AI assistant that drafts proposals, analyzes customer needs, prepares competitive analyses, helping sales teams improve win rates and deal efficiency.",
+    "skillName": "Sales Proposal Writing SOP",
+    "skillDescription": "Standardized sales proposal writing process covering customer research, needs analysis, solution design, and proposal presentation."
+  },
+  "content-creation": {
+    "agentName": "Content Creation Assistant",
+    "agentDescription": "Professional content creation AI assistant that generates marketing copy, social media content, blog articles, helping marketing teams maintain consistent brand voice and content quality.",
+    "skillName": "Marketing Content Creation SOP",
+    "skillDescription": "Standardized marketing content creation process covering content planning, writing, review, optimization, and distribution."
+  },
+  "meeting-summary": {
+    "agentName": "Meeting Summary Assistant",
+    "agentDescription": "Professional meeting summary AI assistant that organizes meeting notes, extracts action items, tracks follow-ups, helping teams improve meeting efficiency and accountability.",
+    "skillName": "Meeting Minutes Organization SOP",
+    "skillDescription": "Standardized meeting minutes organization process covering note-taking, key decisions, action items, and follow-up tracking."
+  }
+}
