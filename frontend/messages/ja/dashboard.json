@@ -15,7 +15,7 @@
   "trendDown": "今週は{value}%",
   "trendNeutral": "変化なし",
   "activityTitle": "アクティビティ",
-  "activitySubtitle": "過去7日間の会話",
+  "activitySubtitle": "過去6ヶ月間の会話",
   "activityEmpty": "最近のアクティビティはありません",
   "recentTitle": "最近の会話",
   "recentResume": "再開",
@@ -60,5 +60,13 @@
   "workflowRunFailed": "失敗",
   "workflowRunCancelled": "キャンセル済み",
   "workflowRunRunning": "実行中",
-  "marketYours": "あなたのもの"
+  "marketYours": "あなたのもの",
+  "heatmapTitle": "アクティビティマップ",
+  "heatmapSubtitle": "過去6ヶ月間のアクティビティ",
+  "heatmapEmpty": "まだアクティビティが記録されていません",
+  "heatmapConversations": "{count}件の会話",
+  "heatmapTokens": "{count}トークン",
+  "heatmapLess": "少ない",
+  "heatmapMore": "多い",
+  "heatmapNoActivity": "アクティビティなし"
 }

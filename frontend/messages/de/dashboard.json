@@ -15,7 +15,7 @@
   "trendDown": "{value}% diese Woche",
   "trendNeutral": "Keine Änderung",
   "activityTitle": "Aktivität",
-  "activitySubtitle": "Gespräche der letzten 7 Tage",
+  "activitySubtitle": "Gespräche der letzten 6 Monate",
   "activityEmpty": "Keine kürzliche Aktivität",
   "recentTitle": "Aktuelle Gespräche",
   "recentResume": "Fortsetzen",
@@ -60,5 +60,13 @@
   "workflowRunFailed": "Fehlgeschlagen",
   "workflowRunCancelled": "Abgebrochen",
   "workflowRunRunning": "Wird ausgeführt",
-  "marketYours": "Ihres"
+  "marketYours": "Ihres",
+  "heatmapTitle": "Aktivitätskarte",
+  "heatmapSubtitle": "Ihre Aktivität der letzten 6 Monate",
+  "heatmapEmpty": "Noch keine Aktivität aufgezeichnet",
+  "heatmapConversations": "{count} Gespräche",
+  "heatmapTokens": "{count} Token",
+  "heatmapLess": "Weniger",
+  "heatmapMore": "Mehr",
+  "heatmapNoActivity": "Keine Aktivität"
 }

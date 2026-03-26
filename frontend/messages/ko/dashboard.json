@@ -15,7 +15,7 @@
   "trendDown": "이번 주 {value}%",
   "trendNeutral": "변화 없음",
   "activityTitle": "활동",
-  "activitySubtitle": "지난 7일간의 대화",
+  "activitySubtitle": "지난 6개월간의 대화",
   "activityEmpty": "최근 활동 없음",
   "recentTitle": "최근 대화",
   "recentResume": "재개",
@@ -60,5 +60,13 @@
   "workflowRunFailed": "실패",
   "workflowRunCancelled": "취소됨",
   "workflowRunRunning": "실행 중",
-  "marketYours": "당신의"
+  "marketYours": "당신의",
+  "heatmapTitle": "활동 맵",
+  "heatmapSubtitle": "지난 6개월간의 활동",
+  "heatmapEmpty": "아직 기록된 활동이 없습니다",
+  "heatmapConversations": "{count}개의 대화",
+  "heatmapTokens": "{count}개의 토큰",
+  "heatmapLess": "적게",
+  "heatmapMore": "많게",
+  "heatmapNoActivity": "활동 없음"
 }

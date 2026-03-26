@@ -15,7 +15,7 @@
   "trendDown": "{value}% this week",
   "trendNeutral": "No change",
   "activityTitle": "Activity",
-  "activitySubtitle": "Conversations over the last 7 days",
+  "activitySubtitle": "Conversations over the last 6 months",
   "activityEmpty": "No recent activity",
   "tokenTrendTitle": "Token Usage",
   "tokenTrendSubtitle": "Tokens consumed over the last 7 days",
@@ -60,5 +60,13 @@
   "workflowRunCompleted": "Completed",
   "workflowRunFailed": "Failed",
   "workflowRunCancelled": "Cancelled",
-  "workflowRunRunning": "Running"
+  "workflowRunRunning": "Running",
+  "heatmapTitle": "Activity Map",
+  "heatmapSubtitle": "Your activity over the last 6 months",
+  "heatmapEmpty": "No activity recorded yet",
+  "heatmapConversations": "{count} conversations",
+  "heatmapTokens": "{count} tokens",
+  "heatmapLess": "Less",
+  "heatmapMore": "More",
+  "heatmapNoActivity": "No activity"
 }

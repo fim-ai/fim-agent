@@ -15,7 +15,7 @@
   "trendDown": "本周下降 {value}%",
   "trendNeutral": "无变化",
   "activityTitle": "活动",
-  "activitySubtitle": "过去7天的对话",
+  "activitySubtitle": "过去6个月的对话",
   "activityEmpty": "没有最近的活动",
   "recentTitle": "最近的对话",
   "recentResume": "继续",
@@ -60,5 +60,13 @@
   "workflowRunFailed": "失败",
   "workflowRunCancelled": "已取消",
   "workflowRunRunning": "运行中",
-  "marketYours": "您的"
+  "marketYours": "您的",
+  "heatmapTitle": "活动地图",
+  "heatmapSubtitle": "您过去6个月的活动",
+  "heatmapEmpty": "暂无活动记录",
+  "heatmapConversations": "{count} 次对话",
+  "heatmapTokens": "{count} 个令牌",
+  "heatmapLess": "较少",
+  "heatmapMore": "较多",
+  "heatmapNoActivity": "无活动"
 }
