@@ -24,7 +24,7 @@
   "unsupportedFileType": "{name}: サポートされていないファイル形式",
   "fileTooLarge": "{name}: {limit}MBの制限を超えています",
   "newUpdates": "新しい更新",
-  "recall": "リコール",
+  "recall": "取り消す",
   "queued": "キュー中...",
   "compactDivider": "以前のコンテキスト ({count}件のメッセージ) はAIによって要約されました",
   "statusReplanning": "再計画中...",

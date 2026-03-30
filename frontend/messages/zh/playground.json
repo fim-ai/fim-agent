@@ -24,7 +24,7 @@
   "unsupportedFileType": "{name}：不支持的文件类型",
   "fileTooLarge": "{name}：超过 {limit}MB 限制",
   "newUpdates": "新更新",
-  "recall": "回忆",
+  "recall": "撤回",
   "queued": "已排队...",
   "compactDivider": "较早的上下文 ({count} 条消息) 已由 AI 总结",
   "statusReplanning": "重新规划中...",

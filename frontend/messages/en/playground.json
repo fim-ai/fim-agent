@@ -27,7 +27,7 @@
   "unsupportedFileType": "{name}: unsupported file type",
   "fileTooLarge": "{name}: exceeds {limit}MB limit",
   "newUpdates": "New updates",
-  "recall": "Recall",
+  "recall": "Retract",
   "queued": "Queued...",
   "compactDivider": "Earlier context ({count} messages) was summarized by AI",
   "statusReplanning": "Re-planning...",

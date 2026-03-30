@@ -24,7 +24,7 @@
   "unsupportedFileType": "{name}: 지원되지 않는 파일 형식",
   "fileTooLarge": "{name}: {limit}MB 제한을 초과합니다",
   "newUpdates": "새로운 업데이트",
-  "recall": "회상",
+  "recall": "철회",
   "queued": "대기 중...",
   "compactDivider": "이전 컨텍스트 ({count}개 메시지)가 AI에 의해 요약되었습니다",
   "statusReplanning": "재계획 중...",

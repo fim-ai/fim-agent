@@ -24,7 +24,7 @@
   "unsupportedFileType": "{name}: nicht unterstützter Dateityp",
   "fileTooLarge": "{name}: überschreitet {limit}MB-Limit",
   "newUpdates": "Neue Updates",
-  "recall": "Abrufen",
+  "recall": "Zurückziehen",
   "queued": "In Warteschlange...",
   "compactDivider": "Früherer Kontext ({count} Nachrichten) wurde von KI zusammengefasst",
   "statusReplanning": "Wird neu geplant...",
