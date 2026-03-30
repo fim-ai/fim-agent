@@ -2897,8 +2897,8 @@ async def dag_endpoint(
 
     # Gate user-uploaded images: only send as vision content when model supports it
     if dag_image_data and not dag_model_supports_vision:
-        img_names = ", ".join(fname for _, fname, _ in dag_image_data)
-        q = f"{q}\n\n[Attached images (text-only model, not displayed): {img_names}]"
+        img_refs = ", ".join(f"{fname} (file_id: {fid})" for fid, fname, _ in dag_image_data)
+        q = f"{q}\n\n[Attached images (text-only model, not displayed): {img_refs}]"
 
     # Load document vision pages (PDF/DOCX/PPTX rendered as images for vision models)
     dag_doc_vision_urls: list[str] = []
@@ -2935,15 +2935,36 @@ async def dag_endpoint(
                     except json.JSONDecodeError:
                         pass
                 dag_final_metadata: dict[str, Any] = {}
+                dag_all_images: list[dict[str, str]] = []
                 if dag_image_data:
-                    dag_final_metadata["images"] = [
+                    dag_all_images.extend(
                         {
                             "file_id": fid,
                             "filename": fname,
                             "mime_type": durl.split(";")[0].split(":")[1],
+                            "source": "upload",
                         }
                         for fid, fname, durl in dag_image_data
-                    ]
+                    )
+                if dag_doc_vision_urls and image_ids and current_user_id:
+                    from fim_one.web.api.files import _load_index as _dag_dv_load
+
+                    _dag_dv_idx = _dag_dv_load(current_user_id)
+                    _DAG_DOC_EXTS = {".pdf", ".docx", ".doc", ".pptx", ".ppt"}
+                    for _dag_fid in image_ids.split(","):
+                        _dag_fid = _dag_fid.strip()
+                        _dag_meta = _dag_dv_idx.get(_dag_fid)
+                        if _dag_meta:
+                            _dag_name = str(_dag_meta.get("filename", ""))
+                            if Path(_dag_name).suffix.lower() in _DAG_DOC_EXTS:
+                                dag_all_images.append({
+                                    "file_id": _dag_fid,
+                                    "filename": _dag_name,
+                                    "mime_type": str(_dag_meta.get("mime_type", "")),
+                                    "source": "document",
+                                })
+                if dag_all_images:
+                    dag_final_metadata["images"] = dag_all_images
                 if dag_extra_meta:
                     dag_final_metadata.update(dag_extra_meta)
                 user_msg = MessageModel(
