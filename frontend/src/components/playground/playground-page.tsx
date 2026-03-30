@@ -133,6 +133,7 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
   const pendingNextTurnRef = useRef<string | null>(null)
   // Synchronous guard against duplicate submissions (React state is async)
   const sendingRef = useRef(false)
+  const autoSendingRef = useRef(false)
 
   // Detect post-processing phase directly from SSE messages
   const isPostProcessing = useMemo(() => {
@@ -268,8 +269,11 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
       const nextTurn = pendingNextTurnRef.current
       if (nextTurn) {
         pendingNextTurnRef.current = null
-        // Use setTimeout to let React flush state updates before starting new SSE
-        setTimeout(() => runWithQuery(nextTurn), 0)
+        autoSendingRef.current = true
+        queueMicrotask(() => {
+          autoSendingRef.current = false
+          runWithQuery(nextTurn)
+        })
         return // skip the failedInject restore — nextTurn takes priority
       }
       // Restore failed inject content to input box for user to re-send
@@ -296,7 +300,7 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
         if (isPostProcessing) {
           setQuery("")
           pendingNextTurnRef.current = trimmed
-          setPendingQuery(trimmed)
+          setInjectedMessages(prev => [...prev, { content: trimmed, ts: Date.now() }])
           return
         }
         setQuery("")
@@ -307,14 +311,13 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
           // Store the backend-assigned id for recall support
           setInjectedMessages(prev => prev.map(m => m.ts === ts ? { ...m, id: res.id } : m))
         } catch (err) {
-          setInjectedMessages(prev => prev.filter(m => m.ts !== ts))
           // 404 = interrupt queue already unregistered (agent entered post-processing).
-          // Queue the message for auto-send after the stream ends.
+          // Keep message in injectedMessages (visible) and queue for auto-send.
           if (err instanceof ApiError && err.status === 404) {
             pendingNextTurnRef.current = trimmed
-            setPendingQuery(trimmed)
             return
           }
+          setInjectedMessages(prev => prev.filter(m => m.ts !== ts))
           const msg = getErrorMessage(err, tError)
           toast.error(msg)
           failedInjectRef.current = trimmed
@@ -322,7 +325,7 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
         return
       }
 
-      if (isRunning || sendingRef.current) return
+      if (isRunning || sendingRef.current || autoSendingRef.current) return
       sendingRef.current = true
 
       // Clear input and show user message immediately
