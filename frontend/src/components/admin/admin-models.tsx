@@ -1350,10 +1350,11 @@ function GroupCard({ group, isActiveGroup, onEdit, onActivate, onDeactivate, onD
 // Import Model Config Dialog
 // ============================================================
 
-function ImportModelConfigDialog({ open, onOpenChange, onSuccess }: {
+function ImportModelConfigDialog({ open, onOpenChange, onSuccess, existingProviderNames }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  existingProviderNames: string[]
 }) {
   const t = useTranslations("admin.models")
   const tc = useTranslations("common")
@@ -1409,8 +1410,11 @@ function ImportModelConfigDialog({ open, onOpenChange, onSuccess }: {
 
       const descParts = [
         t("importCreated", { providers: data.created.providers, models: data.created.models, groups: data.created.groups }),
-        t("importSkipped", { providers: data.skipped.providers, models: data.skipped.models, groups: data.skipped.groups }),
       ]
+      if (data.updated && (data.updated.providers > 0 || data.updated.models > 0 || data.updated.groups > 0)) {
+        descParts.push(t("importUpdated", { providers: data.updated.providers, models: data.updated.models, groups: data.updated.groups }))
+      }
+      descParts.push(t("importSkipped", { providers: data.skipped.providers, models: data.skipped.models, groups: data.skipped.groups }))
       if (data.deleted && (data.deleted.providers > 0 || data.deleted.models > 0 || data.deleted.groups > 0)) {
         descParts.unshift(t("importDeleted", { providers: data.deleted.providers, models: data.deleted.models, groups: data.deleted.groups }))
       }
@@ -1488,18 +1492,28 @@ function ImportModelConfigDialog({ open, onOpenChange, onSuccess }: {
           {/* Provider API key inputs */}
           {providerNames.length > 0 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">{t("importApiKeysHint")}</p>
-              {providerNames.map((name) => (
-                <div key={name} className="space-y-1">
-                  <Label className="text-xs">{name}</Label>
-                  <Input
-                    type="password"
-                    placeholder={t("importApiKeyPlaceholder", { provider: name })}
-                    value={apiKeys[name] || ""}
-                    onChange={(e) => setApiKeys(prev => ({ ...prev, [name]: e.target.value }))}
-                  />
-                </div>
-              ))}
+              <p className="text-sm text-muted-foreground">
+                {clearExisting ? t("importApiKeysHintClear") : t("importApiKeysHintMerge")}
+              </p>
+              {providerNames.map((name) => {
+                const isExisting = !clearExisting && existingProviderNames.includes(name)
+                return (
+                  <div key={name} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">{name}</Label>
+                      <span className={cn("text-xs", isExisting ? "text-muted-foreground" : "text-orange-500")}>
+                        ({isExisting ? t("importProviderExisting") : t("importProviderNew")})
+                      </span>
+                    </div>
+                    <Input
+                      type="password"
+                      placeholder={isExisting ? t("importApiKeyPlaceholderExisting") : t("importApiKeyPlaceholder", { provider: name })}
+                      value={apiKeys[name] || ""}
+                      onChange={(e) => setApiKeys(prev => ({ ...prev, [name]: e.target.value }))}
+                    />
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -2006,6 +2020,7 @@ export function AdminModels() {
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
         onSuccess={loadAll}
+        existingProviderNames={providers.map(p => p.name)}
       />
     </div>
   )

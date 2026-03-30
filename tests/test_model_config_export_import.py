@@ -200,6 +200,7 @@ class TestImportSchemas:
     def test_import_summary_schema(self) -> None:
         summary = ModelConfigImportSummary(
             created={"providers": 2, "models": 3, "groups": 1},
+            updated={"providers": 0, "models": 2, "groups": 0},
             skipped={"providers": 0, "models": 1, "groups": 0},
             warnings=["Group 'X' general_model: model 'A/b' not found, set to null"],
         )
@@ -207,12 +208,14 @@ class TestImportSchemas:
         assert data["created"]["providers"] == 2
         assert data["created"]["models"] == 3
         assert data["created"]["groups"] == 1
+        assert data["updated"]["models"] == 2
         assert data["skipped"]["models"] == 1
         assert len(data["warnings"]) == 1
 
     def test_import_summary_empty_warnings(self) -> None:
         summary = ModelConfigImportSummary(
             created={"providers": 0, "models": 0, "groups": 0},
+            updated={"providers": 0, "models": 0, "groups": 0},
             skipped={"providers": 0, "models": 0, "groups": 0},
         )
         assert summary.warnings == []

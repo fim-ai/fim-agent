@@ -363,9 +363,8 @@
     "importConfig": "导入",
     "importTitle": "导入模型配置",
     "importDescription": "上传之前导出的 JSON 文件以添加提供商、模型和组。",
-    "importRules": "导入规则：仅添加新项目。现有提供商（按名称匹配）、模型（按提供商 + 模型 ID 匹配）和组（按名称匹配）将被跳过 — 不会修改或覆盖任何现有数据。导入的组默认处于非活跃状态。要替换提供商，请先删除它，然后导入。",
+    "importRules": "导入规则：现有提供商（按名称匹配）保持不变。现有模型（按提供商 + 模型 ID 匹配）将使用导入的设置（FC、JSON 模式、视觉等）进行更新。新项目将被创建。组（按名称匹配）将被跳过。导入的组默认处于非活跃状态。",
     "importSelectFile": "选择 JSON 文件",
-    "importApiKeysHint": "API 密钥永远不会包含在导出中。如果需要，请在此处提供：",
     "importApiKeyPlaceholder": "{provider} 的 API 密钥",
     "importing": "导入中...",
     "importSuccess": "导入完成",
@@ -385,7 +384,13 @@
     "visionColumn": "视觉",
     "tempColumn": "临时",
     "fcColumn": "FC",
-    "jsonColumn": "JSON"
+    "jsonColumn": "JSON",
+    "importApiKeysHintMerge": "现有提供商将保留其当前 API 密钥。仅新提供商需要密钥：",
+    "importApiKeysHintClear": "所有现有数据将被删除。所有提供商都需要 API 密钥：",
+    "importApiKeyPlaceholderExisting": "留空以保留现有密钥",
+    "importProviderExisting": "现有 — 将保留当前密钥",
+    "importProviderNew": "新提供商",
+    "importUpdated": "已更新：{providers} 个提供商、{models} 个模型、{groups} 个组"
   },
   "tools": {
     "title": "内置工具",

@@ -363,9 +363,8 @@
     "importConfig": "インポート",
     "importTitle": "モデル設定のインポート",
     "importDescription": "以前にエクスポートしたJSONファイルをアップロードして、プロバイダー、モデル、およびグループを追加します。",
-    "importRules": "インポートルール: 新しいアイテムのみが追加されます。既存のプロバイダー（名前で照合）、モデル（プロバイダー + モデルIDで照合）、およびグループ（名前で照合）はスキップされます。既存のデータは変更または上書きされません。インポートされたグループはデフォルトで非アクティブです。プロバイダーを置き換えるには、最初に削除してからインポートしてください。",
+    "importRules": "インポートルール: 既存のプロバイダー（名前で照合）は変更されません。既存のモデル（プロバイダー + モデルIDで照合）はインポートされた設定（FC、JSONモード、ビジョンなど）で更新されます。新しい項目が作成されます。グループ（名前で照合）はスキップされます。インポートされたグループはデフォルトで非アクティブです。",
     "importSelectFile": "JSONファイルを選択",
-    "importApiKeysHint": "APIキーはエクスポートに含まれません。必要に応じてここで提供してください:",
     "importApiKeyPlaceholder": "{provider}のAPIキー",
     "importing": "インポート中...",
     "importSuccess": "インポートが完了しました",
@@ -385,7 +384,13 @@
     "visionColumn": "ビジョン",
     "tempColumn": "一時",
     "fcColumn": "FC",
-    "jsonColumn": "JSON"
+    "jsonColumn": "JSON",
+    "importApiKeysHintMerge": "既存のプロバイダーは現在のAPIキーを保持します。新しいプロバイダーのみキーが必要です:",
+    "importApiKeysHintClear": "既存のデータはすべて削除されます。すべてのプロバイダーにAPIキーが必要です:",
+    "importApiKeyPlaceholderExisting": "既存のキーを保持するには空白のままにしてください",
+    "importProviderExisting": "既存 — 現在のキーを保持します",
+    "importProviderNew": "新しいプロバイダー",
+    "importUpdated": "更新完了: {providers}個のプロバイダー、{models}個のモデル、{groups}個のグループ"
   },
   "tools": {
     "title": "組み込みツール",

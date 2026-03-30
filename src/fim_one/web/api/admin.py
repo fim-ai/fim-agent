@@ -3001,13 +3001,16 @@ async def admin_import_model_config(
 ) -> ApiResponse:
     """Import model providers, models, and groups from an exported JSON payload.
 
-    Merge mode: skip existing entries (matched by name), create only new ones.
+    Merge mode: existing providers are skipped (api_key/base_url preserved),
+    but existing models are updated with imported settings (FC, JSON mode,
+    vision, temperature, etc.). New entries are created.
     Optionally supply ``api_keys`` mapping provider names to API key strings.
     """
     data = body.fim_model_config_v1
     api_keys = body.api_keys
 
     created = {"providers": 0, "models": 0, "groups": 0}
+    updated = {"providers": 0, "models": 0, "groups": 0}
     skipped = {"providers": 0, "models": 0, "groups": 0}
     warnings: list[str] = []
     deleted = {"providers": 0, "models": 0, "groups": 0}
@@ -3060,17 +3063,27 @@ async def admin_import_model_config(
             created["providers"] += 1
 
         # Process models for this provider
-        # Build set of existing model_names under this provider.
+        # Build dict of existing models keyed by model_name under this provider.
         # Newly created providers have no models yet — skip relationship
         # access to avoid MissingGreenlet in async context.
-        existing_model_names: set[str] = set()
+        existing_models: dict[str, ModelProviderModel] = {}
         if prov_data.name not in newly_created_providers:
             for m in (provider.models or []):
-                existing_model_names.add(m.model_name)
+                existing_models[m.model_name] = m
 
         for model_data in prov_data.models:
-            if model_data.model_name in existing_model_names:
-                skipped["models"] += 1
+            if model_data.model_name in existing_models:
+                # Update existing model settings
+                existing_model = existing_models[model_data.model_name]
+                existing_model.name = model_data.name
+                existing_model.temperature = model_data.temperature
+                existing_model.max_output_tokens = model_data.max_output_tokens
+                existing_model.context_size = model_data.context_size
+                existing_model.json_mode_enabled = model_data.json_mode_enabled
+                existing_model.tool_choice_enabled = model_data.tool_choice_enabled
+                existing_model.supports_vision = model_data.supports_vision
+                existing_model.is_active = model_data.is_active
+                updated["models"] += 1
             else:
                 model = ModelProviderModel(
                     provider_id=provider.id,
@@ -3169,6 +3182,7 @@ async def admin_import_model_config(
 
     detail_parts = [
         f"created: {created['providers']}p/{created['models']}m/{created['groups']}g",
+        f"updated: {updated['providers']}p/{updated['models']}m/{updated['groups']}g",
         f"skipped: {skipped['providers']}p/{skipped['models']}m/{skipped['groups']}g",
     ]
     if body.clear_existing:
@@ -3184,6 +3198,7 @@ async def admin_import_model_config(
 
     summary = ModelConfigImportSummary(
         created=created,
+        updated=updated,
         skipped=skipped,
         deleted=deleted,
         warnings=warnings,

@@ -363,9 +363,8 @@
     "importConfig": "Importieren",
     "importTitle": "Modellkonfiguration importieren",
     "importDescription": "Laden Sie eine zuvor exportierte JSON-Datei hoch, um Anbieter, Modelle und Gruppen hinzuzufügen.",
-    "importRules": "Importregeln: Nur neue Elemente werden hinzugefügt. Vorhandene Anbieter (nach Name abgeglichen), Modelle (nach Anbieter + Modell-ID abgeglichen) und Gruppen (nach Name abgeglichen) werden übersprungen – keine vorhandenen Daten werden geändert oder überschrieben. Importierte Gruppen sind standardmäßig inaktiv. Um einen Anbieter zu ersetzen, löschen Sie ihn zuerst und importieren Sie dann.",
+    "importRules": "Importregeln: Vorhandene Anbieter (nach Name abgeglichen) bleiben unverändert. Vorhandene Modelle (nach Anbieter + Modell-ID abgeglichen) werden mit importierten Einstellungen aktualisiert (FC, JSON-Modus, Vision usw.). Neue Elemente werden erstellt. Gruppen (nach Name abgeglichen) werden übersprungen. Importierte Gruppen sind standardmäßig inaktiv.",
     "importSelectFile": "JSON-Datei auswählen",
-    "importApiKeysHint": "API-Schlüssel sind niemals in Exporten enthalten. Geben Sie sie hier an, falls erforderlich:",
     "importApiKeyPlaceholder": "API-Schlüssel für {provider}",
     "importing": "Wird importiert...",
     "importSuccess": "Import abgeschlossen",
@@ -385,7 +384,13 @@
     "visionColumn": "Vision",
     "tempColumn": "Temp",
     "fcColumn": "FC",
-    "jsonColumn": "JSON"
+    "jsonColumn": "JSON",
+    "importApiKeysHintMerge": "Vorhandene Anbieter behalten ihre aktuellen API-Schlüssel. Nur neue Anbieter benötigen Schlüssel:",
+    "importApiKeysHintClear": "Alle vorhandenen Daten werden gelöscht. API-Schlüssel sind für alle Anbieter erforderlich:",
+    "importApiKeyPlaceholderExisting": "Leer lassen, um den vorhandenen Schlüssel zu behalten",
+    "importProviderExisting": "vorhanden — behält aktuellen Schlüssel",
+    "importProviderNew": "neuer Anbieter",
+    "importUpdated": "Aktualisiert: {providers} Anbieter, {models} Modelle, {groups} Gruppen"
   },
   "tools": {
     "title": "Integrierte Tools",

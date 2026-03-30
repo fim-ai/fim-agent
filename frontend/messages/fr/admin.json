@@ -363,9 +363,8 @@
     "importConfig": "Importer",
     "importTitle": "Importer la configuration du modèle",
     "importDescription": "Téléchargez un fichier JSON précédemment exporté pour ajouter des fournisseurs, des modèles et des groupes.",
-    "importRules": "Règles d'importation : Seuls les nouveaux éléments sont ajoutés. Les fournisseurs existants (identifiés par le nom), les modèles (identifiés par le fournisseur + l'ID du modèle) et les groupes (identifiés par le nom) seront ignorés — aucune donnée existante ne sera modifiée ou écrasée. Les groupes importés sont inactifs par défaut. Pour remplacer un fournisseur, supprimez-le d'abord, puis importez.",
+    "importRules": "Règles d'importation : Les fournisseurs existants (identifiés par nom) sont conservés inchangés. Les modèles existants (identifiés par fournisseur + ID de modèle) sont mis à jour avec les paramètres importés (FC, mode JSON, vision, etc.). Les nouveaux éléments sont créés. Les groupes (identifiés par nom) sont ignorés. Les groupes importés sont inactifs par défaut.",
     "importSelectFile": "Sélectionner un fichier JSON",
-    "importApiKeysHint": "Les clés API ne sont jamais incluses dans les exports. Fournissez-les ici si nécessaire :",
     "importApiKeyPlaceholder": "Clé API pour {provider}",
     "importing": "Importation en cours...",
     "importSuccess": "Importation terminée",
@@ -385,7 +384,13 @@
     "visionColumn": "Vision",
     "tempColumn": "Temp",
     "fcColumn": "FC",
-    "jsonColumn": "JSON"
+    "jsonColumn": "JSON",
+    "importApiKeysHintMerge": "Les fournisseurs existants conserveront leurs clés API actuelles. Seuls les nouveaux fournisseurs ont besoin de clés :",
+    "importApiKeysHintClear": "Toutes les données existantes seront supprimées. Des clés API sont requises pour tous les fournisseurs :",
+    "importApiKeyPlaceholderExisting": "Laissez vide pour conserver la clé existante",
+    "importProviderExisting": "existant — conservera la clé actuelle",
+    "importProviderNew": "nouveau fournisseur",
+    "importUpdated": "Mis à jour : {providers} fournisseurs, {models} modèles, {groups} groupes"
   },
   "tools": {
     "title": "Outils intégrés",

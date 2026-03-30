@@ -273,6 +273,7 @@ class ModelConfigImportSummary(BaseModel):
     """Summary of import results."""
 
     created: dict[str, int]  # { providers, models, groups }
+    updated: dict[str, int]  # { providers, models, groups }
     skipped: dict[str, int]  # { providers, models, groups }
     deleted: dict[str, int] = Field(
         default_factory=lambda: {"providers": 0, "models": 0, "groups": 0}
