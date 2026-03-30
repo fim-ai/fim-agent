@@ -1171,6 +1171,9 @@ function ProviderCard({
                     <th className="px-4 py-2 text-right font-medium text-muted-foreground text-xs">{t("contextSize")}</th>
                     <th className="px-4 py-2 text-right font-medium text-muted-foreground text-xs">{t("maxOutputTokens")}</th>
                     <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs">{tc("status")}</th>
+                    <th className="px-4 py-2 text-center font-medium text-muted-foreground text-xs">{t("tempColumn")}</th>
+                    <th className="px-4 py-2 text-center font-medium text-muted-foreground text-xs">{t("fcColumn")}</th>
+                    <th className="px-4 py-2 text-center font-medium text-muted-foreground text-xs">{t("jsonColumn")}</th>
                     <th className="px-4 py-2 text-center font-medium text-muted-foreground text-xs">{t("visionColumn")}</th>
                     <th className="px-4 py-2 text-right font-medium text-muted-foreground text-xs">{tc("actions")}</th>
                   </tr>
@@ -1186,6 +1189,21 @@ function ProviderCard({
                         <Badge variant="outline" className={`text-[10px] ${m.is_active ? "border-green-500/40 text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
                           {m.is_active ? t("active") : t("inactive")}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-center font-mono text-xs text-muted-foreground">{m.temperature != null ? m.temperature : "—"}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        {m.tool_choice_enabled ? (
+                          <Check className="h-4 w-4 text-green-600 dark:text-green-400 inline-block" />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        {m.json_mode_enabled ? (
+                          <Check className="h-4 w-4 text-green-600 dark:text-green-400 inline-block" />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         {m.supports_vision ? (

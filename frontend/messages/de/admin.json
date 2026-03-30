@@ -382,7 +382,10 @@
     "importDeleted": "Gelöscht: {providers} Anbieter, {models} Modelle, {groups} Gruppen",
     "supportsVision": "Vision-Unterstützung",
     "supportsVisionDesc": "Aktivieren Sie diese Option, wenn das Modell Bild-/Vision-Eingaben unterstützt (z. B. GPT-4o, Claude 3/4, Gemini). Wenn aktiviert, werden hochgeladene PDF-Seiten als Bilder dargestellt, um ein besseres Dokumentverständnis zu ermöglichen.",
-    "visionColumn": "Vision"
+    "visionColumn": "Vision",
+    "tempColumn": "Temp",
+    "fcColumn": "FC",
+    "jsonColumn": "JSON"
   },
   "tools": {
     "title": "Integrierte Tools",

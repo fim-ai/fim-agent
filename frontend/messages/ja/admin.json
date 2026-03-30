@@ -382,7 +382,10 @@
     "importDeleted": "削除済み: {providers} プロバイダー、{models} モデル、{groups} グループ",
     "supportsVision": "ビジョンサポート",
     "supportsVisionDesc": "このモデルが画像/ビジョン入力をサポートしている場合は有効にしてください（例：GPT-4o、Claude 3/4、Gemini）。有効にすると、アップロードされたPDFページは、より高忠実度のドキュメント理解のために画像としてレンダリングされます。",
-    "visionColumn": "ビジョン"
+    "visionColumn": "ビジョン",
+    "tempColumn": "一時",
+    "fcColumn": "FC",
+    "jsonColumn": "JSON"
   },
   "tools": {
     "title": "組み込みツール",
