@@ -90,10 +90,12 @@ quadrantChart
 | 용어 | 한 줄 설명 | FIM One과의 관계 |
 |------|---------------------|----------------------|
 | **BPM** (Business Process Management) | 설계 시점에 완전히 고정된 프로세스로 엄격하게 실행됨. Camunda, Activiti. | FIM One은 **BPM이 아님**. 고정된 프로세스 엔진 없음. |
-| **FSM** (Finite State Machine) | 시스템이 항상 정확히 하나의 상태에 있으며, 이벤트가 전환을 트리거함. 루프 지원 (거절 → 재제출). | 대상 시스템 (ERP, 계약 시스템)은 내부적으로 FSM 사용. FIM One은 **자체 FSM이 필요 없음** -- 대상 시스템의 API를 호출함. |
-| **ACM** (Adaptive Case Management) | 골격은 정적이고 분기는 동적. 주요 흐름은 사전 정의되고 각 노드는 런타임에 적응. | FIM One의 DAG + ReAct는 자연스럽게 이 영역에 해당. |
-| **HTN** (Hierarchical Task Network) | 재귀적 작업 분해: 고수준 → 하위 작업 → 원자적 작업. | DAG 재계획이 대부분의 시나리오를 커버함. 아직 완전한 HTN은 필요 없음. |
-| **iPaaS** (Integration Platform as a Service) | 여러 SaaS/온프레미스 시스템을 연결하는 클라우드 통합 플랫폼. MuleSoft, Zapier. | FIM One의 Hub Mode는 **AI 네이티브 iPaaS** 같음 -- 자연어가 시스템 간 통합을 주도. |
+| **FSM** (Finite State Machine) | 시스템이 언제든 정확히 하나의 상태에 있으며, 이벤트가 전환을 트리거함. 루프 지원(거부 → 재제출). | 대상 시스템(ERP, 계약 시스템)은 내부적으로 FSM 사용. FIM One은 **자체 FSM이 필요 없음** -- 대상 시스템의 API를 호출함. |
+| **ACM** (Adaptive Case Management) | 골격은 정적, 분기는 동적. 주요 흐름은 사전 정의되고, 각 노드는 런타임에 적응함. | FIM One의 DAG + ReAct는 자연스럽게 이 영역에 해당함. |
+| **HTN** (Hierarchical Task Network) | 재귀적 작업 분해: 상위 수준 → 하위 작업 → 원자적 작업. | DAG 재계획이 대부분의 시나리오를 커버함; 아직 전체 HTN은 필요 없음. |
+| **iPaaS** (Integration Platform as a Service) | 여러 SaaS/온프레미스 시스템을 연결하는 클라우드 통합 플랫폼. MuleSoft, Zapier. | FIM One의 Hub Mode는 **AI 네이티브 iPaaS**와 같음 -- 자연어가 시스템 간 통합을 주도함. |
+| **MDM** (Master Data Management) | 시스템 전체에서 엔티티 레코드를 중복 제거하고 통합하여 "황금 레코드"로 만듦. Reltio, Informatica, Tamr. | FIM One은 **MDM 시스템에 연결됨**; 엔티티 해석을 복제하지 않음. |
+| **Context Layer / System of Context** | AI 에이전트에 신뢰할 수 있는 비즈니스 컨텍스트를 제공하는 통합 엔티티 + 관계 그래프. Reltio에서 대중화된 용어(2026). | FIM One은 이를 업스트림 MDM/데이터 플랫폼에 위임함. 스킬은 일반적인 경우에 대한 경량 집계를 제공함. |
 
 ## 아키텍처 경계: FIM One은 워크플로우 로직을 복제하지 않음
 
@@ -116,6 +118,123 @@ quadrantChart
 3. 추가 가치 제공 없음 (대상 시스템이 이미 올바르게 수행)
 
 커넥터 패턴은 설계상 단순합니다: **하나의 작업 = 하나의 API 호출**.
+
+## Architecture Boundary: Connector Layer, Not Context Layer
+
+Enterprise AI is converging on a layered architecture for agent context:
+
+| Layer | What it does | Representative players |
+|-------|-------------|----------------------|
+| **Decision Traces** | Records *why* something happened -- audit trails, lineage | Palantir Decision Lineage, Arize |
+| **Entity Context** | Unified golden records + relationship graphs -- the "System of Context" | Reltio/SAP, Informatica/Salesforce, Tamr |
+| **Data Connectivity** | Connects agents to source systems via APIs and protocols | **FIM One**, CData, MCP ecosystem |
+| **Source Systems** | CRM, ERP, contract management, databases, SaaS apps | SAP, Salesforce, custom systems |
+
+FIM One operates at the **data connectivity layer**. It does not attempt to build the entity context layer above it. This is a deliberate choice, not a gap.
+
+### 산업 맥락: 2025-2026년 통합
+
+두 개의 획기적인 인수합병이 엔터프라이즈 AI 데이터 환경을 재편성했으며 컨텍스트 계층을 전략적 경쟁 무대로 만들었습니다:
+
+- **Salesforce가 Informatica 인수** (2025년 11월) -- 엔터프라이즈 MDM 및 데이터 거버넌스를 Data Cloud + Agentforce 스택에 추가했습니다. 목표: Informatica의 골든 레코드를 기반으로 Agentforce 에이전트를 신뢰할 수 있게 만들기.
+- **SAP가 Reltio 인수 발표** (2026년 3월) -- AI 네이티브 엔티티 해석 및 관계 그래프를 Business Data Cloud(BDC)에 추가했습니다. 목표: SAP 및 비SAP 환경에 걸쳐 있는 "System of Context"를 생성하여 Joule 에이전트의 신뢰할 수 있는 기반으로 제공.
+
+이러한 움직임은 세계 최대 규모의 엔터프라이즈 플랫폼들이 이제 통합된 엔티티 컨텍스트를 신뢰할 수 있는 AI 에이전트의 필수 요소로 간주하고 있음을 시사합니다 -- 선택 사항이 아닙니다.
+
+### 데이터 소유권 × 컨텍스트 깊이 스펙트럼
+
+```mermaid
+quadrantChart
+    title Data Ownership × Context Depth
+    x-axis "Federated / Pass-through" --> "Centralized / Copy-in"
+    y-axis "Raw Connectivity (APIs)" --> "Entity Intelligence (Golden Records)"
+    quadrant-1 "Deep Ontology Platform"
+    quadrant-2 "Context-Aware Hub"
+    quadrant-3 "Lightweight Connector"
+    quadrant-4 "Data Warehouse / Lake"
+    Dify: [0.15, 0.20]
+    n8n: [0.20, 0.15]
+    CData: [0.25, 0.25]
+    MCP Ecosystem: [0.30, 0.20]
+    ★ FIM One: [0.25, 0.35]
+    Tamr: [0.55, 0.65]
+    DataHub: [0.35, 0.45]
+    Salesforce Data Cloud: [0.40, 0.70]
+    SAP BDC + Reltio: [0.70, 0.80]
+    Palantir Foundry: [0.90, 0.90]
+```
+
+**차트 읽기:**
+
+- **왼쪽 아래 (경량 커넥터)**: 최소한의 데이터 소유권, 원시 API 연결성. Dify, n8n, 기본 MCP 서버가 여기에 위치합니다 -- 시스템에 연결되지만 엔티티를 이해하지 못합니다. FIM One은 이 사분면에 있지만 점진적 공개 메타 도구, 스킬 기반 컨텍스트 집계, 도메인 인식 에스컬레이션으로 인해 y축에서 더 높은 위치에 있습니다.
+- **왼쪽 위 (컨텍스트 인식 허브)**: 엔티티 수준 이해를 갖춘 연합 액세스. Salesforce Data Cloud가 이를 예시합니다 -- 제로 카피 연합과 온디맨드 엔티티 해석. DataHub는 비즈니스 데이터를 소유하지 않으면서 메타데이터 수준 컨텍스트(스키마, 계보, 소유권)를 제공합니다.
+- **오른쪽 위 (심층 온톨로지 플랫폼)**: 완전한 데이터 수집과 심층 엔티티 인텔리전스. SAP BDC + Reltio는 관계 그래프를 포함한 지속적인 다중 도메인 골든 레코드를 구축합니다. Palantir는 가장 멀리 나아갑니다 -- 의사결정 계보를 포함한 3계층 온톨로지.
+- **오른쪽 아래 (데이터 웨어하우스 / 레이크)**: 엔티티 의미론 없는 중앙화된 데이터 저장소. 모든 것을 수집하지만 엔티티 해석이나 관계 모델링이 부족한 전통적인 데이터 플랫폼.
+
+FIM One의 위치는 의도적인 선택을 반영합니다: 연합 및 경량 상태를 유지하되, 업스트림 엔티티 컨텍스트(모든 MDM에서)를 에이전트가 쉽게 액세스할 수 있도록 투자합니다.
+
+### 세 가지 엔티티 컨텍스트 모델
+
+**SAP: 다중 도메인 골든 레코드 (복사 입력 + 거버넌스)**
+
+SAP는 3계층 엔터프라이즈 아키텍처를 구축하고 있습니다:
+
+| 계층 | 시스템 | 역할 |
+|-------|--------|------|
+| **트랜잭션** | S/4HANA | 비즈니스 실행 -- 주문, 송장, 배송 |
+| **인텔리전스** | Business Data Cloud (BDC) + Reltio | 의미론적 통합, 엔티티 해석, 관계 그래프 |
+| **에이전트** | Joule + Joule Agents | 의도 이해, 도구 오케스트레이션, 자율 실행 |
+
+Reltio는 인텔리전스 계층의 중심에 위치합니다. 역할: SAP 및 비-SAP 시스템에서 엔티티 데이터를 수집하고, AI 기반 매칭을 통해 중복을 해석하며, 관계 그래프와 함께 **다중 도메인 골든 레코드**(고객, 공급업체, 제품, 환자, 자산)를 생성합니다. Reltio의 **MCP 프로토콜** 조기 채택은 전략적으로 중요합니다 -- 골든 레코드를 SAP의 Joule뿐만 아니라 모든 MCP 호환 에이전트가 직접 호출할 수 있도록 위치시킵니다.
+
+SAP의 베팅: 에이전트는 고위험 엔터프라이즈 프로세스에서 안정적으로 운영하기 위해 지속적이고 거버넌스되는 교차 도메인 "단일 정보 소스"가 필요합니다.
+
+**Salesforce: 제로 카피 페더레이션 (페더레이션 + 온디맨드 해석)**
+
+Salesforce는 더 가벼운 접근 방식을 취합니다. Data Cloud는 물리적 데이터 이동을 요구하지 않습니다. 대신 **제로 카피 파트너십**(Databricks, Snowflake, BigQuery)을 사용하여 데이터를 제자리에서 페더레이션합니다. 엔티티 해석은 Data Cloud 내에서 온디맨드로 발생하여 지속적인 골든 레코드 저장소 없이 통합된 고객 프로필을 생성합니다.
+
+핵심 수치 (Q3 FY2026): Data Cloud는 32조 개의 레코드를 수집했으며, 이 중 15조 개는 제로 카피를 통해 수집했습니다 (전년 대비 341% 성장). 이 규모는 CRM 중심 사용 사례에 대한 페더레이션 모델을 검증합니다.
+
+Agentforce 에이전트는 이 페더레이션된 컨텍스트에 기반합니다: 모든 데이터가 한 시스템에 도착하도록 요구하지 않고 분산된 데이터 자산 전체에서 추론합니다. 프론트 오피스 시나리오(영업, 서비스, 마케팅)의 경우 이는 유연하고 배포가 빠릅니다.
+
+Salesforce의 베팅: 에이전트는 무거운 골든 레코드 저장소가 필요하지 않습니다 -- 데이터가 이미 있는 곳에서 페더레이션되고 해석된 컨텍스트에 대한 실시간 액세스가 필요합니다.
+
+**Palantir: 심층 온톨로지 (무거운 참조)**
+
+극단적인 끝에서 Palantir Foundry는 모든 데이터를 수집하고 완전한 의사 결정 계보를 가진 3계층 온톨로지(의미론적 객체 + 운동 작업 + 동적 규칙)를 구축합니다. 이것은 프로덕션에서 가장 완전한 컨텍스트 시스템이지만 $10M+ 계약 및 6-18개월 배포 비용이 듭니다. 대부분의 조직에 현실적인 모델이 아닌 참조 아키텍처로 제공됩니다.
+
+### FIM One의 위치
+
+| 차원 | SAP + Reltio | Salesforce + Informatica | FIM One |
+|-----------|-------------|-------------------------|---------|
+| **데이터 철학** | Copy-in: BDC에 수집, 골든 레코드 구축 | Federate: 제로 카피 액세스, 온디맨드 해결 | Pass-through: 소스에 연결, 저장하지 않음 |
+| **엔티티 해결** | 심화 -- AI 기반 MDM과 관계 그래프 | 중간 -- Data Cloud 엔티티 해결 | 없음 -- 업스트림 MDM에 위임 |
+| **에이전트 통합** | Joule Agents + MCP | Agentforce + Data Cloud grounding | 모든 에이전트 + 모든 커넥터 |
+| **배포 비용** | 엔터프라이즈 플랫폼 가격 | 엔터프라이즈 SaaS 가격 | 경량, 몇 시간에서 며칠 |
+| **종속성** | 높음 (BDC + S/4HANA 에코시스템) | 중간 (Salesforce 에코시스템) | 낮음 -- 커넥터는 상호 교환 가능 |
+| **최적 사용 사례** | 제조, 공급망, 생명과학 (복잡한 다중 도메인) | CRM 중심 기업 (프론트 오피스 포커스) | 중견기업, 다중 시스템, 공급자 무관 |
+
+FIM One은 **Salesforce 철학**(데이터를 소유하지 말고 연결하라)과 가장 밀접하게 정렬되어 있지만, Salesforce 에코시스템 종속성 없이 제공됩니다. 전략적 위치: 연결성 계층에서 공급자 무관 상태를 유지하고, SAP/Reltio, Salesforce/Informatica, Tamr 또는 커스텀 솔루션 등 모든 MDM이 엔티티 컨텍스트 소스로 역할하도록 합니다.
+
+### FIM One이 커넥터 레이어에 머물러 있는 이유
+
+엔티티 컨텍스트 레이어를 구축하려면 지속적인 데이터 저장소, ML 기반 엔티티 해석, 생존 규칙, 관계 그래프 엔진, 거버넌스 프레임워크가 필요합니다. 이는 별개의 제품 카테고리(MDM)이며 10년 이상의 경쟁 역사가 있습니다(Reltio, Informatica, Tamr). 이를 시도하면:
+
+1. **FIM One을 커넥터에서 데이터 플랫폼으로 변환** -- 근본적으로 다른 제품, 팀, 시장 진출 전략
+2. **업스트림 시스템이 이미 제공하는 기능 중복** -- 워크플로우 로직에서 피하는 것과 동일한 안티패턴
+3. **잠금 증가** -- 사용자가 FIM One에 골든 레코드를 저장하면 전환 비용이 급격히 증가
+
+올바른 전략: **모든 MDM 시스템의 최고의 진입점이 되기**, MDM의 대체품이 아니기. FIM One은 Reltio, Informatica, Tamr 또는 커스텀 MDM이 MCP 리소스, 커넥터 API 또는 지식 베이스 주입을 통해 에이전트에 엔티티 컨텍스트를 제공하는 것을 간단하게 만들어야 합니다.
+
+### 현재 접근 방식: 경량 컨텍스트 집계로서의 스킬
+
+여러 커넥터에 걸친 컨텍스트가 필요한 시나리오(예: 공급업체 데이터 + 결제 이력 + 위험 플래그가 필요한 계약 검토)의 경우, **스킬**은 이미 실용적인 솔루션을 제공합니다. 스킬의 SOP는 여러 커넥터 작업을 순차적으로 조율하고, 결과를 집계하며, 구조화된 컨텍스트를 에이전트에 제시할 수 있습니다. 이는 영구적인 엔티티 계층을 구축할 필요 없이 가능합니다.
+
+이는 80%의 사용 사례를 다룹니다. 커넥터 수준에서 실시간 엔티티 해석에 대한 수요가 발생하면, 아키텍처는 외부 MDM 시스템과 통합되는 향후 `ContextSource` 커넥터 타입을 위한 여지를 남깁니다. 하지만 이는 향후 고려 사항이지, 현재의 약속은 아닙니다.
+
+### 유추
+
+FIM One과 컨텍스트 레이어의 관계는 SQLAlchemy와 데이터베이스의 관계와 같습니다. 데이터를 저장하거나 관리하지 않지만, 애플리케이션 레이어에서 모든 데이터 소스에 접근할 수 있게 합니다. MDM 플랫폼이 엔티티 해석을 소유하도록 하고, FIM One이 연결을 소유하도록 하세요.
 
 ## FIM One이 AI 스택에서의 위치
 

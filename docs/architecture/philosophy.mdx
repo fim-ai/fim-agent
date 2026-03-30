@@ -94,6 +94,8 @@ For readers unfamiliar with the terminology used in this document:
 | **ACM** (Adaptive Case Management) | Skeleton static, branches dynamic. Main flow pre-defined, each node adapts at runtime. | FIM One's DAG + ReAct naturally falls in this quadrant. |
 | **HTN** (Hierarchical Task Network) | Recursive task decomposition: high-level → subtasks → atomic operations. | DAG re-planning covers most scenarios; full HTN not needed yet. |
 | **iPaaS** (Integration Platform as a Service) | Cloud integration platform connecting multiple SaaS/on-prem systems. MuleSoft, Zapier. | FIM One's Hub Mode is like **AI-native iPaaS** -- natural language drives cross-system integration. |
+| **MDM** (Master Data Management) | Deduplicates and unifies entity records across systems into a "golden record." Reltio, Informatica, Tamr. | FIM One **connects to** MDM systems; it does not replicate entity resolution. |
+| **Context Layer / System of Context** | Unified entity + relationship graph that gives AI agents trusted business context. Term popularized by Reltio (2026). | FIM One delegates this to upstream MDM/data platforms. Skills provide lightweight aggregation for common cases. |
 
 ## Architecture Boundary: FIM One Does Not Replicate Workflow Logic
 
@@ -116,6 +118,123 @@ This is a **deliberate architectural boundary**, not a capability gap. Duplicati
 3. Provide zero additional value (the target system already does this correctly)
 
 The connector pattern is simple by design: **one operation = one API call**.
+
+## Architecture Boundary: Connector Layer, Not Context Layer
+
+Enterprise AI is converging on a layered architecture for agent context:
+
+| Layer | What it does | Representative players |
+|-------|-------------|----------------------|
+| **Decision Traces** | Records *why* something happened -- audit trails, lineage | Palantir Decision Lineage, Arize |
+| **Entity Context** | Unified golden records + relationship graphs -- the "System of Context" | Reltio/SAP, Informatica/Salesforce, Tamr |
+| **Data Connectivity** | Connects agents to source systems via APIs and protocols | **FIM One**, CData, MCP ecosystem |
+| **Source Systems** | CRM, ERP, contract management, databases, SaaS apps | SAP, Salesforce, custom systems |
+
+FIM One operates at the **data connectivity layer**. It does not attempt to build the entity context layer above it. This is a deliberate choice, not a gap.
+
+### Industry context: the 2025-2026 consolidation
+
+Two landmark acquisitions reshaped the enterprise AI data landscape and made the context layer a strategic battleground:
+
+- **Salesforce acquired Informatica** (November 2025) -- adding enterprise MDM and data governance to its Data Cloud + Agentforce stack. The goal: make Agentforce agents trustworthy by grounding them in Informatica's golden records.
+- **SAP announced acquisition of Reltio** (March 2026) -- adding AI-native entity resolution and relationship graphs to its Business Data Cloud (BDC). The goal: create a "System of Context" that spans SAP and non-SAP environments, serving as the trusted foundation for Joule Agents.
+
+These moves signal that the world's largest enterprise platforms now consider unified entity context a prerequisite for reliable AI agents -- not a nice-to-have.
+
+### Data ownership × Context depth spectrum
+
+```mermaid
+quadrantChart
+    title Data Ownership × Context Depth
+    x-axis "Federated / Pass-through" --> "Centralized / Copy-in"
+    y-axis "Raw Connectivity (APIs)" --> "Entity Intelligence (Golden Records)"
+    quadrant-1 "Deep Ontology Platform"
+    quadrant-2 "Context-Aware Hub"
+    quadrant-3 "Lightweight Connector"
+    quadrant-4 "Data Warehouse / Lake"
+    Dify: [0.15, 0.20]
+    n8n: [0.20, 0.15]
+    CData: [0.25, 0.25]
+    MCP Ecosystem: [0.30, 0.20]
+    ★ FIM One: [0.25, 0.35]
+    Tamr: [0.55, 0.65]
+    DataHub: [0.35, 0.45]
+    Salesforce Data Cloud: [0.40, 0.70]
+    SAP BDC + Reltio: [0.70, 0.80]
+    Palantir Foundry: [0.90, 0.90]
+```
+
+**Reading the chart:**
+
+- **Bottom-left (Lightweight Connector)**: minimal data ownership, raw API connectivity. Dify, n8n, and basic MCP servers live here -- they connect to systems but don't understand entities. FIM One is in this quadrant but higher on the y-axis due to progressive-disclosure meta-tools, Skill-based context aggregation, and domain-aware escalation.
+- **Top-left (Context-Aware Hub)**: federated access with entity-level understanding. Salesforce Data Cloud exemplifies this -- zero-copy federation with on-demand entity resolution. DataHub provides metadata-level context (schema, lineage, ownership) without owning business data.
+- **Top-right (Deep Ontology Platform)**: full data ingestion with deep entity intelligence. SAP BDC + Reltio builds persistent multi-domain golden records with relationship graphs. Palantir goes furthest -- three-layer ontology with decision lineage.
+- **Bottom-right (Data Warehouse / Lake)**: centralized data storage without entity semantics. Traditional data platforms that ingest everything but lack entity resolution or relationship modeling.
+
+FIM One's position reflects a deliberate choice: stay federated and lightweight, but invest in making upstream entity context (from any MDM) easily accessible to agents.
+
+### Three models for entity context
+
+**SAP: multi-domain golden record (copy-in + govern)**
+
+SAP is building a three-layer enterprise architecture:
+
+| Layer | System | Role |
+|-------|--------|------|
+| **Transaction** | S/4HANA | Business execution -- orders, invoices, deliveries |
+| **Intelligence** | Business Data Cloud (BDC) + Reltio | Semantic integration, entity resolution, relationship graphs |
+| **Agent** | Joule + Joule Agents | Intent understanding, tool orchestration, autonomous execution |
+
+Reltio sits at the heart of the intelligence layer. Its job: ingest entity data from SAP and non-SAP systems, resolve duplicates via AI-based matching, and produce **multi-domain golden records** (customer, supplier, product, patient, asset) with relationship graphs. Reltio's early adoption of the **MCP protocol** is strategically significant -- it positions golden records as directly callable by any MCP-compatible agent, not just SAP's own Joule.
+
+SAP's bet: agents need a persistent, governed, cross-domain "single source of truth" to operate reliably in high-stakes enterprise processes.
+
+**Salesforce: zero-copy federation (federate + resolve on demand)**
+
+Salesforce takes a lighter approach. Data Cloud does not require physical data movement; instead it uses **zero-copy partnerships** (Databricks, Snowflake, BigQuery) to federate data in place. Entity resolution happens on demand within Data Cloud, creating unified customer profiles without a persistent golden record store.
+
+Key numbers (Q3 FY2026): Data Cloud ingested 32 trillion records, with 15 trillion via zero-copy (341% YoY growth). This scale validates the federation model for CRM-centric use cases.
+
+Agentforce agents are grounded in this federated context: they reason across the distributed data estate without requiring all data to land in one system. For front-office scenarios (sales, service, marketing), this is flexible and fast to deploy.
+
+Salesforce's bet: agents don't need a heavyweight golden record store -- they need real-time access to federated, resolved context where it already lives.
+
+**Palantir: deep ontology (the heavyweight reference)**
+
+At the extreme end, Palantir Foundry ingests all data and builds a three-layer ontology (semantic objects + kinetic actions + dynamic rules) with full decision lineage. This is the most complete context system in production, but at $10M+ contracts and 6-18 month deployments. It serves as a reference architecture, not a realistic model for most organizations.
+
+### Where FIM One fits
+
+| Dimension | SAP + Reltio | Salesforce + Informatica | FIM One |
+|-----------|-------------|-------------------------|---------|
+| **Data philosophy** | Copy-in: ingest into BDC, build golden records | Federate: zero-copy access, resolve on demand | Pass-through: connect to source, don't store |
+| **Entity resolution** | Deep -- AI-native MDM with relationship graphs | Medium -- Data Cloud entity resolution | None -- delegates to upstream MDM |
+| **Agent integration** | Joule Agents + MCP | Agentforce + Data Cloud grounding | Any agent + any connector |
+| **Deployment cost** | Enterprise platform pricing | Enterprise SaaS pricing | Lightweight, hours to days |
+| **Lock-in** | High (BDC + S/4HANA ecosystem) | Medium (Salesforce ecosystem) | Low -- connectors are interchangeable |
+| **Best fit** | Manufacturing, supply chain, life sciences (complex multi-domain) | CRM-driven enterprises (front-office focus) | Mid-market, multi-system, provider-agnostic |
+
+FIM One aligns most closely with the **Salesforce philosophy** (don't own the data, connect to it) but without the Salesforce ecosystem dependency. The strategic position: be provider-agnostic at the connectivity layer, and let any MDM -- whether SAP/Reltio, Salesforce/Informatica, Tamr, or a custom solution -- serve as the entity context source.
+
+### Why FIM One stays at the connector layer
+
+Building an entity context layer requires persistent data storage, ML-based entity resolution, survivorship rules, relationship graph engines, and governance frameworks. This is a distinct product category (MDM) with decade-deep competition (Reltio, Informatica, Tamr). Attempting it would:
+
+1. **Transform FIM One from a connector into a data platform** -- fundamentally different product, team, and go-to-market
+2. **Duplicate capabilities that upstream systems already provide** -- the same anti-pattern we avoid with workflow logic
+3. **Increase lock-in** -- once users store golden records in FIM One, switching costs rise dramatically
+
+The correct strategy: **be the best ingress point for any MDM system**, not a replacement for one. FIM One should make it trivial for Reltio, Informatica, Tamr, or a custom MDM to serve entity context to agents -- via MCP Resources, connector APIs, or knowledge base injection.
+
+### Current approach: Skills as lightweight context aggregation
+
+For scenarios that need cross-connector context (e.g., contract review requiring supplier data + payment history + risk flags), **Skills** already provide a pragmatic solution. A Skill's SOP can orchestrate multiple connector actions in sequence, aggregate results, and present structured context to the agent -- without building a persistent entity layer.
+
+This covers the 80% case. If demand emerges for real-time entity resolution at the connector level, the architecture leaves room for a future `ContextSource` connector type that integrates with external MDM systems -- but that is a future consideration, not a current commitment.
+
+### The analogy
+
+FIM One's relationship to the context layer is like SQLAlchemy's relationship to the database: it does not store or manage data, but it makes any data source accessible to the application layer. Let MDM platforms own entity resolution; let FIM One own the connection.
 
 ## Where FIM One Sits in the AI Stack
 

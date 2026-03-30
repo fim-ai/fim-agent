@@ -89,11 +89,13 @@ Für Leser, die mit der in diesem Dokument verwendeten Terminologie nicht vertra
 
 | Begriff | Einzeilige Erklärung | Bezug zu FIM One |
 |------|---------------------|----------------------|
-| **BPM** (Business Process Management) | Prozesse vollständig zur Entwurfszeit festgelegt, starr ausgeführt. Camunda, Activiti. | FIM One ist **kein** BPM. Keine feste Process Engine. |
-| **FSM** (Finite State Machine) | System befindet sich zu jedem Zeitpunkt in genau einem Zustand; Ereignisse lösen Übergänge aus. Unterstützt Schleifen (Ablehnung → Neueinreichung). | Zielsysteme (ERP, Vertragssysteme) verwenden FSM intern. FIM One **benötigt** keine eigene FSM -- es ruft die API des Zielsystems auf. |
-| **ACM** (Adaptive Case Management) | Skelett statisch, Verzweigungen dynamisch. Hauptfluss vordefiniert, jeder Knoten passt sich zur Laufzeit an. | FIM Ones DAG + ReAct fällt natürlich in diesen Quadranten. |
-| **HTN** (Hierarchical Task Network) | Rekursive Aufgabenzerlegung: High-Level → Unteraufgaben → atomare Operationen. | DAG-Neuplanung deckt die meisten Szenarien ab; vollständiges HTN noch nicht erforderlich. |
-| **iPaaS** (Integration Platform as a Service) | Cloud-Integrations-Plattform, die mehrere SaaS-/On-Prem-Systeme verbindet. MuleSoft, Zapier. | FIM Ones Hub Mode ist wie **AI-natives iPaaS** -- natürliche Sprache treibt systemübergreifende Integration voran. |
+| **BPM** (Business Process Management) | Prozesse vollständig zur Entwurfszeit festgelegt, starr ausgeführt. Camunda, Activiti. | FIM One ist **keine** BPM. Keine feste Process Engine. |
+| **FSM** (Finite State Machine) | System befindet sich zu jedem Zeitpunkt in genau einem Zustand; Ereignisse lösen Übergänge aus. Unterstützt Schleifen (ablehnen → erneut einreichen). | Zielsysteme (ERP, Vertragssysteme) verwenden FSM intern. FIM One **benötigt keine** eigene FSM -- es ruft die API des Zielsystems auf. |
+| **ACM** (Adaptive Case Management) | Skelett statisch, Verzweigungen dynamisch. Hauptfluss vordefiniert, jeder Knoten passt sich zur Laufzeit an. | FIM Ones DAG + ReAct fällt natürlicherweise in diesen Quadranten. |
+| **HTN** (Hierarchical Task Network) | Rekursive Taskzerlegung: High-Level → Subtasks → atomare Operationen. | DAG-Neuplanung deckt die meisten Szenarien ab; vollständiges HTN noch nicht erforderlich. |
+| **iPaaS** (Integration Platform as a Service) | Cloud-Integrationsplattform, die mehrere SaaS-/On-Prem-Systeme verbindet. MuleSoft, Zapier. | FIM Ones Hub Mode ist wie **KI-native iPaaS** -- natürliche Sprache treibt systemübergreifende Integration. |
+| **MDM** (Master Data Management) | Dedupliziert und vereinheitlicht Entity-Datensätze systemübergreifend zu einem „Golden Record". Reltio, Informatica, Tamr. | FIM One **verbindet sich mit** MDM-Systemen; es repliziert nicht die Entity-Auflösung. |
+| **Context Layer / System of Context** | Einheitlicher Entity- und Beziehungsgraph, der KI-Agenten vertrauenswürdigen Geschäftskontext bietet. Begriff popularisiert von Reltio (2026). | FIM One delegiert dies an vorgelagerte MDM-/Datenplattformen. Skills bieten leichte Aggregation für häufige Fälle. |
 
 ## Architektur-Grenze: FIM One repliziert keine Workflow-Logik
 
@@ -116,6 +118,123 @@ Dies ist eine **bewusste architektonische Grenze**, keine Funktionslücke. Die D
 3. Keinen zusätzlichen Wert bieten (das Zielsystem macht dies bereits korrekt)
 
 Das Konnektor-Muster ist absichtlich einfach gestaltet: **eine Operation = ein API-Aufruf**.
+
+## Architecture Boundary: Connector Layer, Not Context Layer
+
+Enterprise AI konvergiert auf eine geschichtete Architektur für Agenten-Kontext:
+
+| Layer | Was es tut | Representative players |
+|-------|-------------|----------------------|
+| **Decision Traces** | Zeichnet auf, *warum* etwas passiert ist -- Audit Trails, Lineage | Palantir Decision Lineage, Arize |
+| **Entity Context** | Einheitliche Golden Records + Beziehungsgraphen -- das "System of Context" | Reltio/SAP, Informatica/Salesforce, Tamr |
+| **Data Connectivity** | Verbindet Agenten mit Quellsystemen über APIs und Protokolle | **FIM One**, CData, MCP ecosystem |
+| **Source Systems** | CRM, ERP, Vertragsverwaltung, Datenbanken, SaaS-Apps | SAP, Salesforce, benutzerdefinierte Systeme |
+
+FIM One operiert auf der **Datenkonnektivitätsschicht**. Es versucht nicht, die darüber liegende Entity-Context-Schicht zu erstellen. Dies ist eine bewusste Entscheidung, keine Lücke.
+
+### Branchenkontext: Die Konsolidierung 2025-2026
+
+Zwei wegweisende Akquisitionen haben die Enterprise-AI-Datenlösung neu gestaltet und die Kontextschicht zu einem strategischen Schlachtfeld gemacht:
+
+- **Salesforce erwarb Informatica** (November 2025) -- fügte Enterprise MDM und Daten-Governance zu seinem Data Cloud + Agentforce Stack hinzu. Das Ziel: Agentforce-Agenten vertrauenswürdig machen, indem sie in Informaticas Golden Records verankert werden.
+- **SAP kündigte die Übernahme von Reltio an** (März 2026) -- fügte AI-native Entity Resolution und Relationship Graphs zu seiner Business Data Cloud (BDC) hinzu. Das Ziel: ein „System of Context" schaffen, das sich über SAP- und Nicht-SAP-Umgebungen erstreckt und als vertrauenswürdige Grundlage für Joule-Agenten dient.
+
+Diese Schritte signalisieren, dass die weltweit größten Enterprise-Plattformen einheitlichen Entity-Kontext nun als Voraussetzung für zuverlässige AI-Agenten betrachten -- nicht als Nice-to-have.
+
+### Data ownership × Context depth spectrum
+
+```mermaid
+quadrantChart
+    title Data Ownership × Context Depth
+    x-axis "Federated / Pass-through" --> "Centralized / Copy-in"
+    y-axis "Raw Connectivity (APIs)" --> "Entity Intelligence (Golden Records)"
+    quadrant-1 "Deep Ontology Platform"
+    quadrant-2 "Context-Aware Hub"
+    quadrant-3 "Lightweight Connector"
+    quadrant-4 "Data Warehouse / Lake"
+    Dify: [0.15, 0.20]
+    n8n: [0.20, 0.15]
+    CData: [0.25, 0.25]
+    MCP Ecosystem: [0.30, 0.20]
+    ★ FIM One: [0.25, 0.35]
+    Tamr: [0.55, 0.65]
+    DataHub: [0.35, 0.45]
+    Salesforce Data Cloud: [0.40, 0.70]
+    SAP BDC + Reltio: [0.70, 0.80]
+    Palantir Foundry: [0.90, 0.90]
+```
+
+**Diagramm lesen:**
+
+- **Unten links (Lightweight Connector)**: minimale Dateneigentümerschaft, rohe API-Konnektivität. Dify, n8n und grundlegende MCP-Server befinden sich hier – sie verbinden sich mit Systemen, verstehen aber keine Entitäten. FIM One befindet sich in diesem Quadranten, aber höher auf der y-Achse aufgrund von Progressive-Disclosure-Meta-Tools, Skill-basierter Kontextaggregation und Domain-bewusster Eskalation.
+- **Oben links (Context-Aware Hub)**: föderierter Zugriff mit Entity-Level-Verständnis. Salesforce Data Cloud ist ein Beispiel dafür – Zero-Copy-Föderierung mit On-Demand-Entity-Auflösung. DataHub bietet Metadaten-Level-Kontext (Schema, Lineage, Eigentümerschaft), ohne Geschäftsdaten zu besitzen.
+- **Oben rechts (Deep Ontology Platform)**: vollständige Datenaufnahme mit tiefem Entity-Intelligence. SAP BDC + Reltio erstellt persistente Multi-Domain-Golden Records mit Beziehungsgraphen. Palantir geht am weitesten – dreilagige Ontologie mit Decision Lineage.
+- **Unten rechts (Data Warehouse / Lake)**: zentralisierter Datenspeicher ohne Entity-Semantik. Traditionelle Datenplattformen, die alles aufnehmen, aber keine Entity-Auflösung oder Beziehungsmodellierung haben.
+
+FIM Ones Position spiegelt eine bewusste Wahl wider: bleiben Sie föderiert und leichtgewichtig, investieren Sie aber darin, den vorgelagerten Entity-Kontext (von jedem MDM) für Agenten leicht zugänglich zu machen.
+
+### Drei Modelle für Entity-Kontext
+
+**SAP: Multi-Domain Golden Record (Copy-in + Govern)**
+
+SAP baut eine dreischichtige Enterprise-Architektur auf:
+
+| Layer | System | Rolle |
+|-------|--------|------|
+| **Transaction** | S/4HANA | Geschäftsausführung -- Bestellungen, Rechnungen, Lieferungen |
+| **Intelligence** | Business Data Cloud (BDC) + Reltio | Semantische Integration, Entity Resolution, Beziehungsgraphen |
+| **Agent** | Joule + Joule Agents | Intent-Verständnis, Tool-Orchestrierung, autonome Ausführung |
+
+Reltio sitzt im Zentrum der Intelligence-Schicht. Seine Aufgabe: Entity-Daten aus SAP- und Nicht-SAP-Systemen aufnehmen, Duplikate durch KI-basiertes Matching auflösen und **Multi-Domain Golden Records** (Kunde, Lieferant, Produkt, Patient, Asset) mit Beziehungsgraphen erzeugen. Reltios frühe Adoption des **MCP-Protokolls** ist strategisch bedeutsam -- es positioniert Golden Records als direkt aufrufbar durch jeden MCP-kompatiblen Agenten, nicht nur durch SAPs eigene Joule.
+
+SAPs Wette: Agenten benötigen einen persistenten, gesteuerten, domänenübergreifenden "Single Source of Truth", um zuverlässig in hochriskanten Enterprise-Prozessen zu arbeiten.
+
+**Salesforce: Zero-Copy-Föderierung (Federate + On-Demand-Auflösung)**
+
+Salesforce verfolgt einen leichteren Ansatz. Data Cloud erfordert keine physische Datenbewegung; stattdessen nutzt es **Zero-Copy-Partnerschaften** (Databricks, Snowflake, BigQuery), um Daten an Ort und Stelle zu föderieren. Entity Resolution findet on-demand innerhalb von Data Cloud statt und erstellt einheitliche Kundenprofile ohne einen persistenten Golden-Record-Store.
+
+Wichtige Zahlen (Q3 FY2026): Data Cloud nahm 32 Billionen Datensätze auf, davon 15 Billionen über Zero-Copy (341% YoY-Wachstum). Diese Skalierung validiert das Föderierungsmodell für CRM-zentrische Anwendungsfälle.
+
+Agentforce-Agenten sind in diesem föderiertem Kontext verankert: Sie argumentieren über die verteilte Datenbasis, ohne dass alle Daten in einem System landen müssen. Für Front-Office-Szenarien (Vertrieb, Service, Marketing) ist dies flexibel und schnell bereitzustellen.
+
+Salesforces Wette: Agenten benötigen keinen schwerfälligen Golden-Record-Store -- sie benötigen Echtzeitzugriff auf föderiertem, aufgelöstem Kontext dort, wo er bereits vorhanden ist.
+
+**Palantir: Tiefe Ontologie (die gewichtige Referenz)**
+
+Am extremen Ende nimmt Palantir Foundry alle Daten auf und baut eine dreischichtige Ontologie (semantische Objekte + kinetische Aktionen + dynamische Regeln) mit vollständiger Entscheidungslinienführung. Dies ist das vollständigste Kontextsystem in der Produktion, aber zu Verträgen von $10M+ und Bereitstellungen von 6-18 Monaten. Es dient als Referenzarchitektur, nicht als realistisches Modell für die meisten Organisationen.
+
+### Wo FIM One passt
+
+| Dimension | SAP + Reltio | Salesforce + Informatica | FIM One |
+|-----------|-------------|-------------------------|---------|
+| **Datenphilosophie** | Copy-in: in BDC aufnehmen, goldene Datensätze erstellen | Federate: Zero-Copy-Zugriff, On-Demand-Auflösung | Pass-through: mit Quelle verbinden, nicht speichern |
+| **Entity Resolution** | Tiefgreifend -- AI-natives MDM mit Beziehungsgraphen | Mittel -- Data Cloud Entity Resolution | Keine -- delegiert an vorgelagertes MDM |
+| **Agent-Integration** | Joule Agents + MCP | Agentforce + Data Cloud Grounding | Beliebiger Agent + beliebiger Connector |
+| **Bereitstellungskosten** | Enterprise-Plattformpreisgestaltung | Enterprise-SaaS-Preisgestaltung | Leichtgewichtig, Stunden bis Tage |
+| **Lock-in** | Hoch (BDC + S/4HANA-Ökosystem) | Mittel (Salesforce-Ökosystem) | Niedrig -- Connectoren sind austauschbar |
+| **Beste Eignung** | Fertigung, Lieferkette, Life Sciences (komplexe Multi-Domain) | CRM-gesteuerte Unternehmen (Front-Office-Fokus) | Mittelmarkt, Multi-System, Provider-agnostisch |
+
+FIM One entspricht am ehesten der **Salesforce-Philosophie** (Daten nicht besitzen, sondern sich damit verbinden), jedoch ohne die Abhängigkeit vom Salesforce-Ökosystem. Die strategische Position: Provider-agnostisch auf der Konnektivitätsebene sein und jedes MDM -- ob SAP/Reltio, Salesforce/Informatica, Tamr oder eine benutzerdefinierte Lösung -- als Entity-Context-Quelle dienen lassen.
+
+### Warum FIM One auf der Connector-Ebene bleibt
+
+Der Aufbau einer Entity-Context-Schicht erfordert persistente Datenspeicherung, ML-basierte Entity-Auflösung, Survivorship-Regeln, Relationship-Graph-Engines und Governance-Frameworks. Dies ist eine eigenständige Produktkategorie (MDM) mit jahrzehntelanger Konkurrenz (Reltio, Informatica, Tamr). Ein Versuch würde:
+
+1. **FIM One von einem Connector zu einer Datenplattform transformieren** -- grundlegend anderes Produkt, Team und Go-to-Market
+2. **Funktionen duplizieren, die vorgelagerte Systeme bereits bereitstellen** -- das gleiche Anti-Pattern, das wir bei Workflow-Logik vermeiden
+3. **Lock-in erhöhen** -- sobald Benutzer Golden Records in FIM One speichern, steigen die Wechselkosten dramatisch
+
+Die richtige Strategie: **der beste Eingangspunkt für jedes MDM-System sein**, nicht ein Ersatz dafür. FIM One sollte es trivial machen, dass Reltio, Informatica, Tamr oder ein benutzerdefiniertes MDM Entity-Context für Agenten bereitstellen -- über MCP Resources, Connector-APIs oder Knowledge-Base-Injection.
+
+### Aktueller Ansatz: Fähigkeiten als leichte Kontextaggregation
+
+Für Szenarien, die kontextübergreifende Konnektoren benötigen (z. B. Vertragsüberprüfung mit Lieferantendaten + Zahlungsverlauf + Risikoflaggen), bieten **Fähigkeiten** bereits eine pragmatische Lösung. Das SOP einer Fähigkeit kann mehrere Konnektoraktionen nacheinander orchestrieren, Ergebnisse aggregieren und strukturierten Kontext dem Agenten präsentieren -- ohne eine persistente Entity-Schicht zu erstellen.
+
+Dies deckt den 80%-Fall ab. Sollte Nachfrage nach Echtzeit-Entity-Auflösung auf Konnektorebene entstehen, lässt die Architektur Raum für einen zukünftigen `ContextSource`-Konnektortyp, der sich mit externen MDM-Systemen integriert -- aber das ist eine zukünftige Überlegung, keine aktuelle Verpflichtung.
+
+### Die Analogie
+
+FIM One's Beziehung zur Kontextschicht ist wie SQLAlchemy's Beziehung zur Datenbank: Sie speichert oder verwaltet keine Daten, sondern macht jede Datenquelle für die Anwendungsschicht zugänglich. Lassen Sie MDM-Plattformen die Entitätsauflösung besitzen; lassen Sie FIM One die Verbindung besitzen.
 
 ## Wo FIM One im KI-Stack sitzt
 

@@ -85,15 +85,17 @@ Cela place FIM One dans le même quadrant qu'AutoGPT, mais avec des contraintes 
 
 ## Glossaire des concepts
 
-Pour les lecteurs non familiers avec la terminologie utilisée dans ce document :
+Pour les lecteurs peu familiers avec la terminologie utilisée dans ce document :
 
 | Terme | Explication en une ligne | Relation avec FIM One |
 |------|---------------------|----------------------|
-| **BPM** (Business Process Management) | Processus entièrement fixés au moment de la conception, exécutés de manière rigide. Camunda, Activiti. | FIM One **n'est pas** BPM. Pas de moteur de processus fixe. |
-| **FSM** (Finite State Machine) | Le système est dans exactement un état à tout moment ; les événements déclenchent des transitions. Supporte les boucles (rejet → renvoi). | Les systèmes cibles (ERP, systèmes de contrats) utilisent FSM en interne. FIM One **n'a pas besoin** de son propre FSM -- il appelle l'API du système cible. |
+| **BPM** (Business Process Management) | Processus entièrement fixés au moment de la conception, exécutés de manière rigide. Camunda, Activiti. | FIM One n'est **pas** BPM. Pas de moteur de processus fixe. |
+| **FSM** (Finite State Machine) | Le système est dans exactement un état à tout moment ; les événements déclenchent des transitions. Supporte les boucles (rejet → resoumission). | Les systèmes cibles (ERP, systèmes de contrats) utilisent FSM en interne. FIM One n'a **pas besoin** de son propre FSM -- il appelle l'API du système cible. |
 | **ACM** (Adaptive Case Management) | Squelette statique, branches dynamiques. Flux principal prédéfini, chaque nœud s'adapte à l'exécution. | Le DAG + ReAct de FIM One s'inscrit naturellement dans ce quadrant. |
-| **HTN** (Hierarchical Task Network) | Décomposition récursive des tâches : haut niveau → sous-tâches → opérations atomiques. | La replanification DAG couvre la plupart des scénarios ; HTN complet pas encore nécessaire. |
-| **iPaaS** (Integration Platform as a Service) | Plateforme d'intégration cloud connectant plusieurs systèmes SaaS/on-prem. MuleSoft, Zapier. | Le Mode Hub de FIM One est comme une **iPaaS native IA** -- le langage naturel pilote l'intégration entre systèmes. |
+| **HTN** (Hierarchical Task Network) | Décomposition récursive des tâches : haut niveau → sous-tâches → opérations atomiques. | La re-planification DAG couvre la plupart des scénarios ; HTN complet pas encore nécessaire. |
+| **iPaaS** (Integration Platform as a Service) | Plateforme d'intégration cloud connectant plusieurs systèmes SaaS/on-prem. MuleSoft, Zapier. | Le Hub Mode de FIM One est comme une **iPaaS native IA** -- le langage naturel pilote l'intégration cross-système. |
+| **MDM** (Master Data Management) | Déduplique et unifie les enregistrements d'entités entre les systèmes en un « enregistrement unique de référence ». Reltio, Informatica, Tamr. | FIM One se **connecte à** des systèmes MDM ; il ne réplique pas la résolution d'entités. |
+| **Context Layer / System of Context** | Graphe d'entités et de relations unifié qui fournit aux agents IA un contexte métier de confiance. Terme popularisé par Reltio (2026). | FIM One délègue cela aux plateformes MDM/données en amont. Les compétences fournissent une agrégation légère pour les cas courants. |
 
 ## Limite architecturale : FIM One ne réplique pas la logique de flux de travail
 
@@ -116,6 +118,123 @@ C'est une **limite architecturale délibérée**, pas une lacune en matière de 
 3. Aucune valeur ajoutée (le système cible le fait déjà correctement)
 
 Le modèle de connecteur est simple par conception : **une opération = un appel API**.
+
+## Architecture Boundary: Connector Layer, Not Context Layer
+
+Enterprise AI is converging on a layered architecture for agent context:
+
+| Layer | What it does | Representative players |
+|-------|-------------|----------------------|
+| **Decision Traces** | Records *why* something happened -- audit trails, lineage | Palantir Decision Lineage, Arize |
+| **Entity Context** | Unified golden records + relationship graphs -- the "System of Context" | Reltio/SAP, Informatica/Salesforce, Tamr |
+| **Data Connectivity** | Connects agents to source systems via APIs and protocols | **FIM One**, CData, MCP ecosystem |
+| **Source Systems** | CRM, ERP, contract management, databases, SaaS apps | SAP, Salesforce, custom systems |
+
+FIM One operates at the **data connectivity layer**. It does not attempt to build the entity context layer above it. This is a deliberate choice, not a gap.
+
+### Contexte industriel : la consolidation 2025-2026
+
+Deux acquisitions majeures ont remodelé le paysage des données d'IA d'entreprise et ont fait de la couche de contexte un enjeu stratégique :
+
+- **Salesforce a acquis Informatica** (novembre 2025) -- ajoutant la gestion des données de référence d'entreprise et la gouvernance des données à sa pile Data Cloud + Agentforce. L'objectif : rendre les agents Agentforce fiables en les ancrant dans les enregistrements de référence d'Informatica.
+- **SAP a annoncé l'acquisition de Reltio** (mars 2026) -- ajoutant la résolution d'entités native à l'IA et les graphes de relations à son Business Data Cloud (BDC). L'objectif : créer un « Système de Contexte » qui s'étend aux environnements SAP et non-SAP, servant de fondation fiable pour les Agents Joule.
+
+Ces mouvements signalent que les plus grandes plates-formes d'entreprise du monde considèrent désormais le contexte d'entité unifié comme un prérequis pour des agents d'IA fiables -- pas seulement un plus.
+
+### Spectre propriété des données × profondeur du contexte
+
+```mermaid
+quadrantChart
+    title Data Ownership × Context Depth
+    x-axis "Federated / Pass-through" --> "Centralized / Copy-in"
+    y-axis "Raw Connectivity (APIs)" --> "Entity Intelligence (Golden Records)"
+    quadrant-1 "Deep Ontology Platform"
+    quadrant-2 "Context-Aware Hub"
+    quadrant-3 "Lightweight Connector"
+    quadrant-4 "Data Warehouse / Lake"
+    Dify: [0.15, 0.20]
+    n8n: [0.20, 0.15]
+    CData: [0.25, 0.25]
+    MCP Ecosystem: [0.30, 0.20]
+    ★ FIM One: [0.25, 0.35]
+    Tamr: [0.55, 0.65]
+    DataHub: [0.35, 0.45]
+    Salesforce Data Cloud: [0.40, 0.70]
+    SAP BDC + Reltio: [0.70, 0.80]
+    Palantir Foundry: [0.90, 0.90]
+```
+
+**Lecture du graphique :**
+
+- **Bas-gauche (Connecteur léger)** : propriété minimale des données, connectivité API brute. Dify, n8n et les serveurs MCP basiques se situent ici -- ils se connectent aux systèmes mais ne comprennent pas les entités. FIM One est dans ce quadrant mais plus haut sur l'axe des y en raison des méta-outils à divulgation progressive, de l'agrégation de contexte basée sur les compétences et de l'escalade consciente du domaine.
+- **Haut-gauche (Hub conscient du contexte)** : accès fédéré avec compréhension au niveau des entités. Salesforce Data Cloud en est l'exemple -- fédération sans copie avec résolution d'entités à la demande. DataHub fournit un contexte au niveau des métadonnées (schéma, lignage, propriété) sans posséder les données métier.
+- **Haut-droite (Plateforme d'ontologie profonde)** : ingestion complète des données avec intelligence d'entité profonde. SAP BDC + Reltio construit des enregistrements maîtres multi-domaines persistants avec des graphiques de relations. Palantir va plus loin -- ontologie à trois niveaux avec lignage décisionnel.
+- **Bas-droite (Entrepôt de données / Lac)** : stockage centralisé des données sans sémantique d'entité. Les plateformes de données traditionnelles qui ingèrent tout mais manquent de résolution d'entités ou de modélisation de relations.
+
+La position de FIM One reflète un choix délibéré : rester fédéré et léger, mais investir dans l'accessibilité du contexte d'entité en amont (de tout MDM) aux agents.
+
+### Trois modèles pour le contexte d'entité
+
+**SAP : dossier unique multi-domaines (copie + gouvernance)**
+
+SAP construit une architecture d'entreprise à trois niveaux :
+
+| Couche | Système | Rôle |
+|-------|--------|------|
+| **Transaction** | S/4HANA | Exécution métier -- commandes, factures, livraisons |
+| **Intelligence** | Business Data Cloud (BDC) + Reltio | Intégration sémantique, résolution d'entités, graphes de relations |
+| **Agent** | Joule + Joule Agents | Compréhension d'intention, orchestration d'outils, exécution autonome |
+
+Reltio se situe au cœur de la couche intelligence. Son rôle : ingérer les données d'entités provenant de systèmes SAP et non-SAP, résoudre les doublons via un appariement basé sur l'IA, et produire des **dossiers uniques multi-domaines** (client, fournisseur, produit, patient, actif) avec des graphes de relations. L'adoption précoce du **protocole MCP** par Reltio est stratégiquement significative -- elle positionne les dossiers uniques comme directement appelables par n'importe quel agent compatible MCP, pas seulement par Joule, le propre agent de SAP.
+
+Le pari de SAP : les agents ont besoin d'une « source unique de vérité » persistante, gouvernée et inter-domaines pour fonctionner de manière fiable dans les processus d'entreprise critiques.
+
+**Salesforce : fédération sans copie (fédérer + résoudre à la demande)**
+
+Salesforce adopte une approche plus légère. Data Cloud ne nécessite pas de mouvement physique de données ; au lieu de cela, il utilise des **partenariats sans copie** (Databricks, Snowflake, BigQuery) pour fédérer les données sur place. La résolution d'entités se fait à la demande dans Data Cloud, créant des profils clients unifiés sans magasin de dossier unique persistant.
+
+Chiffres clés (Q3 FY2026) : Data Cloud a ingéré 32 billions d'enregistrements, dont 15 billions via une approche sans copie (croissance de 341 % en glissement annuel). Cette échelle valide le modèle de fédération pour les cas d'usage centrés sur la CRM.
+
+Les agents Agentforce sont ancrés dans ce contexte fédéré : ils raisonnent sur l'ensemble distribué de données sans nécessiter que toutes les données arrivent dans un seul système. Pour les scénarios front-office (ventes, service, marketing), c'est flexible et rapide à déployer.
+
+Le pari de Salesforce : les agents n'ont pas besoin d'un magasin de dossier unique lourd -- ils ont besoin d'un accès en temps réel à un contexte fédéré et résolu là où il existe déjà.
+
+**Palantir : ontologie approfondie (la référence lourde)**
+
+À l'extrême, Palantir Foundry ingère toutes les données et construit une ontologie à trois niveaux (objets sémantiques + actions cinétiques + règles dynamiques) avec une traçabilité complète des décisions. C'est le système de contexte le plus complet en production, mais à des contrats de 10 M$ et plus et des déploiements de 6 à 18 mois. Il sert de architecture de référence, pas de modèle réaliste pour la plupart des organisations.
+
+### Où FIM One s'inscrit
+
+| Dimension | SAP + Reltio | Salesforce + Informatica | FIM One |
+|-----------|-------------|-------------------------|---------|
+| **Philosophie des données** | Copy-in : ingérer dans BDC, construire des enregistrements maîtres | Federate : accès sans copie, résoudre à la demande | Pass-through : se connecter à la source, ne pas stocker |
+| **Résolution d'entités** | Profonde -- MDM natif IA avec graphiques de relations | Moyenne -- Résolution d'entités Data Cloud | Aucune -- délègue au MDM en amont |
+| **Intégration d'agents** | Joule Agents + MCP | Agentforce + Data Cloud grounding | N'importe quel agent + n'importe quel connecteur |
+| **Coût de déploiement** | Tarification de plateforme d'entreprise | Tarification SaaS d'entreprise | Léger, quelques heures à quelques jours |
+| **Verrouillage** | Élevé (écosystème BDC + S/4HANA) | Moyen (écosystème Salesforce) | Faible -- les connecteurs sont interchangeables |
+| **Meilleur cas d'usage** | Fabrication, chaîne d'approvisionnement, sciences de la vie (multi-domaine complexe) | Entreprises axées sur CRM (orientation front-office) | Mid-market, multi-systèmes, agnostique des fournisseurs |
+
+FIM One s'aligne le plus étroitement avec la **philosophie Salesforce** (ne pas posséder les données, s'y connecter) mais sans la dépendance à l'écosystème Salesforce. La position stratégique : être agnostique des fournisseurs au niveau de la couche de connectivité, et laisser n'importe quel MDM -- qu'il s'agisse de SAP/Reltio, Salesforce/Informatica, Tamr, ou une solution personnalisée -- servir de source de contexte d'entité.
+
+### Pourquoi FIM One reste à la couche connecteur
+
+Construire une couche de contexte d'entité nécessite un stockage de données persistant, une résolution d'entité basée sur le ML, des règles de survivance, des moteurs de graphe de relations et des cadres de gouvernance. C'est une catégorie de produit distincte (MDM) avec une concurrence approfondie depuis une décennie (Reltio, Informatica, Tamr). Tenter de le faire :
+
+1. **Transformerait FIM One d'un connecteur en plateforme de données** -- produit, équipe et stratégie de mise sur le marché fondamentalement différents
+2. **Dupliquerait les capacités que les systèmes en amont fournissent déjà** -- le même anti-pattern que nous évitons avec la logique de flux de travail
+3. **Augmenterait le verrouillage** -- une fois que les utilisateurs stockent les enregistrements de référence dans FIM One, les coûts de changement augmentent considérablement
+
+La stratégie correcte : **être le meilleur point d'entrée pour tout système MDM**, pas un remplacement pour un. FIM One devrait rendre trivial pour Reltio, Informatica, Tamr ou un MDM personnalisé de servir le contexte d'entité aux agents -- via MCP Resources, les APIs de connecteur ou l'injection de base de connaissances.
+
+### Approche actuelle : les compétences comme agrégation de contexte légère
+
+Pour les scénarios nécessitant un contexte multi-connecteur (par exemple, un examen de contrat nécessitant des données de fournisseur + historique de paiement + indicateurs de risque), les **compétences** fournissent déjà une solution pragmatique. Le SOP d'une compétence peut orchestrer plusieurs actions de connecteur en séquence, agréger les résultats et présenter un contexte structuré à l'agent -- sans construire une couche d'entité persistante.
+
+Cela couvre le cas à 80%. Si la demande émerge pour une résolution d'entité en temps réel au niveau du connecteur, l'architecture laisse de la place pour un futur type de connecteur `ContextSource` qui s'intègre avec des systèmes MDM externes -- mais c'est une considération future, pas un engagement actuel.
+
+### L'analogie
+
+La relation de FIM One à la couche de contexte est comme la relation de SQLAlchemy à la base de données : elle ne stocke ni ne gère les données, mais elle rend n'importe quelle source de données accessible à la couche application. Laissez les plateformes MDM posséder la résolution d'entités ; laissez FIM One posséder la connexion.
 
 ## Où FIM One s'inscrit dans la pile IA
 
