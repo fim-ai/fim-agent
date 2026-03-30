@@ -300,7 +300,7 @@
     "toolChoiceEnabled": "Native Function Calling",
     "toolChoiceEnabledDesc": "Enables forced tool selection (tool_choice) for structured output. Works best with OpenAI GPT series, Google Gemini, and Anthropic Claude. Disable this if your model returns errors related to tool_choice or if structured outputs are slow.",
     "supportsVision": "Vision Support",
-    "supportsVisionDesc": "Enable if this model supports image/vision inputs. When enabled, users can send images in conversations that use this model.",
+    "supportsVisionDesc": "Enable if this model supports image/vision inputs (e.g. GPT-4o, Claude 3/4, Gemini). When enabled, uploaded PDF pages are rendered as images for higher-fidelity document understanding.",
     "activeConfig": "Active Configuration",
     "activeConfigDesc": "Select the active model group. \"Default (ENV)\" uses environment variables.",
     "currentProfile": "Active Profile",

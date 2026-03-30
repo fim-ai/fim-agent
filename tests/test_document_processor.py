@@ -18,53 +18,7 @@ from fim_one.core.document.processor import (
     _get_doc_processing_mode,
     _get_doc_vision_dpi,
     _get_doc_vision_max_pages,
-    is_vision_model,
 )
-
-
-# ---------------------------------------------------------------------------
-# is_vision_model
-# ---------------------------------------------------------------------------
-
-
-class TestIsVisionModel:
-    """Tests for the vision model auto-detection helper."""
-
-    def test_gpt4o_detected(self) -> None:
-        assert is_vision_model("gpt-4o") is True
-
-    def test_gpt4o_mini_detected(self) -> None:
-        assert is_vision_model("gpt-4o-mini") is True
-
-    def test_gpt4_turbo_detected(self) -> None:
-        assert is_vision_model("gpt-4-turbo") is True
-
-    def test_gpt4_vision_detected(self) -> None:
-        assert is_vision_model("gpt-4-vision-preview") is True
-
-    def test_claude3_detected(self) -> None:
-        assert is_vision_model("claude-3-sonnet-20240229") is True
-
-    def test_claude4_detected(self) -> None:
-        assert is_vision_model("claude-4-opus") is True
-
-    def test_gemini_15_detected(self) -> None:
-        assert is_vision_model("gemini-1.5-pro") is True
-
-    def test_gemini_2_detected(self) -> None:
-        assert is_vision_model("gemini-2.0-flash") is True
-
-    def test_gpt35_not_detected(self) -> None:
-        assert is_vision_model("gpt-3.5-turbo") is False
-
-    def test_deepseek_not_detected(self) -> None:
-        assert is_vision_model("deepseek-chat") is False
-
-    def test_case_insensitive(self) -> None:
-        assert is_vision_model("GPT-4o-Mini") is True
-
-    def test_empty_string(self) -> None:
-        assert is_vision_model("") is False
 
 
 # ---------------------------------------------------------------------------

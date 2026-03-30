@@ -17,34 +17,6 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Vision model auto-detection (fallback when DB flag is not set)
-# ---------------------------------------------------------------------------
-
-_VISION_MODEL_PREFIXES = (
-    "gpt-4o",
-    "gpt-4-turbo",
-    "gpt-4-vision",
-    "claude-3",
-    "claude-4",
-    "gemini-1.5",
-    "gemini-2",
-)
-
-
-def is_vision_model(model_name: str) -> bool:
-    """Check if model name indicates vision support (fallback when DB flag not set).
-
-    Args:
-        model_name: The model identifier string (e.g. ``"gpt-4o-mini"``).
-
-    Returns:
-        ``True`` if the model name matches a known vision-capable prefix.
-    """
-    lower = model_name.lower()
-    return any(lower.startswith(p) for p in _VISION_MODEL_PREFIXES)
-
-
-# ---------------------------------------------------------------------------
 # Environment configuration
 # ---------------------------------------------------------------------------
 
@@ -77,7 +49,7 @@ class DocumentResult:
 
     text: str | None
     page_images: list[str] = field(default_factory=list)  # base64 data URLs
-    mode_used: str = "text"  # "vision" | "text" | "hybrid"
+    mode_used: str = "text"  # "vision" | "text"
     page_count: int = 0
 
 

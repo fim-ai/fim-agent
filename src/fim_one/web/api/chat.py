@@ -1716,19 +1716,18 @@ async def _load_image_data_urls(
 async def _load_document_vision_urls(
     image_ids: str,
     user_id: str | None,
-    model_name: str | None,
     doc_mode: str | None,
     model_supports_vision: bool = False,
 ) -> list[str]:
     """Load rendered PDF page images for vision-capable models.
 
     Scans the file IDs in *image_ids* for PDF documents and, when the active
-    model supports vision, returns their pages as base64 data URLs.
+    model supports vision (via Admin toggle), returns their pages as base64
+    data URLs.
 
     Args:
         image_ids: Comma-separated file IDs from the chat request.
         user_id: Current user ID for file lookup.
-        model_name: The active model identifier (for auto-detection fallback).
         doc_mode: Explicit document processing mode (``"vision"`` / ``"text"``
             / ``None`` for auto).
         model_supports_vision: Whether the DB model config has vision enabled.
@@ -1739,19 +1738,14 @@ async def _load_document_vision_urls(
     if not user_id or not image_ids:
         return []
 
-    from fim_one.core.document.processor import (
-        _get_doc_processing_mode,
-        is_vision_model,
-    )
+    from fim_one.core.document.processor import _get_doc_processing_mode
     from fim_one.web.api.files import UPLOAD_ROOT, _load_index
 
     # Determine effective mode
     effective_mode = doc_mode or _get_doc_processing_mode()
 
-    # Determine if vision is available
+    # Vision is only available when explicitly enabled in Admin → Models
     vision_available = model_supports_vision
-    if not vision_available and model_name:
-        vision_available = is_vision_model(model_name)
 
     if effective_mode == "text" or (effective_mode == "auto" and not vision_available):
         return []
@@ -2080,7 +2074,6 @@ async def react_endpoint(
         doc_vision_urls = await _load_document_vision_urls(
             image_ids=image_ids,
             user_id=current_user_id,
-            model_name=getattr(llm, "model_id", None),
             doc_mode=doc_mode,
         )
 
@@ -2731,7 +2724,6 @@ async def dag_endpoint(
         dag_doc_vision_urls = await _load_document_vision_urls(
             image_ids=image_ids,
             user_id=current_user_id,
-            model_name=getattr(llm, "model_id", None),
             doc_mode=dag_doc_mode,
         )
 
