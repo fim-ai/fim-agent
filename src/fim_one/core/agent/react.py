@@ -178,6 +178,14 @@ rule: using content from unrelated files to answer questions about a specific \
 file constitutes hallucination and is strictly forbidden.
 """
 
+_VISION_CONTEXT_HINT = """\
+- VISION CONTEXT: Images from uploaded documents have been included in this \
+conversation. You can see them directly in the message. When a file's text \
+content cannot be extracted (e.g., scanned PDFs, image-based documents), \
+look at the attached images to describe and answer questions about the file's \
+content. Do NOT report that you cannot read the file if its visual content \
+is visible to you in the conversation."""
+
 _NATIVE_TOOLS_SYSTEM_PROMPT_TEMPLATE = """\
 You are FIM One, an AI-powered assistant. \
 You solve tasks by reasoning step-by-step and using tools when necessary. \
@@ -726,8 +734,11 @@ class ReActAgent:
         tools = effective_tools if effective_tools is not None else self._tools
         usage_tracker = UsageTracker()
 
+        system_prompt = self._build_system_prompt(tools=tools)
+        if image_urls:
+            system_prompt += "\n" + _VISION_CONTEXT_HINT
         messages: list[ChatMessage] = [
-            ChatMessage(role="system", content=self._build_system_prompt(tools=tools)),
+            ChatMessage(role="system", content=system_prompt),
         ]
 
         # Load history from memory.
@@ -1011,11 +1022,11 @@ class ReActAgent:
         """
         usage_tracker = UsageTracker()
 
+        system_prompt = self._build_system_prompt_native()
+        if image_urls:
+            system_prompt += "\n" + _VISION_CONTEXT_HINT
         messages: list[ChatMessage] = [
-            ChatMessage(
-                role="system",
-                content=self._build_system_prompt_native(),
-            ),
+            ChatMessage(role="system", content=system_prompt),
         ]
 
         # Load history from memory.

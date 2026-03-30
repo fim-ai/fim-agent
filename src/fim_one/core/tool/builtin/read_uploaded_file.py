@@ -112,10 +112,12 @@ class ReadUploadedFileTool(BaseTool):
                     "This file may contain non-textual content (images, "
                     "scanned documents, audio, video, etc.) that cannot be "
                     "processed by text extraction alone. "
-                    "If the current model supports vision, the administrator "
-                    "can enable vision capabilities to process visual content "
-                    "directly. Please inform the user about this limitation "
-                    "and do NOT attempt to infer or guess the file content "
+                    "IMPORTANT: If images from this file are attached in the "
+                    "current conversation (check your message context for "
+                    "image content), describe what you see in those images "
+                    "to answer the user's question. Otherwise, inform the "
+                    "user that vision capabilities may need to be enabled. "
+                    "Do NOT attempt to infer or guess the file content "
                     "from other files."
                 )
 
