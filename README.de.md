@@ -129,10 +129,10 @@ cd frontend && pnpm install && cd ..
 
 #### Workflow & Tools
 - **Visual workflow editor** — 12 Knotentypen, Drag-and-Drop-Canvas (React Flow v12), Import/Export als JSON.
-- **Smart file handling** — Hochgeladene Dateien werden automatisch in den Kontext eingefügt (klein) oder können bei Bedarf über das Tool `read_uploaded_file` mit paginierten und Regex-Suchmodi gelesen werden.
+- **Smart file handling** — Hochgeladene Dateien werden automatisch in den Kontext eingefügt (klein) oder bei Bedarf über das `read_uploaded_file` Tool lesbar gemacht. Intelligente Dokumentverarbeitung: PDF-, DOCX- und PPTX-Dateien erhalten Vision-aware-Verarbeitung mit Extraktion eingebetteter Bilder, wenn das Modell Vision unterstützt. Der Smart-PDF-Modus extrahiert Text aus textreichen Seiten und rendert gescannte Seiten als Bilder.
 - **Pluggable tools** — Python, Node.js, Shell-Ausführung mit optionalem Docker-Sandbox (`CODE_EXEC_BACKEND=docker`).
-- **Full RAG pipeline** — Jina Embedding + LanceDB + Hybrid-Retrieval + Reranker + Inline-Zitate `[N]`.
-- **Tool artifacts** — Rich Outputs (HTML-Vorschau, Dateien) werden im Chat gerendert.
+- **Full RAG pipeline** — Jina-Embedding + LanceDB + Hybrid-Retrieval + Reranker + Inline-`[N]`-Zitate.
+- **Tool artifacts** — Rich Outputs (HTML-Vorschau, Dateien) im Chat gerendert.
 
 #### Plattform
 - **Multi-Mandant** — JWT-Authentifizierung, Organisationsisolation, Admin-Panel mit Nutzungsanalysen und Connector-Metriken.

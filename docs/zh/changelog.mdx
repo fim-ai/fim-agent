@@ -12,8 +12,19 @@ description: "FIM One 的所有重要更改。"
 
 ### 已添加
 
-- **智能文档处理（视觉感知）** — 基于模型能力的自适应文档处理。当目标 LLM 支持视觉功能（GPT-4o、Claude 3/4、Gemini）时，PDF 页面被渲染为图像并通过视觉内容块发送以获得完整的视觉保真度。仅文本模型回退到 pdfplumber 文本提取。三种模式：Vision（最高保真度）、Hybrid、Text-only。可通过 `DOCUMENT_PROCESSING_MODE`、`DOCUMENT_VISION_DPI`、`DOCUMENT_VISION_MAX_PAGES` 环境变量配置。Admin 中的每个模型 `supports_vision` 切换具有自动检测回退。
-- **资源 Fork 完成** — 所有五种资源类型现在都支持 fork：智能体、连接器、工作流、MCP Server 和 Skill。KB fork 已移除（本质上是用户本地的）。
+- **智能文档处理（视觉感知）** — 基于模型能力的自适应文档处理。当目标 LLM 支持视觉（GPT-4o、Claude 3/4、Gemini）时，PDF 页面被渲染为图像并通过视觉内容块发送以获得完整的视觉保真度。纯文本模型回退到 pdfplumber 文本提取。两种模式：Vision 和 Text-only。可通过 `DOCUMENT_PROCESSING_MODE`、`DOCUMENT_VISION_DPI`、`DOCUMENT_VISION_MAX_PAGES` 环境变量配置。Admin 中的每个模型 `supports_vision` 开关。
+- **文档视觉管道** — 在聊天中上传的 DOCX、PPTX 和 PDF 文件现在会提取其嵌入的图像，并在模型启用视觉时作为视觉内容发送给 LLM。
+- **多轮对话视觉持久化** — 来自上传文档和图像的视觉内容在对话轮次中持久保存，因此模型在整个对话过程中保留视觉上下文。
+- **智能 PDF 处理** — 文本丰富的 PDF 页面分别提取文本和嵌入图像（节省令牌）。扫描或仅图像页面渲染为全页 PNG 以获得最大保真度。
+- **预构建沙箱镜像** — `Dockerfile.sandbox` 包含常见的数据科学包（pdfplumber、Pillow、pandas 等），因此 AI 代码执行在 `--network=none` 容器中开箱即用。
+- **资源 Fork 完成** — 所有五种资源类型现在都支持 fork：智能体、连接器、工作流、MCP 服务器和技能。KB fork 已移除（本质上是用户本地的）。
+
+### 已修复
+
+- **智能体在不可读文件上的幻觉** — 当AI智能体无法读取文件（例如基于图像的PDF）时，它之前会读取其他不相关的文件并将其内容呈现为目标文件的内容。系统提示中的文件完整性护栏现在可以防止这种情况。
+- **上传文件的文件ID注入** — 上传的文件现在在消息上下文中包含其UUID file_id，因此智能体可以直接通过 `read_uploaded_file` 访问它们，无需猜测。
+- **从新模型结构读取视觉切换** — 模型配置上的 `supports_vision` 标志未从ModelGroup/ModelProviderModel ORM结构中正确读取。已修复。
+- **改进了不可读文件的错误消息** — 当文件无法读取时，工具现在返回具体的指导（文件类型、视觉建议），而不是通用错误。
 
 ## [v0.8.1] - 2026-03-29
 

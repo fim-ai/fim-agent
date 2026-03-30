@@ -128,11 +128,11 @@ cd frontend && pnpm install && cd ..
 - **扩展思维** — OpenAI o 系列、Gemini 2.5+、Claude 的思维链。
 
 #### 工作流与工具
-- **可视化工作流编辑器** — 12种节点类型、拖放画布（React Flow v12）、JSON格式导入/导出。
-- **智能文件处理** — 上传的文件自动内联到上下文（小文件）或通过 `read_uploaded_file` 工具按需读取，支持分页和正则表达式搜索模式。
-- **可插拔工具** — Python、Node.js、shell执行，支持可选的Docker沙箱（`CODE_EXEC_BACKEND=docker`）。
-- **完整RAG管道** — Jina嵌入 + LanceDB + 混合检索 + 重排序器 + 内联 `[N]` 引用。
-- **工具制品** — 丰富的输出（HTML预览、文件）在聊天中渲染。
+- **可视化工作流编辑器** — 12 种节点类型、拖放画布（React Flow v12）、JSON 格式的导入/导出功能。
+- **智能文件处理** — 上传的文件自动内联到上下文中（小文件）或通过 `read_uploaded_file` 工具按需读取。智能文档处理：PDF、DOCX 和 PPTX 文件获得视觉感知处理，当模型支持视觉功能时提取嵌入图像。智能 PDF 模式从文本丰富的页面提取文本，并将扫描页面呈现为图像。
+- **可插拔工具** — Python、Node.js、shell 执行，支持可选的 Docker 沙箱（`CODE_EXEC_BACKEND=docker`）。
+- **完整 RAG 管道** — Jina 嵌入 + LanceDB + 混合检索 + 重排器 + 内联 `[N]` 引用。
+- **工具制品** — 丰富的输出（HTML 预览、文件）在聊天中呈现。
 
 #### 平台
 - **多租户** — JWT 认证、组织隔离、管理面板（包含使用分析和连接器指标）。

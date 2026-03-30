@@ -6,6 +6,8 @@ description: "Comment FIM One traite les documents téléchargés pour la compr�
 
 FIM One traite automatiquement les documents téléchargés afin que les agents IA puissent comprendre leur contenu. Lorsqu'un modèle supporte la vision, les documents sont traités avec une fidélité visuelle complète — les pages PDF sont rendues sous forme d'images, et les images intégrées dans les documents Office sont extraites avec des références positionnelles. Lorsque la vision n'est pas disponible, le système bascule vers l'extraction de texte.
 
+Le contenu visuel persiste d'un tour de conversation à l'autre, de sorte que le modèle conserve le contexte visuel des documents téléchargés tout au long de la conversation entière — pas seulement au tour où le fichier a été téléchargé.
+
 <Info>
 Le mode vision est automatique par défaut. Si le modèle que vous avez configuré a le support de la vision activé, les documents téléchargés utiliseront le pipeline de traitement le plus riche disponible pour ce format.
 </Info>
@@ -14,38 +16,41 @@ Le mode vision est automatique par défaut. Si le modèle que vous avez configur
 
 Chaque format de document dispose d'un pipeline de traitement dédié. Le comportement change selon que le modèle supporte la vision.
 
-| Format | Extraction de texte | Mode Vision (`supports_vision=ON`) | Fallback (`supports_vision=OFF`) |
+| Format | Extraction de texte | Mode Vision (`supports_vision=ON`) | Secours (`supports_vision=OFF`) |
 |--------|----------------|--------------------------------------|-----------------------------------|
-| **PDF** | pdfplumber (texte page par page) | PyMuPDF rend chaque page en image PNG, envoyée comme contenu de vision | Extraction de texte uniquement ; l'agent lit via l'outil `read_uploaded_file` |
+| **PDF** | pdfplumber (texte page par page) | Traitement intelligent : les pages riches en texte extraient le texte + les images intégrées (efficace en tokens) ; les pages numérisées/image uniquement sont rendues en PNG pleine page via PyMuPDF | Extraction de texte uniquement ; l'agent lit via l'outil `read_uploaded_file` |
 | **DOCX / DOC** | markitdown (conversion Markdown) | Images intégrées extraites avec marqueurs positionnels `[Figure N]` via python-docx | Extraction de texte uniquement ; images perdues |
-| **PPTX / PPT** | markitdown (texte de chaque diapositive) | Images intégrées extraites avec marqueurs `[Figure N]` et séparateurs de diapositives via python-pptx | Extraction de texte uniquement ; visuels de diapositives perdus |
+| **PPTX / PPT** | markitdown (texte de chaque diapositive) | Images intégrées extraites avec marqueurs `[Figure N]` et séparateurs de diapositives via python-pptx | Extraction de texte uniquement ; visuels de diapositive perdus |
 | **XLSX / XLS** | markitdown (structure de tableau préservée) | Identique au mode texte (les tableaux ne bénéficient pas de la vision) | Identique |
-| **Images** (JPG, PNG, GIF, WebP) | N/A | Envoyées comme blocs de contenu de vision `image_url` | Annotées comme `[Attached image: filename]` — le modèle est conscient mais ne peut pas voir le contenu |
+| **Images** (JPG, PNG, GIF, WebP) | N/A | Envoyées en tant que blocs de contenu vision `image_url` | Annotées comme `[Attached image: filename]` — le modèle est conscient mais ne peut pas voir le contenu |
 | **Fichiers texte** (TXT, MD, PY, JS, HTML, CSV, JSON) | Lecture / analyse directe | N/A (le texte est du texte) | Identique |
 
 <Tip>
 **Pour une fidélité visuelle maximale**, exportez les fichiers DOCX ou PPTX en PDF avant de les télécharger. Le mode vision PDF rend la mise en page complète de la page — texte, images, graphiques et formatage — tout en une seule image.
 </Tip>
 
-## Comment ça fonctionne
+## Fonctionnement
 
-Quand un utilisateur télécharge un document dans une conversation, FIM One exécute un pipeline de traitement basé sur le type de fichier et les capacités du modèle :
+Lorsqu'un utilisateur télécharge un document dans une conversation, FIM One exécute un pipeline de traitement basé sur le type de fichier et les capacités du modèle :
 
 <Steps>
   <Step title="Détection du type de fichier">
-    Le système identifie le format du document par extension de fichier et type MIME, puis sélectionne le pipeline d'extraction approprié.
+    Le système identifie le format du document par extension de fichier et type MIME, puis sélectionne le pipeline d'extraction approprié. Chaque fichier téléchargé est marqué avec son UUID `file_id`, qui est injecté dans le contexte du message afin que l'agent puisse y accéder directement via l'outil `read_uploaded_file`.
   </Step>
   <Step title="Extraction de texte">
-    Indépendamment du support de la vision, le système extrait toujours le contenu textuel. PDF utilise pdfplumber pour l'extraction page par page. Les formats Office utilisent markitdown pour la conversion Markdown. Les fichiers texte sont lus directement.
+    Indépendamment du support de la vision, le système extrait toujours le contenu textuel. Pour les PDF, pdfplumber est utilisé pour l'extraction page par page. Les formats Office utilisent markitdown pour la conversion en Markdown. Les fichiers texte sont lus directement.
   </Step>
   <Step title="Traitement de la vision (si supporté)">
-    Quand le modèle a `supports_vision=true` et que le document est d'un type supporté :
-    - **PDF** : Chaque page est rendue en image PNG à la résolution DPI configurée
+    Lorsque le modèle a `supports_vision=true` et que le document est d'un type supporté :
+    - **PDF (traitement intelligent)** : Chaque page est analysée — les pages riches en texte extraient le texte plus les images intégrées séparément (économisant des tokens), tandis que les pages numérisées ou contenant uniquement des images sont rendues en PNG pleine page à la résolution configurée pour une fidélité maximale
     - **DOCX / PPTX** : Les images intégrées sont extraites du XML du document avec des marqueurs de position `[Figure N]`
-    - **Images** : Transmises directement comme blocs de contenu de vision
+    - **Images** : Transmises directement en tant que blocs de contenu de vision
   </Step>
   <Step title="Assemblage du contenu">
-    Le texte extrait et le contenu de vision sont assemblés dans le format de message attendu par le modèle. Le texte et les images sont entrelacés pour que le modèle puisse corréler les informations visuelles et textuelles.
+    Le texte extrait et le contenu de vision sont assemblés dans le format de message attendu par le modèle. Le texte et les images sont entrelacés afin que le modèle puisse corréler les informations visuelles et textuelles.
+  </Step>
+  <Step title="Persistance multi-tours">
+    Le contenu de vision des fichiers téléchargés est stocké dans les métadonnées du message et persiste à travers les tours de conversation. Que les images proviennent d'une photo téléchargée par l'utilisateur ou aient été extraites d'un document, elles restent disponibles pour que le modèle les référence dans les messages suivants.
   </Step>
 </Steps>
 
@@ -141,10 +146,10 @@ LibreOffice peut produire des rendus de page pixel-parfaits des fichiers DOCX et
 
 La qualité du traitement de la vision varie selon le format :
 
-- **PDF** — Rendu de page complète. La mise en page, le texte, les images, les graphiques et la mise en forme sont tous visibles dans l'image rendue. C'est le chemin avec la plus haute fidélité.
-- **DOCX / PPTX** — Contenu textuel plus images intégrées extraites. Bon pour la plupart des documents professionnels, mais la mise en page et la mise en forme ne sont pas conservées.
+- **PDF** — Traitement intelligent page par page. Les pages riches en texte extraient le contenu textuel plus les images intégrées séparément, ce qui est nettement plus efficace en termes de jetons. Les pages numérisées ou contenant uniquement des images (par exemple, documents photographiés, contrats numérisés) sont rendues sous forme d'images PNG pleine page pour une fidélité visuelle maximale. Cette approche adaptative équilibre automatiquement la qualité et le coût des jetons.
+- **DOCX / PPTX** — Contenu textuel plus images intégrées extraites. Bon pour la plupart des documents professionnels, mais la mise en page et le formatage ne sont pas préservés.
 
-**Recommandation :** Pour les documents où la mise en page visuelle est importante (formulaires, factures, présentations avec des graphiques complexes), exportez en PDF avant de télécharger.
+**Recommandation :** Pour les documents où la mise en page visuelle est importante (formulaires, factures, présentations avec graphiques complexes), exportez en PDF avant de télécharger.
 
 ### Secours Automatique
 
@@ -154,13 +159,31 @@ Si un modèle est configuré avec support de la vision mais rejette réellement 
 Ce mécanisme de secours empêche les défaillances de tâches causées par des paramètres de vision mal configurés. Si vous voyez un modèle revenir régulièrement au secours, vérifiez sa configuration de support de vision dans **Admin > Models**.
 </Info>
 
+## Garde-fous de sécurité
+
+### Protection de l'intégrité des fichiers
+
+Lorsque l'agent ne peut pas lire un fichier (par exemple, un PDF basé sur des images sans vision activée), une barrière de sécurité au niveau du système empêche l'agent de substituer le contenu d'autres fichiers. Sans cette protection, l'agent pourrait lire un fichier accessible différent et présenter son contenu comme s'il provenait du document cible. La barrière de sécurité garantit que lorsqu'un fichier n'est pas lisible, l'agent signale honnêtement la limitation plutôt que de fabriquer une réponse à partir de sources non liées.
+
+### Guidance d'erreur descriptive
+
+Lorsqu'un fichier ne peut pas être lu par l'outil `read_uploaded_file`, le message d'erreur inclut :
+
+- Le type de fichier détecté et la raison pour laquelle il n'a pas pu être traité
+- Une suggestion d'activer la vision sur le modèle si le fichier est basé sur une image
+- Les approches alternatives que l'utilisateur peut essayer (par exemple, exporter vers un format différent)
+
+Cela aide les utilisateurs à comprendre et à résoudre les problèmes de traitement de fichiers sans essais et erreurs.
+
 ## Meilleures pratiques
 
 ### Pour les administrateurs
 
-- **Activez la vision de manière sélective.** N'activez `supports_vision` que sur les modèles qui prennent réellement en charge l'entrée d'image. Une mauvaise configuration gaspille des jetons dans le cycle de nouvelle tentative de secours.
+- **Activez la vision de manière sélective.** N'activez `supports_vision` que sur les modèles qui supportent véritablement l'entrée d'images. Une mauvaise configuration gaspille des tokens dans le cycle de retry de secours.
 - **Commencez par le mode `auto`.** Le comportement par défaut est correct pour la plupart des déploiements — la vision est utilisée quand elle est bénéfique et disponible.
-- **Surveillez l'utilisation des jetons.** Après avoir activé la vision, observez le tableau de bord de consommation des jetons. Si les coûts augmentent de manière inattendue, ajustez `DOCUMENT_VISION_MAX_PAGES` ou `DOCUMENT_VISION_DPI`.
+- **Surveillez l'utilisation des tokens.** Après avoir activé la vision, observez le tableau de bord de consommation des tokens. Si les coûts augmentent de manière inattendue, ajustez `DOCUMENT_VISION_MAX_PAGES` ou `DOCUMENT_VISION_DPI`.
+
+- **Utilisez l'image sandbox pré-construite.** Le `Dockerfile.sandbox` inclut les packages de data-science courants (pdfplumber, Pillow, pandas, etc.) nécessaires pour l'exécution de code IA sur les documents. Construisez-la via `docker compose` ou manuellement avec `docker build -f Dockerfile.sandbox -t fim-sandbox .` pour assurer que l'exécution de code fonctionne dans les conteneurs `--network=none`.
 
 ### Pour les utilisateurs finaux
 

@@ -6,6 +6,8 @@ description: "How FIM One processes uploaded documents for AI understanding, wit
 
 FIM One automatically processes uploaded documents so that AI agents can understand their content. When a model supports vision, documents are processed with full visual fidelity — PDF pages are rendered as images, and embedded images in Office documents are extracted with positional references. When vision is unavailable, the system falls back to text extraction.
 
+Vision content persists across conversation turns, so the model retains visual context from uploaded documents throughout the entire conversation — not just the turn where the file was uploaded.
+
 <Info>
 Vision mode is automatic by default. If the model you've configured has vision support enabled, uploaded documents will use the richest processing pipeline available for that format.
 </Info>
@@ -16,7 +18,7 @@ Each document format has a dedicated processing pipeline. The behavior changes d
 
 | Format | Text Extraction | Vision Mode (`supports_vision=ON`) | Fallback (`supports_vision=OFF`) |
 |--------|----------------|--------------------------------------|-----------------------------------|
-| **PDF** | pdfplumber (page-by-page text) | PyMuPDF renders each page as a PNG image, sent as vision content | Text extraction only; agent reads via `read_uploaded_file` tool |
+| **PDF** | pdfplumber (page-by-page text) | Smart processing: text-rich pages extract text + embedded images (token-efficient); scanned/image-only pages render as full-page PNG via PyMuPDF | Text extraction only; agent reads via `read_uploaded_file` tool |
 | **DOCX / DOC** | markitdown (Markdown conversion) | Embedded images extracted with `[Figure N]` positional markers via python-docx | Text extraction only; images lost |
 | **PPTX / PPT** | markitdown (text from each slide) | Embedded images extracted with `[Figure N]` markers and slide separators via python-pptx | Text extraction only; slide visuals lost |
 | **XLSX / XLS** | markitdown (table structure preserved) | Same as text mode (tables do not benefit from vision) | Same |
@@ -33,19 +35,22 @@ When a user uploads a document to a conversation, FIM One runs a processing pipe
 
 <Steps>
   <Step title="File Type Detection">
-    The system identifies the document format by file extension and MIME type, then selects the appropriate extraction pipeline.
+    The system identifies the document format by file extension and MIME type, then selects the appropriate extraction pipeline. Each uploaded file is tagged with its UUID `file_id`, which is injected into the message context so the agent can access it directly via the `read_uploaded_file` tool.
   </Step>
   <Step title="Text Extraction">
     Regardless of vision support, the system always extracts text content. PDF uses pdfplumber for page-by-page text. Office formats use markitdown for Markdown conversion. Text files are read directly.
   </Step>
   <Step title="Vision Processing (if supported)">
     When the model has `supports_vision=true` and the document is a supported type:
-    - **PDF**: Each page is rendered as a PNG image at the configured DPI
+    - **PDF (smart processing)**: Each page is analyzed — text-rich pages extract text plus any embedded images separately (saving tokens), while scanned or image-only pages render as full-page PNG at the configured DPI for maximum fidelity
     - **DOCX / PPTX**: Embedded images are extracted from the document XML with `[Figure N]` positional markers
     - **Images**: Passed through directly as vision content blocks
   </Step>
   <Step title="Content Assembly">
     The extracted text and vision content are assembled into the message format expected by the model. Text and images are interleaved so the model can correlate visual and textual information.
+  </Step>
+  <Step title="Multi-Turn Persistence">
+    Vision content from uploaded files is stored in the message metadata and persists across conversation turns. Whether images came from a user-uploaded photo or were extracted from a document, they remain available for the model to reference in subsequent messages.
   </Step>
 </Steps>
 
@@ -141,7 +146,7 @@ LibreOffice can produce pixel-perfect page renders of DOCX and PPTX files, but i
 
 The quality of vision processing varies by format:
 
-- **PDF** — Full page rendering. Layout, text, images, charts, and formatting are all visible in the rendered image. This is the highest-fidelity path.
+- **PDF** — Smart page-by-page processing. Text-rich pages extract text content plus any embedded images separately, which is significantly more token-efficient. Scanned or image-only pages (e.g., photographed documents, scanned contracts) render as full-page PNG images for maximum visual fidelity. This adaptive approach balances quality and token cost automatically.
 - **DOCX / PPTX** — Text content plus extracted embedded images. Good for most business documents, but page layout and formatting are not preserved.
 
 **Recommendation:** For documents where visual layout matters (forms, invoices, slide decks with complex graphics), export to PDF before uploading.
@@ -154,6 +159,22 @@ If a model is configured with vision support but actually rejects image content 
 This fallback mechanism prevents task failures caused by misconfigured vision settings. If you see a model consistently falling back, check its vision support configuration in **Admin > Models**.
 </Info>
 
+## Safety Guardrails
+
+### File Integrity Protection
+
+When the agent cannot read a file (e.g., an image-based PDF without vision enabled), a system-level guardrail prevents the agent from substituting content from other files. Without this protection, the agent could read a different accessible file and present its content as if it came from the target document. The guardrail ensures that when a file is unreadable, the agent reports the limitation honestly rather than fabricating an answer from unrelated sources.
+
+### Descriptive Error Guidance
+
+When a file cannot be read by the `read_uploaded_file` tool, the error message includes:
+
+- The detected file type and why it could not be processed
+- A suggestion to enable vision on the model if the file is image-based
+- Alternative approaches the user can try (e.g., exporting to a different format)
+
+This helps users understand and resolve file processing issues without trial and error.
+
 ## Best Practices
 
 ### For Administrators
@@ -161,6 +182,8 @@ This fallback mechanism prevents task failures caused by misconfigured vision se
 - **Enable vision selectively.** Only enable `supports_vision` on models that genuinely support image input. Misconfiguration wastes tokens on the fallback retry cycle.
 - **Start with `auto` mode.** The default behavior is correct for most deployments — vision is used when beneficial and available.
 - **Monitor token usage.** After enabling vision, watch the token consumption dashboard. If costs spike unexpectedly, adjust `DOCUMENT_VISION_MAX_PAGES` or `DOCUMENT_VISION_DPI`.
+
+- **Use the pre-built sandbox image.** The `Dockerfile.sandbox` includes common data-science packages (pdfplumber, Pillow, pandas, etc.) needed for AI code execution against documents. Build it via `docker compose` or manually with `docker build -f Dockerfile.sandbox -t fim-sandbox .` to ensure code execution works in `--network=none` containers.
 
 ### For End Users
 

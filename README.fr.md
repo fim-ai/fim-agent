@@ -129,10 +129,10 @@ cd frontend && pnpm install && cd ..
 
 #### Flux de travail et outils
 - **Éditeur de flux de travail visuel** — 12 types de nœuds, canevas glisser-déposer (React Flow v12), import/export en JSON.
-- **Gestion intelligente des fichiers** — Les fichiers téléchargés sont automatiquement intégrés au contexte (petits) ou lisibles à la demande via l'outil `read_uploaded_file` avec modes de recherche paginée et regex.
+- **Gestion intelligente des fichiers** — Les fichiers téléchargés sont automatiquement intégrés au contexte (petits) ou lisibles à la demande via l'outil `read_uploaded_file`. Traitement intelligent des documents : les fichiers PDF, DOCX et PPTX bénéficient d'un traitement compatible avec la vision avec extraction d'images intégrées lorsque le modèle supporte la vision. Le mode PDF intelligent extrait le texte des pages riches en texte et affiche les pages numérisées sous forme d'images.
 - **Outils enfichables** — Python, Node.js, exécution shell avec bac à sable Docker optionnel (`CODE_EXEC_BACKEND=docker`).
-- **Pipeline RAG complet** — Intégration Jina + LanceDB + récupération hybride + reclasseur + citations intégrées `[N]`.
-- **Artefacts d'outils** — Sorties enrichies (aperçus HTML, fichiers) rendus dans le chat.
+- **Pipeline RAG complet** — Intégration Jina + LanceDB + récupération hybride + reclassement + citations en ligne `[N]`.
+- **Artefacts d'outils** — Les sorties enrichies (aperçus HTML, fichiers) sont rendues dans le chat.
 
 #### Plateforme
 - **Multi-locataire** — Authentification JWT, isolation des organisations, panneau d'administration avec analyses d'utilisation et métriques des connecteurs.

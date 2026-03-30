@@ -12,8 +12,19 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ### Ajouté
 
-- **Traitement Intelligent des Documents (Sensible à la Vision)** — Gestion adaptative des documents basée sur les capacités du modèle. Lorsque le LLM cible supporte la vision (GPT-4o, Claude 3/4, Gemini), les pages PDF sont rendues en images et envoyées via des blocs de contenu de vision pour une fidélité visuelle complète. Les modèles texte uniquement reviennent à l'extraction de texte pdfplumber. Trois modes : Vision (fidélité maximale), Hybride, Texte uniquement. Configurable via les variables d'environnement `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES`. Basculement `supports_vision` par modèle dans Admin avec détection automatique en secours.
-- **Complétude de la fourche de ressources** — Les cinq types de ressources supportent maintenant la fourche : Agent, Connecteur, Workflow, Serveur MCP et Compétence. Fourche KB supprimée (intrinsèquement locale à l'utilisateur).
+- **Traitement Intelligent des Documents (Vision-Aware)** — Gestion adaptative des documents basée sur les capacités du modèle. Lorsque le LLM cible supporte la vision (GPT-4o, Claude 3/4, Gemini), les pages PDF sont rendues sous forme d'images et envoyées via des blocs de contenu vision pour une fidélité visuelle complète. Les modèles texte uniquement reviennent à l'extraction de texte pdfplumber. Deux modes : Vision et Texte uniquement. Configurable via les variables d'environnement `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES`. Basculement `supports_vision` par modèle dans Admin.
+- **Pipeline de vision de document** — Les fichiers DOCX, PPTX et PDF téléchargés dans le chat ont maintenant leurs images intégrées extraites et envoyées en tant que contenu vision au LLM lorsque la vision est activée sur le modèle.
+- **Persistance de la vision multi-tours** — Le contenu vision des documents et images téléchargés persiste à travers les tours de conversation, de sorte que le modèle conserve le contexte visuel tout au long de la conversation.
+- **Traitement intelligent des PDF** — Les pages PDF riches en texte extraient le texte plus les images intégrées séparément (économisant des tokens). Les pages numérisées ou contenant uniquement des images sont rendues sous forme de PNG pleine page pour une fidélité maximale.
+- **Image sandbox pré-construite** — `Dockerfile.sandbox` avec des packages courants de data-science (pdfplumber, Pillow, pandas, etc.) pour que l'exécution de code IA fonctionne immédiatement dans les conteneurs `--network=none`.
+- **Complétion de fork de ressource** — Les cinq types de ressources supportent maintenant le fork : Agent, Connecteur, Workflow, Serveur MCP et Compétence. Fork KB supprimé (inhérent à l'utilisateur local).
+
+### Corrections
+
+- **Hallucination d'agent sur les fichiers illisibles** — Lorsque l'agent IA ne pouvait pas lire un fichier (par exemple, un PDF basé sur des images), il lisait auparavant d'autres fichiers non liés et présentait leur contenu comme celui du fichier cible. Une barrière d'intégrité des fichiers dans l'invite système empêche désormais cela.
+- **Injection d'ID de fichier pour les téléchargements** — Les fichiers téléchargés incluent désormais leur UUID file_id dans le contexte du message, afin que l'agent puisse y accéder directement via `read_uploaded_file` sans deviner.
+- **Lecture du bouton Vision à partir de la nouvelle structure de modèle** — L'indicateur `supports_vision` sur les configurations de modèle n'était pas lu correctement à partir de la structure ORM ModelGroup/ModelProviderModel. Corrigé.
+- **Messages d'erreur améliorés pour les fichiers illisibles** — Lorsque les fichiers ne peuvent pas être lus, l'outil retourne désormais des conseils spécifiques (type de fichier, suggestion de vision) au lieu d'erreurs génériques.
 
 ## [v0.8.1] - 2026-03-29
 

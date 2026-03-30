@@ -12,8 +12,19 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Hinzugefügt
 
-- **Intelligente Dokumentverarbeitung (Vision-Aware)** — Adaptive Dokumentbehandlung basierend auf Modellkapazitäten. Wenn das Ziel-LLM Vision unterstützt (GPT-4o, Claude 3/4, Gemini), werden PDF-Seiten als Bilder gerendert und über Vision-Content-Blöcke für vollständige visuelle Treue gesendet. Nur-Text-Modelle fallen auf pdfplumber-Textextraktion zurück. Drei Modi: Vision (höchste Treue), Hybrid, Nur-Text. Konfigurierbar über `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` Umgebungsvariablen. Pro-Modell `supports_vision`-Schalter in Admin mit automatischer Erkennungsfallback.
-- **Resource Fork-Vervollständigung** — Alle fünf Ressourcentypen unterstützen jetzt Fork: Agent, Connector, Workflow, MCP Server und Skill. KB Fork entfernt (inhärent benutzerlokal).
+- **Intelligente Dokumentverarbeitung (Vision-fähig)** — Adaptive Dokumentbehandlung basierend auf Modellfähigkeiten. Wenn das Ziel-LLM Vision unterstützt (GPT-4o, Claude 3/4, Gemini), werden PDF-Seiten als Bilder gerendert und über Vision-Content-Blöcke für vollständige visuelle Treue gesendet. Nur-Text-Modelle greifen auf pdfplumber-Textextraktion zurück. Zwei Modi: Vision und Nur-Text. Konfigurierbar über `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` Umgebungsvariablen. Pro-Modell `supports_vision` Umschalter in Admin.
+- **Document-Vision-Pipeline** — DOCX-, PPTX- und PDF-Dateien, die im Chat hochgeladen werden, haben ihre eingebetteten Bilder extrahiert und werden als Vision-Content an das LLM gesendet, wenn Vision auf dem Modell aktiviert ist.
+- **Multi-Turn-Vision-Persistenz** — Vision-Content aus hochgeladenen Dokumenten und Bildern bleibt über Gesprächsrunden hinweg erhalten, sodass das Modell den visuellen Kontext während des gesamten Gesprächs behält.
+- **Intelligente PDF-Verarbeitung** — Textreiche PDF-Seiten extrahieren Text plus eingebettete Bilder separat (Token sparen). Gescannte oder reine Bildseiten werden als vollständige PNG-Seite für maximale Treue gerendert.
+- **Vorgefertigtes Sandbox-Image** — `Dockerfile.sandbox` mit gängigen Data-Science-Paketen (pdfplumber, Pillow, pandas, etc.), sodass die KI-Code-Ausführung in `--network=none` Containern sofort funktioniert.
+- **Resource-Fork-Vervollständigung** — Alle fünf Ressourcentypen unterstützen jetzt Fork: Agent, Connector, Workflow, MCP Server und Skill. KB-Fork entfernt (inhärent benutzerlokal).
+
+### Behoben
+
+- **Agent-Halluzinationen bei unlesbaren Dateien** — Wenn der KI-Agent eine Datei nicht lesen konnte (z. B. bildbasiertes PDF), las er zuvor andere nicht verwandte Dateien und präsentierte deren Inhalt als Inhalt der Zieldatei. Eine Dateiintegritäts-Schutzmaßnahme in der System-Eingabeaufforderung verhindert dies nun.
+- **Datei-ID-Injection für Uploads** — Hochgeladene Dateien enthalten nun ihre UUID file_id im Nachrichtenkontext, sodass der Agent direkt über `read_uploaded_file` auf sie zugreifen kann, ohne zu raten.
+- **Vision-Toggle-Lesevorgänge aus neuer Modellstruktur** — Das Flag `supports_vision` in Modellkonfigurationen wurde nicht korrekt aus der ModelGroup/ModelProviderModel-ORM-Struktur gelesen. Behoben.
+- **Verbesserte Fehlermeldungen für unlesbaren Dateien** — Wenn Dateien nicht gelesen werden können, gibt das Tool nun spezifische Anleitung (Dateityp, Vision-Vorschlag) statt generischer Fehler zurück.
 
 ## [v0.8.1] - 2026-03-29
 

@@ -22,17 +22,21 @@ Diese Rollen können über Umgebungsvariablen oder über die Funktion **Model Gr
 
 ## Schnellauswahlmatrix
 
-| Anbieter | Haupt-LLM | Schnelles LLM | Reasoning | Hinweise |
-|---|---|---|---|---|
-| **OpenAI** | `gpt-5.4` | `gpt-5.4-mini` / `gpt-5.4-nano` | ✅ `reasoning_effort` | Beste native Tool-Aufrufe; GPT-5.4 ist neuestes Flaggschiff (März 2026) |
-| **Anthropic** | `claude-sonnet-4-6` | `claude-haiku-4-5` | ✅ via LiteLLM | Native API-Weiterleitung; vollständige `reasoning_content`-Unterstützung; 1M-Kontext GA |
-| **Google Gemini** | `gemini-2.5-pro` / `gemini-3.1-pro-preview` | `gemini-2.5-flash` / `gemini-3-flash-preview` | ✅ `reasoning_effort` | 2.5 ist stabiles GA; 3.x ist Vorschau; `gemini-3-pro-preview` abgeschaltet 9. März |
-| **DeepSeek** | `deepseek-chat` (V3.2) | `deepseek-chat` | ✅ `deepseek-reasoner` | Bestes Kosten-/Leistungsverhältnis; V4 erwartet April 2026 |
-| **Qwen (Alibaba)** | `qwen3.5-plus` / `qwen3-max` | `qwen3.5-flash` / `qwen-turbo` | ✅ `enable_thinking` auf `qwen3-max` | Stärkste chinesische Sprache; günstigste Frontier-Klasse (~$0,11/MTok Eingabe) |
-| **ChatGLM (Zhipu)** | `glm-4.7` | `glm-4.7-flash` | `glm-5` | Erzwungene FC nicht unterstützt; kostenlos auf glm-4.7-flash |
-| **MiniMax** | `MiniMax-M2.7` | `MiniMax-M2.5` | ❌ | Open-Weight; M2.7 neueste (März 2026); 80,2% SWE-Bench |
-| **Kimi (Moonshot)** | `kimi-k2.5` | `kimi-k2` | ✅ `kimi-k2-thinking` | 256K-Kontext; erzwungene FC nicht unterstützt mit Thinking-Modus |
-| **Ollama (lokal)** | `qwen3.5` / `llama4` | `qwen3.5:9b` | ❌ | Vollständig offline, kein API-Schlüssel |
+| Anbieter | Haupt-LLM | Schnelles LLM | Reasoning | Vision | Hinweise |
+|---|---|---|---|---|---|
+| **OpenAI** | `gpt-5.4` | `gpt-5.4-mini` / `gpt-5.4-nano` | ✅ `reasoning_effort` | ✅ Alle | Beste native Tool-Aufrufe; GPT-5.4 ist neuestes Flaggschiff (März 2026) |
+| **Anthropic** | `claude-sonnet-4-6` | `claude-haiku-4-5` | ✅ via LiteLLM | ✅ Alle | Native API-Weiterleitung; vollständige `reasoning_content`-Unterstützung; 1M Kontext GA |
+| **Google Gemini** | `gemini-2.5-pro` / `gemini-3.1-pro-preview` | `gemini-2.5-flash` / `gemini-3-flash-preview` | ✅ `reasoning_effort` | ✅ Alle | 2.5 ist stabiles GA; 3.x ist Vorschau; `gemini-3-pro-preview` am 9. März abgeschaltet |
+| **DeepSeek** | `deepseek-chat` (V3.2) | `deepseek-chat` | ✅ `deepseek-reasoner` | ❌ | Nur Text; V4 (Apr 2026) wird Vision hinzufügen |
+| **Qwen (Alibaba)** | `qwen3.5-plus` / `qwen3-max` | `qwen3.5-flash` / `qwen-turbo` | ✅ `enable_thinking` auf `qwen3-max` | ⚠️ nur qwen3.5 | Stärkste chinesische Sprache; qwq/Reasoning nur Text |
+| **ChatGLM (Zhipu)** | `glm-4.7` | `glm-4.7-flash` | `glm-5` | ⚠️ GLM-4.6V | Erzwungene FC nicht unterstützt; Vision erfordert separates VLM-Modell |
+| **MiniMax** | `MiniMax-M2.7` | `MiniMax-M2.5` | ❌ | ❌ | Nur Text; M2.7 neueste (März 2026); 80,2% SWE-Bench |
+| **Kimi (Moonshot)** | `kimi-k2.5` | `kimi-k2` | ✅ `kimi-k2-thinking` | ⚠️ nur K2.5 | K2-thinking nur Text; erzwungene FC nicht unterstützt mit Thinking |
+| **Ollama (lokal)** | `qwen3.5` / `llama4` | `qwen3.5:9b` | ❌ | Variiert | Vollständig offline, kein API-Schlüssel; Llama 4 unterstützt Vision |
+
+<Tip>
+**Vision** gibt an, ob das Modell Bildeingaben akzeptiert. Dies ist erforderlich für [Intelligente Dokumentenverarbeitung (IDP)](/features/idp) – wenn Ihr Modell Vision nicht unterstützt, greift IDP auf reine Textextraktion zurück. Anbieter mit ⚠️ haben Vision auf einigen Modellen, aber nicht auf anderen; überprüfen Sie das spezifische Modell, das Sie verwenden.
+</Tip>
 
 ---
 

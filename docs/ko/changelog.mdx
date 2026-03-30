@@ -12,8 +12,19 @@ description: "FIM One의 모든 주요 변경 사항."
 
 ### 추가됨
 
-- **지능형 문서 처리 (Vision-Aware)** — 모델 기능에 따른 적응형 문서 처리. 대상 LLM이 vision을 지원하는 경우(GPT-4o, Claude 3/4, Gemini), PDF 페이지가 이미지로 렌더링되어 vision 콘텐츠 블록을 통해 전송되어 완전한 시각적 충실도를 제공합니다. 텍스트 전용 모델은 pdfplumber 텍스트 추출로 폴백됩니다. 세 가지 모드: Vision (최고 충실도), Hybrid, Text-only. `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` 환경 변수를 통해 구성 가능합니다. Admin의 모델별 `supports_vision` 토글과 자동 감지 폴백.
-- **리소스 포크 완성** — 5가지 리소스 유형 모두 포크 지원: 에이전트, 커넥터, 워크플로우, MCP 서버, 스킬. KB 포크 제거 (기본적으로 사용자 로컬).
+- **지능형 문서 처리 (Vision-Aware)** — 모델 기능에 따른 적응형 문서 처리. 대상 LLM이 vision을 지원하는 경우(GPT-4o, Claude 3/4, Gemini), PDF 페이지는 이미지로 렌더링되고 vision 콘텐츠 블록을 통해 전송되어 완벽한 시각적 충실도를 제공합니다. 텍스트 전용 모델은 pdfplumber 텍스트 추출로 폴백됩니다. Vision 및 Text-only 두 가지 모드. `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` 환경 변수를 통해 구성 가능. Admin에서 모델별 `supports_vision` 토글.
+- **문서 vision 파이프라인** — 채팅에 업로드된 DOCX, PPTX, PDF 파일의 포함된 이미지가 추출되고 모델에서 vision이 활성화되면 LLM으로 vision 콘텐츠로 전송됩니다.
+- **다중 턴 vision 지속성** — 업로드된 문서 및 이미지의 vision 콘텐츠가 대화 턴 전체에 걸쳐 유지되므로 모델이 대화 전체에서 시각적 컨텍스트를 유지합니다.
+- **스마트 PDF 처리** — 텍스트가 풍부한 PDF 페이지는 텍스트와 포함된 이미지를 별도로 추출합니다(토큰 절약). 스캔되거나 이미지 전용 페이지는 최대 충실도를 위해 전체 페이지 PNG로 렌더링됩니다.
+- **사전 구축된 샌드박스 이미지** — 일반적인 데이터 과학 패키지(pdfplumber, Pillow, pandas 등)가 포함된 `Dockerfile.sandbox`로 AI 코드 실행이 `--network=none` 컨테이너에서 즉시 작동합니다.
+- **리소스 Fork 완성** — 5가지 리소스 유형 모두 이제 fork를 지원합니다: 에이전트, 커넥터, 워크플로우, MCP 서버, 스킬. KB fork 제거(기본적으로 사용자 로컬).
+
+### 수정됨
+
+- **읽을 수 없는 파일에 대한 에이전트 환각** — AI 에이전트가 파일을 읽을 수 없을 때(예: 이미지 기반 PDF), 이전에는 관련 없는 다른 파일을 읽고 해당 내용을 대상 파일의 내용으로 제시했습니다. 이제 시스템 프롬프트의 파일 무결성 보호 기능이 이를 방지합니다.
+- **업로드를 위한 파일 ID 주입** — 업로드된 파일은 이제 메시지 컨텍스트에 UUID file_id를 포함하므로 에이전트가 추측 없이 `read_uploaded_file`을 통해 직접 액세스할 수 있습니다.
+- **새로운 모델 구조에서 비전 토글 읽기** — 모델 구성의 `supports_vision` 플래그가 ModelGroup/ModelProviderModel ORM 구조에서 올바르게 읽혀지지 않았습니다. 수정되었습니다.
+- **읽을 수 없는 파일에 대한 개선된 오류 메시지** — 파일을 읽을 수 없을 때 도구는 이제 일반적인 오류 대신 특정 지침(파일 유형, 비전 제안)을 반환합니다.
 
 ## [v0.8.1] - 2026-03-29
 

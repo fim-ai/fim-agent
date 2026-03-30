@@ -22,19 +22,21 @@ FIM One 有三个模型角色：
 
 ## 快速选择矩阵
 
-| 提供商 | 主要LLM | 快速LLM | 推理 | 备注 |
-|---|---|---|---|---|
-| **OpenAI** | `gpt-5.4` | `gpt-5.4-mini` / `gpt-5.4-nano` | ✅ `reasoning_effort` | 最佳原生工具调用；GPT-5.4 是最新旗舰版（2026年3月） |
-| **Anthropic** | `claude-sonnet-4-6` | `claude-haiku-4-5` | ✅ 通过 LiteLLM | 原生API路由；完整 `reasoning_content` 支持；1M 上下文 GA |
-| **Google Gemini** | `gemini-2.5-pro` / `gemini-3.1-pro-preview` | `gemini-2.5-flash` / `gemini-3-flash-preview` | ✅ `reasoning_effort` | 2.5 是稳定 GA；3.x 是预览版；`gemini-3-pro-preview` 已于3月9日关闭 |
-| **DeepSeek** | `deepseek-chat` (V3.2) | `deepseek-chat` | ✅ `deepseek-reasoner` | 最佳成本/性能比；V4 预计2026年4月发布 |
-| **Qwen（阿里巴巴）** | `qwen3.5-plus` / `qwen3-max` | `qwen3.5-flash` / `qwen-turbo` | ✅ `qwen3-max` 上的 `enable_thinking` | 最强中文语言能力；最便宜的前沿级模型（~$0.11/MTok 输入） |
-| **ChatGLM（智谱）** | `glm-4.7` | `glm-4.7-flash` | `glm-5` | 不支持强制函数调用；glm-4.7-flash 免费层 |
-| **MiniMax** | `MiniMax-M2.7` | `MiniMax-M2.5` | ❌ | 开放权重；M2.7 最新版（2026年3月）；SWE-Bench 80.2% |
-| **Kimi（月之暗面）** | `kimi-k2.5` | `kimi-k2` | ✅ `kimi-k2-thinking` | 256K 上下文；思考模式下不支持强制函数调用 |
-| **Ollama（本地）** | `qwen3.5` / `llama4` | `qwen3.5:9b` | ❌ | 完全离线，无需API密钥 |
+| 提供商 | 主要LLM | 快速LLM | 推理 | 视觉 | 备注 |
+|---|---|---|---|---|---|
+| **OpenAI** | `gpt-5.4` | `gpt-5.4-mini` / `gpt-5.4-nano` | ✅ `reasoning_effort` | ✅ 全部 | 最佳原生工具调用；GPT-5.4是最新旗舰版（2026年3月） |
+| **Anthropic** | `claude-sonnet-4-6` | `claude-haiku-4-5` | ✅ 通过LiteLLM | ✅ 全部 | 原生API路由；完整`reasoning_content`支持；1M上下文GA |
+| **Google Gemini** | `gemini-2.5-pro` / `gemini-3.1-pro-preview` | `gemini-2.5-flash` / `gemini-3-flash-preview` | ✅ `reasoning_effort` | ✅ 全部 | 2.5为稳定GA；3.x为预览版；`gemini-3-pro-preview`已于3月9日关闭 |
+| **DeepSeek** | `deepseek-chat`（V3.2） | `deepseek-chat` | ✅ `deepseek-reasoner` | ❌ | 仅文本；V4（2026年4月）将添加视觉功能 |
+| **Qwen（阿里巴巴）** | `qwen3.5-plus` / `qwen3-max` | `qwen3.5-flash` / `qwen-turbo` | ✅ `qwen3-max`上的`enable_thinking` | ⚠️ 仅qwen3.5 | 最强中文语言能力；qwq/推理仅文本 |
+| **ChatGLM（智谱）** | `glm-4.7` | `glm-4.7-flash` | `glm-5` | ⚠️ GLM-4.6V | 不支持强制FC；视觉需要单独的VLM模型 |
+| **MiniMax** | `MiniMax-M2.7` | `MiniMax-M2.5` | ❌ | ❌ | 仅文本；M2.7最新版（2026年3月）；SWE-Bench 80.2% |
+| **Kimi（月之暗面）** | `kimi-k2.5` | `kimi-k2` | ✅ `kimi-k2-thinking` | ⚠️ 仅K2.5 | K2-thinking仅文本；思考模式下不支持强制FC |
+| **Ollama（本地）** | `qwen3.5` / `llama4` | `qwen3.5:9b` | ❌ | 因模型而异 | 完全离线，无需API密钥；Llama 4支持视觉 |
 
----
+<Tip>
+**视觉**表示模型是否接受图像输入。这是[智能文档处理（IDP）](/features/idp)所必需的——如果您的模型不支持视觉，IDP将回退到仅文本提取。标记为⚠️的提供商在某些模型上支持视觉但在其他模型上不支持；请检查您正在使用的特定模型。
+</Tip>
 
 ## 结构化输出兼容性
 

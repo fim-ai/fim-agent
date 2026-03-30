@@ -12,8 +12,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
-- **Intelligent Document Processing (Vision-Aware)** — Adaptive document handling based on model capabilities. When the target LLM supports vision (GPT-4o, Claude 3/4, Gemini), PDF pages are rendered as images and sent via vision content blocks for full visual fidelity. Text-only models fall back to pdfplumber text extraction. Three modes: Vision (highest fidelity), Hybrid, Text-only. Configurable via `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` env vars. Per-model `supports_vision` toggle in Admin with auto-detection fallback.
+- **Intelligent Document Processing (Vision-Aware)** — Adaptive document handling based on model capabilities. When the target LLM supports vision (GPT-4o, Claude 3/4, Gemini), PDF pages are rendered as images and sent via vision content blocks for full visual fidelity. Text-only models fall back to pdfplumber text extraction. Two modes: Vision and Text-only. Configurable via `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` env vars. Per-model `supports_vision` toggle in Admin.
+- **Document vision pipeline** — DOCX, PPTX, and PDF files uploaded in chat now have their embedded images extracted and sent as vision content to the LLM when vision is enabled on the model.
+- **Multi-turn vision persistence** — Vision content from uploaded documents and images persists across conversation turns, so the model retains visual context throughout the conversation.
+- **Smart PDF processing** — Text-rich PDF pages extract text plus embedded images separately (saving tokens). Scanned or image-only pages render as full-page PNG for maximum fidelity.
+- **Pre-built sandbox image** — `Dockerfile.sandbox` with common data-science packages (pdfplumber, Pillow, pandas, etc.) so AI code execution works out of the box in `--network=none` containers.
 - **Resource Fork completion** — All five resource types now support fork: Agent, Connector, Workflow, MCP Server, and Skill. KB fork removed (inherently user-local).
+
+### Fixed
+
+- **Agent hallucination on unreadable files** — When the AI agent could not read a file (e.g., image-based PDF), it previously read other unrelated files and presented their content as the target file's. A file integrity guardrail in the system prompt now prevents this.
+- **File ID injection for uploads** — Uploaded files now include their UUID file_id in the message context, so the agent can directly access them via `read_uploaded_file` without guessing.
+- **Vision toggle reading from new model structure** — The `supports_vision` flag on model configs was not being read correctly from the ModelGroup/ModelProviderModel ORM structure. Fixed.
+- **Improved error messages for unreadable files** — When files cannot be read, the tool now returns specific guidance (file type, vision suggestion) instead of generic errors.
 
 ## [v0.8.1] - 2026-03-29
 
