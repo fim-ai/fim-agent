@@ -345,6 +345,7 @@ class TestCycleDetectionJsonMode:
         # Replace the LLM responses (agent uses the same LLM object).
         llm2 = CapturingFakeLLM(responses2)
         agent._llm = llm2
+        agent._tool_llm = llm2
 
         result2 = await agent.run("run 2")
         assert result2.answer == "second"

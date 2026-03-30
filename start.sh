@@ -10,6 +10,8 @@ Commands:
   portal    Start the Next.js portal + API backend (default)
   api       Start only the FastAPI backend (no frontend)
   dev       Start portal in dev mode (Python hot-reload + Next.js HMR)
+  dev:api   Start only the API backend in dev mode (--reload)
+  dev:ui    Start only the Next.js frontend in dev mode (HMR)
   help      Show this message
 
 EOF
@@ -55,6 +57,33 @@ uv sync --all-extras --quiet
 echo "Running database migrations..."
 uv run alembic upgrade head
 
+# Helper: prepare .next dir for dev mode
+_prepare_next_dev() {
+  rm -rf frontend/.next
+  mkdir -p frontend/.next/static/development
+  # Prevent macOS Spotlight from indexing .next
+  touch frontend/.next/.metadata_never_index
+  touch frontend/.next/static/.metadata_never_index
+  touch frontend/.next/static/development/.metadata_never_index
+  mdutil -i off frontend/.next &>/dev/null || true
+}
+
+# Helper: run Next.js dev with auto-restart on crash
+_run_next_dev() {
+  cd frontend
+  # Auto-restart on crash (e.g. Turbopack tmp file race condition)
+  while true; do
+    find .next -name '*.tmp.*' -delete 2>/dev/null || true
+    pnpm dev
+    EXIT_CODE=$?
+    # Ctrl+C (SIGINT=130) → stop for real
+    [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 130 ] && break
+    echo ""
+    echo "  Next.js dev server crashed (exit $EXIT_CODE), restarting in 2s..."
+    sleep 2
+  done
+}
+
 case "$CMD" in
   portal)
     free_port 8000
@@ -75,28 +104,24 @@ case "$CMD" in
     echo "Starting FIM One Portal (dev mode — hot reload)..."
     echo "  API backend  → http://localhost:8000 (--reload)"
     echo "  Next.js app  → http://localhost:3000 (HMR)"
-    rm -rf frontend/.next
-    mkdir -p frontend/.next/static/development
-    # Prevent macOS Spotlight from indexing .next
-    touch frontend/.next/.metadata_never_index
-    touch frontend/.next/static/.metadata_never_index
-    touch frontend/.next/static/development/.metadata_never_index
-    mdutil -i off frontend/.next &>/dev/null || true
+    _prepare_next_dev
     uv run uvicorn fim_one.web:create_app --factory --host 0.0.0.0 --port 8000 --reload --reload-dir src --reload-exclude 'src/tmp/*' --reload-exclude 'uploads/*' --log-level "$UVICORN_LOG_LEVEL" &
     API_PID=$!
     trap "kill $API_PID 2>/dev/null" EXIT
-    cd frontend
-    # Auto-restart on crash (e.g. Turbopack tmp file race condition)
-    while true; do
-      find .next -name '*.tmp.*' -delete 2>/dev/null || true
-      pnpm dev
-      EXIT_CODE=$?
-      # Ctrl+C (SIGINT=130) → stop for real
-      [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 130 ] && break
-      echo ""
-      echo "  Next.js dev server crashed (exit $EXIT_CODE), restarting in 2s..."
-      sleep 2
-    done
+    _run_next_dev
+    ;;
+  dev:api)
+    free_port 8000
+    echo "Starting FIM One API (dev mode — hot reload)..."
+    echo "  API backend  → http://localhost:8000 (--reload)"
+    uv run uvicorn fim_one.web:create_app --factory --host 0.0.0.0 --port 8000 --reload --reload-dir src --reload-exclude 'src/tmp/*' --reload-exclude 'uploads/*' --log-level "$UVICORN_LOG_LEVEL"
+    ;;
+  dev:ui)
+    free_port 3000
+    echo "Starting FIM One Frontend (dev mode — HMR)..."
+    echo "  Next.js app  → http://localhost:3000 (HMR)"
+    _prepare_next_dev
+    _run_next_dev
     ;;
   api)
     free_port 8000

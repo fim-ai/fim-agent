@@ -27,7 +27,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useConversation } from "@/contexts/conversation-context"
 import { agentApi, fileApi, chatApi, ApiError } from "@/lib/api"
 import { getApiBaseUrl, getApiDirectUrl, ACCESS_TOKEN_KEY } from "@/lib/constants"
-import { cn, formatFileSize, isImageFile } from "@/lib/utils"
+import { cn, formatFileSize, isDocumentFile, isImageFile } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -566,7 +566,9 @@ function HistoryTurn({ userContent, userMetadata, assistantMetadata, sseMessages
             )}
             {Array.isArray(userMetadata?.images) && userMetadata.images.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-2">
-                {(userMetadata.images as Array<{ file_id: string; filename: string }>).map((img) => (
+                {(userMetadata.images as Array<{ file_id: string; filename: string; source?: string }>)
+                  .filter((img) => img.source !== "document")
+                  .map((img) => (
                   <ImageThumbnail key={img.file_id} fileId={img.file_id} filename={img.filename} />
                 ))}
               </div>
@@ -1233,11 +1235,11 @@ function PlaygroundContent({
             // Small file or unknown size: fetch full content
             try {
               const { content } = await fileApi.getContent(f.file_id, 0, INLINE_CONTENT_THRESHOLD)
-              return `\n\n--- File: ${f.filename} ---\n${content}\n--- End of file ---`
+              return `\n\n--- File: ${f.filename} (file_id: ${f.file_id}) ---\n${content}\n--- End of file ---`
             } catch {
               // Fallback to content_preview (e.g. old uploads without stored content)
               const preview = f.content_preview || "[No preview available]"
-              return `\n\n--- File: ${f.filename} ---\n${preview}\n--- End of file ---`
+              return `\n\n--- File: ${f.filename} (file_id: ${f.file_id}) ---\n${preview}\n[Use read_uploaded_file(file_id="${f.file_id}") to access this file.]\n--- End of file ---`
             }
           } else {
             // Large file: inject metadata + tool hint
@@ -1249,8 +1251,15 @@ function PlaygroundContent({
       finalQuery = finalQuery + fileContextParts.join("")
     }
 
-    // Image files: pass as image_ids parameter
-    const imageIds = imageFiles.map((f) => f.file_id)
+    // Image files + document files: pass as image_ids parameter.
+    // Documents (PDF/DOCX/PPTX) are included so the backend can extract
+    // embedded images via the vision pipeline when vision is enabled.
+    // Text content for documents is still injected inline above.
+    const docFiles = textFiles.filter((f) => isDocumentFile(f))
+    const imageIds = [
+      ...imageFiles.map((f) => f.file_id),
+      ...docFiles.map((f) => f.file_id),
+    ]
 
     // Build file metadata for non-image attachments (persisted for history rendering)
     let fileMetadata: FileMessageMetadata | null = null

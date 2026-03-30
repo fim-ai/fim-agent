@@ -81,8 +81,11 @@ class TestLocalBackendPython:
 
     @pytest.mark.asyncio
     async def test_timeout(self) -> None:
+        # Use a short sleep (5s) so the zombie thread dies quickly after
+        # asyncio.wait_for cancels.  60s would block executor shutdown
+        # and trip pytest-timeout during teardown.
         result = await self._backend().run_code(
-            "import time; time.sleep(60)",
+            "import time; time.sleep(5)",
             language="python",
             exec_dir=self.exec_dir,
             timeout=1,

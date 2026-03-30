@@ -102,11 +102,24 @@ class ReadUploadedFileTool(BaseTool):
             if not content_path.resolve().is_relative_to(user_dir.resolve()):
                 return "File not found."
 
+            filename: str = str(meta.get("filename", "unknown"))
+
             if not content_path.exists():
-                return "No text content available for this file."
+                mime = str(meta.get("mime_type", ""))
+                return (
+                    f"No text content could be extracted from '{filename}' "
+                    f"(type: {mime or 'unknown'}). "
+                    "This file may contain non-textual content (images, "
+                    "scanned documents, audio, video, etc.) that cannot be "
+                    "processed by text extraction alone. "
+                    "If the current model supports vision, the administrator "
+                    "can enable vision capabilities to process visual content "
+                    "directly. Please inform the user about this limitation "
+                    "and do NOT attempt to infer or guess the file content "
+                    "from other files."
+                )
 
             text = content_path.read_text(encoding="utf-8")
-            filename: str = str(meta.get("filename", "unknown"))
             query: str | None = kwargs.get("query")
 
             if query:
@@ -140,6 +153,11 @@ class ReadUploadedFileTool(BaseTool):
             header += (
                 f"\nTo read more: "
                 f'read_uploaded_file(file_id="{file_id}", offset={end})'
+            )
+        else:
+            header += (
+                "\nThis is the complete extracted text content of the file. "
+                "No further reading is needed."
             )
 
         return f"{header}\n---\n{chunk}"

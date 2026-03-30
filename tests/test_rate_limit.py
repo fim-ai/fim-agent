@@ -87,21 +87,24 @@ class TestTokenBucketRateLimiter:
 
     async def test_request_bucket_exhaustion_triggers_wait(self) -> None:
         """When request tokens run out, acquire should wait."""
-        # Only allow 2 requests per minute.
+        # Use a high RPM so the refill rate is fast enough that a short
+        # mock sleep actually refills enough tokens to break the wait loop.
         limiter = TokenBucketRateLimiter(
-            RateLimitConfig(requests_per_minute=2, tokens_per_minute=100_000)
+            RateLimitConfig(requests_per_minute=1000, tokens_per_minute=100_000)
         )
-        await limiter.acquire()
-        await limiter.acquire()
+        # Drain the request bucket entirely.
+        async with limiter._lock:
+            limiter._request_tokens = 0.0
 
-        # Third acquire should need to wait.
+        # Next acquire should need to wait.
         sleep_called = False
         original_sleep = asyncio.sleep
 
         async def mock_sleep(delay: float) -> None:
             nonlocal sleep_called
             sleep_called = True
-            await original_sleep(0.01)
+            # Sleep the actual requested delay so the refill math works.
+            await original_sleep(delay)
 
         with patch(
             "fim_one.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep
@@ -142,7 +145,8 @@ class TestReportUsage:
         async def mock_sleep(delay: float) -> None:
             nonlocal sleep_called
             sleep_called = True
-            await original_sleep(0.01)
+            # Sleep the actual requested delay so the refill math works.
+            await original_sleep(delay)
 
         with patch(
             "fim_one.core.model.rate_limit.asyncio.sleep", side_effect=mock_sleep

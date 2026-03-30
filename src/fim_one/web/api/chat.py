@@ -698,16 +698,7 @@ async def _resolve_model_supports_vision(
     group_result = await db.execute(group_stmt)
     group = group_result.scalar_one_or_none()
     if group is not None and group.general_model:
-        general_cfg_id = group.general_model.get("model_config_id") if isinstance(group.general_model, dict) else None
-        if general_cfg_id:
-            stmt = sa_select(ModelConfigORM.supports_vision).where(
-                ModelConfigORM.id == general_cfg_id,
-                ModelConfigORM.is_active == True,  # noqa: E712
-            )
-            result = await db.execute(stmt)
-            val = result.scalar_one_or_none()
-            if val is not None:
-                return bool(val)
+        return bool(group.general_model.supports_vision)
 
     # System default model: check is_default=True system config
     default_stmt = sa_select(ModelConfigORM.supports_vision).where(
@@ -1843,9 +1834,27 @@ async def _load_document_vision_urls(
         from fim_one.core.document import DocumentProcessor
 
         if suffix == ".pdf":
-            # Existing PyMuPDF page rendering
-            page_urls = await DocumentProcessor.get_or_create_cached_pages(file_path)
-            all_page_urls.extend(page_urls)
+            # Smart extraction: embedded images only for text-heavy pages,
+            # full-page PNG only for scanned pages (no text layer).
+            try:
+                raw_images = await DocumentProcessor.extract_pdf_images(file_path)
+                for img_bytes in raw_images:
+                    if img_bytes[:2] == b"\xff\xd8":
+                        mime = "image/jpeg"
+                    elif img_bytes[:4] == b"\x89PNG":
+                        mime = "image/png"
+                    else:
+                        mime = "image/png"
+                    b64 = base64.b64encode(img_bytes).decode("ascii")
+                    all_page_urls.append(f"data:{mime};base64,{b64}")
+            except ImportError:
+                logger.warning(
+                    "PyMuPDF not installed, cannot extract PDF images"
+                )
+            except Exception:
+                logger.warning(
+                    "PDF smart image extraction failed", exc_info=True
+                )
         else:
             # DOCX/PPTX: extract embedded images
             _, image_bytes_list = await DocumentProcessor.extract_with_images(file_path)
@@ -2159,9 +2168,9 @@ async def react_endpoint(
 
     # Gate user-uploaded images: only send as vision content when model supports it
     if image_data and not model_supports_vision:
-        # Model doesn't support vision -- annotate query with filenames instead
-        img_names = ", ".join(fname for _, fname, _ in image_data)
-        q = f"{q}\n\n[Attached images (text-only model, not displayed): {img_names}]"
+        # Model doesn't support vision -- annotate query with file_ids + filenames
+        img_refs = ", ".join(f"{fname} (file_id: {fid})" for fid, fname, _ in image_data)
+        q = f"{q}\n\n[Attached images (text-only model, not displayed): {img_refs}]"
 
     # Load document vision pages (PDF/DOCX/PPTX rendered as images for vision models)
     doc_vision_urls: list[str] = []
@@ -2172,6 +2181,31 @@ async def react_endpoint(
             doc_mode=doc_mode,
             model_supports_vision=model_supports_vision,
         )
+
+    # Annotate query with file_ids for ALL attached files so the agent
+    # knows the correct UUID to use with read_uploaded_file — regardless
+    # of whether vision processed them.
+    if image_ids and current_user_id:
+        from fim_one.web.api.files import _load_index
+
+        _attach_index = _load_index(current_user_id)
+        handled_fids = {fid for fid, _, _ in image_data}
+        unhandled: list[str] = []
+        for _fid in image_ids.split(","):
+            _fid = _fid.strip()
+            if not _fid or _fid in handled_fids:
+                continue
+            _meta = _attach_index.get(_fid)
+            if _meta:
+                unhandled.append(
+                    f"  - {_meta.get('filename', 'unknown')} (file_id: {_fid})"
+                )
+        if unhandled:
+            q += (
+                "\n\n[Attached files — use these file_ids with "
+                "read_uploaded_file to access content:\n"
+                + "\n".join(unhandled) + "]"
+            )
 
     async def generate() -> AsyncGenerator[str, None]:  # noqa: C901
         t0 = time.time()
@@ -2199,15 +2233,38 @@ async def react_endpoint(
                     except json.JSONDecodeError:
                         pass
                 final_metadata: dict[str, Any] = {}
+                all_images: list[dict[str, str]] = []
                 if image_data:
-                    final_metadata["images"] = [
+                    all_images.extend(
                         {
                             "file_id": fid,
                             "filename": fname,
                             "mime_type": durl.split(";")[0].split(":")[1],
+                            "source": "upload",
                         }
                         for fid, fname, durl in image_data
-                    ]
+                    )
+                # Include document files that contributed vision content
+                # so embedded images can be reconstructed in later turns.
+                if doc_vision_urls and image_ids and current_user_id:
+                    from fim_one.web.api.files import _load_index as _dv_load_index
+
+                    _dv_index = _dv_load_index(current_user_id)
+                    _DOC_EXTS = {".pdf", ".docx", ".doc", ".pptx", ".ppt"}
+                    for _dfid in image_ids.split(","):
+                        _dfid = _dfid.strip()
+                        _dmeta = _dv_index.get(_dfid)
+                        if _dmeta:
+                            _dname = str(_dmeta.get("filename", ""))
+                            if Path(_dname).suffix.lower() in _DOC_EXTS:
+                                all_images.append({
+                                    "file_id": _dfid,
+                                    "filename": _dname,
+                                    "mime_type": str(_dmeta.get("mime_type", "")),
+                                    "source": "document",
+                                })
+                if all_images:
+                    final_metadata["images"] = all_images
                 if extra_meta:
                     final_metadata.update(extra_meta)
                 user_msg = MessageModel(
@@ -2926,8 +2983,8 @@ async def dag_endpoint(
         if dag_image_data or dag_doc_vision_urls:
             annotations: list[str] = []
             if dag_image_data:
-                img_names = ", ".join(fname for _, fname, _ in dag_image_data)
-                annotations.append(f"Attached images: {img_names}")
+                img_refs = ", ".join(f"{fname} (file_id: {fid})" for fid, fname, _ in dag_image_data)
+                annotations.append(f"Attached images: {img_refs}")
             if dag_doc_vision_urls:
                 annotations.append(
                     f"Document vision: {len(dag_doc_vision_urls)} PDF page(s) rendered for visual analysis"

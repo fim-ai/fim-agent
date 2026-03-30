@@ -170,6 +170,12 @@ explicitly asks for visualisation. Prefer text tables and formatted output.
 However, if an Agent Directive specifies different language behaviour \
 (e.g. a translation agent), follow the Agent Directive instead.
 - CRITICAL: Your ENTIRE response must be a single JSON object. No markdown, no plain text, no code fences.
+- FILE INTEGRITY: When a user asks about a specific file, you MUST only use \
+content from THAT file to answer. If you cannot read or extract content from \
+the target file, inform the user clearly — NEVER read other files and present \
+their content as if it belongs to the target file. This is a critical safety \
+rule: using content from unrelated files to answer questions about a specific \
+file constitutes hallucination and is strictly forbidden.
 """
 
 _NATIVE_TOOLS_SYSTEM_PROMPT_TEMPLATE = """\
@@ -198,6 +204,12 @@ it (when available). The request_tools description lists all unloaded tools.
 - LANGUAGE: By default, respond in the same language as the user's query. \
 However, if an Agent Directive specifies different language behaviour \
 (e.g. a translation agent), follow the Agent Directive instead.
+- FILE INTEGRITY: When a user asks about a specific file, you MUST only use \
+content from THAT file to answer. If you cannot read or extract content from \
+the target file, inform the user clearly — NEVER read other files and present \
+their content as if it belongs to the target file. This is a critical safety \
+rule: using content from unrelated files to answer questions about a specific \
+file constitutes hallucination and is strictly forbidden.
 """
 
 
@@ -268,6 +280,9 @@ class ReActAgent:
     ) -> None:
         self._llm = llm
         self._fast_llm = fast_llm
+        # Tool-decision iterations use the fast model when available;
+        # final synthesis (stream_answer) keeps the primary model.
+        self._tool_llm = fast_llm or llm
         self._tools = tools
         self._system_prompt_override = system_prompt
         self._user_timezone = user_timezone
@@ -331,7 +346,7 @@ class ReActAgent:
         """Whether native function-calling mode is currently active."""
         return (
             self._use_native_tools
-            and self._llm.abilities.get("tool_call", False)
+            and self._tool_llm.abilities.get("tool_call", False)
         )
 
     def _register_workspace_tools(self, workspace: AgentWorkspace) -> None:
@@ -772,9 +787,9 @@ class ReActAgent:
                     messages, hint="react_iteration",
                 )
 
-            # Suppress extended thinking for tool iterations — reasoning
-            # about "which tool + what params" doesn't benefit from it.
-            result: LLMResult = await self._llm.chat(
+            # Tool-decision iterations use the fast model (when available)
+            # since choosing a tool + params doesn't need primary-tier reasoning.
+            result: LLMResult = await self._tool_llm.chat(
                 messages,
                 response_format=response_format,
                 reasoning_effort=None,
@@ -1064,10 +1079,10 @@ class ReActAgent:
                     messages, hint="react_iteration",
                 )
 
-            # Use non-streaming chat() for all iterations -- fast tool loops.
-            # The final answer is streamed separately via stream_answer().
-            # Suppress extended thinking — tool selection doesn't benefit.
-            result: LLMResult = await self._llm.chat(
+            # Tool-decision iterations use the fast model (when available).
+            # The final answer is streamed separately via stream_answer()
+            # using the primary model.
+            result: LLMResult = await self._tool_llm.chat(
                 messages,
                 tools=tools_payload,
                 tool_choice=tool_choice,
@@ -1593,7 +1608,7 @@ class ReActAgent:
             ``{"type": "json_object"}`` when the model advertises
             ``json_mode`` support, otherwise ``None``.
         """
-        if self._llm.abilities.get("json_mode", False):
+        if self._tool_llm.abilities.get("json_mode", False):
             return {"type": "json_object"}
         return None
 

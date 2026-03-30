@@ -9,6 +9,14 @@ Requirements:
   - Images are pulled on first use (may add latency on first call).
     Pre-pull recommended: ``docker pull python:3.11-slim node:20-slim``
 
+Recommended: build and use the custom sandbox image (``Dockerfile.sandbox``)
+  which pre-installs common packages (pdfplumber, Pillow, pandas, etc.).
+  Without it, agents cannot install packages at runtime because code
+  execution containers run with ``--network=none``.
+
+  Build:  ``docker build -f Dockerfile.sandbox -t fim-sandbox:python .``
+  Then set: ``DOCKER_PYTHON_IMAGE=fim-sandbox:python``
+
 Environment variables (all optional):
   DOCKER_PYTHON_IMAGE    — Python image (default: python:3.11-slim)
   DOCKER_NODE_IMAGE      — Node.js image (default: node:20-slim)

@@ -19,6 +19,12 @@ export function isImageFile(file: { filename: string; mime_type?: string | null 
   return ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext)
 }
 
+/** Check whether a file is a document that may contain embedded images (PDF, DOCX, PPTX). */
+export function isDocumentFile(file: { filename: string }): boolean {
+  const ext = file.filename.split(".").pop()?.toLowerCase() ?? ""
+  return ["pdf", "docx", "doc", "pptx", "ppt"].includes(ext)
+}
+
 /** Format token count into a human-friendly string (e.g. 1.23M, 3.4K). */
 export function formatTokens(n: number | null | undefined): string {
   if (n == null) return "0"

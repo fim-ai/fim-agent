@@ -548,6 +548,275 @@ class TestCachedPages:
 
 
 # ---------------------------------------------------------------------------
+# DocumentProcessor.extract_pdf_images
+# ---------------------------------------------------------------------------
+
+
+class TestExtractPdfImages:
+    """Tests for smart PDF image extraction (embedded images vs full-page render)."""
+
+    @staticmethod
+    def _make_fitz_mock(
+        pages: list[dict[str, Any]],
+    ) -> MagicMock:
+        """Build a mock fitz module with pages.
+
+        Each page dict has:
+          - ``text``: str returned by page.get_text()
+          - ``images``: list of (xref, ...) tuples for get_images(full=True)
+          - ``extracted``: dict mapping xref -> {"image": bytes, "ext": str}
+          - ``pixmap_bytes``: optional bytes for fallback pixmap rendering
+        """
+        mock_fitz = MagicMock()
+
+        mock_pages = []
+        extract_map: dict[int, dict[str, Any]] = {}
+
+        for page_spec in pages:
+            mp = MagicMock()
+            mp.get_text.return_value = page_spec.get("text", "")
+            mp.get_images.return_value = page_spec.get("images", [])
+
+            # Pixmap for scanned-page fallback
+            pix_bytes = page_spec.get("pixmap_bytes", b"\x89PNGscanned")
+            mock_pix = MagicMock()
+            mock_pix.tobytes.return_value = pix_bytes
+            mp.get_pixmap.return_value = mock_pix
+
+            mock_pages.append(mp)
+
+            for xref, extracted_data in page_spec.get("extracted", {}).items():
+                extract_map[xref] = extracted_data
+
+        mock_doc = MagicMock()
+        mock_doc.__iter__ = MagicMock(return_value=iter(mock_pages))
+        mock_doc.close = MagicMock()
+        mock_doc.extract_image.side_effect = lambda xref: extract_map.get(xref)
+
+        mock_fitz.open.return_value = mock_doc
+        mock_fitz.Matrix.return_value = MagicMock()
+        return mock_fitz
+
+    @pytest.mark.asyncio
+    async def test_text_page_with_images_extracts_only_images(self) -> None:
+        """Page with text + embedded images: extract images, skip page render."""
+        big_image = b"\xff\xd8" + b"\x00" * 6000  # > 5KB, JPEG
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "This is a text-heavy page with a chart.",
+                "images": [(42, 0, 100, 200, 8, "DeviceRGB", "", "Im1", "DCTDecode")],
+                "extracted": {42: {"image": big_image, "ext": "jpeg"}},
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/doc.pdf"), max_pages=20, dpi=150,
+            )
+        assert len(result) == 1
+        assert result[0] == big_image
+
+    @pytest.mark.asyncio
+    async def test_scanned_page_renders_full_png(self) -> None:
+        """Page with no text: full-page PNG render."""
+        scanned_png = b"\x89PNG_scanned_data"
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "",  # No text layer — scanned
+                "images": [],
+                "pixmap_bytes": scanned_png,
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/scan.pdf"), max_pages=20, dpi=150,
+            )
+        assert len(result) == 1
+        assert result[0] == scanned_png
+
+    @pytest.mark.asyncio
+    async def test_text_only_page_produces_nothing(self) -> None:
+        """Page with text but no embedded images: skip entirely."""
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "Pure text, no images on this page.",
+                "images": [],
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/text.pdf"), max_pages=20, dpi=150,
+            )
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_small_images_filtered_out(self) -> None:
+        """Embedded images smaller than min_image_size are skipped."""
+        tiny_image = b"\x89PNG" + b"\x00" * 100  # ~100 bytes — too small
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "Page with only a tiny icon.",
+                "images": [(10, 0, 16, 16, 8, "DeviceRGB", "", "icon", "FlateDecode")],
+                "extracted": {10: {"image": tiny_image, "ext": "png"}},
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/icons.pdf"), max_pages=20, dpi=150,
+            )
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_respects_max_pages(self) -> None:
+        """Only the first max_pages pages are processed."""
+        big_image = b"\x00" * 6000
+        pages = [
+            {
+                "text": f"Page {i}",
+                "images": [(100 + i, 0, 50, 50, 8, "DeviceRGB", "", "Im", "DCTDecode")],
+                "extracted": {100 + i: {"image": big_image, "ext": "jpeg"}},
+            }
+            for i in range(5)
+        ]
+        mock_fitz = self._make_fitz_mock(pages)
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/long.pdf"), max_pages=2, dpi=150,
+            )
+        # Only 2 pages processed, 1 image each
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_mixed_pages(self) -> None:
+        """Mix of text+image, scanned, and text-only pages."""
+        big_image = b"\xff\xd8" + b"\x00" * 6000
+        scanned_png = b"\x89PNG_full_render"
+        mock_fitz = self._make_fitz_mock([
+            # Page 0: text + image → extract image
+            {
+                "text": "Text with chart",
+                "images": [(1, 0, 100, 100, 8, "DeviceRGB", "", "Im1", "DCTDecode")],
+                "extracted": {1: {"image": big_image, "ext": "jpeg"}},
+            },
+            # Page 1: scanned → full render
+            {
+                "text": "",
+                "images": [],
+                "pixmap_bytes": scanned_png,
+            },
+            # Page 2: text only → skip
+            {
+                "text": "Just text here.",
+                "images": [],
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/mixed.pdf"), max_pages=20, dpi=150,
+            )
+        assert len(result) == 2
+        assert result[0] == big_image  # Extracted image from page 0
+        assert result[1] == scanned_png  # Full render of page 1
+
+    @pytest.mark.asyncio
+    async def test_duplicate_xrefs_deduplicated(self) -> None:
+        """Same image xref appearing twice on a page is only extracted once."""
+        big_image = b"\x00" * 6000
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "Page with same image twice",
+                "images": [
+                    (50, 0, 100, 100, 8, "DeviceRGB", "", "Im1", "DCTDecode"),
+                    (50, 0, 200, 200, 8, "DeviceRGB", "", "Im1", "DCTDecode"),
+                ],
+                "extracted": {50: {"image": big_image, "ext": "png"}},
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/dup.pdf"), max_pages=20, dpi=150,
+            )
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_import_error_propagates(self) -> None:
+        """When fitz is not installed, ImportError should propagate."""
+        with patch.dict("sys.modules", {"fitz": None}):
+            with pytest.raises(Exception):
+                await DocumentProcessor.extract_pdf_images(
+                    Path("/fake/doc.pdf"), max_pages=20, dpi=150,
+                )
+
+    @pytest.mark.asyncio
+    async def test_env_defaults_used(self) -> None:
+        """When max_pages and dpi are None, env defaults are used."""
+        mock_fitz = self._make_fitz_mock([])
+
+        with (
+            patch.dict("sys.modules", {"fitz": mock_fitz}),
+            patch(
+                "fim_one.core.document.processor._get_doc_vision_dpi",
+                return_value=200,
+            ),
+            patch(
+                "fim_one.core.document.processor._get_doc_vision_max_pages",
+                return_value=5,
+            ),
+        ):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/doc.pdf"),
+            )
+            assert result == []
+
+    @pytest.mark.asyncio
+    async def test_scanned_page_with_images_renders_full_page(self) -> None:
+        """Scanned page (no text) with embedded images renders full PNG.
+
+        Some scanned PDFs embed the scan as an image object but have no
+        text layer.  These should still be rendered as full-page PNG.
+        """
+        scanned_png = b"\x89PNGfull_scan"
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "",  # No text — scanned
+                "images": [(99, 0, 500, 700, 8, "DeviceRGB", "", "scan", "DCTDecode")],
+                "pixmap_bytes": scanned_png,
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/fullscan.pdf"), max_pages=20, dpi=150,
+            )
+        # Should render full page, not extract the embedded scan image
+        assert len(result) == 1
+        assert result[0] == scanned_png
+
+    @pytest.mark.asyncio
+    async def test_extract_failure_skips_image(self) -> None:
+        """If doc.extract_image fails for a xref, it is silently skipped."""
+        mock_fitz = self._make_fitz_mock([
+            {
+                "text": "Text with broken image",
+                "images": [(77, 0, 100, 100, 8, "DeviceRGB", "", "Im1", "DCTDecode")],
+                "extracted": {},  # xref 77 not in map → returns None
+            },
+        ])
+
+        with patch.dict("sys.modules", {"fitz": mock_fitz}):
+            result = await DocumentProcessor.extract_pdf_images(
+                Path("/fake/broken.pdf"), max_pages=20, dpi=150,
+            )
+        assert result == []
+
+
+# ---------------------------------------------------------------------------
 # Files.py delegation
 # ---------------------------------------------------------------------------
 

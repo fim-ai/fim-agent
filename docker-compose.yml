@@ -1,4 +1,15 @@
 services:
+  # Build-only service: produces the fim-sandbox:python image used by
+  # DockerBackend for python_exec / shell_exec.  Starts, exits immediately,
+  # and is never restarted — its only purpose is to ensure the image exists.
+  sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+    image: fim-sandbox:python
+    command: ["true"]
+    restart: "no"
+
   fim-one:
     build: .
     ports:
@@ -20,7 +31,12 @@ services:
       # this tells DockerBackend the corresponding host path for -v bind mounts.
       # ${PWD} is resolved by Docker Compose to the host project directory.
       DOCKER_HOST_DATA_DIR: ${DOCKER_HOST_DATA_DIR:-${PWD}/data}
+      # Use the pre-built sandbox image with common packages (pdfplumber, pandas, etc.)
+      DOCKER_PYTHON_IMAGE: fim-sandbox:python
+      DOCKER_SHELL_IMAGE: fim-sandbox:python
     depends_on:
+      sandbox:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:

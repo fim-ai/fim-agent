@@ -270,6 +270,97 @@ class DocumentProcessor:
 
         return data_urls
 
+    @staticmethod
+    async def extract_pdf_images(
+        file_path: Path,
+        max_pages: int | None = None,
+        dpi: int | None = None,
+        min_image_size: int = 5120,
+    ) -> list[bytes]:
+        """Extract only meaningful images from a PDF, avoiding full-page renders.
+
+        For each page the method checks whether a text layer exists:
+
+        * **Text + embedded images** -- extract only the embedded image
+          objects (charts, photos, diagrams).  The text itself is already
+          available through :meth:`extract_text` and does not need to be
+          sent as expensive vision tokens.
+        * **No text (scanned page)** -- render the entire page as a PNG
+          so the vision model can read it.
+
+        Tiny images (icons, decorations) below *min_image_size* bytes are
+        filtered out.
+
+        Args:
+            file_path: Path to the PDF file.
+            max_pages: Maximum pages to process (falls back to env var).
+            dpi: Rendering DPI for scanned-page fallback (falls back to
+                env var).
+            min_image_size: Minimum image size in bytes to keep.  Images
+                smaller than this are assumed to be icons/decorations and
+                are discarded.  Defaults to 5 KB.
+
+        Returns:
+            List of image bytes (PNG or original format for embedded
+            images).
+
+        Raises:
+            ImportError: If PyMuPDF is not installed.
+        """
+        if max_pages is None:
+            max_pages = _get_doc_vision_max_pages()
+        if dpi is None:
+            dpi = _get_doc_vision_dpi()
+
+        def _extract() -> list[bytes]:
+            import fitz
+
+            doc = fitz.open(str(file_path))
+            images: list[bytes] = []
+            try:
+                for i, page in enumerate(doc):
+                    if i >= max_pages:
+                        break
+
+                    text = page.get_text().strip()
+                    embedded = page.get_images(full=True)
+
+                    if text and embedded:
+                        # Page has text layer + embedded images.
+                        # Extract only the image objects; skip tiny ones.
+                        seen_xrefs: set[int] = set()
+                        for img_info in embedded:
+                            xref = img_info[0]
+                            if xref in seen_xrefs:
+                                continue
+                            seen_xrefs.add(xref)
+                            try:
+                                extracted = doc.extract_image(xref)
+                                if not extracted or not extracted.get("image"):
+                                    continue
+                                img_bytes: bytes = extracted["image"]
+                                if len(img_bytes) < min_image_size:
+                                    continue
+                                images.append(img_bytes)
+                            except Exception:
+                                logger.debug(
+                                    "Failed to extract image xref %d from "
+                                    "page %d of %s",
+                                    xref, i, file_path,
+                                )
+                    elif not text:
+                        # Scanned page — no text layer.  Render as PNG.
+                        mat = fitz.Matrix(dpi / 72, dpi / 72)
+                        pix = page.get_pixmap(matrix=mat)
+                        images.append(pix.tobytes("png"))
+                    # else: text-only page with no images — nothing to send
+                    # as vision content (text is handled by extract_text).
+            finally:
+                doc.close()
+            return images
+
+        return await asyncio.to_thread(_extract)
+
 
 # ---------------------------------------------------------------------------
 # Sync text extraction (delegated from the upload flow)

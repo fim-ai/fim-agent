@@ -1,0 +1,48 @@
+# Sandbox image for python_exec / shell_exec code execution.
+#
+# Pre-installs commonly needed packages so agents don't waste time
+# attempting `pip install` inside --network=none containers.
+#
+# Build:
+#   docker build -f Dockerfile.sandbox -t fim-sandbox:python .
+#
+# Then set in .env:
+#   DOCKER_PYTHON_IMAGE=fim-sandbox:python
+#   DOCKER_SHELL_IMAGE=fim-sandbox:python
+
+FROM python:3.11-slim
+
+# System-level dependencies for common Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # PDF processing
+    libpoppler-cpp-dev poppler-utils \
+    # Image processing
+    libjpeg-dev libpng-dev \
+    # General utilities
+    curl jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pre-install commonly needed Python packages
+RUN pip install --no-cache-dir \
+    # PDF processing
+    pdfplumber \
+    PyPDF2 \
+    pymupdf \
+    # Image processing
+    Pillow \
+    # Data processing
+    pandas \
+    openpyxl \
+    xlsxwriter \
+    # Web / parsing
+    beautifulsoup4 \
+    lxml \
+    httpx \
+    # Charting (text-only matplotlib backend)
+    matplotlib \
+    # General utilities
+    python-dateutil \
+    pyyaml \
+    tabulate
+
+WORKDIR /workspace

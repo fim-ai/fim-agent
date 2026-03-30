@@ -37,15 +37,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _rebuild_image_urls(
+_DOC_EXTENSIONS = {".pdf", ".docx", ".doc", ".pptx", ".ppt"}
+
+
+async def _rebuild_vision_urls(
     images_meta: list[dict[str, Any]],
     user_id: str,
 ) -> list[str]:
     """Rebuild base64 data-URLs from stored image metadata.
 
+    Handles two sources (dispatched by ``source`` field):
+      - ``"upload"`` (default): direct image file — read raw bytes, encode.
+      - ``"document"``: DOCX/PDF/PPTX — extract embedded images via
+        :class:`DocumentProcessor`.
+
     Args:
-        images_meta: List of image metadata dicts (each with ``file_id``,
-            ``filename``, ``mime_type``).
+        images_meta: List of dicts with ``file_id``, ``filename``,
+            ``mime_type``, and optional ``source``.
         user_id: Owner of the uploaded files.
 
     Returns:
@@ -53,7 +61,6 @@ def _rebuild_image_urls(
     """
     upload_dir = Path(os.environ.get("UPLOADS_DIR", "uploads"))
 
-    # Lazy import to avoid circular dependency at module level.
     from fim_one.web.api.files import _load_index
 
     index = _load_index(user_id)
@@ -61,16 +68,58 @@ def _rebuild_image_urls(
 
     for img in images_meta:
         file_id = img.get("file_id", "")
-        mime_type = img.get("mime_type", "image/png")
+        source = img.get("source", "upload")
         meta = index.get(file_id)
         if not meta:
             continue
         file_path = upload_dir / f"user_{user_id}" / str(meta["stored_name"])
         if not file_path.exists():
             continue
-        raw = file_path.read_bytes()
-        b64 = base64.b64encode(raw).decode("ascii")
-        urls.append(f"data:{mime_type};base64,{b64}")
+
+        try:
+            if source == "document":
+                suffix = Path(str(meta.get("filename", ""))).suffix.lower()
+                from fim_one.core.document import DocumentProcessor
+
+                if suffix == ".pdf":
+                    # Smart extraction: only embedded images + scanned
+                    # page renders (skip full-page PNG for text pages).
+                    raw_images = (
+                        await DocumentProcessor.extract_pdf_images(file_path)
+                    )
+                    for img_bytes in raw_images:
+                        if img_bytes[:2] == b"\xff\xd8":
+                            mime = "image/jpeg"
+                        elif img_bytes[:4] == b"\x89PNG":
+                            mime = "image/png"
+                        else:
+                            mime = "image/png"
+                        b64 = base64.b64encode(img_bytes).decode("ascii")
+                        urls.append(f"data:{mime};base64,{b64}")
+                elif suffix in _DOC_EXTENSIONS:
+                    _, image_bytes_list = (
+                        await DocumentProcessor.extract_with_images(file_path)
+                    )
+                    for img_bytes in image_bytes_list:
+                        if img_bytes[:2] == b"\xff\xd8":
+                            mime = "image/jpeg"
+                        elif img_bytes[:4] == b"\x89PNG":
+                            mime = "image/png"
+                        else:
+                            mime = "image/png"
+                        b64 = base64.b64encode(img_bytes).decode("ascii")
+                        urls.append(f"data:{mime};base64,{b64}")
+            else:
+                # Default: direct image file
+                mime_type = img.get("mime_type", "image/png")
+                raw = file_path.read_bytes()
+                b64 = base64.b64encode(raw).decode("ascii")
+                urls.append(f"data:{mime_type};base64,{b64}")
+        except Exception:
+            logger.warning(
+                "Failed to rebuild vision for file %s (source=%s)",
+                file_id, source, exc_info=True,
+            )
 
     return urls
 
@@ -151,7 +200,7 @@ class DbMemory(BaseMemory):
                         )
                         images_meta = meta.get("images", [])
                         if images_meta:
-                            image_urls = _rebuild_image_urls(
+                            image_urls = await _rebuild_vision_urls(
                                 images_meta, self._user_id,
                             )
                             if image_urls:
