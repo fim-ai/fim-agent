@@ -26,6 +26,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Reduced agent looping** — Anti-loop instructions added to agent prompts; cycle detection threshold lowered so repeated identical tool calls are caught earlier.
 - **Faster request startup** — LLM configuration lookups and domain classification now run concurrently, reducing per-request overhead by 400-1100ms.
 - **Better empty tool handling** — Tools that return no output now produce a descriptive message instead of bare "(no output)", preventing wasteful retries.
+- **Automatic old tool result cleanup** — Tool results older than the 6 most recent are automatically cleared before context compaction, keeping conversations lean.
+- **Tool result aggregate budget** — Total tool result tokens are capped at 40K per session; new results are truncated when the budget is exceeded, preventing context bloat from large API responses.
+- **Context overflow auto-recovery** — When the LLM rejects a request due to context length overflow, the agent automatically compacts to 50% and retries, instead of crashing the entire conversation.
 
 ### Fixed
 

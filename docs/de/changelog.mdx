@@ -21,11 +21,14 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Geändert
 
-- **Schnellere Chat-Antwortfertigstellung** — SSE-Stream schließt sich sofort nach Abschluss des Agenten; Titelerzeugung und Folgeverbesserungsvorschläge laufen im Hintergrund statt die Antwort zu blockieren.
-- **Intelligentere Kontext-Komprimierung** — Konversationskomprimierung verwendet ein strukturiertes 9-Abschnitt-Format, das Schlüsselinformationen (ursprüngliche Anfrage, Fehler, ausstehende Aufgaben) über lange Sitzungen hinweg besser bewahrt.
+- **Schnellere Chat-Antwort-Fertigstellung** — SSE-Stream schließt sich sofort nach Abschluss des Agenten; Titelerzeugung und Folgeverbesserungsvorschläge laufen im Hintergrund statt die Antwort zu blockieren.
+- **Intelligentere Kontext-Komprimierung** — Gesprächskomprimierung verwendet ein strukturiertes 9-Abschnitt-Format, das Schlüsselinformationen (ursprüngliche Anfrage, Fehler, ausstehende Aufgaben) über lange Sitzungen hinweg besser bewahrt.
 - **Reduzierte Agent-Schleifen** — Anti-Loop-Anweisungen zu Agent-Prompts hinzugefügt; Zyklus-Erkennungsschwelle gesenkt, sodass wiederholte identische Tool-Aufrufe früher erkannt werden.
-- **Schnellerer Request-Start** — LLM-Konfigurationsabfragen und Domain-Klassifizierung laufen jetzt gleichzeitig ab und reduzieren den Pro-Request-Overhead um 400-1100ms.
-- **Bessere Behandlung leerer Tools** — Tools, die keine Ausgabe zurückgeben, erzeugen jetzt eine aussagekräftige Nachricht statt bloßem "(no output)", was unnötige Wiederholungen verhindert.
+- **Schnellerer Request-Start** — LLM-Konfigurationssuchen und Domain-Klassifizierung laufen jetzt gleichzeitig ab und reduzieren den Pro-Request-Overhead um 400-1100ms.
+- **Bessere Behandlung leerer Tools** — Tools, die keine Ausgabe zurückgeben, erzeugen jetzt eine aussagekräftige Nachricht statt bloßem „(keine Ausgabe)", was unnötige Wiederholungen verhindert.
+- **Automatische Bereinigung alter Tool-Ergebnisse** — Tool-Ergebnisse älter als die 6 neuesten werden automatisch vor der Kontext-Komprimierung gelöscht, um Gespräche schlank zu halten.
+- **Tool-Ergebnis-Aggregat-Budget** — Gesamte Tool-Ergebnis-Token sind auf 40K pro Sitzung begrenzt; neue Ergebnisse werden gekürzt, wenn das Budget überschritten wird, um Kontext-Überfluss durch große API-Antworten zu verhindern.
+- **Kontext-Überlauf-Automatische-Wiederherstellung** — Wenn das LLM eine Anfrage aufgrund von Kontext-Längensüberschreitung ablehnt, komprimiert der Agent automatisch auf 50% und versucht es erneut, statt das gesamte Gespräch zum Absturz zu bringen.
 
 ### Behoben
 

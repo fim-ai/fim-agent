@@ -21,11 +21,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ### Modifications
 
-- **Complétude plus rapide des réponses de chat** — Le flux SSE se ferme maintenant immédiatement après que l'agent termine ; la génération de titre et les suggestions de suivi s'exécutent en arrière-plan au lieu de bloquer la réponse.
+- **Réponses de chat plus rapides** — Le flux SSE se ferme maintenant immédiatement après la fin de l'agent ; la génération de titre et les suggestions de suivi s'exécutent en arrière-plan au lieu de bloquer la réponse.
 - **Compaction de contexte plus intelligente** — La compaction de conversation utilise un format structuré à 9 sections qui préserve mieux les informations clés (demande originale, erreurs, tâches en attente) sur les longues sessions.
-- **Réduction des boucles d'agent** — Des instructions anti-boucle ajoutées aux invites d'agent ; le seuil de détection de cycle abaissé pour que les appels d'outil identiques répétés soient détectés plus tôt.
-- **Démarrage de requête plus rapide** — Les recherches de configuration LLM et la classification de domaine s'exécutent maintenant en parallèle, réduisant la surcharge par requête de 400-1100ms.
-- **Meilleure gestion des outils vides** — Les outils qui ne retournent aucune sortie produisent maintenant un message descriptif au lieu d'un simple « (no output) », prévenant les tentatives inutiles.
+- **Réduction des boucles d'agent** — Des instructions anti-boucle ajoutées aux prompts d'agent ; le seuil de détection de cycle abaissé pour détecter plus tôt les appels d'outil identiques répétés.
+- **Démarrage des requêtes plus rapide** — Les recherches de configuration LLM et la classification de domaine s'exécutent maintenant en parallèle, réduisant la surcharge par requête de 400-1100ms.
+- **Meilleure gestion des outils vides** — Les outils qui ne retournent aucune sortie produisent maintenant un message descriptif au lieu d'un simple « (no output) », évitant les tentatives inutiles.
+- **Nettoyage automatique des anciens résultats d'outil** — Les résultats d'outil plus anciens que les 6 plus récents sont automatiquement effacés avant la compaction de contexte, gardant les conversations légères.
+- **Budget agrégé des résultats d'outil** — Le total des tokens de résultats d'outil est limité à 40K par session ; les nouveaux résultats sont tronqués lorsque le budget est dépassé, évitant l'encombrement du contexte dû aux grandes réponses API.
+- **Récupération automatique du débordement de contexte** — Lorsque le LLM rejette une requête en raison d'un débordement de longueur de contexte, l'agent compacte automatiquement à 50% et réessaie, au lieu de bloquer toute la conversation.
 
 ### Corrections
 
