@@ -40,6 +40,102 @@ logger = logging.getLogger(__name__)
 _DOC_EXTENSIONS = {".pdf", ".docx", ".doc", ".pptx", ".ppt"}
 
 
+# Synthetic content used for dangling tool_calls that never received a
+# matching ``role="tool"`` response (e.g. user hit Stop, SSE disconnected,
+# backend crashed mid-turn).  Surfaced to the LLM on the next turn so the
+# trajectory topology stays well-formed.
+_INTERRUPTED_TOOL_RESULT = "[interrupted: tool execution did not complete]"
+
+
+def _repair_dangling_tool_calls(
+    messages: list[ChatMessage],
+    conversation_id: str,
+) -> list[ChatMessage]:
+    """Insert synthetic ``tool`` results for any dangling assistant tool_calls.
+
+    When a conversation is interrupted mid-turn, the DB may contain an
+    ``assistant`` message whose ``tool_calls`` never received matching
+    ``role="tool"`` messages with the corresponding ``tool_call_id``.  On
+    the next turn, Anthropic/OpenAI compatible endpoints reject such a
+    message list with a 400 error because the trajectory is broken.
+
+    This function scans the list and, for every assistant message with
+    ``tool_calls``, verifies that each call id has a matching ``tool``
+    message somewhere later in the list.  Missing results are synthesized
+    with a short placeholder and inserted immediately after the assistant
+    message so downstream consumers see a well-formed trajectory.
+
+    The DB is never mutated — the repair is a view applied on the
+    read path.  Callers should keep passing the untouched raw log to
+    persistence layers.
+
+    Args:
+        messages: The loaded message list in chronological order.
+        conversation_id: Conversation identifier (for diagnostic logging).
+
+    Returns:
+        A new list with synthetic tool results inserted where needed.
+        When no repair is required, a shallow copy of the input is
+        returned so callers can freely mutate it.
+    """
+    repaired: list[ChatMessage] = []
+    total_synth = 0
+    idx = 0
+    n = len(messages)
+
+    while idx < n:
+        msg = messages[idx]
+        repaired.append(msg)
+
+        if msg.role != "assistant" or not msg.tool_calls:
+            idx += 1
+            continue
+
+        # Collect the tool_call ids that need a matching result.
+        expected_ids = [tc.id for tc in msg.tool_calls]
+        if not expected_ids:
+            idx += 1
+            continue
+
+        # Walk the contiguous trailing ``role="tool"`` block: in an
+        # OpenAI-compatible trajectory, tool results immediately follow
+        # the assistant that requested them and never interleave with
+        # other roles.  Copy them into ``repaired`` preserving order.
+        satisfied: set[str] = set()
+        look = idx + 1
+        while look < n and messages[look].role == "tool":
+            follow = messages[look]
+            repaired.append(follow)
+            if follow.tool_call_id is not None:
+                satisfied.add(follow.tool_call_id)
+            look += 1
+
+        missing = [tc_id for tc_id in expected_ids if tc_id not in satisfied]
+        if missing:
+            total_synth += len(missing)
+            # Append synthetic results AFTER any real results so the
+            # original trajectory ordering is preserved.
+            for tc_id in missing:
+                repaired.append(ChatMessage(
+                    role="tool",
+                    content=_INTERRUPTED_TOOL_RESULT,
+                    tool_call_id=tc_id,
+                ))
+
+        # Skip over the already-consumed tool block.
+        idx = look
+
+    if total_synth:
+        logger.warning(
+            "DbMemory: repaired %d dangling tool_call(s) for conversation %s "
+            "(synthetic tool_result injected on read path)",
+            total_synth,
+            conversation_id,
+        )
+
+    return repaired
+
+
 async def _rebuild_vision_urls(
     images_meta: list[dict[str, Any]],
     user_id: str,
@@ -229,14 +325,17 @@ class DbMemory(BaseMemory):
                 if id(m) in id_for_msg
             }
 
-            # Drop empty assistant messages — native FC tool-calling
-            # intermediates whose content is empty.  They carry no
-            # semantic value for history compaction.
+            # Drop empty assistant messages whose content is empty AND
+            # which carry no ``tool_calls``.  An empty-content assistant
+            # with ``tool_calls`` is a legitimate native FC intermediate
+            # and must be preserved so the trajectory repair step below
+            # can validate / heal it.
             pre_filter = len(messages)
             messages = [
                 m for m in messages
                 if not (
                     m.role == "assistant"
+                    and not m.tool_calls
                     and not CompactUtils.content_as_text(m.content).strip()
                 )
             ]
@@ -245,6 +344,13 @@ class DbMemory(BaseMemory):
                     "DbMemory: dropped %d empty assistant message(s)",
                     pre_filter - len(messages),
                 )
+
+            # Repair dangling tool_calls left behind by interrupted turns
+            # (Stop button, SSE disconnect, crash).  Applied on the read
+            # path only — DB rows are never mutated.
+            messages = _repair_dangling_tool_calls(
+                messages, self._conversation_id,
+            )
 
             self._original_count = len(messages)
 
