@@ -1,4 +1,4 @@
-"""Per-turn phase profiler for the ReAct agent (CC Insights I.16).
+"""Per-turn phase profiler for the ReAct agent.
 
 This module provides a light-weight :class:`TurnProfiler` that records
 wall-clock timings for the distinct phases of a single ReAct "turn"

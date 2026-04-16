@@ -1,4 +1,4 @@
-"""Tests for the per-turn phase profiler (CC Insights I.16)."""
+"""Tests for the per-turn phase profiler."""
 
 from __future__ import annotations
 

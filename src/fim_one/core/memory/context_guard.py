@@ -158,7 +158,7 @@ class ContextGuard:
         #: Most recent structured compact summary.  Populated after a
         #: successful ``react_iteration`` compact so subsequent rounds
         #: can merge rather than re-summarise from scratch.  See I.15
-        #: (CC Insights Phase 3 — Structured Compact Work Card).
+        #: (Structured Compact Work Card).
         self._last_work_card: WorkCard | None = None
 
     async def check_and_compact(

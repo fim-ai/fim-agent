@@ -1,4 +1,4 @@
-# CC Insights Integration — Manual Test Guide
+# Agent Core Integration — Manual Test Guide
 
 > Agent Infrastructure Improvements (Phase 0 ~ Phase 3)
 > Phase 0-2 implemented 2026-04-01
