@@ -12,6 +12,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **`convert_to_markdown` built-in tool** — New general-purpose Agent tool that converts any file, URL, YouTube link, or data URI to clean Markdown using Microsoft's MarkItDown. Supports PDF, Word (.docx), Excel (.xlsx/.xls), PowerPoint (.pptx), HTML, JSON, CSV, XML, ZIP, EPUB, Outlook .msg, images, audio (speech → text), and YouTube transcripts. Available to every agent by default — same tier as `web_fetch`. When a vision-capable LLM is configured, embedded images and scanned PDF pages are OCR'd automatically via the official `markitdown-ocr` plugin. Previously this capability was hidden inside the background RAG ingestion pipeline; agents now have it on the interactive conversation path.
+- **Document OCR via `markitdown-ocr`** — Embedded images in DOCX / XLSX / PPTX and scanned PDF pages are now OCR'd using the same vision-capable LLM the rest of FIM One routes through. Applies to both the built-in `convert_to_markdown` tool and the RAG ingestion pipeline, so chat-time conversion and knowledge-base ingestion produce byte-identical Markdown for the same input.
+- **Universal vision provider support for document OCR** — A new `LiteLLMOpenAIShim` duck-type wraps any FIM One `OpenAICompatibleLLM` in the openai SDK's `.chat.completions.create(...)` API shape, then dispatches through `litellm.completion()`. MarkItDown (which hard-codes the openai SDK surface) can now consume Anthropic Claude, Google Gemini, Azure, Bedrock, and any other provider LiteLLM supports — no per-provider adapter code in FIM One.
+- **Vision-aware RAG ingestion** — Knowledge-base uploads of Office documents and scanned PDFs now resolve the workspace's default vision LLM (DB-first, ENV fallback) and pass it through to MarkItDown for OCR during ingestion. Zero-regression: when no vision-capable model is available, ingestion silently falls back to text-only mode — exactly the pre-feature behavior.
+- **Expanded MarkItDown format coverage** — RAG now natively ingests `.pdf`, `.msg` (Outlook), `.epub`, `.mp3`, `.wav`, and `.m4a` via MarkItDown's audio-transcription and outlook extras. YouTube URLs flow through `convert_to_markdown` via `markitdown[youtube-transcription]`.
+- **`LLM_SUPPORTS_VISION` env var** — Optional opt-out (`=false`) for the ENV-mode document-OCR fallback. Default behavior is optimistic (`true`), which covers the common ENV setups (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1.5-pro/flash`). Set to `false` only when your ENV-configured `LLM_MODEL` does not support vision (e.g. `deepseek-v3`, `qwen-chat`, `llama-3.1`, `gpt-3.5-turbo`, `o1-mini`) to skip a failing vision call on every document upload. Ignored entirely when an admin-curated ModelGroup is active — DB mode is always the source of truth when available.
+- **Turn-level profiler** — Each ReAct turn now logs phase-level timings (`memory_load`, `compact`, `tool_schema_build`, `llm_first_token`, `llm_total`, `tool_exec`) in a single structured log line per turn. Toggleable via `REACT_TURN_PROFILE_ENABLED` (default: on; set to `false` for zero-overhead no-op).
+- **Structured compact work card** — Conversation compaction now parses its own 9-section markdown output into a typed `WorkCard` and merges new compacts into the previous one, so errors and pending tasks from earlier in a long session survive across multiple compaction rounds instead of being re-summarized from scratch.
+
+### Changed
+
+- **Per-user rate limiting** — LLM-layer rate limiter now maintains a separate bucket per user instead of a single process-global bucket. Prevents one noisy user from throttling all other users on the same worker. Toggleable via `LLM_RATE_LIMIT_PER_USER` (default: on).
+
+### Fixed
+
+- **Dangling tool_use recovery** — Conversations interrupted mid-tool-execution (user Stop, SSE disconnect, crash) previously left an assistant message with a `tool_use` block and no matching `tool_result`, causing the next turn to crash with an opaque HTTP 400 from the LLM API. `DbMemory.get_messages()` now detects and repairs these dangling blocks on the read path with a synthetic `[interrupted]` tool_result. Raw DB log is not mutated.
+- **Empty-content assistant messages with tool_calls no longer dropped** — The DbMemory load-path filter previously silently discarded any assistant row with empty text content. Native function-calling intermediates (which carry only `tool_calls`, no text) were being wiped out. The filter now requires BOTH empty content AND no `tool_calls`.
+
+## [v0.8.2] - 2026-04-10
+
+### Added
+
 - **Intelligent Document Processing (Vision-Aware)** — Adaptive document handling based on model capabilities. When the target LLM supports vision (GPT-4o, Claude 3/4, Gemini), PDF pages are rendered as images and sent via vision content blocks for full visual fidelity. Text-only models fall back to pdfplumber text extraction. Two modes: Vision and Text-only. Configurable via `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` env vars. Per-model `supports_vision` toggle in Admin.
 - **Document vision pipeline** — DOCX, PPTX, and PDF files uploaded in chat now have their embedded images extracted and sent as vision content to the LLM when vision is enabled on the model.
 - **Multi-turn vision persistence** — Vision content from uploaded documents and images persists across conversation turns, so the model retains visual context throughout the conversation.

@@ -10,6 +10,28 @@ description: "FIM One 的所有重要更改。"
 
 ## [未发布]
 
+### 新增
+
+- **`convert_to_markdown` 内置工具** — 新的通用智能体工具，使用 Microsoft 的 MarkItDown 将任何文件、URL、YouTube 链接或数据 URI 转换为干净的 Markdown。支持 PDF、Word (.docx)、Excel (.xlsx/.xls)、PowerPoint (.pptx)、HTML、JSON、CSV、XML、ZIP、EPUB、Outlook .msg、图像、音频（语音转文本）和 YouTube 转录。默认对所有智能体可用 — 与 `web_fetch` 同级。配置了视觉能力的 LLM 时，嵌入的图像和扫描的 PDF 页面通过官方 `markitdown-ocr` 插件自动进行 OCR。此前此功能隐藏在后台 RAG 摄取管道中；现在智能体可在交互式对话路径上使用。
+- **通过 `markitdown-ocr` 进行文档 OCR** — DOCX / XLSX / PPTX 中的嵌入图像和扫描的 PDF 页面现在使用 FIM One 路由的相同视觉能力 LLM 进行 OCR。适用于内置 `convert_to_markdown` 工具和 RAG 摄取管道，因此聊天时转换和知识库摄取为相同输入生成字节相同的 Markdown。
+- **用于文档 OCR 的通用视觉提供商支持** — 新的 `LiteLLMOpenAIShim` duck-type 将任何 FIM One `OpenAICompatibleLLM` 包装在 openai SDK 的 `.chat.completions.create(...)` API 形状中，然后通过 `litellm.completion()` 分发。MarkItDown（硬编码 openai SDK 表面）现在可以使用 Anthropic Claude、Google Gemini、Azure、Bedrock 和 LiteLLM 支持的任何其他提供商 — FIM One 中无需按提供商适配器代码。
+- **视觉感知 RAG 摄取** — Office 文档和扫描 PDF 的知识库上传现在解析工作区的默认视觉 LLM（DB 优先，ENV 回退）并将其传递给 MarkItDown 以在摄取期间进行 OCR。零回归：当没有视觉能力模型可用时，摄取无声地回退到仅文本模式 — 完全是特性前的行为。
+- **扩展的 MarkItDown 格式覆盖** — RAG 现在通过 MarkItDown 的音频转录和 outlook 扩展原生摄取 `.pdf`、`.msg`（Outlook）、`.epub`、`.mp3`、`.wav` 和 `.m4a`。YouTube URL 通过 `markitdown[youtube-transcription]` 流经 `convert_to_markdown`。
+- **`LLM_SUPPORTS_VISION` 环境变量** — ENV 模式文档 OCR 回退的可选退出（`=false`）。默认行为是乐观的（`true`），涵盖常见的 ENV 设置（`gpt-4o`、`claude-3-5-sonnet`、`gemini-1.5-pro/flash`）。仅当 ENV 配置的 `LLM_MODEL` 不支持视觉时设置为 `false`（例如 `deepseek-v3`、`qwen-chat`、`llama-3.1`、`gpt-3.5-turbo`、`o1-mini`），以跳过每次文档上传时的失败视觉调用。当管理员策划的 ModelGroup 处于活动状态时完全忽略 — 可用时 DB 模式始终是真实来源。
+- **轮级分析器** — 每个 ReAct 轮现在在单个结构化日志行中记录阶段级时序（`memory_load`、`compact`、`tool_schema_build`、`llm_first_token`、`llm_total`、`tool_exec`）。可通过 `REACT_TURN_PROFILE_ENABLED` 切换（默认：开启；设置为 `false` 以实现零开销无操作）。
+- **结构化紧凑工作卡** — 对话紧凑现在将其自己的 9 部分 markdown 输出解析为类型化 `WorkCard` 并将新紧凑合并到前一个中，因此来自长会话早期的错误和待处理任务在多个紧凑轮次中存活，而不是从头开始重新汇总。
+
+### 已更改
+
+- **按用户速率限制** — LLM 层速率限制器现在为每个用户维护单独的桶，而不是单个进程全局桶。防止一个噪声用户对同一工作进程上的所有其他用户进行限流。可通过 `LLM_RATE_LIMIT_PER_USER` 切换（默认：开启）。
+
+### 已修复
+
+- **悬挂的 tool_use 恢复** — 在工具执行中断的对话（用户停止、SSE 断开连接、崩溃）之前会留下一个带有 `tool_use` 块且没有匹配 `tool_result` 的助手消息，导致下一轮从 LLM API 崩溃并返回不透明的 HTTP 400。`DbMemory.get_messages()` 现在在读取路径上检测并修复这些悬挂块，使用合成的 `[interrupted]` tool_result。原始数据库日志不会被修改。
+- **带有 tool_calls 的空内容助手消息不再被丢弃** — DbMemory 加载路径过滤器之前会静默丢弃任何具有空文本内容的助手行。仅携带 `tool_calls` 而没有文本的原生函数调用中间体被擦除。过滤器现在要求内容为空 AND 没有 `tool_calls`。
+
+## [v0.8.2] - 2026-04-10
+
 ### 已添加
 
 - **智能文档处理（视觉感知）** — 基于模型能力的自适应文档处理。当目标 LLM 支持视觉（GPT-4o、Claude 3/4、Gemini）时，PDF 页面被渲染为图像并通过视觉内容块发送以获得完整的视觉保真度。纯文本模型回退到 pdfplumber 文本提取。两种模式：Vision 和 Text-only。可通过 `DOCUMENT_PROCESSING_MODE`、`DOCUMENT_VISION_DPI`、`DOCUMENT_VISION_MAX_PAGES` 环境变量配置。Admin 中的每个模型 `supports_vision` 开关。

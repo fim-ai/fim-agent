@@ -45,7 +45,7 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 
 ---
 
-## LLM (Erforderlich)
+## LLM (erforderlich)
 
 | Variable | Erforderlich | Standard | Beschreibung |
 |---|---|---|---|
@@ -61,20 +61,40 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `FAST_LLM_TEMPERATURE` | Nein | *(fällt auf `LLM_TEMPERATURE` zurück)* | Sampling-Temperatur für das schnelle Modell |
 | `FAST_LLM_CONTEXT_SIZE` | Nein | *(fällt auf `LLM_CONTEXT_SIZE` zurück)* | Kontextfenstergröße für das schnelle LLM |
 | `FAST_LLM_MAX_OUTPUT_TOKENS` | Nein | *(fällt auf `LLM_MAX_OUTPUT_TOKENS` zurück)* | Max. Ausgabe-Token pro Aufruf für das schnelle LLM |
-| `LLM_REASONING_EFFORT` | Nein | *(deaktiviert)* | Stufe des erweiterten Denkens für unterstützte Modelle (OpenAI o-Serie, Gemini 2.5+, Claude). Werte: `low`, `medium`, `high`. LiteLLM übersetzt dies automatisch in das native Format jedes Anbieters. Die Chain-of-Thought des Modells wird im UI-Schritt „Denken" angezeigt. |
-| `LLM_REASONING_BUDGET_TOKENS` | Nein | *(automatisch aus Aufwand)* | Explizites Token-Budget für Anthropic-Denken (Minimum 1024). Für OpenAI/Gemini wird die Aufwandsstufe direkt verwendet. Nur wirksam, wenn `LLM_REASONING_EFFORT` gesetzt ist. |
-| `LLM_JSON_MODE_ENABLED` | Nein | `true` | Globaler Schalter für `response_format=json_object`. Setzen Sie auf `false`, wenn Ihr Anbieter LiteLLMs Assistant-Prefill-Injektion ablehnt (z. B. AWS Bedrock-Relay → `ValidationException` bei der 2. und nachfolgenden Agent-Iteration). Wenn deaktiviert, überspringen strukturierte Aufrufe den JSON-Modus und fallen auf einfache Regex-Extraktion zurück — kein Qualitätsverlust. Gilt für alle Modelle (ENV-konfiguriert und Admin-konfiguriert). |
-| `LLM_TOOL_CHOICE_ENABLED` | Nein | `true` | Globaler Schalter für erzwungene `tool_choice` bei der strukturierten Ausgabeextraktion (Stufe 1 — Native Function Calling). Setzen Sie auf `false`, wenn Ihr Modell Fehler bei erzwungener Werkzeugauswahl zurückgibt (z. B. Denk-Modus-Modelle, die `tool_choice='specified'` ablehnen). Wenn deaktiviert, überspringen strukturierte Aufrufe natives FC und beginnen mit dem JSON-Modus. Pro-Modell-Überschreibung verfügbar unter Einstellungen → Modelle → Erweitert. |
+| `LLM_REASONING_EFFORT` | Nein | *(deaktiviert)* | Erweitertes Denk-Level für unterstützte Modelle (OpenAI o-Serie, Gemini 2.5+, Claude). Werte: `low`, `medium`, `high`. LiteLLM übersetzt dies automatisch in das native Format jedes Anbieters. Die Chain-of-Thought des Modells wird im UI-Schritt „thinking" angezeigt. |
+| `LLM_REASONING_BUDGET_TOKENS` | Nein | *(automatisch aus Effort)* | Explizites Token-Budget für Anthropic-Denken (Minimum 1024). Für OpenAI/Gemini wird das Effort-Level direkt verwendet. Wirksam nur, wenn `LLM_REASONING_EFFORT` gesetzt ist. |
+| `LLM_JSON_MODE_ENABLED` | Nein | `true` | Globaler Schalter für `response_format=json_object`. Setzen Sie auf `false`, wenn Ihr Anbieter LiteLLMs Assistant-Prefill-Injektion ablehnt (z. B. AWS Bedrock Relay → `ValidationException` bei der 2.+ Agent-Iteration). Wenn deaktiviert, überspringen strukturierte Aufrufe den JSON-Modus und greifen auf einfache Text-Regex-Extraktion zurück — kein Qualitätsverlust. Gilt für alle Modelle (ENV-konfiguriert und Admin-konfiguriert). |
+| `LLM_TOOL_CHOICE_ENABLED` | Nein | `true` | Globaler Schalter für erzwungenes `tool_choice` bei strukturierter Ausgabeextraktion (Level 1 — Native Function Calling). Setzen Sie auf `false`, wenn Ihr Modell Fehler bei erzwungener Werkzeugauswahl zurückgibt (z. B. Denk-Modus-Modelle, die `tool_choice='specified'` ablehnen). Wenn deaktiviert, überspringen strukturierte Aufrufe natives FC und beginnen mit JSON-Modus. Pro-Modell-Überschreibung verfügbar in Einstellungen → Modelle → Erweitert. |
 | `REASONING_LLM_MODEL` | Nein | *(fällt auf `LLM_MODEL` zurück)* | Modellname für die Reasoning-Ebene. Verwendet für Aufgaben, die tiefe Analyse erfordern (z. B. DAG-Planung, Plan-Analyse) |
-| `REASONING_LLM_API_KEY` | Nein | *(fällt auf `LLM_API_KEY` zurück)* | API-Schlüssel für den Anbieter des Reasoning-Modells |
-| `REASONING_LLM_BASE_URL` | Nein | *(fällt auf `LLM_BASE_URL` zurück)* | Basis-URL für den Anbieter des Reasoning-Modells |
+| `REASONING_LLM_API_KEY` | Nein | *(fällt auf `LLM_API_KEY` zurück)* | API-Schlüssel für den Reasoning-Modell-Anbieter |
+| `REASONING_LLM_BASE_URL` | Nein | *(fällt auf `LLM_BASE_URL` zurück)* | Basis-URL für den Reasoning-Modell-Anbieter |
 | `REASONING_LLM_TEMPERATURE` | Nein | *(fällt auf `LLM_TEMPERATURE` zurück)* | Sampling-Temperatur für das Reasoning-Modell |
 | `REASONING_LLM_CONTEXT_SIZE` | Nein | *(fällt auf `LLM_CONTEXT_SIZE` zurück)* | Kontextfenstergröße für das Reasoning-Modell |
 | `REASONING_LLM_MAX_OUTPUT_TOKENS` | Nein | *(fällt auf `LLM_MAX_OUTPUT_TOKENS` zurück)* | Max. Ausgabe-Token pro Aufruf für das Reasoning-Modell |
-| `REASONING_LLM_EFFORT` | Nein | *(fällt auf `LLM_REASONING_EFFORT` zurück)* | Reasoning-Aufwandsstufe für die Reasoning-Modell-Ebene. Werte: `low`, `medium`, `high` |
+| `REASONING_LLM_EFFORT` | Nein | *(fällt auf `LLM_REASONING_EFFORT` zurück)* | Reasoning-Effort-Level für die Reasoning-Modell-Ebene. Werte: `low`, `medium`, `high` |
 | `REASONING_LLM_BUDGET` | Nein | *(fällt auf `LLM_REASONING_BUDGET_TOKENS` zurück)* | Token-Budget für Reasoning (hauptsächlich Anthropic). Überschreibt das automatisch berechnete Budget für die Reasoning-Ebene |
+| `LLM_SUPPORTS_VISION` | Nein | `true` *(optimistisch)* | Steuert, ob ENV-Modus-Dokument-OCR (über MarkItDown + `markitdown-ocr`) versucht wird. Gilt nur, wenn **keine aktive Modellgruppe in Admin → Modelle konfiguriert ist** (reiner ENV-Modus). Wenn der Standard `true` wirksam ist, nehmen `convert_to_markdown` und RAG-Erfassung an, dass `LLM_MODEL` Vision unterstützt, und rufen es für Bild-OCR auf — dies ist das richtige Verhalten für alle gängigen Optionen (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1.5-pro/flash`). Setzen Sie dies auf `false`, wenn Ihr ENV-konfiguriertes `LLM_MODEL` Vision **nicht** unterstützt (z. B. `deepseek-v3`, `qwen-chat`, `llama-3.1`, `gpt-3.5-turbo`, `o1-mini`), um den fehlgeschlagenen Vision-Aufruf zu überspringen und direkt zur reinen Text-Extraktion zu gehen. Wenn eine aktive Modellgruppe im Admin → Modelle-Panel vorhanden ist, wird dieses Flag ignoriert und die `supports_vision`-Flags der Gruppe übernehmen — die von Admin kuratierte Wahl ist immer die Quelle der Wahrheit im DB-Modus. |
 
-> **Auflösungsreihenfolge**: Benutzereinstellung → Admin-Modelle (DB) → ENV-Fallback. Wenn ein Admin-Modell mit der Rolle „Allgemein" in Admin → Modelle konfiguriert ist, dienen diese ENV-Variablen nur als Fallback. Die Integritätsprüfung berücksichtigt beide Quellen.
+> **Auflösungsreihenfolge**: Benutzereinstellung → Admin-Modelle (DB) → ENV-Fallback. Wenn ein Admin-Modell mit der Rolle „General" in Admin → Modelle konfiguriert ist, dienen diese ENV-Variablen nur als Fallback. Die Integritätsprüfung berücksichtigt beide Quellen.
+
+### MarkItDown OCR-Auflösung
+
+Das `convert_to_markdown` Built-in-Tool und die RAG-Ingestion-Pipeline verwenden beide Microsofts [MarkItDown](https://github.com/microsoft/markitdown) + das offizielle [`markitdown-ocr`](https://github.com/microsoft/markitdown/tree/main/packages/markitdown-ocr) Plugin, um Text aus Dokumenten zu extrahieren — einschließlich OCR auf eingebetteten Bildern und gescannten PDF-Seiten, wenn ein Vision-fähiges LLM verfügbar ist.
+
+**Vision-LLM-Auflösungsreihenfolge** (erste Übereinstimmung gewinnt):
+
+| # | Quelle | Prioritätsrationale |
+|---|---|---|
+| 1 | **Primäres LLM des Agenten**, wenn `supports_vision=True` | Konsistenz: gleicher API-Schlüssel, gleicher Abrechnungsbucket, gleicher Rate-Limit-Pool wie das Gespräch. |
+| 2 | Aktive **ModelGroup → Fast Model**, wenn `supports_vision=True` | Fast Models (`gpt-4o-mini`, `claude-haiku`, `gemini-1.5-flash`) sind das ideale OCR-Arbeitstier — günstig, niedrige Latenz, normalerweise multimodal. |
+| 3 | Aktive **ModelGroup → General Model**, wenn `supports_vision=True` | Qualitäts-Fallback, wenn das primäre Modell nicht in der Gruppe ist. |
+| 4 | **ENV primäres LLM** (`LLM_MODEL`) | Optimistischer Fallback für reinen ENV-Modus. Wird nur verwendet, wenn keine aktive ModelGroup existiert. Gesteuert durch `LLM_SUPPORTS_VISION`. |
+
+**Reasoning-Modelle werden niemals für OCR bevorzugt.** Reasoning-Tiers (`o1`, `o3-mini`, `DeepSeek-R1`) haben historisch keine Vision-Unterstützung und sind ohnehin das falsche Werkzeug für OCR — OCR ist eine Wahrnehmungsaufgabe, keine Überlegungsaufgabe. Wenn ein Workspace nur ein Reasoning-Modell mit `supports_vision=True` hat, wird es trotzdem über den Primary-LLM-Pfad aufgegriffen, aber der Resolver stuft es nicht aktiv über Fast/General ein.
+
+**Null-Regressions-Fallback**: Wenn auf keiner Ebene ein Vision-fähiges Modell gefunden wird, wird OCR stillschweigend deaktiviert und MarkItDown läuft im reinen Text-Modus. OCR für eingebettete Bilder in Word/PowerPoint/Excel wird nicht verfügbar (wie vor dieser Funktion), aber alle andere Textextraktion (Überschriften, Tabellen, Absatztext) funktioniert unverändert weiter. **Es gibt niemals einen Fall, in dem das Hinzufügen dieser Funktion die Extraktion schlechter machte als das vorherige Verhalten.**
+
+**Nicht-OpenAI-Provider (Anthropic, Google Gemini, etc.)** werden transparent unterstützt: das aufgelöste LLM wird in einem `LiteLLMOpenAIShim` verpackt, das `chat.completions.create(...)`-Aufrufe durch `litellm.completion()` leitet, was die Provider-spezifische Nachrichtenformat-Übersetzung handhabt (z. B. Anthropics `source.type="base64"` Image-Block). Ein Shim deckt jeden Provider ab, den LiteLLM unterstützt — das Hinzufügen eines neuen Providers kostet null Code-Änderungen in FIM One.
 
 ### Extended Thinking (Reasoning)
 
@@ -126,14 +146,16 @@ Für OpenAI und Gemini verwaltet der Anbieter die Token-Zuweisung intern basiere
 
 | Variable | Erforderlich | Standard | Beschreibung |
 |---|---|---|---|
-| `REACT_MAX_ITERATIONS` | Nein | `20` | Max. Tool-Call-Iterationen pro ReAct-Anfrage. Höher = gründlicher, aber langsamer und teurer |
-| `REACT_MAX_TURN_TOKENS` | Nein | `0` | Notfall-Schutzschalter: max. kumulative Token (Prompt + Completion über alle Iterationen) pro einzelnem ReAct-Turn. Standard `0` = unbegrenzt. **Dies ist NICHT für die tägliche Token-Kontrolle** — verwenden Sie dafür das benutzerbasierte `token_quota`. Dies ist ein letzter Ausweg für extreme Szenarien wie ein Agent, der in einer Endlosschleife von Tool-Calls steckt. Das Erreichen dieses Limits bricht die Aufgabe während der Ausführung ab, verschwendet alle verbrauchten Token und gibt ein unvollständiges Ergebnis zurück. Behalten Sie `0` bei, es sei denn, Sie haben ein spezifisches Runaway-Agent-Problem zu beheben |
-| `REACT_TOOL_SELECTION_THRESHOLD` | Nein | `12` | Wenn die Gesamtzahl der registrierten Tools diesen Schwellenwert überschreitet, wählt ein leichtgewichtiger LLM-Call die relevanteste Teilmenge vor jeder Anfrage aus |
-| `REACT_TOOL_SELECTION_MAX` | Nein | `6` | Max. Tools nach intelligenter Auswahl (nur wirksam, wenn die Tool-Anzahl `REACT_TOOL_SELECTION_THRESHOLD` überschreitet) |
-| `REACT_SELF_REFLECTION_INTERVAL` | Nein | `6` | Injizieren Sie alle N Tool-Calls einen Self-Reflection-Prompt, um dem Agent zu helfen, den Kurs zu korrigieren und Schleifen zu vermeiden |
-| `REACT_TOOL_OBS_TRUNCATION` | Nein | `8000` | Max. Zeichen pro Tool-Observation bei der Synthese der endgültigen Antwort. Höhere Werte bewahren mehr strukturierte Daten (JSON, Tabellen) auf Kosten von mehr Token |
-| `REACT_CYCLE_DETECTION_THRESHOLD` | Nein | `3` | Wenn dasselbe Tool mit identischen Argumenten so oft aufgerufen wird, wird eine deterministische Warnung injiziert, die den Agent auffordert, einen anderen Ansatz zu versuchen. Im Gegensatz zu Self-Reflection (das auf dem LLM basiert, das die Schleife bemerkt) ist dies eine Hash-basierte Prüfung, die nicht umgangen werden kann. Gilt auch für DAG-Schritte |
-| `REACT_COMPLETION_CHECK_MIN_TOOLS` | Nein | `3` | Mindestanzahl von Tool-Calls, bevor die Completion-Checkliste aktiviert wird. Einfache Aufgaben (1-2 Tool-Calls) überspringen die Verifizierung, um unnötige Latenz zu vermeiden. Setzen Sie auf `1` für immer aktivierte Verifizierung. Gilt auch für DAG-Schritte |
+| `REACT_MAX_ITERATIONS` | Nein | `20` | Max. Werkzeugaufrufe pro ReAct-Anfrage. Höher = gründlicher, aber langsamer und teurer |
+| `REACT_MAX_TURN_TOKENS` | Nein | `0` | Notfall-Schutzschalter: max. kumulative Tokens (Prompt + Completion über alle Iterationen) pro einzelnem ReAct-Durchgang. Standard `0` = unbegrenzt. **Dies ist NICHT für die tägliche Token-Kontrolle** — verwenden Sie dafür `token_quota` pro Benutzer. Dies ist ein letztes Sicherheitsventil für extreme Szenarien wie ein Agent, der in einer Endlosschleife von Werkzeugaufrufen steckt. Das Erreichen dieses Limits bricht die Aufgabe während der Ausführung ab, verschwendet alle bisher verbrauchten Tokens und gibt ein unvollständiges Ergebnis zurück. Behalten Sie `0` bei, es sei denn, Sie haben ein spezifisches Runaway-Agent-Problem zu kontrollieren |
+| `REACT_TOOL_SELECTION_THRESHOLD` | Nein | `12` | Wenn die Gesamtzahl der registrierten Werkzeuge diesen Schwellenwert überschreitet, wählt ein leichtgewichtiger LLM-Aufruf vor jeder Anfrage die relevanteste Teilmenge aus |
+| `REACT_TOOL_SELECTION_MAX` | Nein | `6` | Max. Werkzeuge nach intelligenter Auswahl (nur wirksam, wenn die Werkzeuganzahl `REACT_TOOL_SELECTION_THRESHOLD` überschreitet) |
+| `REACT_SELF_REFLECTION_INTERVAL` | Nein | `6` | Injizieren Sie alle N Werkzeugaufrufe eine Selbstreflexions-Aufforderung, um dem Agent zu helfen, den Kurs zu korrigieren und Schleifen zu vermeiden |
+| `REACT_TOOL_OBS_TRUNCATION` | Nein | `8000` | Max. Zeichen pro Werkzeugbeobachtung bei der Synthese der endgültigen Antwort. Höhere Werte bewahren mehr strukturierte Daten (JSON, Tabellen) auf Kosten von mehr Tokens |
+| `REACT_CYCLE_DETECTION_THRESHOLD` | Nein | `3` | Wenn dasselbe Werkzeug mit identischen Argumenten so oft aufgerufen wird, wird eine deterministische Warnung injiziert, die den Agent auffordert, einen anderen Ansatz zu versuchen. Im Gegensatz zur Selbstreflexion (die darauf angewiesen ist, dass das LLM die Schleife bemerkt) ist dies eine Hash-basierte Prüfung, die nicht umgangen werden kann. Gilt auch für DAG-Schritte |
+| `REACT_COMPLETION_CHECK_MIN_TOOLS` | Nein | `3` | Minimale Anzahl von Werkzeugaufrufen, bevor die Abschluss-Checkliste aktiviert wird. Einfache Aufgaben (1-2 Werkzeugaufrufe) überspringen die Verifizierung, um unnötige Latenz zu vermeiden. Setzen Sie auf `1` für ständige Verifizierung. Gilt auch für DAG-Schritte |
+| `REACT_TURN_PROFILE_ENABLED` | Nein | `true` | Geben Sie Pro-Durchgang-Phasen-Timing-Logs aus (`memory_load`, `compact`, `tool_schema_build`, `llm_first_token`, `llm_total`, `tool_exec`). Eine strukturierte Log-Zeile pro Durchgang. Setzen Sie auf `false`, um Profiling vollständig zu deaktivieren (null Overhead) |
+| `LLM_RATE_LIMIT_PER_USER` | Nein | `true` | Verwenden Sie pro-Benutzer-Schlüssel-Rate-Limit-Buckets statt eines einzelnen prozessweiten Buckets. Verhindert, dass ein störender Benutzer alle anderen auf demselben Worker aushungert. Setzen Sie auf `false`, um zum Legacy-Global-Bucket zurückzukehren (nicht empfohlen) |
 
 ### DAG-Planer
 

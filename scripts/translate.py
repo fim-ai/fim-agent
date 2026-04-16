@@ -603,6 +603,39 @@ def translate_json_file(src_path: Path, locale: str, config: dict[str, str], for
             result = _translate_batch(batch)
             translated.update(result)
 
+        # CJK detection: retry keys that appear untranslated (no CJK chars)
+        if locale in ('zh', 'ja', 'ko'):
+            untranslated_keys: dict[str, str] = {}
+            for key, value in translated.items():
+                # Skip very short values (≤3 chars) — may legitimately be ASCII (e.g. "OK")
+                if len(value) <= 3:
+                    continue
+                if _check_untranslated(value, locale):
+                    untranslated_keys[key] = to_translate[key]
+            if untranslated_keys:
+                tprint(f"  [{locale}] {filename}: {len(untranslated_keys)} key(s) appear untranslated, retrying with stronger prompt")
+                stronger_system = system + (
+                    f"\n\nCRITICAL: You MUST translate ALL values to {locale}. "
+                    f"Do NOT keep English text. Every value must contain {locale} characters. "
+                    f"For example, 'KB Assistant' should be translated to '知识库助手' in zh, "
+                    f"'Knowledge Base' → '知识库', 'Settings' → '设置', 'Assistant' → '助手'."
+                )
+                retry_batches = _split_into_batches(list(untranslated_keys.items()))
+                for rb_idx, rb in enumerate(retry_batches):
+                    try:
+                        response_text = llm_chat(config, stronger_system, json.dumps(rb, ensure_ascii=False))
+                        retry_result = _parse_response(response_text)
+                        # Only accept retried values that actually contain CJK now
+                        accepted = 0
+                        for rk, rv in retry_result.items():
+                            if _CJK_PATTERN.search(rv):
+                                translated[rk] = rv
+                                accepted += 1
+                        if accepted:
+                            tprint(f"  [{locale}] {filename}: retry fixed {accepted}/{len(rb)} key(s)")
+                    except Exception as exc:
+                        tprint(f"  [{locale}] {filename}: WARNING — retry failed: {exc}")
+
     # If nothing was successfully translated at all, don't write a broken file
     if not translated and not existing_flat:
         tprint(f"  [{locale}] {filename}: all batches failed, skipping file (will retry next run)")

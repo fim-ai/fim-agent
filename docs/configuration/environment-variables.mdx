@@ -75,8 +75,28 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:9000' > frontend/.env.local
 | `REASONING_LLM_MAX_OUTPUT_TOKENS` | No | *(falls back to `LLM_MAX_OUTPUT_TOKENS`)* | Max output tokens per call for the reasoning model |
 | `REASONING_LLM_EFFORT` | No | *(falls back to `LLM_REASONING_EFFORT`)* | Reasoning effort level for the reasoning model tier. Values: `low`, `medium`, `high` |
 | `REASONING_LLM_BUDGET` | No | *(falls back to `LLM_REASONING_BUDGET_TOKENS`)* | Token budget for reasoning (primarily Anthropic). Overrides the auto-calculated budget for the reasoning tier |
+| `LLM_SUPPORTS_VISION` | No | `true` *(optimistic)* | Controls whether ENV-mode document OCR (via MarkItDown + `markitdown-ocr`) is attempted. Only applies when **no active model group is configured in Admin → Models** (pure ENV mode). When the default `true` is in effect, `convert_to_markdown` and RAG ingestion assume `LLM_MODEL` supports vision and call it for image OCR — this is the correct behavior for all common choices (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1.5-pro/flash`). Set this to `false` when your ENV-configured `LLM_MODEL` does **not** support vision (e.g. `deepseek-v3`, `qwen-chat`, `llama-3.1`, `gpt-3.5-turbo`, `o1-mini`) to skip the failing vision call and go straight to text-only extraction. When an active model group exists in the Admin → Models panel, this flag is ignored and the group's `supports_vision` flags take over — the admin-curated choice is always the source of truth in DB mode. |
 
 > **Resolution order**: User Preference → Admin Models (DB) → ENV Fallback. If an admin model with role "General" is configured in Admin → Models, these ENV vars serve as fallback only. The health check considers both sources.
+
+### MarkItDown OCR Resolution
+
+The `convert_to_markdown` built-in tool and the RAG ingestion pipeline both use Microsoft's [MarkItDown](https://github.com/microsoft/markitdown) + the official [`markitdown-ocr`](https://github.com/microsoft/markitdown/tree/main/packages/markitdown-ocr) plugin to extract text from documents — including OCR on embedded images and scanned PDF pages when a vision-capable LLM is available.
+
+**Vision LLM resolution order** (first match wins):
+
+| # | Source | Priority rationale |
+|---|---|---|
+| 1 | Agent's **primary LLM** if `supports_vision=True` | Consistency: same API key, same billing bucket, same rate-limit pool as the conversation. |
+| 2 | Active **ModelGroup → Fast Model** if `supports_vision=True` | Fast models (`gpt-4o-mini`, `claude-haiku`, `gemini-1.5-flash`) are the ideal OCR workhorse — cheap, low-latency, usually multimodal. |
+| 3 | Active **ModelGroup → General Model** if `supports_vision=True` | Quality fallback when the primary is not in the group. |
+| 4 | **ENV primary LLM** (`LLM_MODEL`) | Optimistic fallback for pure ENV mode. Only taken when no active ModelGroup exists. Gated by `LLM_SUPPORTS_VISION`. |
+
+**Reasoning models are never preferred for OCR.** Reasoning tiers (`o1`, `o3-mini`, `DeepSeek-R1`) historically lack vision support and are the wrong tool for OCR anyway — OCR is a perception task, not deliberation. If a workspace has only a reasoning model with `supports_vision=True` it will still be picked up via the primary-LLM path, but the resolver does not actively rank it above fast/general.
+
+**Zero-regression fallback**: when no vision-capable model is found at any level, OCR is silently disabled and MarkItDown runs in text-only mode. Word/PowerPoint/Excel embedded-image OCR becomes unavailable (same as before this feature shipped), but all other text extraction (headings, tables, paragraph text) continues to work unchanged. **There is never a case where adding this feature made extraction worse than the previous behavior.**
+
+**Non-OpenAI providers (Anthropic, Google Gemini, etc.)** are supported transparently: the resolved LLM is wrapped in a `LiteLLMOpenAIShim` that routes `chat.completions.create(...)` calls through `litellm.completion()`, which handles the provider-specific message format translation (e.g. Anthropic's `source.type="base64"` image block). One shim covers every provider LiteLLM supports — adding a new provider costs zero code changes in FIM One.
 
 ### Extended Thinking (Reasoning)
 
@@ -136,6 +156,8 @@ For OpenAI and Gemini, the provider handles token allocation internally based on
 | `REACT_TOOL_OBS_TRUNCATION` | No | `8000` | Max characters per tool observation when synthesizing the final answer. Higher values preserve more structured data (JSON, tables) at the cost of more tokens |
 | `REACT_CYCLE_DETECTION_THRESHOLD` | No | `3` | When the same tool is called with identical arguments this many times, a deterministic warning is injected telling the agent to try a different approach. Unlike self-reflection (which relies on the LLM noticing the loop), this is a hash-based check that cannot be bypassed. Also applies to DAG steps |
 | `REACT_COMPLETION_CHECK_MIN_TOOLS` | No | `3` | Minimum number of tool calls before the completion checklist fires. Simple tasks (1-2 tool calls) skip verification to avoid unnecessary latency. Set to `1` for always-on verification. Also applies to DAG steps |
+| `REACT_TURN_PROFILE_ENABLED` | No | `true` | Emit per-turn phase-level timing logs (`memory_load`, `compact`, `tool_schema_build`, `llm_first_token`, `llm_total`, `tool_exec`). One structured log line per turn. Set to `false` to disable profiling entirely (zero overhead) |
+| `LLM_RATE_LIMIT_PER_USER` | No | `true` | Use per-user keyed rate-limit buckets instead of a single process-global bucket. Prevents one noisy user from starving all others on the same worker. Set to `false` to revert to the legacy global bucket (not recommended) |
 
 ### DAG Planner
 

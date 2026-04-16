@@ -12,6 +12,28 @@ description: "FIM One의 모든 주요 변경 사항."
 
 ### 추가됨
 
+- **`convert_to_markdown` 내장 도구** — Microsoft의 MarkItDown을 사용하여 모든 파일, URL, YouTube 링크 또는 데이터 URI를 깔끔한 Markdown으로 변환하는 새로운 범용 Agent 도구입니다. PDF, Word (.docx), Excel (.xlsx/.xls), PowerPoint (.pptx), HTML, JSON, CSV, XML, ZIP, EPUB, Outlook .msg, 이미지, 오디오(음성 → 텍스트) 및 YouTube 자막을 지원합니다. 모든 agent에서 기본적으로 사용 가능하며 `web_fetch`와 동일한 계층입니다. 비전 기능이 있는 LLM이 구성되면, 공식 `markitdown-ocr` 플러그인을 통해 포함된 이미지와 스캔된 PDF 페이지가 자동으로 OCR됩니다. 이전에는 이 기능이 백그라운드 RAG 수집 파이프라인 내에 숨겨져 있었으며, 이제 agent는 대화형 경로에서 이를 사용할 수 있습니다.
+- **`markitdown-ocr`을 통한 문서 OCR** — DOCX / XLSX / PPTX의 포함된 이미지와 스캔된 PDF 페이지는 이제 FIM One이 라우팅하는 나머지 비전 기능이 있는 LLM을 사용하여 OCR됩니다. 내장 `convert_to_markdown` 도구와 RAG 수집 파이프라인 모두에 적용되므로, 채팅 시간 변환과 지식 기반 수집이 동일한 입력에 대해 바이트 동일의 Markdown을 생성합니다.
+- **문서 OCR을 위한 범용 비전 제공자 지원** — 새로운 `LiteLLMOpenAIShim` 덕 타입은 모든 FIM One `OpenAICompatibleLLM`을 openai SDK의 `.chat.completions.create(...)` API 형태로 래핑한 다음 `litellm.completion()`을 통해 디스패치합니다. MarkItDown(openai SDK 표면을 하드코딩함)은 이제 Anthropic Claude, Google Gemini, Azure, Bedrock 및 LiteLLM이 지원하는 다른 모든 제공자를 사용할 수 있습니다 — FIM One의 제공자별 어댑터 코드가 필요 없습니다.
+- **비전 인식 RAG 수집** — Office 문서 및 스캔된 PDF의 지식 기반 업로드는 이제 워크스페이스의 기본 비전 LLM(DB 우선, ENV 폴백)을 해결하고 수집 중 OCR을 위해 MarkItDown으로 전달합니다. 0 회귀: 비전 기능이 있는 모델을 사용할 수 없을 때, 수집은 자동으로 텍스트 전용 모드로 폴백됩니다 — 정확히 기능 이전 동작입니다.
+- **확장된 MarkItDown 형식 지원** — RAG는 이제 MarkItDown의 오디오 전사 및 outlook 추가 기능을 통해 `.pdf`, `.msg`(Outlook), `.epub`, `.mp3`, `.wav` 및 `.m4a`를 기본적으로 수집합니다. YouTube URL은 `markitdown[youtube-transcription]`을 통해 `convert_to_markdown`으로 흐릅니다.
+- **`LLM_SUPPORTS_VISION` 환경 변수** — ENV 모드 문서 OCR 폴백에 대한 선택적 옵트아웃(`=false`). 기본 동작은 낙관적(`true`)이며, 일반적인 ENV 설정(`gpt-4o`, `claude-3-5-sonnet`, `gemini-1.5-pro/flash`)을 포함합니다. ENV로 구성된 `LLM_MODEL`이 비전을 지원하지 않을 때만 `false`로 설정하십시오(예: `deepseek-v3`, `qwen-chat`, `llama-3.1`, `gpt-3.5-turbo`, `o1-mini`). 모든 문서 업로드에서 실패한 비전 호출을 건너뛰려면 이를 설정하십시오. 관리자가 선별한 ModelGroup이 활성화되면 완전히 무시됩니다 — DB 모드는 사용 가능할 때 항상 진실의 원천입니다.
+- **턴 레벨 프로파일러** — 각 ReAct 턴은 이제 단계 레벨 타이밍(`memory_load`, `compact`, `tool_schema_build`, `llm_first_token`, `llm_total`, `tool_exec`)을 턴당 단일 구조화된 로그 라인에 기록합니다. `REACT_TURN_PROFILE_ENABLED`를 통해 토글 가능합니다(기본값: 켜짐; 오버헤드 없는 no-op의 경우 `false`로 설정).
+- **구조화된 컴팩트 작업 카드** — 대화 컴팩션은 이제 자신의 9섹션 markdown 출력을 타입된 `WorkCard`로 파싱하고 새로운 컴팩트를 이전 카드에 병합하므로, 긴 세션의 초기 오류와 보류 중인 작업이 처음부터 다시 요약되는 대신 여러 컴팩션 라운드에서 유지됩니다.
+
+### 변경됨
+
+- **사용자별 속도 제한** — LLM 계층 속도 제한기가 이제 단일 프로세스 전역 버킷 대신 사용자별로 별도의 버킷을 유지합니다. 한 명의 시끄러운 사용자가 동일한 워커의 다른 모든 사용자를 제한하는 것을 방지합니다. `LLM_RATE_LIMIT_PER_USER`를 통해 토글 가능합니다(기본값: 활성화).
+
+### 수정됨
+
+- **Dangling tool_use 복구** — 도구 실행 중 중단된 대화(사용자 Stop, SSE 연결 해제, 충돌)는 이전에 `tool_use` 블록이 있는 어시스턴트 메시지를 남겼고 일치하는 `tool_result`가 없어서 다음 턴이 LLM API에서 불명확한 HTTP 400으로 충돌했습니다. `DbMemory.get_messages()`는 이제 읽기 경로에서 이러한 dangling 블록을 감지하고 합성 `[interrupted]` tool_result로 복구합니다. 원본 DB 로그는 변경되지 않습니다.
+- **도구_호출이 있는 빈 콘텐츠 어시스턴트 메시지가 더 이상 삭제되지 않음** — DbMemory 로드 경로 필터는 이전에 빈 텍스트 콘텐츠가 있는 어시스턴트 행을 자동으로 삭제했습니다. 네이티브 함수 호출 중간 단계(텍스트 없이 `tool_calls`만 포함)가 제거되고 있었습니다. 필터는 이제 빈 콘텐츠와 `tool_calls` 없음 둘 다를 요구합니다.
+
+## [v0.8.2] - 2026-04-10
+
+### 추가됨
+
 - **지능형 문서 처리 (Vision-Aware)** — 모델 기능에 따른 적응형 문서 처리. 대상 LLM이 vision을 지원하는 경우(GPT-4o, Claude 3/4, Gemini), PDF 페이지는 이미지로 렌더링되고 vision 콘텐츠 블록을 통해 전송되어 완벽한 시각적 충실도를 제공합니다. 텍스트 전용 모델은 pdfplumber 텍스트 추출로 폴백됩니다. Vision 및 Text-only 두 가지 모드. `DOCUMENT_PROCESSING_MODE`, `DOCUMENT_VISION_DPI`, `DOCUMENT_VISION_MAX_PAGES` 환경 변수를 통해 구성 가능. Admin에서 모델별 `supports_vision` 토글.
 - **문서 vision 파이프라인** — 채팅에 업로드된 DOCX, PPTX, PDF 파일의 포함된 이미지가 추출되고 모델에서 vision이 활성화되면 LLM으로 vision 콘텐츠로 전송됩니다.
 - **다중 턴 vision 지속성** — 업로드된 문서 및 이미지의 vision 콘텐츠가 대화 턴 전체에 걸쳐 유지되므로 모델이 대화 전체에서 시각적 컨텍스트를 유지합니다.

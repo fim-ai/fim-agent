@@ -2,8 +2,8 @@
   "newChat": "Neuer Chat",
   "expandSidebar": "Seitenleiste erweitern",
   "collapseSidebar": "Seitenleiste ausblenden",
-  "lightMode": "Heller Modus",
-  "darkMode": "Dunkler Modus",
+  "lightMode": "Hellmodus",
+  "darkMode": "Dunkelmodus",
   "dismiss": "Schließen",
   "dashboard": "Dashboard",
   "agents": "Agenten",
@@ -13,7 +13,7 @@
   "artifacts": "Artefakte",
   "allChats": "Alle Chats",
   "eval": "Eval Center",
-  "market": "Markt",
+  "market": "Marktplatz",
   "newChatTooltipMac": "Neuer Chat ({shortcut})",
   "newChatTooltipWin": "Neuer Chat ({shortcut})",
   "searchTooltipMac": "Suchen ({shortcut})",
@@ -55,6 +55,6 @@
   "sectionResources": "Ressourcen",
   "sectionOperate": "Betreiben",
   "mobileOverlayTitle": "Für Desktop konzipiert",
-  "mobileOverlayDescription": "FIM One's Orchestrierungserlebnis ist für größere Bildschirme konzipiert. Bitte besuchen Sie uns mit einem Desktop-Browser für das vollständige Erlebnis.",
+  "mobileOverlayDescription": "FIM One's Orchestrierungserlebnis ist für größere Bildschirme konzipiert. Bitte besuchen Sie die Seite in einem Desktop-Browser für das vollständige Erlebnis.",
   "mobileOverlayContinue": "Trotzdem fortfahren"
 }
