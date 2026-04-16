@@ -1,12 +1,37 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useCallback } from "react"
+import { Check, Copy } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { MarkdownContent } from "@/lib/markdown"
 import { parseInsufficientEvidence } from "@/lib/evidence-utils"
 import type { ArtifactInfo } from "./types"
 import { ArtifactChips } from "./artifact-chips"
 import { InsufficientEvidenceBlock } from "./insufficient-evidence-block"
+
+function CopyablePre({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [text])
+
+  return (
+    <pre className="group relative whitespace-pre-wrap break-all text-xs text-foreground/90 font-mono leading-relaxed overflow-x-auto">
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="absolute right-0 top-0 rounded-md p-1.5 text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
+        aria-label="Copy"
+      >
+        {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+      {text}
+    </pre>
+  )
+}
 
 interface ObservationBlockProps {
   observation: string
@@ -81,7 +106,7 @@ export function ObservationBlock({
         />
       ) : effectiveType === "markdown" ? (
         <MarkdownContent
-          content={observation}
+          content={`\`\`\`\`\n${observation}\n\`\`\`\``}
           className={mdCls}
         />
       ) : effectiveType === "json" ? (
@@ -90,9 +115,7 @@ export function ObservationBlock({
           className={mdCls}
         />
       ) : (
-        <pre className="whitespace-pre-wrap break-all text-xs text-foreground/90 font-mono leading-relaxed overflow-x-auto">
-          {observation}
-        </pre>
+        <CopyablePre text={observation} />
       )}
       {artifacts && artifacts.length > 0 && (
         <div className="mt-2">

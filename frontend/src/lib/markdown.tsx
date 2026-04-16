@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { Download } from "lucide-react"
+import { Check, Copy, Download } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -117,6 +117,48 @@ function normalizeHeadings(md: string): string {
   return md.replace(/^(#{1,6})([^\s#])/gm, "$1 $2")
 }
 
+/** Extract plain text from React children recursively */
+function extractText(node: React.ReactNode): string {
+  if (typeof node === "string") return node
+  if (typeof node === "number") return String(node)
+  if (!node) return ""
+  if (Array.isArray(node)) return node.map(extractText).join("")
+  if (React.isValidElement(node) && node.props) {
+    return extractText((node.props as { children?: React.ReactNode }).children)
+  }
+  return ""
+}
+
+/** Code block wrapper with a copy button */
+function CodeBlock({ children, ...props }: React.ComponentProps<"pre">) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    const text = extractText(children)
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <pre
+      className="group relative overflow-x-auto rounded-lg bg-muted/50 p-4 text-sm font-mono my-3 max-w-full"
+      {...props}
+    >
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="absolute right-2 top-2 rounded-md p-1.5 text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
+        aria-label="Copy code"
+      >
+        {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+      {children}
+    </pre>
+  )
+}
+
 /** Stable remark/rehype plugin arrays — allocated once at module scope */
 const remarkPlugins = [remarkCjkFriendly, remarkCjkFriendlyGfmStrikethrough, remarkGfm, remarkMath]
 const rehypePlugins = [rehypeKatex, rehypeHighlight]
@@ -128,16 +170,7 @@ const rehypePlugins = [rehypeKatex, rehypeHighlight]
  * All referenced helpers (processCitations, ClickableImage) are module-level.
  */
 const markdownComponents = {
-  pre({ children, ...props }: React.ComponentProps<"pre">) {
-    return (
-      <pre
-        className="overflow-x-auto rounded-lg bg-muted/50 p-4 text-sm font-mono my-3 max-w-full"
-        {...props}
-      >
-        {children}
-      </pre>
-    )
-  },
+  pre: CodeBlock,
   code({ children, className: codeClassName, ...props }: React.ComponentProps<"code">) {
     const isInline = !codeClassName
     if (isInline) {
