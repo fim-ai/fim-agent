@@ -425,6 +425,9 @@ class OpenAICompatibleLLM(BaseLLM):
         async def _iterate() -> AsyncIterator[StreamChunk]:
             # Accumulate partial tool calls keyed by their index in the array.
             pending_tool_calls: dict[int, _PartialToolCall] = {}
+            # Remap table: raw provider index → reallocated slot when a
+            # collision is detected (e.g. provider reuses index=0).
+            index_remap: dict[int, int] = {}
             stream_usage: dict[str, int] | None = None
             usage_yielded = False
             think_parser = _ThinkTagStreamParser()
@@ -467,22 +470,41 @@ class OpenAICompatibleLLM(BaseLLM):
                 # --- tool-call fragments ---
                 if delta.tool_calls:
                     for tc_delta in delta.tool_calls:
-                        idx = tc_delta.index
+                        raw_idx = tc_delta.index
+                        # Redirect through any active remap (handles
+                        # providers that reuse index=0 for every call).
+                        idx = index_remap.get(raw_idx, raw_idx)
+
+                        tc_id = getattr(tc_delta, "id", None) or ""
+                        tc_name = ""
+                        if tc_delta.function:
+                            tc_name = tc_delta.function.name or ""
+
+                        # Boundary detection: if the slot already exists
+                        # and the incoming delta carries a *different* id
+                        # or name, a new tool call has started on the
+                        # same raw index.
+                        if idx in pending_tool_calls:
+                            existing = pending_tool_calls[idx]
+                            is_boundary = False
+                            if tc_id and existing.id and tc_id != existing.id:
+                                is_boundary = True
+                            if tc_name and existing.name and tc_name != existing.name:
+                                is_boundary = True
+                            if is_boundary:
+                                new_idx = max(pending_tool_calls.keys()) + 1
+                                pending_tool_calls[new_idx] = _PartialToolCall()
+                                index_remap[raw_idx] = new_idx
+                                idx = new_idx
+
                         if idx not in pending_tool_calls:
                             pending_tool_calls[idx] = _PartialToolCall()
                         partial = pending_tool_calls[idx]
-                        if tc_delta.id:
-                            partial.id = tc_delta.id
+                        if tc_id:
+                            partial.id = tc_id
                         if tc_delta.function:
-                            if tc_delta.function.name:
-                                # Index collision: provider reused the same
-                                # index for a different tool call.  Allocate
-                                # a fresh slot so names don't concatenate.
-                                if partial.name and partial.name != tc_delta.function.name:
-                                    idx = max(pending_tool_calls.keys()) + 1
-                                    pending_tool_calls[idx] = _PartialToolCall()
-                                    partial = pending_tool_calls[idx]
-                                partial.name = tc_delta.function.name
+                            if tc_name:
+                                partial.name = tc_name
                             if tc_delta.function.arguments:
                                 partial.arguments += tc_delta.function.arguments
 
@@ -506,6 +528,7 @@ class OpenAICompatibleLLM(BaseLLM):
                     )
                     usage_yielded = stream_usage is not None
                     pending_tool_calls.clear()
+                    index_remap.clear()
                 elif finish_reason and not pending_tool_calls:
                     # Final chunk with no tool calls (normal stop).
                     yield StreamChunk(finish_reason=finish_reason, usage=stream_usage)

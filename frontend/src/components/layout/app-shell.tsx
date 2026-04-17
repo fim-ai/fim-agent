@@ -426,10 +426,17 @@ function SidebarNav({ collapsed }: { collapsed: boolean }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("layout")
   const [isMaintenance, setIsMaintenance] = useState(false)
+  const [isMac, setIsMac] = useState(true) // default to Mac to avoid flash
 
   useEffect(() => {
     setMaintenanceCallback(() => setIsMaintenance(true))
     return () => setMaintenanceCallback(null)
+  }, [])
+
+  useEffect(() => {
+    const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
+    const platform = nav.userAgentData?.platform ?? navigator.platform ?? ""
+    setIsMac(/mac|iphone|ipad|ipod/i.test(platform))
   }, [])
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -467,6 +474,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener("builder-mode-change", handler)
     return () => window.removeEventListener("builder-mode-change", handler)
+  }, [])
+
+  // Global shortcut: Cmd/Ctrl+B toggles the sidebar (matches VSCode/Cursor convention)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "b") {
+        e.preventDefault()
+        setCollapsed((prev) => !prev)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
   }, [])
 
   const pathname = usePathname()
@@ -510,7 +529,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Logo area + collapse toggle */}
           <div className={cn("flex shrink-0", collapsed ? "items-center justify-center px-2 py-3" : "h-14 items-center justify-between px-4")}>
             {collapsed ? (
-              <SidebarTooltip label={t("expandSidebar")} collapsed>
+              <SidebarTooltip label={isMac ? t("expandSidebarTooltipMac", { shortcut: "⌘B" }) : t("expandSidebarTooltipWin", { shortcut: "Ctrl+B" })} collapsed>
                 <button
                   onClick={() => setCollapsed(false)}
                   className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
@@ -530,7 +549,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <PanelLeftClose className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={4}>{t("collapseSidebar")}</TooltipContent>
+                  <TooltipContent side="bottom" sideOffset={4}>{isMac ? t("collapseSidebarTooltipMac", { shortcut: "⌘B" }) : t("collapseSidebarTooltipWin", { shortcut: "Ctrl+B" })}</TooltipContent>
                 </Tooltip>
               </>
             )}

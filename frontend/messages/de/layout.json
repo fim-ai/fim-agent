@@ -56,5 +56,9 @@
   "sectionOperate": "Betreiben",
   "mobileOverlayTitle": "Für Desktop konzipiert",
   "mobileOverlayDescription": "FIM One's Orchestrierungserlebnis ist für größere Bildschirme konzipiert. Bitte besuchen Sie die Seite in einem Desktop-Browser für das vollständige Erlebnis.",
-  "mobileOverlayContinue": "Trotzdem fortfahren"
+  "mobileOverlayContinue": "Trotzdem fortfahren",
+  "expandSidebarTooltipMac": "Seitenleiste erweitern ({shortcut})",
+  "expandSidebarTooltipWin": "Seitenleiste erweitern ({shortcut})",
+  "collapseSidebarTooltipMac": "Seitenleiste ausblenden ({shortcut})",
+  "collapseSidebarTooltipWin": "Seitenleiste ausblenden ({shortcut})"
 }

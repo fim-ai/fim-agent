@@ -56,5 +56,9 @@
   "sectionOperate": "Exploiter",
   "mobileOverlayTitle": "Conçu pour le bureau",
   "mobileOverlayDescription": "L'expérience d'orchestration de FIM One est conçue pour les grands écrans. Veuillez visiter sur un navigateur de bureau pour l'expérience complète.",
-  "mobileOverlayContinue": "Continuer quand même"
+  "mobileOverlayContinue": "Continuer quand même",
+  "expandSidebarTooltipMac": "Développer la barre latérale ({shortcut})",
+  "expandSidebarTooltipWin": "Développer la barre latérale ({shortcut})",
+  "collapseSidebarTooltipMac": "Réduire la barre latérale ({shortcut})",
+  "collapseSidebarTooltipWin": "Réduire la barre latérale ({shortcut})"
 }

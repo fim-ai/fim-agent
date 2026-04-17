@@ -56,5 +56,9 @@
   "sectionOperate": "运维",
   "mobileOverlayTitle": "为桌面设计",
   "mobileOverlayDescription": "FIM One 的编排体验是为大屏幕构建的。请在桌面浏览器上访问以获得完整体验。",
-  "mobileOverlayContinue": "仍然继续"
+  "mobileOverlayContinue": "仍然继续",
+  "expandSidebarTooltipMac": "展开侧边栏 ({shortcut})",
+  "expandSidebarTooltipWin": "展开侧边栏 ({shortcut})",
+  "collapseSidebarTooltipMac": "折叠侧边栏 ({shortcut})",
+  "collapseSidebarTooltipWin": "折叠侧边栏 ({shortcut})"
 }

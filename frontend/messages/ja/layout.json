@@ -56,5 +56,9 @@
   "sectionOperate": "運用",
   "mobileOverlayTitle": "デスクトップ向けに設計されています",
   "mobileOverlayDescription": "FIM One のオーケストレーション体験は、より大きな画面向けに構築されています。完全な体験のために、デスクトップブラウザでアクセスしてください。",
-  "mobileOverlayContinue": "とにかく続行"
+  "mobileOverlayContinue": "とにかく続行",
+  "expandSidebarTooltipMac": "サイドバーを展開 ({shortcut})",
+  "expandSidebarTooltipWin": "サイドバーを展開 ({shortcut})",
+  "collapseSidebarTooltipMac": "サイドバーを折りたたむ ({shortcut})",
+  "collapseSidebarTooltipWin": "サイドバーを折りたたむ ({shortcut})"
 }
