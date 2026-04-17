@@ -13,6 +13,7 @@ import {
   BarChart3,
   Bell,
   BookMarked,
+  MessageSquare,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,7 @@ import { CredentialsSettings } from "@/components/settings/credentials-settings"
 import { UsageSettings } from "@/components/settings/usage-settings"
 import { NotificationsSettings } from "@/components/settings/notifications-settings"
 import { SubscriptionsSettings } from "@/components/settings/subscriptions-settings"
+import { ChannelsSettings } from "@/components/settings/channels-settings"
 
 const TAB_KEYS = [
   "general",
@@ -34,6 +36,7 @@ const TAB_KEYS = [
   "organizations",
   "api-keys",
   "credentials",
+  "channels",
   "usage",
   "notifications",
   "subscriptions",
@@ -46,6 +49,7 @@ const TAB_ICONS = {
   organizations: Building2,
   "api-keys": Key,
   credentials: ShieldCheck,
+  channels: MessageSquare,
   usage: BarChart3,
   notifications: Bell,
   subscriptions: BookMarked,
@@ -114,6 +118,7 @@ function SettingsContent() {
             {activeTab === "organizations" && <OrganizationSettings />}
             {activeTab === "api-keys" && <ApiKeysSettings />}
             {activeTab === "credentials" && <CredentialsSettings />}
+            {activeTab === "channels" && <ChannelsSettings />}
             {activeTab === "usage" && <UsageSettings />}
             {activeTab === "notifications" && <NotificationsSettings />}
             {activeTab === "subscriptions" && <SubscriptionsSettings />}
