@@ -105,15 +105,13 @@ official Python client.
 `dmPython` is **not published on PyPI**. Operators must download the
 wheel from the vendor and install it locally.
 
-1. Go to <https://eco.dameng.com/> (or the DM8 installer's `drivers/python/`
-   directory if you already have DM8 installed locally).
-2. Download the wheel matching your Python version:
-   ```
-   dmPython-2.5.x-cp311-cp311-<platform>.whl
-   ```
+1. Go to [eco.dameng.com](https://eco.dameng.com/) (or the DM8 installer's
+   `drivers/python/` directory if you already have DM8 installed locally).
+2. Download the wheel matching your Python version (e.g.
+   `dmPython-2.5.x-cp311-cp311-linux_x86_64.whl`).
 3. Install it into the same environment that runs FIM One:
    ```bash
-   uv pip install path/to/dmPython-2.5.x-cp311-*.whl
+   uv pip install path/to/dmPython-2.5.x-cp311-cp311-linux_x86_64.whl
    ```
 
 <Warning>
