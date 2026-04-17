@@ -6,6 +6,7 @@ from .agent import Agent
 from .announcement import Announcement
 from .api_key import ApiKey
 from .audit_log import AuditLog
+from .channel import Channel, ConfirmationRequest
 from .connector import Connector, ConnectorAction
 from .connector_credential import ConnectorCredential
 from .eval import EvalDataset, EvalCase, EvalRun, EvalCaseResult
@@ -37,6 +38,8 @@ __all__ = [
     "Announcement",
     "ApiKey",
     "AuditLog",
+    "Channel",
+    "ConfirmationRequest",
     "Connector",
     "ConnectorAction",
     "ConnectorCredential",
