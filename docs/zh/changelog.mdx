@@ -10,6 +10,12 @@ description: "FIM One 的所有重要更改。"
 
 ## [未发布]
 
+### Fixed
+
+- Conversation export now shows the correct mode label ("Planner" / "规划") for auto-routed DAG conversations instead of always displaying "Standard".
+- Export timestamps now respect the user's configured timezone instead of displaying raw UTC.
+- Uploaded file content no longer leaks into exported conversations; only the user's message text is included.
+
 ## [v0.8.4] - 2026-04-17
 
 ### 新增
