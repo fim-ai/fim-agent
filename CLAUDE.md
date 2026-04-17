@@ -155,10 +155,11 @@ This is a communication requirement only — it does NOT replace automated tests
 After every commit, update docs silently (do NOT ask the user). Run ALL applicable items as a checklist:
 
 - [ ] **`docs/changelog.mdx`** — append under `[Unreleased]` (`### Added/Changed/Fixed/Removed`). **Only user-facing changes**: new features, behavior changes, bug fixes that affect users. **Skip**: pure internal refactoring, code style/formatting, test count updates, doc typo fixes, CI config tweaks, dependency bumps with no behavior change. One concise line per change — no implementation details (file names, class names, test counts). CHANGELOG is for users, not developers.
-- [ ] *(feat only)* **`docs/roadmap.mdx`** — ROADMAP is the intent list (what's planned). Three rules:
+- [ ] *(feat OR behavior-changing fix)* **`docs/roadmap.mdx`** — ROADMAP is the intent list (what's planned). Treat a `fix:` commit as `feat` for this rule when it changes **user-observable behavior**: API errors that disappear, cross-provider protocol compatibility, new observability fields, correctness guarantees that weren't there before. Pure internal refactors / code-style / logic-only fixes do NOT need roadmap entries. Three rules:
   1. **Check off**: if this commit satisfies a `- [ ]` planned item → change it to `- [x]`
-  2. **Insert new**: if this is a significant new feature NOT in the roadmap → add it under the most fitting planned version as `- [x]` (just shipped) or `- [ ]` if it spawns follow-up work. Use judgment — don't add every small thing; only user-facing features worth planning around
+  2. **Insert new**: if this is a significant new feature or behavior-changing fix NOT in the roadmap → add it under the most fitting planned version as `- [x]` (just shipped) or `- [ ]` if it spawns follow-up work. Use judgment — don't add every small thing; only user-facing features worth planning around
   3. **Never touch** shipped (date-stamped) versions retroactively
+  4. **Deferred items go here too**: if you ship an MVP and leave follow-ups, add them as `- [ ]` items under the right version — NEVER leave them as verbal "we'll remember later" promises. Internal planning docs (`dev/claude-code-insights.md`, agent reports) are scratchpads; they do NOT replace roadmap entries.
 - [ ] *(feat only)* **`example.env`** — add any new env keys with placeholder + comment; then **sync `docs/configuration/environment-variables.mdx`** — add the new variable(s) to the correct section table
 - [ ] *(feat only)* **`README.md`** — update Key Features and Project Structure if needed
 - [ ] **Chinese sync** — translate the staged English doc diff into the corresponding `docs/zh/` and `README.zh.md` files. Commit EN + ZH together.
