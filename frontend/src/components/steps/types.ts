@@ -18,4 +18,6 @@ export interface IterationData {
   loading?: boolean          // true when tool is executing
   content_type?: string      // "text" | "html" | "markdown" | "json"
   artifacts?: ArtifactInfo[]
+  /** Thinking text for interleaved __thinking__ entries. */
+  thinkingText?: string
 }

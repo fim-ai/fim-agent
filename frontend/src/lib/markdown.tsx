@@ -17,6 +17,7 @@ import remarkCjkFriendly from "remark-cjk-friendly"
 import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough"
 import rehypeKatex from "rehype-katex"
 import rehypeHighlight from "rehype-highlight"
+import rehypeRaw from "rehype-raw"
 
 function CitationBadge({ index }: { index: number }) {
   const sources = useEvidenceSources()
@@ -161,7 +162,7 @@ function CodeBlock({ children, ...props }: React.ComponentProps<"pre">) {
 
 /** Stable remark/rehype plugin arrays — allocated once at module scope */
 const remarkPlugins = [remarkCjkFriendly, remarkCjkFriendlyGfmStrikethrough, remarkGfm, remarkMath]
-const rehypePlugins = [rehypeKatex, rehypeHighlight]
+const rehypePlugins = [rehypeRaw, rehypeKatex, rehypeHighlight]
 
 /**
  * Stable component overrides for react-markdown.

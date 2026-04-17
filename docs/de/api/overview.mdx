@@ -94,8 +94,8 @@ Chat-Endpunkte (`POST /api/react` und `POST /api/dag`) geben Server-Sent Events 
 
 | Event-Typ | Beschreibung |
 |-----------|-------------|
-| `step` | ReAct-Reasoning-Schritt (Tool-Aufrufe, Überlegungen) |
-| `step_progress` | DAG-Schritt-Fortschritt (gestartet/Iteration/abgeschlossen) |
+| `step` | ReAct-Reasoning-Schritt (Tool-Aufrufe, Denken). Für Modelle mit erweitertem Denken (Claude, o-Serie, DeepSeek-R1) enthält `thinking_delta`-Inhalte in Echtzeit während Tool-Entscheidungsphasen |
+| `step_progress` | DAG-Schrittfortschritt (gestartet/Iteration/abgeschlossen). Kann `thinking_delta`-Inhalte enthalten, wenn der zugrunde liegende Agent Reasoning-Token streamt |
 | `phase` | Pipeline-Phasenübergang (Planung/Ausführung/Analyse) |
 | `compact` | Kontext-Komprimierung aufgetreten |
 | `answer` | Gestreamter Antworttext (Start/Delta/Fertig) |

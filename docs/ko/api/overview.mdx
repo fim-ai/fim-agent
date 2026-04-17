@@ -90,12 +90,12 @@ SSE 스트리밍 엔드포인트(`/api/react` 및 `/api/dag`)의 경우, 요청 
 
 ## 스트리밍 (Server-Sent Events)
 
-채팅 엔드포인트(`POST /api/react` 및 `POST /api/dag`)는 실시간 스트리밍을 위해 Server-Sent Events를 반환합니다. 각 이벤트에는 콘텐츠를 나타내는 `type` 필드가 있습니다:
+채팅 엔드포인트 (`POST /api/react` 및 `POST /api/dag`)는 실시간 스트리밍을 위해 Server-Sent Events를 반환합니다. 각 이벤트는 콘텐츠를 나타내는 `type` 필드를 가집니다:
 
 | 이벤트 타입 | 설명 |
 |-----------|-------------|
-| `step` | ReAct 추론 단계 (도구 호출, 사고) |
-| `step_progress` | DAG 단계 진행 상황 (시작됨/반복/완료됨) |
+| `step` | ReAct 추론 단계 (도구 호출, 사고). 확장 사고 기능이 있는 모델(Claude, o-series, DeepSeek-R1)의 경우 도구 결정 단계 중 실시간 `thinking_delta` 콘텐츠 포함 |
+| `step_progress` | DAG 단계 진행 상황 (시작됨/반복/완료됨). 기본 에이전트가 추론 토큰을 스트리밍할 때 `thinking_delta` 콘텐츠 포함 가능 |
 | `phase` | 파이프라인 단계 전환 (계획/실행/분석) |
 | `compact` | 컨텍스트 압축 발생 |
 | `answer` | 스트리밍된 답변 텍스트 (시작/델타/완료) |

@@ -564,8 +564,12 @@ class TestDAGExecutorResolveAgent:
         assert resolved is not agent
         # But should use the fast LLM.
         assert resolved._llm is fast_llm
-        # And share the same tools.
-        assert resolved._tools is agent._tools
+        # Tools should be an isolated copy (not the same object) to avoid
+        # cross-step mutation, but contain the same tool set.
+        assert resolved._tools is not agent._tools
+        assert set(t.name for t in resolved._tools.list_tools()) == set(
+            t.name for t in agent._tools.list_tools()
+        )
         # And same max_iterations.
         assert resolved._max_iterations == agent._max_iterations
 

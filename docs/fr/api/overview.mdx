@@ -94,15 +94,15 @@ Les points de terminaison de chat (`POST /api/react` et `POST /api/dag`) retourn
 
 | Type d'événement | Description |
 |-----------|-------------|
-| `step` | Étape de raisonnement ReAct (appels d'outils, réflexion) |
-| `step_progress` | Progression de l'étape DAG (démarrée/itération/terminée) |
+| `step` | Étape de raisonnement ReAct (appels d'outils, réflexion). Pour les modèles avec pensée étendue (Claude, série o, DeepSeek-R1), inclut le contenu `thinking_delta` en temps réel pendant les phases de décision d'outils |
+| `step_progress` | Progression de l'étape DAG (démarrée/itération/complétée). Peut inclure le contenu `thinking_delta` lorsque l'agent sous-jacent diffuse les tokens de raisonnement |
 | `phase` | Transition de phase du pipeline (planification/exécution/analyse) |
 | `compact` | Compaction de contexte effectuée |
-| `answer` | Texte de réponse en streaming (début/delta/terminé) |
+| `answer` | Texte de réponse diffusé (début/delta/terminé) |
 | `done` | Charge utile du résultat final |
 | `suggestions` | Questions de suivi suggérées |
 | `title` | Titre de conversation généré automatiquement |
-| `end` | Terminateur de flux (toujours en dernier) |
+| `end` | Terminateur de flux (toujours dernier) |
 
 ### Flux SSE
 

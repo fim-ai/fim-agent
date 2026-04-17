@@ -28,11 +28,13 @@ export interface StepState {
     duration?: number
     content_type?: string
     artifacts?: Array<{ name: string; url: string; mime_type: string; size: number }>
+    /** Thinking text for __thinking__ entries (interleaved with tool calls). */
+    thinkingText?: string
   }>
   /** When set, the step is undergoing post-completion verification. */
   verifying?: "step" | "citations" | null
-  /** Accumulated thinking/reasoning text from streaming deltas. */
-  thinkingText?: string
+  /** @internal Pending thinking buffer — flushed into iterations on next tool_call. */
+  _pendingThinking?: string
 }
 
 export interface RoundSnapshot {
@@ -186,9 +188,9 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
         if (sp.task) state.task = sp.task
 
         if (sp.event === "thinking_delta") {
-          // Accumulate thinking delta tokens for this step
+          // Buffer thinking tokens — flushed into iterations on next tool_call start or step completion.
           const content = (sp as DagStepProgressEvent & { content?: string }).content ?? ""
-          state.thinkingText = (state.thinkingText ?? "") + content
+          state._pendingThinking = (state._pendingThinking ?? "") + content
           continue
         }
 
@@ -196,6 +198,15 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
           state.status = "running"
           if (sp.started_at != null) state.started_at = sp.started_at
         } else if (sp.event === "completed") {
+          // Flush any remaining thinking buffer before closing the step
+          if (state._pendingThinking) {
+            state.iterations.push({
+              type: "thinking",
+              tool_name: "__thinking__",
+              thinkingText: state._pendingThinking,
+            })
+            state._pendingThinking = undefined
+          }
           state.status = sp.status === "skipped" ? "skipped"
             : sp.status === "failed" ? "failed"
             : "completed"
@@ -213,6 +224,15 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
           }
           const isStart = sp.status === "start"
           if (isStart) {
+            // Flush pending thinking as a thinking entry before this tool_call
+            if (state._pendingThinking) {
+              state.iterations.push({
+                type: "thinking",
+                tool_name: "__thinking__",
+                thinkingText: state._pendingThinking,
+              })
+              state._pendingThinking = undefined
+            }
             state.iterations.push({
               type: sp.type,
               iteration: sp.iteration,
@@ -282,6 +302,20 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
       if (msg.event === "inject") {
         const data = msg.data as { content: string; phase?: string }
         injectEvents.push({ ...data, timestamp: msg.timestamp })
+      }
+    }
+
+    // For steps still running, flush any pending thinking as a live entry
+    // so it's visible in the UI while the model is still reasoning.
+    for (const state of stepMap.values()) {
+      if (state._pendingThinking) {
+        state.iterations.push({
+          type: "thinking",
+          tool_name: "__thinking__",
+          thinkingText: state._pendingThinking,
+          loading: state.status === "running",
+        })
+        state._pendingThinking = undefined
       }
     }
 

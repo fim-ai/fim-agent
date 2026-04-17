@@ -355,10 +355,14 @@ class DAGExecutor:
             A ``ReActAgent`` instance to execute the step.
         """
         # Use cached tool registry if available for this execution.
+        # Copy the registry so each step agent gets an isolated instance;
+        # without this, parallel agents mutate a shared registry (e.g.
+        # registering request_tools) and later steps crash with
+        # "Tool already registered".
         tools_to_use = (
-            self._cached_tool_registry
+            self._cached_tool_registry.copy()
             if self._cached_tool_registry is not None
-            else self._agent.tools
+            else self._agent.tools.copy()
         )
 
         def _agent_with_llm(llm: BaseLLM) -> ReActAgent:

@@ -94,8 +94,8 @@ Chat endpoints (`POST /api/react` and `POST /api/dag`) return Server-Sent Events
 
 | Event Type | Description |
 |-----------|-------------|
-| `step` | ReAct reasoning step (tool calls, thinking) |
-| `step_progress` | DAG step progress (started/iteration/completed) |
+| `step` | ReAct reasoning step (tool calls, thinking). For models with extended thinking (Claude, o-series, DeepSeek-R1), includes real-time `thinking_delta` content during tool-decision phases |
+| `step_progress` | DAG step progress (started/iteration/completed). May include `thinking_delta` content when the underlying agent streams reasoning tokens |
 | `phase` | Pipeline phase transition (planning/executing/analyzing) |
 | `compact` | Context compaction occurred |
 | `answer` | Streamed answer text (start/delta/done) |

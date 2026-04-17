@@ -77,6 +77,12 @@ class ToolRegistry:
             for t in self._tools.values()
         ]
 
+    def copy(self) -> ToolRegistry:
+        """Return a shallow copy with the same tool instances."""
+        clone = ToolRegistry()
+        clone._tools = dict(self._tools)
+        return clone
+
     def filter_by_category(self, *categories: str) -> ToolRegistry:
         """Return a new ToolRegistry containing only tools in the given categories."""
         filtered = ToolRegistry()

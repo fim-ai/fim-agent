@@ -90,19 +90,19 @@ curl -H "Authorization: Bearer fim_your_api_key_here" \
 
 ## 流式传输 (Server-Sent Events)
 
-聊天端点（`POST /api/react` 和 `POST /api/dag`）返回 Server-Sent Events 以实现实时流式传输。每个事件都有一个 `type` 字段，指示其内容：
+聊天端点 (`POST /api/react` 和 `POST /api/dag`) 返回 Server-Sent Events 以实现实时流式传输。每个事件都有一个 `type` 字段，指示其内容：
 
 | 事件类型 | 描述 |
 |-----------|-------------|
-| `step` | ReAct 推理步骤（工具调用、思考） |
-| `step_progress` | DAG 步骤进度（已启动/迭代/已完成） |
+| `step` | ReAct 推理步骤（工具调用、思考）。对于具有扩展思考能力的模型（Claude、o-series、DeepSeek-R1），在工具决策阶段包括实时 `thinking_delta` 内容 |
+| `step_progress` | DAG 步骤进度（已启动/迭代/已完成）。当底层智能体流式传输推理 token 时，可能包括 `thinking_delta` 内容 |
 | `phase` | 管道阶段转换（规划/执行/分析） |
 | `compact` | 上下文压缩已发生 |
 | `answer` | 流式答案文本（开始/增量/完成） |
 | `done` | 最终结果负载 |
 | `suggestions` | 建议的后续问题 |
 | `title` | 自动生成的对话标题 |
-| `end` | 流终止符（始终最后） |
+| `end` | 流终止符（始终为最后） |
 
 ### SSE 流示例
 
