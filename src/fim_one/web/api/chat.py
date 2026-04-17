@@ -4386,6 +4386,20 @@ async def auto_endpoint(
     mode = decision.mode
     reasoning = decision.reasoning
 
+    # Update conversation mode to the resolved value so exports show
+    # the correct label instead of "auto".
+    if body.conversation_id and mode != "auto":
+        from sqlalchemy import update as _sa_update_mode
+        from fim_one.web.models import Conversation as _ConvModelAuto
+
+        async with _create_session() as _mode_db:
+            await _mode_db.execute(
+                _sa_update_mode(_ConvModelAuto)
+                .where(_ConvModelAuto.id == body.conversation_id)
+                .values(mode=mode)
+            )
+            await _mode_db.commit()
+
     # Domain detection is handled independently inside each endpoint.
 
     # Wrap the inner endpoint's StreamingResponse to prepend the routing event

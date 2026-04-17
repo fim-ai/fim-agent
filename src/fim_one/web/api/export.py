@@ -6,8 +6,9 @@ import io
 import json
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
+from zoneinfo import ZoneInfo
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import quote
@@ -51,14 +52,35 @@ def _sanitize_filename(title: str) -> str:
     return safe or "conversation"
 
 
-def _format_date(dt: datetime | None) -> str:
-    """Return an ISO-8601 date string or empty string."""
-    return dt.strftime("%Y-%m-%d %H:%M") if dt else ""
+def _format_date(dt: datetime | None, tz_name: str | None = None) -> str:
+    """Return a date string, optionally converted to the given timezone."""
+    if dt is None:
+        return ""
+    if tz_name:
+        try:
+            tz = ZoneInfo(tz_name)
+            # If datetime is naive (no tzinfo), assume UTC
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.astimezone(tz)
+        except (KeyError, Exception):
+            pass  # Fall back to raw datetime if timezone is invalid
+    return dt.strftime("%Y-%m-%d %H:%M")
 
 
-def _format_date_compact(dt: datetime | None) -> str:
+def _format_date_compact(dt: datetime | None, tz_name: str | None = None) -> str:
     """Return a compact date for filenames like 20260309."""
-    return dt.strftime("%Y%m%d") if dt else "export"
+    if dt is None:
+        return "export"
+    if tz_name:
+        try:
+            tz = ZoneInfo(tz_name)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.astimezone(tz)
+        except (KeyError, Exception):
+            pass
+    return dt.strftime("%Y%m%d")
 
 
 # ---------------------------------------------------------------------------
@@ -143,6 +165,27 @@ def _mode_label(mode: str, locale: str = "en") -> str:
     return _t("mode_planner", locale) if mode == "dag" else _t("mode_standard", locale)
 
 
+def _resolve_effective_mode(conv: Conversation, messages: list[Message]) -> str:
+    """Resolve 'auto' mode to actual execution mode by inspecting message events.
+
+    Conversations created via the auto-router may still have ``mode='auto'``
+    in the DB (for records created before the auto_endpoint fix).  We detect
+    the effective mode by looking for DAG-specific ``phase`` events in the
+    assistant messages.
+    """
+    if conv.mode != "auto":
+        return conv.mode
+    # Check assistant messages for DAG-specific events (phase events)
+    for msg in messages:
+        if msg.role != "assistant":
+            continue
+        events = _extract_sse_events(msg)
+        for ev in events:
+            if ev.get("event") == "phase":
+                return "dag"
+    return "react"
+
+
 def _pair_messages(messages: list[Message]) -> list[dict[str, Any]]:
     """Group messages into turns: each turn has a user message and an
     optional assistant message.  Messages are expected to be sorted by
@@ -203,6 +246,37 @@ _EMOJI_RE = re.compile(
 def _strip_emoji(text: str) -> str:
     """Remove emoji characters that DOCX/PDF fonts cannot render."""
     return _EMOJI_RE.sub("", text)
+
+
+# ---------------------------------------------------------------------------
+# File attachment stripping
+# ---------------------------------------------------------------------------
+
+# Regex patterns for file content blocks and annotations injected by
+# the upload pipeline.  These must be stripped before exporting user
+# messages so that raw document text does not leak into exports.
+_FILE_BLOCK_RE = re.compile(
+    r"\n*--- File: .+? \(file_id: [^)]+\) ---[\s\S]*",
+)
+_ATTACHED_FILES_RE = re.compile(
+    r"\n*\[Attached files[^\]]*\]",
+)
+_ATTACHED_IMAGES_RE = re.compile(
+    r"\n*\[Attached images \([^)]*\): [^\]]*\]",
+)
+
+
+def _strip_attachments(content: str) -> str:
+    """Remove file content blocks and attachment annotations from message content."""
+    if not content:
+        return content
+    # Strip file content blocks (everything from first --- File: to end)
+    content = _FILE_BLOCK_RE.sub("", content)
+    # Strip [Attached files ...] annotations
+    content = _ATTACHED_FILES_RE.sub("", content)
+    # Strip [Attached images ...] annotations
+    content = _ATTACHED_IMAGES_RE.sub("", content)
+    return content.rstrip()
 
 
 # ---------------------------------------------------------------------------
@@ -297,8 +371,9 @@ def _extract_dag_rounds(events: list[dict[str, Any]]) -> list[int]:
 # ---------------------------------------------------------------------------
 
 
-def _render_md(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en") -> str:
+def _render_md(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en", tz_name: str | None = None) -> str:
     """Render a conversation as a Markdown document."""
+    effective_mode = _resolve_effective_mode(conv, messages)
     lines: list[str] = []
     title = conv.title or _t("untitled", locale)
 
@@ -306,9 +381,9 @@ def _render_md(conv: Conversation, messages: list[Message], detail: DetailLevel,
     lines.append(f"# {title}")
     lines.append("")
     meta_parts = [
-        f"**{_t('mode', locale)}:** {_mode_label(conv.mode, locale)}",
+        f"**{_t('mode', locale)}:** {_mode_label(effective_mode, locale)}",
     ]
-    meta_parts.append(f"**{_t('created', locale)}:** {_format_date(conv.created_at)}")
+    meta_parts.append(f"**{_t('created', locale)}:** {_format_date(conv.created_at, tz_name)}")
     lines.append(" | ".join(meta_parts))
 
     if detail == DetailLevel.FULL and conv.total_tokens:
@@ -329,7 +404,7 @@ def _render_md(conv: Conversation, messages: list[Message], detail: DetailLevel,
         if user_msg:
             lines.append(f"**{_t('user', locale)}:**")
             lines.append("")
-            lines.append(user_msg.content or "")
+            lines.append(_strip_attachments(user_msg.content or ""))
             lines.append("")
 
         # Assistant message
@@ -346,7 +421,7 @@ def _render_md(conv: Conversation, messages: list[Message], detail: DetailLevel,
             events = _extract_sse_events(asst_msg)
             done = _extract_done_event(events)
 
-            if conv.mode == "dag":
+            if effective_mode == "dag":
                 _render_md_dag_details(lines, events, done, locale)
             else:
                 _render_md_react_details(lines, events, done, locale)
@@ -515,16 +590,17 @@ def _strip_md(text: str) -> str:
     return text
 
 
-def _render_txt(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en") -> str:
+def _render_txt(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en", tz_name: str | None = None) -> str:
     """Render a conversation as plain text."""
+    effective_mode = _resolve_effective_mode(conv, messages)
     lines: list[str] = []
     title = conv.title or _t("untitled", locale)
 
     lines.append(title)
     lines.append("=" * len(title))
     lines.append("")
-    lines.append(f"{_t('mode', locale)}: {_mode_label(conv.mode, locale)}")
-    lines.append(f"{_t('created', locale)}: {_format_date(conv.created_at)}")
+    lines.append(f"{_t('mode', locale)}: {_mode_label(effective_mode, locale)}")
+    lines.append(f"{_t('created', locale)}: {_format_date(conv.created_at, tz_name)}")
     if detail == DetailLevel.FULL and conv.total_tokens:
         lines.append(f"{_t('total_tokens', locale)}: {conv.total_tokens:,}")
     lines.append("")
@@ -541,7 +617,7 @@ def _render_txt(conv: Conversation, messages: list[Message], detail: DetailLevel
         if user_msg:
             lines.append(f"[{_t('user', locale)}]")
             lines.append("")
-            lines.append(user_msg.content or "")
+            lines.append(_strip_attachments(user_msg.content or ""))
             lines.append("")
 
         asst_msg: Message | None = turn.get("assistant")
@@ -557,7 +633,7 @@ def _render_txt(conv: Conversation, messages: list[Message], detail: DetailLevel
             events = _extract_sse_events(asst_msg)
             done = _extract_done_event(events)
 
-            if conv.mode == "dag":
+            if effective_mode == "dag":
                 _render_txt_dag_details(lines, events, done, locale)
             else:
                 _render_txt_react_details(lines, events, done, locale)
@@ -912,7 +988,7 @@ def _md_to_docx(doc: Any, text: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en") -> bytes:
+def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en", tz_name: str | None = None) -> bytes:
     """Render a conversation as a DOCX file and return the raw bytes."""
     try:
         from docx import Document
@@ -927,6 +1003,7 @@ def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLeve
         )
 
     doc = Document()
+    effective_mode = _resolve_effective_mode(conv, messages)
 
     # Override default blue heading theme to match amber UI palette
     from docx.shared import RGBColor as _RGB
@@ -941,8 +1018,8 @@ def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLeve
     doc.add_heading(title, level=1)
 
     # Metadata
-    meta_text = f"{_t('mode', locale)}: {_mode_label(conv.mode, locale)}"
-    meta_text += f"  |  {_t('created', locale)}: {_format_date(conv.created_at)}"
+    meta_text = f"{_t('mode', locale)}: {_mode_label(effective_mode, locale)}"
+    meta_text += f"  |  {_t('created', locale)}: {_format_date(conv.created_at, tz_name)}"
     if detail == DetailLevel.FULL and conv.total_tokens:
         meta_text += f"  |  {_t('total_tokens', locale)}: {conv.total_tokens:,}"
     doc.add_paragraph(meta_text)
@@ -955,7 +1032,7 @@ def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLeve
         user_msg: Message | None = turn.get("user")
         if user_msg:
             doc.add_heading(_t("user", locale), level=3)
-            doc.add_paragraph(_strip_emoji(user_msg.content or ""))
+            doc.add_paragraph(_strip_emoji(_strip_attachments(user_msg.content or "")))
 
         asst_msg: Message | None = turn.get("assistant")
         if asst_msg is None:
@@ -967,7 +1044,7 @@ def _render_docx(conv: Conversation, messages: list[Message], detail: DetailLeve
             events = _extract_sse_events(asst_msg)
             done = _extract_done_event(events)
 
-            if conv.mode == "dag":
+            if effective_mode == "dag":
                 _render_docx_dag_details(doc, events, done, locale)
             else:
                 _render_docx_react_details(doc, events, done, locale)
@@ -1425,7 +1502,7 @@ def _md_to_pdf_flowables(text: str, styles: dict[str, Any], font_name: str) -> l
     return renderer.flowables
 
 
-def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en") -> bytes:
+def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel, locale: str = "en", tz_name: str | None = None) -> bytes:
     """Render a conversation as a PDF file and return the raw bytes."""
     try:
         from reportlab.lib.pagesizes import A4  # type: ignore[import-untyped]
@@ -1442,6 +1519,7 @@ def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel
 
     font_name = _register_cjk_font()
     styles = _build_pdf_styles(font_name)
+    effective_mode = _resolve_effective_mode(conv, messages)
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -1461,8 +1539,8 @@ def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel
     flowables.append(Paragraph(safe_title, styles["title"]))
 
     # Metadata
-    meta_text = f"{_t('mode', locale)}: {_mode_label(conv.mode, locale)}"
-    meta_text += f"  |  {_t('created', locale)}: {_format_date(conv.created_at)}"
+    meta_text = f"{_t('mode', locale)}: {_mode_label(effective_mode, locale)}"
+    meta_text += f"  |  {_t('created', locale)}: {_format_date(conv.created_at, tz_name)}"
     if detail == DetailLevel.FULL and conv.total_tokens:
         meta_text += f"  |  {_t('total_tokens', locale)}: {conv.total_tokens:,}"
     safe_meta = meta_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -1479,7 +1557,7 @@ def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel
         user_msg: Message | None = turn.get("user")
         if user_msg:
             flowables.append(Paragraph(_t("user", locale), styles["heading3"]))
-            user_text = _strip_emoji(user_msg.content or "")
+            user_text = _strip_emoji(_strip_attachments(user_msg.content or ""))
             safe_user = user_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             flowables.append(Paragraph(safe_user, styles["body"]))
             flowables.append(Spacer(1, 6))
@@ -1496,7 +1574,7 @@ def _render_pdf(conv: Conversation, messages: list[Message], detail: DetailLevel
             events = _extract_sse_events(asst_msg)
             done = _extract_done_event(events)
 
-            if conv.mode == "dag":
+            if effective_mode == "dag":
                 _render_pdf_dag_details(flowables, events, done, styles, font_name, locale)
             else:
                 _render_pdf_react_details(flowables, events, done, styles, font_name, locale)
@@ -1741,24 +1819,25 @@ async def export_conversation(
     messages = sorted(conv.messages, key=lambda m: m.created_at)
 
     # Build filename
+    tz_name: str | None = getattr(current_user, "timezone", None)
     safe_title = _sanitize_filename(conv.title or "conversation")
-    date_str = _format_date_compact(conv.created_at)
+    date_str = _format_date_compact(conv.created_at, tz_name)
     ext = format.value
     detail_suffix = "_full" if detail == DetailLevel.FULL else ""
     filename = f"{safe_title}_{date_str}{detail_suffix}.{ext}"
 
     # Render content
     if format == ExportFormat.PDF:
-        content_bytes = _render_pdf(conv, messages, detail, locale)
+        content_bytes = _render_pdf(conv, messages, detail, locale, tz_name)
         stream = io.BytesIO(content_bytes)
     elif format == ExportFormat.DOCX:
-        content_bytes = _render_docx(conv, messages, detail, locale)
+        content_bytes = _render_docx(conv, messages, detail, locale, tz_name)
         stream = io.BytesIO(content_bytes)
     elif format == ExportFormat.TXT:
-        text = _render_txt(conv, messages, detail, locale)
+        text = _render_txt(conv, messages, detail, locale, tz_name)
         stream = io.BytesIO(text.encode("utf-8"))
     else:  # MD
-        text = _render_md(conv, messages, detail, locale)
+        text = _render_md(conv, messages, detail, locale, tz_name)
         stream = io.BytesIO(text.encode("utf-8"))
 
     content_type = _CONTENT_TYPES[format]
