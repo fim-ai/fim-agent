@@ -31,6 +31,8 @@ export interface StepState {
   }>
   /** When set, the step is undergoing post-completion verification. */
   verifying?: "step" | "citations" | null
+  /** Accumulated thinking/reasoning text from streaming deltas. */
+  thinkingText?: string
 }
 
 export interface RoundSnapshot {
@@ -176,6 +178,13 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
         const state = stepMap.get(sp.step_id)!
 
         if (sp.task) state.task = sp.task
+
+        if (sp.event === "thinking_delta") {
+          // Accumulate thinking delta tokens for this step
+          const content = (sp as DagStepProgressEvent & { content?: string }).content ?? ""
+          state.thinkingText = (state.thinkingText ?? "") + content
+          continue
+        }
 
         if (sp.event === "started") {
           state.status = "running"

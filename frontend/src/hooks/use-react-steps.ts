@@ -93,6 +93,26 @@ export function useReactSteps(messages: SSEMessage[], isRunning: boolean): React
       if (msg.event === "step") {
         const step = data as ReactStepEvent
 
+        // Accumulate thinking delta tokens into the existing thinking-start item
+        if (step.type === "thinking" && step.status === "delta" && step.content) {
+          const thinkingIdx = result.findLastIndex(item => {
+            if (item.event !== "step") return false
+            const d = item.data as ReactStepEvent
+            return d.type === "thinking" && d.status === "start"
+          })
+          if (thinkingIdx !== -1) {
+            const existing = result[thinkingIdx].data as ReactStepEvent
+            result[thinkingIdx] = {
+              ...result[thinkingIdx],
+              data: {
+                ...existing,
+                reasoning: (existing.reasoning ?? "") + step.content,
+              },
+            }
+          }
+          continue
+        }
+
         // Merge "done" into its matching "start" by (type, iteration, tool_name)
         if (step.status === "done") {
           const matchIdx = result.findIndex(item => {
@@ -105,9 +125,17 @@ export function useReactSteps(messages: SSEMessage[], isRunning: boolean): React
           })
           if (matchIdx !== -1) {
             const clientDuration = (msg.timestamp - (result[matchIdx].timestamp ?? msg.timestamp)) / 1000
+            // For thinking-done: preserve accumulated reasoning from deltas if done has none
+            let mergedData = step
+            if (step.type === "thinking") {
+              const accumulated = result[matchIdx].data as ReactStepEvent
+              if (!step.reasoning && accumulated.reasoning) {
+                mergedData = { ...step, reasoning: accumulated.reasoning }
+              }
+            }
             result[matchIdx] = {
               event: msg.event,
-              data: step,
+              data: mergedData,
               duration: step.iter_elapsed ?? clientDuration,
               displayIteration: result[matchIdx].displayIteration,
               timestamp: msg.timestamp,

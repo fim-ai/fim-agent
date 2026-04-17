@@ -70,6 +70,7 @@ class CapturingFakeLLM(BaseLLM):
         messages: list[ChatMessage],
         *,
         tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> AsyncIterator[StreamChunk]:
@@ -118,10 +119,24 @@ class CapturingNativeFakeLLM(BaseLLM):
         messages: list[ChatMessage],
         *,
         tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> AsyncIterator[StreamChunk]:
-        yield StreamChunk(delta_content="fake", finish_reason="stop")
+        self.all_messages.append(list(messages))
+        idx = min(self._call_count, len(self._responses) - 1)
+        self._call_count += 1
+        resp = self._responses[idx]
+        if isinstance(resp.message.content, str) and resp.message.content:
+            yield StreamChunk(delta_content=resp.message.content)
+        if resp.message.tool_calls:
+            yield StreamChunk(
+                tool_calls=resp.message.tool_calls,
+                finish_reason="tool_calls",
+                usage=resp.usage or None,
+            )
+        else:
+            yield StreamChunk(finish_reason="stop", usage=resp.usage or None)
 
     @property
     def abilities(self) -> dict[str, bool]:

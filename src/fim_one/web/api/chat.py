@@ -2679,12 +2679,17 @@ async def react_endpoint(
             if doc_vision_urls:
                 image_urls = (image_urls or []) + doc_vision_urls
 
+            def on_thinking_delta(token: str) -> None:
+                """Push reasoning/thinking tokens to the SSE stream."""
+                _emit_step({"type": "thinking", "status": "delta", "content": token})
+
             async def _run() -> Any:
                 nonlocal image_urls
                 try:
                     return await agent.run(
                         q, on_iteration=on_iteration, image_urls=image_urls,
                         interrupt_queue=interrupt_queue,
+                        on_thinking_delta=on_thinking_delta,
                     )
                 except Exception as exc:
                     # Vision fallback: if document pages caused the error,
@@ -2702,6 +2707,7 @@ async def react_endpoint(
                         return await agent.run(
                             q, on_iteration=on_iteration, image_urls=image_urls,
                             interrupt_queue=interrupt_queue,
+                            on_thinking_delta=on_thinking_delta,
                         )
                     raise
                 finally:
@@ -3348,6 +3354,19 @@ async def dag_endpoint(
             except asyncio.QueueFull:
                 logger.warning("SSE progress queue full, dropping event")
 
+        def on_dag_thinking_delta(token: str, step_id: str) -> None:
+            """Push thinking delta tokens as step_progress events."""
+            payload = {
+                "step_id": step_id,
+                "event": "thinking_delta",
+                "content": token,
+            }
+            # Don't persist deltas — they are transient streaming tokens.
+            try:
+                progress_queue.put_nowait(_sse("step_progress", payload))
+            except asyncio.QueueFull:
+                pass
+
         try:
             plan: ExecutionPlan | None = None
             analysis: AnalysisResult | None = None
@@ -3491,6 +3510,7 @@ async def dag_endpoint(
                     enable_tool_cache=get_dag_tool_cache_enabled(),
                     verify_llm=fast_llm if get_dag_step_verification() else None,
                     domain_hint=_domain_hint,
+                    on_thinking_delta=on_dag_thinking_delta,
                 )
 
                 # Capture plan in closure to avoid late-binding issues

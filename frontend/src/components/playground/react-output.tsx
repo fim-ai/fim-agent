@@ -458,7 +458,7 @@ function ThinkingCard({ iterLabel, duration, reasoning }: { iterLabel: number; d
         )}
         {reasoning && (
           <div className="text-xs italic text-muted-foreground leading-relaxed">
-            <MarkdownContent content={reasoning} className="prose-xs text-xs text-muted-foreground" />
+            <MarkdownContent content={reasoning} className={`prose-xs text-xs text-muted-foreground${duration == null ? " streaming-cursor" : ""}`} />
           </div>
         )}
       </CardContent>

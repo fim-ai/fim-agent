@@ -64,6 +64,7 @@ class DAGExecutor:
         verify_llm: BaseLLM | None = None,
         enable_citation_verification: bool | None = None,
         domain_hint: str | None = None,
+        on_thinking_delta: Callable[[str, str], None] | None = None,
     ) -> None:
         self._agent = agent
         self._max_concurrency = max_concurrency
@@ -82,6 +83,7 @@ class DAGExecutor:
             in ("1", "true", "yes")
         )
         self._domain_hint = domain_hint
+        self._on_thinking_delta = on_thinking_delta
         self._usage_lock = asyncio.Lock()
 
     async def execute(
@@ -522,9 +524,22 @@ class DAGExecutor:
 
         agent = self._resolve_agent(step)
 
+        # Create step-scoped thinking-delta callback so the caller can
+        # attribute tokens to a specific DAG step.
+        step_thinking_cb: Callable[[str], None] | None = None
+        if self._on_thinking_delta is not None:
+            _outer_cb = self._on_thinking_delta
+            _step_id = step.id
+
+            def _step_thinking_delta(token: str) -> None:
+                _outer_cb(token, _step_id)
+
+            step_thinking_cb = _step_thinking_delta
+
         try:
             agent_result = await agent.run(
                 query, on_iteration=_on_iteration,
+                on_thinking_delta=step_thinking_cb,
             )
             step.status = "completed"
             step.result = StepOutput(summary=agent_result.answer)
@@ -564,6 +579,7 @@ class DAGExecutor:
                     try:
                         agent_result = await agent.run(
                             retry_query, on_iteration=_on_iteration,
+                            on_thinking_delta=step_thinking_cb,
                         )
                         step.result = StepOutput(summary=agent_result.answer)
                         if agent_result.usage and step.usage:
@@ -656,6 +672,7 @@ class DAGExecutor:
                         try:
                             agent_result = await agent.run(
                                 retry_query, on_iteration=_on_iteration,
+                                on_thinking_delta=step_thinking_cb,
                             )
                             step.result = StepOutput(summary=agent_result.answer)
                             if agent_result.usage and step.usage:

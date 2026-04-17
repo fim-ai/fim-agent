@@ -10,7 +10,9 @@ export interface ReactStepEvent {
   /** Step kind. V3: "thinking"/"iteration"/"answer". Legacy: "tool_start"/"tool_call"/"start"/"done". */
   type: "thinking" | "iteration" | "answer" | "start" | "done" | "tool_start" | "tool_call" | "final_answer"
   /** Lifecycle status (V3). Legacy events omit this; normalized by the hook. */
-  status?: "start" | "done"
+  status?: "start" | "delta" | "done"
+  /** Thinking delta token (only present when type="thinking" and status="delta"). */
+  content?: string
   iteration?: number
   tool_name?: string
   tool_args?: Record<string, unknown>
@@ -83,7 +85,7 @@ export interface DagPhaseEvent {
 
 export interface DagStepProgressEvent {
   step_id: string
-  event: "started" | "iteration" | "completed" | "verifying"
+  event: "started" | "iteration" | "completed" | "verifying" | "thinking_delta"
   task?: string
   status?: string
   result?: string

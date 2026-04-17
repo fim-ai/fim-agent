@@ -62,10 +62,34 @@ class FakeLLM(BaseLLM):
         messages: list[ChatMessage],
         *,
         tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> AsyncIterator[StreamChunk]:
-        yield StreamChunk(delta_content="fake", finish_reason="stop")
+        """Streaming variant that replays the same pre-configured responses.
+
+        Emits the response content/reasoning as delta chunks and flushes
+        any tool_calls on the final chunk, matching the real stream_chat
+        behaviour used by ``_stream_tool_decision``.
+        """
+        idx = min(self._call_count, len(self._responses) - 1)
+        self._call_count += 1
+        resp = self._responses[idx]
+        msg = resp.message
+
+        # Emit content / reasoning deltas.
+        if msg.reasoning_content:
+            yield StreamChunk(delta_reasoning=msg.reasoning_content)
+        if isinstance(msg.content, str) and msg.content:
+            yield StreamChunk(delta_content=msg.content)
+
+        # Final chunk with tool_calls and usage (mirrors real provider).
+        finish = "tool_calls" if msg.tool_calls else "stop"
+        yield StreamChunk(
+            finish_reason=finish,
+            tool_calls=msg.tool_calls,
+            usage=resp.usage,
+        )
 
     @property
     def abilities(self) -> dict[str, bool]:

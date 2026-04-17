@@ -66,6 +66,7 @@ class CapturingFakeLLM(BaseLLM):
         messages: list[ChatMessage],
         *,
         tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> AsyncIterator[StreamChunk]:
@@ -117,6 +118,7 @@ class CapturingNativeFakeLLM(BaseLLM):
         messages: list[ChatMessage],
         *,
         tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> AsyncIterator[StreamChunk]:

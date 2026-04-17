@@ -562,7 +562,7 @@ function StepProgressCard({ state }: { state: StepState }) {
     [state.iterations, catalog?.tools]
   )
 
-  const hasContent = state.iterations.length > 0 || !!state.result
+  const hasContent = state.iterations.length > 0 || !!state.result || !!state.thinkingText
 
   return (
     <div className={`pl-8 pb-3 relative${state.status === "skipped" ? " opacity-50" : ""}`}>
@@ -633,9 +633,25 @@ function StepProgressCard({ state }: { state: StepState }) {
         )}
       </div>
 
-      {/* Expanded: grouped iterations + result */}
+      {/* Expanded: thinking text + grouped iterations + result */}
       {expanded && hasContent && (
         <div className="mt-1.5 space-y-1.5 pl-2">
+          {state.thinkingText && (
+            <div className="rounded-md border border-border/30 bg-muted/10 px-2.5 py-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Brain className="h-3 w-3 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {tDag("thinking")}
+                </span>
+              </div>
+              <div className="text-xs italic text-muted-foreground leading-relaxed">
+                <MarkdownContent
+                  content={state.thinkingText}
+                  className={`prose-xs text-xs text-muted-foreground${state.status === "running" ? " streaming-cursor" : ""}`}
+                />
+              </div>
+            </div>
+          )}
           {iterGroups.map((group, gIdx) =>
             group.items.length >= 3 ? (
               <CollapsedIterationGroup key={gIdx} group={group} />
