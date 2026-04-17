@@ -93,6 +93,7 @@ from .api.workflow_templates import (
 )
 from .api.agent_templates import router as agent_templates_router
 from .api.connector_templates import router as connector_templates_router
+from .api.channels import router as channels_router
 from .api.hooks import router as hooks_router
 from .api.metrics import router as metrics_router
 from .api.notifications import router as notifications_router
@@ -368,6 +369,7 @@ def create_app() -> FastAPI:
     app.include_router(agent_templates_router)
     app.include_router(metrics_router)
     app.include_router(hooks_router)
+    app.include_router(channels_router)
     app.include_router(notifications_router)
     app.include_router(user_settings_router)
     app.include_router(version_router)
