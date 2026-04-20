@@ -97,10 +97,48 @@ class ChannelTestResponse(BaseModel):
     error: str | None = None
 
 
+# ---------------------------------------------------------------------------
+# Chat discovery (Feishu group picker)
+# ---------------------------------------------------------------------------
+
+
+class ChatDiscoveryRequest(BaseModel):
+    """Request to list Feishu groups that the app/bot is a member of.
+
+    The caller passes ``app_id`` + ``app_secret`` when creating a channel
+    (no DB row exists yet).  When editing an existing channel, the caller
+    may pass ``channel_id`` alone — the server will decrypt the stored
+    ``app_secret`` to query Feishu.  If both ``app_secret`` and
+    ``channel_id`` are present, ``app_secret`` wins (user explicitly
+    re-entered it).
+    """
+
+    app_id: str = Field(min_length=1)
+    app_secret: str | None = None
+    channel_id: str | None = None
+    org_id: str | None = None
+
+
+class ChatInfo(BaseModel):
+    chat_id: str
+    name: str
+    avatar: str | None = None
+    description: str | None = None
+    member_count: int | None = None
+    external: bool = False
+
+
+class ChatDiscoveryResponse(BaseModel):
+    items: list[ChatInfo]
+
+
 __all__ = [
     "ChannelCreate",
     "ChannelUpdate",
     "ChannelResponse",
     "ChannelListResponse",
     "ChannelTestResponse",
+    "ChatDiscoveryRequest",
+    "ChatInfo",
+    "ChatDiscoveryResponse",
 ]

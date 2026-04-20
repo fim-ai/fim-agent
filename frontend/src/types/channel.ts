@@ -80,3 +80,30 @@ export interface ChannelTestResponse {
   error?: string
   chat_name?: string
 }
+
+/**
+ * Payload for `POST /api/channels/discover-chats`.
+ *
+ * - **Create mode**: provide `app_id` + `app_secret` + `org_id`.
+ * - **Edit mode**: provide `channel_id`; the server reuses the stored
+ *   (encrypted) secret. Pass `app_secret` only if the user re-typed it.
+ */
+export interface ChatDiscoveryRequest {
+  app_id: string
+  app_secret?: string
+  channel_id?: string
+  org_id?: string
+}
+
+export interface ChatInfo {
+  chat_id: string
+  name: string
+  avatar?: string | null
+  description?: string | null
+  member_count?: number | null
+  external: boolean
+}
+
+export interface ChatDiscoveryResponse {
+  items: ChatInfo[]
+}

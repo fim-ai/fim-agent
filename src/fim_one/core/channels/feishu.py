@@ -100,6 +100,61 @@ class FeishuChannel(BaseChannel):
         self._token_expires_at = now + TOKEN_CACHE_TTL_SECONDS
         return token
 
+    # ---- Public API: discovery ---------------------------------------------
+
+    async def list_chats(
+        self,
+        *,
+        page_size: int = 100,
+        client: httpx.AsyncClient | None = None,
+    ) -> list[dict[str, Any]]:
+        """List the groups (chats) the configured app/bot is a member of.
+
+        Calls Feishu's ``GET /open-apis/im/v1/chats`` endpoint. The bot's app
+        must have the ``im:chat:readonly`` or ``im:chat`` scope, and the bot
+        must have already been added to the group(s).
+
+        Returns the raw ``items`` array from the response — each item is a
+        dict with keys like ``chat_id``, ``name``, ``avatar``, ``description``,
+        ``external``, ``tenant_key``, etc.
+
+        Raises ``RuntimeError`` with a human-readable message on any API
+        failure (bad credentials, network error, non-zero Feishu code).
+        """
+        own_client = client is None
+        if client is None:
+            client = httpx.AsyncClient(timeout=15)
+        try:
+            token = await self._fetch_tenant_access_token(client=client)
+            url = f"{self._base_url()}/open-apis/im/v1/chats"
+            resp = await client.get(
+                url,
+                params={"page_size": page_size},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            data = resp.json()
+        finally:
+            if own_client:
+                await client.aclose()
+
+        if not isinstance(data, dict) or data.get("code") != 0:
+            msg: str | None = None
+            if isinstance(data, dict):
+                raw_msg = data.get("msg")
+                if isinstance(raw_msg, str):
+                    msg = raw_msg
+            raise RuntimeError(
+                f"Feishu list_chats failed: {msg or data!r}"
+            )
+
+        payload = data.get("data")
+        if not isinstance(payload, dict):
+            return []
+        items = payload.get("items")
+        if not isinstance(items, list):
+            return []
+        return [item for item in items if isinstance(item, dict)]
+
     # ---- Public API: send ---------------------------------------------------
 
     async def send_message(self, payload: dict[str, Any]) -> ChannelSendResult:

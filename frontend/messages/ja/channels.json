@@ -36,7 +36,7 @@
   "form": {
     "createTitle": "新しいチャネル",
     "editTitle": "チャネルを編集",
-    "createDescription": "エージェントが通知を送信し、インタラクティブアクションを受け取るためのメッセージングチャネルを設定します。",
+    "createDescription": "エージェントが通知を送信し、インタラクティブアクションを受け取るようにメッセージングチャネルを設定します。",
     "editDescription": "このチャネルの設定を更新します。空白のままにされたシークレットフィールドは現在の値を保持します。",
     "type": "チャネルタイプ",
     "typePlaceholder": "チャネルタイプを選択",
@@ -58,15 +58,14 @@
     "chat_id_hint": "エージェントが投稿すべきFeishuグループのopen_chat_idを貼り付けます。",
     "chat_id_required": "Chat IDが必要です。",
     "verification_token": "検証トークン",
-    "verification_token_placeholder": "検証トークンを貼り付けます",
+    "verification_token_placeholder": "Feishuの「イベントとコールバック」ページから",
     "verification_token_edit_placeholder": "設定済み - 保持するには空白のままにします",
     "verification_token_required": "検証トークンが必要です。",
     "encrypt_key": "暗号化キー（オプション）",
-    "encrypt_key_placeholder": "イベント暗号化が有効な場合のみ必須",
+    "encrypt_key_placeholder": "イベント暗号化が有効な場合のみ必要",
     "encrypt_key_edit_placeholder": "設定済み - 保持するには空白のままにします",
     "pickChat": "グループリストから選択",
-    "pickChatComingSoon": "グループピッカーは近日公開予定です。現在はチャットIDを直接貼り付けてください。",
-    "verification_token_hint": "Feishu Open Platform → イベントとコールバック（事件与回调） → 暗号化戦略（加密策略）タブ → 検証トークンフィールドで見つけます。目のアイコンをクリックして表示します。"
+    "verification_token_hint": "Feishu Open Platform → Events & Callbacks (事件与回调) → Encryption Strategy (加密策略) タブ → Verification Token フィールドで確認できます。目のアイコンをクリックして表示してください。"
   },
   "discard": {
     "title": "保存されていない変更を破棄しますか？",
@@ -85,16 +84,16 @@
     "secretsMissing": "シークレットが不足しています",
     "howTo": "セットアップを完了する方法",
     "step1": "上記のコールバックURLをコピーします。",
-    "step2": "Feishu Open Platformで、アプリを開き、左側のサイドバーから「Events & Callbacks (事件与回调)」を選択します。",
-    "step3": "「Callback Config (回调配置)」タブに切り替えます — 「Event Config」ではありません。",
-    "step4": "「Send callbacks to developer server (将回调发送至开发者服务器)」を選択し、Callback URLをリクエストアドレスフィールドに貼り付けます。",
+    "step2": "Feishu Open Platform → イベント＆コールバックを開き、URLを貼り付けます。",
+    "step3": "チャレンジハンドシェイクを完了します（FIM Oneが自動的に応答します）。",
+    "step4": "card.action.triggerイベントをサブスクライブして、ボタンクリックがエージェントに到達するようにします。",
     "testSend": "テストメッセージを送信",
     "testing": "送信中...",
-    "copyToastSuccess": "Callback URLをコピーしました",
+    "copyToastSuccess": "コールバックURLをコピーしました",
     "copyToastFailed": "コピーに失敗しました。URLを手動でコピーしてください。",
-    "step5": "保存をクリックします。FeishuはすぐにURL検証チャレンジをPOSTします。FIM Oneが自動的に応答するため、手動操作は不要です。",
-    "step6": "「Subscribed Callbacks (已订阅的回调)」の下で「Add Callback (添加回调)」をクリックし、「Card Action Trigger (card.action.trigger)」を選択します。",
-    "step7": "オプション：「Encryption Strategy (加密策略)」タブで暗号化キーを設定した場合、このチャネルを編集する際に同じ値を「Encrypt Key」フィールドに貼り付けます。"
+    "step5": "保存をクリックします。Feishu は直ちに URL 検証チャレンジを POST します。FIM One は自動的に応答するため、手動操作は不要です。",
+    "step6": "Subscribed Callbacks (已订阅的回调) の下で「Add Callback」(添加回调) をクリックし、Card Action Trigger (card.action.trigger) を選択します。",
+    "step7": "オプション: Encryption Strategy (加密策略) タブで Encrypt Key を設定した場合、このチャネルを編集する際に同じ値を Encrypt Key フィールドに貼り付けてください。"
   },
   "actions": {
     "viewDetails": "詳細を表示",
@@ -118,5 +117,17 @@
   "deleteDialog": {
     "title": "チャネルを削除しますか？",
     "description": "チャネル「{name}」を永続的に削除します。このチャネルに投稿するエージェントはメッセージの配信を停止します。この操作は取り消せません。"
+  },
+  "picker": {
+    "title": "Feishu グループを選択",
+    "description": "確認カードが送信されるグループを選択してください。ボットは既にそのグループに追加されている必要があります。",
+    "loading": "グループを読み込み中...",
+    "empty": "グループが見つかりません。ボットが少なくとも 1 つのグループに追加されていることを確認してください。",
+    "error": "グループを読み込めません: {error}",
+    "retry": "再試行",
+    "memberCount": "{n} 名",
+    "externalBadge": "外部",
+    "needCredentials": "先に App ID と App Secret を入力してください。",
+    "select": "選択"
   }
 }

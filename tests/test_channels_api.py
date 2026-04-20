@@ -389,6 +389,172 @@ class TestTestChannel:
 
 
 # ---------------------------------------------------------------------------
+# Discover chats (Feishu group picker)
+# ---------------------------------------------------------------------------
+
+
+class TestDiscoverChats:
+    @pytest.mark.asyncio
+    async def test_create_mode_success(
+        self, client: AsyncClient, seed: dict[str, Any]
+    ) -> None:
+        """App ID + secret + org_id (no channel_id) — calls Feishu."""
+        fake_items = [
+            {
+                "chat_id": "oc_1",
+                "name": "Ops Team",
+                "avatar": "https://img/1.png",
+                "description": "Daily ops",
+                "external": False,
+            },
+            {
+                "chat_id": "oc_2",
+                "name": "External Client",
+                "external": True,
+                "member_count": 7,
+            },
+        ]
+        list_mock = AsyncMock(return_value=fake_items)
+        with patch(
+            "fim_one.core.channels.feishu.FeishuChannel.list_chats",
+            new=list_mock,
+        ):
+            resp = await client.post(
+                "/api/channels/discover-chats",
+                json={
+                    "app_id": "cli_x",
+                    "app_secret": "shh",
+                    "org_id": seed["org_id"],
+                },
+                headers=seed["headers"],
+            )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert len(body["items"]) == 2
+        assert body["items"][0]["chat_id"] == "oc_1"
+        assert body["items"][0]["name"] == "Ops Team"
+        assert body["items"][0]["avatar"] == "https://img/1.png"
+        assert body["items"][1]["external"] is True
+        assert body["items"][1]["member_count"] == 7
+        list_mock.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_invalid_credentials_returns_400(
+        self, client: AsyncClient, seed: dict[str, Any]
+    ) -> None:
+        list_mock = AsyncMock(
+            side_effect=RuntimeError(
+                "Feishu list_chats failed: invalid app_secret"
+            )
+        )
+        with patch(
+            "fim_one.core.channels.feishu.FeishuChannel.list_chats",
+            new=list_mock,
+        ):
+            resp = await client.post(
+                "/api/channels/discover-chats",
+                json={
+                    "app_id": "cli_x",
+                    "app_secret": "wrong",
+                    "org_id": seed["org_id"],
+                },
+                headers=seed["headers"],
+            )
+        assert resp.status_code == 400
+        assert "invalid app_secret" in resp.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_edit_mode_uses_stored_secret(
+        self,
+        client: AsyncClient,
+        seed: dict[str, Any],
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> None:
+        async with session_factory() as db:
+            ch = Channel(
+                id=str(uuid.uuid4()),
+                name="E",
+                type="feishu",
+                org_id=seed["org_id"],
+                created_by=seed["user_id"],
+                config={
+                    "app_id": "cli_x",
+                    "app_secret": "stored-secret",
+                    "chat_id": "oc_old",
+                },
+            )
+            db.add(ch)
+            await db.commit()
+
+        captured: dict[str, Any] = {}
+
+        async def _fake_list_chats(
+            self: Any, *args: Any, **kwargs: Any
+        ) -> list[dict[str, Any]]:
+            captured["app_id"] = self.config.get("app_id")
+            captured["app_secret"] = self.config.get("app_secret")
+            return []
+
+        with patch(
+            "fim_one.core.channels.feishu.FeishuChannel.list_chats",
+            _fake_list_chats,
+        ):
+            resp = await client.post(
+                "/api/channels/discover-chats",
+                json={"app_id": "cli_x", "channel_id": ch.id},
+                headers=seed["headers"],
+            )
+        assert resp.status_code == 200, resp.text
+        # The adapter passed to list_chats must have decrypted secret.
+        assert captured["app_secret"] == "stored-secret"
+        assert captured["app_id"] == "cli_x"
+
+    @pytest.mark.asyncio
+    async def test_outsider_rejected(
+        self,
+        client: AsyncClient,
+        seed: dict[str, Any],
+        outsider: dict[str, Any],
+    ) -> None:
+        resp = await client.post(
+            "/api/channels/discover-chats",
+            json={
+                "app_id": "cli_x",
+                "app_secret": "s",
+                "org_id": seed["org_id"],
+            },
+            headers=outsider["headers"],
+        )
+        assert resp.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_missing_secret_in_create_mode_returns_400(
+        self, client: AsyncClient, seed: dict[str, Any]
+    ) -> None:
+        resp = await client.post(
+            "/api/channels/discover-chats",
+            json={"app_id": "cli_x", "org_id": seed["org_id"]},
+            headers=seed["headers"],
+        )
+        assert resp.status_code == 400
+        assert "app_secret" in resp.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_unauthenticated_rejected(
+        self, client: AsyncClient, seed: dict[str, Any]
+    ) -> None:
+        resp = await client.post(
+            "/api/channels/discover-chats",
+            json={
+                "app_id": "cli_x",
+                "app_secret": "s",
+                "org_id": seed["org_id"],
+            },
+        )
+        assert resp.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
 # Feishu callback
 # ---------------------------------------------------------------------------
 

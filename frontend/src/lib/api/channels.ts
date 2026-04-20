@@ -12,6 +12,8 @@ import type {
   ChannelListResponse,
   ChannelTestResponse,
   ChannelUpdateRequest,
+  ChatDiscoveryRequest,
+  ChatDiscoveryResponse,
 } from "@/types/channel"
 
 export const channelsApi = {
@@ -40,5 +42,15 @@ export const channelsApi = {
   test: (id: string) =>
     apiFetch<ChannelTestResponse>(`/api/channels/${id}/test`, {
       method: "POST",
+    }),
+
+  /**
+   * Ask the backend to list Feishu groups the given app/bot is a member of.
+   * Used by the chat picker UI in the channel form dialog.
+   */
+  discoverChats: (body: ChatDiscoveryRequest) =>
+    apiFetch<ChatDiscoveryResponse>("/api/channels/discover-chats", {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
 }

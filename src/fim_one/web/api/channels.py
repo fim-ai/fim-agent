@@ -37,6 +37,9 @@ from fim_one.web.schemas.channel import (
     ChannelResponse,
     ChannelTestResponse,
     ChannelUpdate,
+    ChatDiscoveryRequest,
+    ChatDiscoveryResponse,
+    ChatInfo,
 )
 
 logger = logging.getLogger(__name__)
@@ -257,6 +260,128 @@ async def test_channel(
             }
         )
     return ChannelTestResponse(ok=result.ok, error=result.error)
+
+
+# ---------------------------------------------------------------------------
+# Chat discovery (Feishu group picker)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/discover-chats", response_model=ChatDiscoveryResponse)
+async def discover_chats(
+    body: ChatDiscoveryRequest,
+    user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> ChatDiscoveryResponse:
+    """List Feishu groups the given app/bot is a member of.
+
+    Caller flow:
+
+    - **Create mode** (no channel row yet) — send ``app_id`` + ``app_secret``
+      + ``org_id``.  The server authenticates the user as an admin of
+      ``org_id`` and queries Feishu directly.
+    - **Edit mode** — send ``channel_id`` (+ optional ``app_secret`` if
+      the user re-typed it).  The server loads the channel, checks org
+      admin, and uses the decrypted stored secret when no fresh secret
+      was provided.
+
+    Returns a list of ``ChatInfo`` rows the caller can render into a
+    picker UI.  Errors from Feishu (invalid credentials, network, etc.)
+    surface as ``400`` with a human-readable ``detail`` message so the
+    UI can show it inline.
+    """
+    # Resolve org + secret based on mode.
+    app_id = body.app_id.strip()
+    app_secret: str | None = (body.app_secret or "").strip() or None
+
+    if body.channel_id:
+        channel = await _load_channel_or_404(db, body.channel_id)
+        await require_org_admin(channel.org_id, user, db)
+        if app_secret is None:
+            stored_secret = str((channel.config or {}).get("app_secret") or "")
+            if not stored_secret:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Channel has no stored app_secret; re-enter it to "
+                        "fetch the group list."
+                    ),
+                )
+            app_secret = stored_secret
+        # If caller also provided a new app_id, prefer it, but keep stored
+        # when missing.
+        if not app_id:
+            app_id = str((channel.config or {}).get("app_id") or "")
+    else:
+        # Create mode — org_id required, user must be an admin there.
+        if not body.org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="org_id is required when channel_id is not provided.",
+            )
+        await require_org_admin(body.org_id, user, db)
+        if not app_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="app_secret is required to fetch the group list.",
+            )
+
+    if not app_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="app_id is required to fetch the group list.",
+        )
+
+    adapter = FeishuChannel({"app_id": app_id, "app_secret": app_secret})
+    try:
+        raw_items = await adapter.list_chats()
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:  # pragma: no cover - network edge cases
+        logger.exception("Feishu list_chats failed")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unable to reach Feishu: {type(exc).__name__}: {exc}",
+        ) from exc
+
+    items: list[ChatInfo] = []
+    for raw in raw_items:
+        chat_id = raw.get("chat_id")
+        name = raw.get("name")
+        if not isinstance(chat_id, str) or not chat_id:
+            continue
+        member_count_raw = raw.get("member_count")
+        member_count: int | None
+        if isinstance(member_count_raw, int):
+            member_count = member_count_raw
+        elif isinstance(member_count_raw, str) and member_count_raw.isdigit():
+            member_count = int(member_count_raw)
+        else:
+            member_count = None
+
+        items.append(
+            ChatInfo(
+                chat_id=chat_id,
+                name=str(name) if isinstance(name, str) else chat_id,
+                avatar=(
+                    str(raw["avatar"])
+                    if isinstance(raw.get("avatar"), str) and raw["avatar"]
+                    else None
+                ),
+                description=(
+                    str(raw["description"])
+                    if isinstance(raw.get("description"), str)
+                    and raw["description"]
+                    else None
+                ),
+                member_count=member_count,
+                external=bool(raw.get("external", False)),
+            )
+        )
+    return ChatDiscoveryResponse(items=items)
 
 
 # ---------------------------------------------------------------------------

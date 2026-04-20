@@ -50,7 +50,15 @@
                   "configuration/database",
                   "configuration/models",
                   "configuration/model-management",
-                  "configuration/oauth-providers"
+                  "configuration/oauth-providers",
+                  {
+                    "group": "Channels",
+                    "icon": "tower-broadcast",
+                    "pages": [
+                      "configuration/channels/overview",
+                      "configuration/channels/feishu"
+                    ]
+                  }
                 ]
               },
               {

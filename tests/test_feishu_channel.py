@@ -196,6 +196,112 @@ class TestSendMessage:
 
 
 # ---------------------------------------------------------------------------
+# list_chats
+# ---------------------------------------------------------------------------
+
+
+class TestListChats:
+    @pytest.mark.asyncio
+    async def test_success_returns_items(self) -> None:
+        channel = FeishuChannel({"app_id": "cli_x", "app_secret": "s"})
+
+        token_resp = _make_async_response(
+            {"code": 0, "tenant_access_token": "tok"}
+        )
+        list_resp = _make_async_response(
+            {
+                "code": 0,
+                "data": {
+                    "items": [
+                        {"chat_id": "oc_1", "name": "A"},
+                        {"chat_id": "oc_2", "name": "B", "external": True},
+                    ],
+                    "has_more": False,
+                },
+            }
+        )
+
+        mock_client = MagicMock()
+        mock_client.post = AsyncMock(return_value=token_resp)
+        mock_client.get = AsyncMock(return_value=list_resp)
+        mock_client.aclose = AsyncMock()
+
+        with patch("httpx.AsyncClient") as mock_async_client:
+            mock_async_client.return_value = mock_client
+            items = await channel.list_chats()
+
+        assert len(items) == 2
+        assert items[0]["chat_id"] == "oc_1"
+        assert items[1]["external"] is True
+        # GET endpoint + bearer header.
+        get_call = mock_client.get.await_args
+        assert get_call.args[0].endswith("/open-apis/im/v1/chats")
+        assert get_call.kwargs["params"]["page_size"] == 100
+        assert get_call.kwargs["headers"]["Authorization"] == "Bearer tok"
+
+    @pytest.mark.asyncio
+    async def test_api_error_raises_runtime(self) -> None:
+        channel = FeishuChannel({"app_id": "cli_x", "app_secret": "s"})
+
+        token_resp = _make_async_response(
+            {"code": 0, "tenant_access_token": "tok"}
+        )
+        err_resp = _make_async_response(
+            {"code": 99991663, "msg": "invalid app_access_token"}
+        )
+
+        mock_client = MagicMock()
+        mock_client.post = AsyncMock(return_value=token_resp)
+        mock_client.get = AsyncMock(return_value=err_resp)
+        mock_client.aclose = AsyncMock()
+
+        with patch("httpx.AsyncClient") as mock_async_client:
+            mock_async_client.return_value = mock_client
+            with pytest.raises(RuntimeError, match="invalid app_access_token"):
+                await channel.list_chats()
+
+    @pytest.mark.asyncio
+    async def test_bad_credentials_raises_runtime(self) -> None:
+        """Token endpoint fails -> list_chats surfaces the failure."""
+        channel = FeishuChannel({"app_id": "cli_x", "app_secret": "wrong"})
+
+        token_resp = _make_async_response(
+            {"code": 10003, "msg": "app ticket is invalid"}
+        )
+
+        mock_client = MagicMock()
+        mock_client.post = AsyncMock(return_value=token_resp)
+        mock_client.get = AsyncMock()
+        mock_client.aclose = AsyncMock()
+
+        with patch("httpx.AsyncClient") as mock_async_client:
+            mock_async_client.return_value = mock_client
+            with pytest.raises(
+                RuntimeError, match="tenant_access_token"
+            ):
+                await channel.list_chats()
+
+    @pytest.mark.asyncio
+    async def test_empty_payload_returns_empty_list(self) -> None:
+        channel = FeishuChannel({"app_id": "cli_x", "app_secret": "s"})
+
+        token_resp = _make_async_response(
+            {"code": 0, "tenant_access_token": "tok"}
+        )
+        empty_resp = _make_async_response({"code": 0, "data": {}})
+
+        mock_client = MagicMock()
+        mock_client.post = AsyncMock(return_value=token_resp)
+        mock_client.get = AsyncMock(return_value=empty_resp)
+        mock_client.aclose = AsyncMock()
+
+        with patch("httpx.AsyncClient") as mock_async_client:
+            mock_async_client.return_value = mock_client
+            items = await channel.list_chats()
+        assert items == []
+
+
+# ---------------------------------------------------------------------------
 # handle_callback
 # ---------------------------------------------------------------------------
 
