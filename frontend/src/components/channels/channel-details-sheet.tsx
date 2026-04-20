@@ -49,7 +49,7 @@ export function ChannelDetailsSheet({
     setIsSending(true)
     try {
       const result = await channelsApi.test(channel.id)
-      if (result.success) {
+      if (result.ok) {
         const chat = result.chat_name ?? channel.config.chat_name
         if (chat) {
           toast.success(t("messages.testSentWithChat", { chat }))

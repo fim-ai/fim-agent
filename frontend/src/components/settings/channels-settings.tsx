@@ -159,7 +159,7 @@ export function ChannelsSettings() {
     setTestingId(ch.id)
     try {
       const result = await channelsApi.test(ch.id)
-      if (result.success) {
+      if (result.ok) {
         const chat = result.chat_name ?? ch.config.chat_name
         if (chat) {
           toast.success(t("messages.testSentWithChat", { chat }))

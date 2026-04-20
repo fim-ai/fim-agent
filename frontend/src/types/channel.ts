@@ -76,7 +76,7 @@ export interface ChannelUpdateRequest {
 }
 
 export interface ChannelTestResponse {
-  success: boolean
+  ok: boolean
   error?: string
   chat_name?: string
 }
