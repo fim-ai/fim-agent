@@ -246,11 +246,19 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 
 ## 贡献者
 
-感谢这些杰出的人们（[emoji 说明](https://allcontributors.org/docs/en/emoji-key)）：
+感谢这些杰出的人员（[emoji 说明](https://allcontributors.org/docs/en/emoji-key)）：
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/tgonzalezc5"><img src="https://avatars.githubusercontent.com/u/102870299?v=4?s=80" width="80px;" alt="Teo Gonzalez Collazo"/><br /><sub><b>Teo Gonzalez Collazo</b></sub></a><br /><a href="https://github.com/fim-ai/fim-one/commits?author=tgonzalezc5" title="Code">💻</a> <a href="https://github.com/fim-ai/fim-one/commits?author=tgonzalezc5" title="Tests">⚠️</a></td>
+    </tr>
+  </tbody>
+</table>
+
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->

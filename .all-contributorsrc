@@ -12,6 +12,17 @@
   "contributorsPerLine": 8,
   "contributorsSortAlphabetically": false,
   "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
-  "contributors": [],
+  "contributors": [
+    {
+      "login": "tgonzalezc5",
+      "name": "Teo Gonzalez Collazo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/102870299?v=4",
+      "profile": "https://github.com/tgonzalezc5",
+      "contributions": [
+        "code",
+        "test"
+      ]
+    }
+  ],
   "skipCi": true
 }
