@@ -96,6 +96,21 @@ Examples:
 - User says "rename to Weather API" → [{"op": "update_connector", "data": {"name": "Weather API"}}]
 - User says "add a search endpoint" → [{"op": "create", "data": {"name": "search", ...}}]
 
+SAFETY RULES (strict — the user's existing work must not be destroyed silently):
+1. NEVER emit more than 2 "delete" operations in a single response UNLESS the user \
+EXPLICITLY asked to wipe, reset, rebuild, start over, delete everything, or used \
+phrases like "全部重建", "全部删除", "重新来过", "清空" etc. When in doubt, ask \
+the user to confirm by refusing and returning an empty operations array with a \
+short explanation — do NOT guess.
+2. Prefer "update" over "delete+create" when the user's intent can be achieved \
+by modifying an existing action (renaming, changing path/method, tweaking schema).
+3. Even when bulk-delete is legitimately requested, list the specific actions to \
+be removed — never delete actions that weren't mentioned by the user.
+4. Only touch fields the user explicitly asked to change. For example, if the \
+user says "rename X to Y", emit only {"op": "update", "action_id": "X-id", \
+"data": {"name": "Y"}} — do NOT re-send the entire action payload (which would \
+overwrite fields like requires_confirmation, response_jmespath, etc.).
+
 IMPORTANT: To change connector-level properties (name, icon, description, base_url, auth), \
 you MUST use "update_connector" — NOT "update" (which is for actions only).
 
@@ -491,6 +506,39 @@ async def ai_refine_action(
         default_value=[],
     )
     operations: list[dict[str, Any]] = sc.value or []
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Server-side safety rail for bulk deletes.
+    # The prompt tells the LLM not to batch-delete, but models drift; this
+    # is the hard stop. If the LLM emits more than 2 delete ops AND the
+    # user's instruction doesn't contain an explicit destructive keyword,
+    # strip the deletes and return a clear error instead of silently wiping
+    # the user's actions.
+    # ──────────────────────────────────────────────────────────────────────
+    delete_ops = [o for o in operations if str(o.get("op", "")).lower() == "delete"]
+    if len(delete_ops) > 2:
+        instr_lower = body.instruction.lower()
+        destructive_keywords = (
+            "rebuild", "delete all", "remove all", "wipe", "reset", "start over",
+            "clear all", "drop all",
+            "全部重建", "全部删除", "全部清空", "重新构建", "重新来过", "清空所有",
+            "全部移除", "推倒重来",
+        )
+        if not any(kw in instr_lower for kw in destructive_keywords):
+            logger.warning(
+                "Blocked LLM bulk-delete (%d ops) for connector=%s; instruction=%r",
+                len(delete_ops), connector_id, body.instruction[:200],
+            )
+            raise AppError(
+                "bulk_delete_requires_explicit_confirmation",
+                status_code=409,
+                detail=(
+                    f"Safety check: the AI planned to delete {len(delete_ops)} actions "
+                    "but your instruction did not explicitly ask for a full rebuild. "
+                    "If this was intentional, retry with wording like "
+                    "\"rebuild all actions\" or \"全部重建\"."
+                ),
+            )
 
     created: list[ActionResponse] = []
     updated: list[ActionResponse] = []
