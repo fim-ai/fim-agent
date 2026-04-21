@@ -264,8 +264,6 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-[![Contributors](https://contrib.rocks/image?repo=fim-ai/fim-one)](https://github.com/fim-ai/fim-one/graphs/contributors)
-
 本项目遵循 [all-contributors](https://allcontributors.org/) 规范。欢迎任何形式的贡献！
 
 ## 许可证

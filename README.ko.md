@@ -246,7 +246,7 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 
 ## 기여자
 
-이 훌륭한 분들께 감사드립니다 ([이모지 키](https://allcontributors.org/docs/en/emoji-key)):
+이 멋진 분들께 감사드립니다 ([이모지 키](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -263,8 +263,6 @@ bash scripts/setup-hooks.sh    # install git hooks (enables auto i18n)
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
-
-[![Contributors](https://contrib.rocks/image?repo=fim-ai/fim-one)](https://github.com/fim-ai/fim-one/graphs/contributors)
 
 이 프로젝트는 [all-contributors](https://allcontributors.org/) 명세를 따릅니다. 모든 종류의 기여를 환영합니다!
 

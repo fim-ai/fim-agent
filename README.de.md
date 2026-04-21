@@ -264,8 +264,6 @@ Danke an diese wunderbaren Menschen ([Emoji-Schlüssel](https://allcontributors.
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-[![Contributors](https://contrib.rocks/image?repo=fim-ai/fim-one)](https://github.com/fim-ai/fim-one/graphs/contributors)
-
 Dieses Projekt folgt der [all-contributors](https://allcontributors.org/)-Spezifikation. Beiträge jeglicher Art sind willkommen!
 
 ## Lizenz
