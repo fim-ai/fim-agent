@@ -12,6 +12,8 @@ services:
 
   fim-one:
     build: .
+    mem_limit: 1400m
+    mem_reservation: 512m
     ports:
       - "3000:3000"   # Next.js frontend (API is proxied internally via rewrites)
       - "8000:8000"   # Python API backend (for direct SSE streaming via NGINX)
@@ -47,6 +49,8 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    mem_limit: 350m
+    mem_reservation: 128m
     environment:
       POSTGRES_USER: fim
       POSTGRES_PASSWORD: fim
@@ -62,6 +66,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    mem_limit: 200m
+    mem_reservation: 64m
     volumes:
       - redis_data:/data
     healthcheck:
