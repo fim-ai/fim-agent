@@ -4,7 +4,10 @@ abstraction.
 When an agent (ReAct or DAG) finishes a conversation turn with a
 ``final_answer``, if the agent has a completion-notification channel
 configured in ``model_config_json.notifications.on_complete``, post a
-summary card to that channel.
+summary to that channel.  Rendering is delegated to the channel subclass
+(:meth:`BaseChannel.send_completion`) so this module stays
+channel-agnostic — adding a DingTalk or Slack channel requires zero
+changes here.
 
 This module is **distinct from** the Hook System
 (:mod:`fim_one.web.hooks_bootstrap`):
@@ -52,14 +55,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from sqlalchemy import select as sa_select
 
-from fim_one.core.channels import build_channel
-from fim_one.core.channels.feishu import FeishuChannel
+from fim_one.core.channels import CompletionSummary, build_channel
 
 
 __all__ = [
     "SessionFactory",
-    "build_completion_card",
-    "format_duration",
     "notify_agent_completion",
 ]
 
@@ -131,164 +131,13 @@ def _parse_on_complete_config(
     return on_complete
 
 
-# ---------------------------------------------------------------------------
-# Formatting helpers
-# ---------------------------------------------------------------------------
-
-
-def format_duration(seconds: float) -> str:
-    """Human-friendly duration string.
-
-    Examples:
-        ``0.4`` → ``"0.4s"``
-        ``2.345`` → ``"2.3s"``
-        ``47.0`` → ``"47.0s"``
-        ``107`` → ``"1m 47s"``
-        ``3725`` → ``"1h 2m 5s"``
-    """
-    if seconds < 0:
-        seconds = 0.0
-    if seconds < 60:
-        return f"{seconds:.1f}s"
-    total = int(seconds)
-    hours, rem = divmod(total, 3600)
-    minutes, secs = divmod(rem, 60)
-    if hours > 0:
-        return f"{hours}h {minutes}m {secs}s"
-    return f"{minutes}m {secs}s"
-
-
-def _truncate(text: str, limit: int) -> str:
-    """Truncate ``text`` to ``limit`` chars, appending ``…`` on overflow."""
-    if text is None:
-        return ""
-    if len(text) <= limit:
-        return text
-    # Chop on a line boundary if one is nearby — keeps the preview readable
-    # for answers that begin with a header / first paragraph.
-    head = text[:limit]
-    last_nl = head.rfind("\n")
-    if last_nl >= limit - 80:  # only honor if it's near the end of the cut
-        head = head[:last_nl]
-    return head.rstrip() + "\n\n…"
-
-
-def _format_tools(tools: list[str]) -> str:
-    """Join ``tools`` with commas, truncating to 6 with an ellipsis."""
-    if not tools:
-        return "—"
-    # Deduplicate while preserving first-seen order.
-    seen: set[str] = set()
-    unique: list[str] = []
-    for t in tools:
-        if t and t not in seen:
-            seen.add(t)
-            unique.append(t)
-    if len(unique) <= 6:
-        return ", ".join(unique)
-    return ", ".join(unique[:6]) + ", …"
-
-
 def _portal_conversation_url(conversation_id: str) -> str | None:
     """Build a clickable link back to the portal, if a base URL is set."""
     base = os.environ.get("FRONTEND_URL") or os.environ.get("BACKEND_URL")
     if not base:
         return None
     base = base.rstrip("/")
-    return f"{base}/conversations/{conversation_id}"
-
-
-# ---------------------------------------------------------------------------
-# Card builder (Feishu v2.0)
-# ---------------------------------------------------------------------------
-
-
-def build_completion_card(
-    *,
-    agent_name: str,
-    duration_seconds: float,
-    tools_used: list[str],
-    user_message: str,
-    final_answer: str,
-    conversation_id: str | None,
-) -> dict[str, Any]:
-    """Build a Feishu interactive card summarizing a finished agent run.
-
-    Green ``template`` header (positive completion), duration + tools
-    metadata row, and body sections for the user message and final
-    answer.  Truncation: user message 200 chars, final answer 600 chars.
-    """
-    header_title = f"{agent_name or 'Agent'} — Task complete"[:100]
-
-    # Metadata row — duration, tools, conversation.
-    duration_str = format_duration(duration_seconds)
-    tools_str = _format_tools(tools_used)
-    columns: list[dict[str, Any]] = [
-        {
-            "tag": "column",
-            "width": "weighted",
-            "weight": 1,
-            "elements": [
-                {"tag": "markdown", "content": f"**Duration**\n{duration_str}"},
-            ],
-        },
-        {
-            "tag": "column",
-            "width": "weighted",
-            "weight": 2,
-            "elements": [
-                {"tag": "markdown", "content": f"**Tools**\n{tools_str}"},
-            ],
-        },
-    ]
-    if conversation_id:
-        url = _portal_conversation_url(conversation_id)
-        conv_md = (
-            f"**Conversation**\n[{conversation_id[:8]}…]({url})"
-            if url
-            else f"**Conversation**\n`{conversation_id[:8]}…`"
-        )
-        columns.append(
-            {
-                "tag": "column",
-                "width": "weighted",
-                "weight": 1,
-                "elements": [{"tag": "markdown", "content": conv_md}],
-            }
-        )
-
-    user_preview = _truncate(user_message or "", 200)
-    answer_preview = _truncate(final_answer or "", 600)
-
-    return {
-        "schema": "2.0",
-        "config": {"update_multi": True},
-        "header": {
-            "title": {"tag": "plain_text", "content": header_title},
-            "template": "green",
-        },
-        "body": {
-            "direction": "vertical",
-            "padding": "12px 12px 12px 12px",
-            "elements": [
-                {
-                    "tag": "column_set",
-                    "horizontal_spacing": "8px",
-                    "columns": columns,
-                },
-                {"tag": "hr"},
-                {
-                    "tag": "markdown",
-                    "content": f"**User message**\n{user_preview}",
-                },
-                {"tag": "hr"},
-                {
-                    "tag": "markdown",
-                    "content": f"**Final answer**\n{answer_preview}",
-                },
-            ],
-        },
-    }
+    return f"{base}/?c={conversation_id}"
 
 
 # ---------------------------------------------------------------------------
@@ -309,10 +158,14 @@ async def notify_agent_completion(
     """Fire-and-forget completion notification.
 
     If the agent is configured for completion notifications, load the
-    target :class:`fim_one.web.models.channel.Channel`, build a Feishu
-    interactive card, and post it.  This function NEVER raises — every
-    failure path logs a warning and returns, because a notification
-    failure must not break the user-facing chat response.
+    target :class:`fim_one.web.models.channel.Channel`, instantiate its
+    adapter, and hand off a :class:`CompletionSummary` to
+    :meth:`BaseChannel.send_completion` — the adapter decides how to
+    render it (Feishu card, Slack message, DingTalk markdown, ...).
+
+    This function NEVER raises — every failure path logs a warning and
+    returns, because a notification failure must not break the
+    user-facing chat response.
 
     Args:
         agent: Object exposing ``org_id``, ``id``, ``name``,
@@ -320,12 +173,12 @@ async def notify_agent_completion(
             shim both work.
         conversation_id: ID of the conversation being notified about
             (used in the card link back to the portal).  May be ``None``.
-        user_message: The triggering user message, will be truncated to
-            200 chars for display.
-        final_answer: The agent's final answer, truncated to 600 chars.
-        tools_used: Names of tools called during the run.  Max 6 are
-            shown; more are summarized as ``"…"``.  Order is preserved
-            and duplicates are collapsed.
+        user_message: The triggering user message — raw, the channel
+            decides truncation.
+        final_answer: The agent's final answer — raw, the channel
+            decides truncation.
+        tools_used: Names of tools called during the run — raw, the
+            channel decides dedup / truncation.
         duration_seconds: Wall-clock duration of the agent run.
         session_factory: Zero-arg callable returning a fresh
             ``AsyncSession``.  The function uses it in an ``async with``
@@ -396,37 +249,21 @@ async def notify_agent_completion(
             )
             return
 
-        chat_id = config.get("chat_id")
-        if not isinstance(chat_id, str) or not chat_id:
-            logger.warning(
-                "Channel %r has no chat_id configured; skipping "
-                "completion notification",
-                channel_id,
-            )
-            return
-
-        # Build the card.  Right now we only support Feishu's v2.0 card
-        # schema; future channel types should grow their own card
-        # builders (``build_completion_card`` is Feishu-specific).
-        if not isinstance(channel, FeishuChannel):
-            logger.warning(
-                "Completion notification for channel type %r is not "
-                "supported yet; skipping (channel=%r)",
-                channel_row.type,
-                channel_id,
-            )
-            return
-
-        card = build_completion_card(
+        summary = CompletionSummary(
             agent_name=getattr(agent, "name", None) or "Agent",
             duration_seconds=duration_seconds,
-            tools_used=tools_used,
-            user_message=user_message,
-            final_answer=final_answer,
+            tools_used=list(tools_used or []),
+            user_message=user_message or "",
+            final_answer=final_answer or "",
             conversation_id=conversation_id,
+            conversation_url=(
+                _portal_conversation_url(conversation_id)
+                if conversation_id
+                else None
+            ),
         )
 
-        send_result = await channel.send_interactive_card(chat_id, card)
+        send_result = await channel.send_completion(summary)
         if not send_result.ok:
             logger.warning(
                 "Completion notification send failed for channel=%r: %s",

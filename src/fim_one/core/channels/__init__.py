@@ -11,13 +11,14 @@ the ``channels`` table.
 
 from __future__ import annotations
 
-from .base import BaseChannel, ChannelSendResult
+from .base import BaseChannel, ChannelSendResult, CompletionSummary
 from .feishu import FeishuChannel
 from .registry import CHANNEL_TYPES, get_channel_class, build_channel
 
 __all__ = [
     "BaseChannel",
     "ChannelSendResult",
+    "CompletionSummary",
     "FeishuChannel",
     "CHANNEL_TYPES",
     "get_channel_class",

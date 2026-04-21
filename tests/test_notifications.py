@@ -4,6 +4,11 @@ These tests exercise the no-op branches (missing / malformed config),
 the defensive branches (channel not found / inactive / wrong org), and
 the happy path where a Feishu interactive card is built and POSTed.
 
+Card rendering is now a Feishu concern, so the card-structure tests
+drive ``FeishuChannel.send_completion`` directly and inspect the JSON
+body that would have been POSTed.  ``notify_agent_completion`` itself
+stays channel-agnostic.
+
 Outbound HTTP is mocked with ``patch("httpx.AsyncClient")`` — same
 pattern as :mod:`tests.test_feishu_channel`.  respx is NOT a project
 dependency.
@@ -11,6 +16,7 @@ dependency.
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from types import SimpleNamespace
@@ -21,15 +27,13 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import fim_one.web.models  # noqa: F401  (register models)
+from fim_one.core.channels import CompletionSummary
+from fim_one.core.channels.feishu import FeishuChannel, _format_duration
 from fim_one.db.base import Base
 from fim_one.web.models.channel import Channel
 from fim_one.web.models.organization import Organization
 from fim_one.web.models.user import User
-from fim_one.web.notifications import (
-    build_completion_card,
-    format_duration,
-    notify_agent_completion,
-)
+from fim_one.web.notifications import notify_agent_completion
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +169,29 @@ def _install_feishu_http_mock() -> tuple[MagicMock, AsyncMock]:
     return mock_async_client, mock_client_instance
 
 
+async def _send_feishu_completion(
+    summary: CompletionSummary,
+) -> dict[str, Any]:
+    """Send a completion via a real FeishuChannel with HTTP mocked.
+
+    Returns the JSON body that would have been POSTed to the Feishu
+    message endpoint — specifically the parsed ``content`` field, which
+    is the JSON-encoded card.
+    """
+    channel = FeishuChannel(
+        {"app_id": "cli_x", "app_secret": "s", "chat_id": "oc_group"}
+    )
+    mock_async_client, mock_client_instance = _install_feishu_http_mock()
+    with patch("httpx.AsyncClient", mock_async_client):
+        result = await channel.send_completion(summary)
+    assert result.ok, result.error
+    send_call = mock_client_instance.post.await_args_list[1]
+    body = send_call.kwargs["json"]
+    card = json.loads(body["content"])
+    assert isinstance(card, dict)
+    return card
+
+
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
@@ -172,41 +199,49 @@ def _install_feishu_http_mock() -> tuple[MagicMock, AsyncMock]:
 
 class TestFormatDuration:
     def test_sub_minute(self) -> None:
-        assert format_duration(0.4) == "0.4s"
-        assert format_duration(2.345) == "2.3s"
-        assert format_duration(59.9) == "59.9s"
+        assert _format_duration(0.4) == "0.4s"
+        assert _format_duration(2.345) == "2.3s"
+        assert _format_duration(59.9) == "59.9s"
 
     def test_minutes(self) -> None:
-        assert format_duration(60) == "1m 0s"
-        assert format_duration(107) == "1m 47s"
+        assert _format_duration(60) == "1m 0s"
+        assert _format_duration(107) == "1m 47s"
 
     def test_hours(self) -> None:
-        assert format_duration(3725) == "1h 2m 5s"
+        assert _format_duration(3725) == "1h 2m 5s"
 
     def test_negative_clamped_to_zero(self) -> None:
-        assert format_duration(-1) == "0.0s"
+        assert _format_duration(-1) == "0.0s"
 
 
 class TestBuildCompletionCard:
-    def test_card_structure(self) -> None:
-        card = build_completion_card(
+    """Card structure is driven through ``FeishuChannel.send_completion``.
+
+    Each test builds a ``CompletionSummary``, sends through a real
+    ``FeishuChannel`` with HTTP mocked, and inspects the card JSON.
+    """
+
+    @pytest.mark.asyncio
+    async def test_card_structure(self) -> None:
+        summary = CompletionSummary(
             agent_name="Summariser",
             duration_seconds=2.345,
             tools_used=["web_search", "code_sandbox"],
             user_message="Hi there",
             final_answer="Here is the result.",
             conversation_id="conv-1",
+            conversation_url=None,
         )
+        card = await _send_feishu_completion(summary)
+
         assert card["schema"] == "2.0"
         assert card["header"]["template"] == "green"
         assert "Summariser" in card["header"]["title"]["content"]
-        # Body contains markdown blocks mentioning the key fields.
         md_blocks = [
             el["content"]
             for el in card["body"]["elements"]
             if el.get("tag") == "markdown"
         ]
-        # The metadata row is nested inside column_set, so look everywhere.
         column_sets = [
             el
             for el in card["body"]["elements"]
@@ -224,16 +259,19 @@ class TestBuildCompletionCard:
         assert "Hi there" in joined
         assert "Here is the result." in joined
 
-    def test_tools_truncated(self) -> None:
+    @pytest.mark.asyncio
+    async def test_tools_truncated(self) -> None:
         tools = [f"tool_{i}" for i in range(10)]
-        card = build_completion_card(
+        summary = CompletionSummary(
             agent_name="X",
             duration_seconds=1.0,
             tools_used=tools,
             user_message="",
             final_answer="",
             conversation_id=None,
+            conversation_url=None,
         )
+        card = await _send_feishu_completion(summary)
         md = "\n".join(
             el["content"]
             for cs in card["body"]["elements"]
@@ -248,16 +286,19 @@ class TestBuildCompletionCard:
         assert "tool_6" not in md
         assert "…" in md
 
-    def test_long_answer_truncated(self) -> None:
+    @pytest.mark.asyncio
+    async def test_long_answer_truncated(self) -> None:
         long = "x" * 2000
-        card = build_completion_card(
+        summary = CompletionSummary(
             agent_name="X",
             duration_seconds=1.0,
             tools_used=[],
             user_message="",
             final_answer=long,
             conversation_id=None,
+            conversation_url=None,
         )
+        card = await _send_feishu_completion(summary)
         md = [
             el["content"]
             for el in card["body"]["elements"]
@@ -268,6 +309,29 @@ class TestBuildCompletionCard:
         # much smaller than the raw input.
         assert len(joined) < len(long)
         assert "…" in joined
+
+
+class TestFeishuSendCompletionGuards:
+    """Channel-level guard: missing chat_id should surface as a non-OK result."""
+
+    @pytest.mark.asyncio
+    async def test_missing_chat_id_returns_error(self) -> None:
+        channel = FeishuChannel({"app_id": "cli_x", "app_secret": "s"})
+        summary = CompletionSummary(
+            agent_name="A",
+            duration_seconds=1.0,
+            tools_used=[],
+            user_message="u",
+            final_answer="a",
+            conversation_id=None,
+            conversation_url=None,
+        )
+        with patch("httpx.AsyncClient") as mock_client:
+            result = await channel.send_completion(summary)
+        mock_client.assert_not_called()
+        assert result.ok is False
+        assert result.error is not None
+        assert "chat_id" in result.error
 
 
 # ---------------------------------------------------------------------------

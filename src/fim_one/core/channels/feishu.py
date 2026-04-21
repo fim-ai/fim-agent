@@ -21,7 +21,7 @@ from typing import Any
 
 import httpx
 
-from .base import BaseChannel, ChannelSendResult
+from .base import BaseChannel, ChannelSendResult, CompletionSummary
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +244,27 @@ class FeishuChannel(BaseChannel):
                 "card": card_spec,
             }
         )
+
+    async def send_completion(
+        self,
+        summary: CompletionSummary,
+    ) -> ChannelSendResult:
+        """Render a task-completion summary as a Feishu v2.0 card.
+
+        Target chat is taken from ``self.config["chat_id"]`` — the same
+        default target used by ``send_message``.  Missing ``chat_id`` is
+        surfaced as a non-OK ``ChannelSendResult`` rather than raised.
+        """
+        chat_id = self.config.get("chat_id")
+        if not isinstance(chat_id, str) or not chat_id:
+            return ChannelSendResult(
+                ok=False,
+                error=(
+                    "chat_id is required for Feishu completion notification"
+                ),
+            )
+        card = _build_completion_card(summary)
+        return await self.send_interactive_card(chat_id, card)
 
     # ---- Public API: callbacks ---------------------------------------------
 
@@ -589,6 +610,139 @@ def build_decided_card(
             "padding": "12px 12px 12px 12px",
             "elements": [
                 {"tag": "markdown", "content": "\n\n".join(lines)},
+            ],
+        },
+    }
+
+
+def _format_duration(seconds: float) -> str:
+    """Human-friendly duration string (Feishu card render helper).
+
+    Examples:
+        ``0.4`` -> ``"0.4s"``
+        ``2.345`` -> ``"2.3s"``
+        ``107`` -> ``"1m 47s"``
+        ``3725`` -> ``"1h 2m 5s"``
+    """
+    if seconds < 0:
+        seconds = 0.0
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    total = int(seconds)
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours > 0:
+        return f"{hours}h {minutes}m {secs}s"
+    return f"{minutes}m {secs}s"
+
+
+def _truncate(text: str, limit: int) -> str:
+    """Truncate ``text`` to ``limit`` chars, appending an ellipsis on overflow."""
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    # Chop on a line boundary if one is nearby — keeps the preview readable
+    # for answers that begin with a header / first paragraph.
+    head = text[:limit]
+    last_nl = head.rfind("\n")
+    if last_nl >= limit - 80:
+        head = head[:last_nl]
+    return head.rstrip() + "\n\n…"
+
+
+def _format_tools(tools: list[str]) -> str:
+    """Join ``tools`` with commas, truncating to 6 with an ellipsis."""
+    if not tools:
+        return "—"
+    seen: set[str] = set()
+    unique: list[str] = []
+    for t in tools:
+        if t and t not in seen:
+            seen.add(t)
+            unique.append(t)
+    if len(unique) <= 6:
+        return ", ".join(unique)
+    return ", ".join(unique[:6]) + ", …"
+
+
+def _build_completion_card(summary: CompletionSummary) -> dict[str, Any]:
+    """Build a Feishu v2.0 interactive card summarizing a finished agent run.
+
+    Green ``template`` header (positive completion), a metadata row with
+    duration / tools / conversation link, and body sections for the user
+    message and final answer.  Truncation: user message 200 chars, final
+    answer 600 chars — Feishu markdown has a generous but not unlimited
+    content cap, and previews are meant to be scannable.
+    """
+    header_title = f"{summary.agent_name or 'Agent'} — Task complete"[:100]
+
+    duration_str = _format_duration(summary.duration_seconds)
+    tools_str = _format_tools(summary.tools_used)
+    columns: list[dict[str, Any]] = [
+        {
+            "tag": "column",
+            "width": "weighted",
+            "weight": 1,
+            "elements": [
+                {"tag": "markdown", "content": f"**Duration**\n{duration_str}"},
+            ],
+        },
+        {
+            "tag": "column",
+            "width": "weighted",
+            "weight": 2,
+            "elements": [
+                {"tag": "markdown", "content": f"**Tools**\n{tools_str}"},
+            ],
+        },
+    ]
+    if summary.conversation_id:
+        short_id = summary.conversation_id[:8]
+        if summary.conversation_url:
+            conv_md = (
+                f"**Conversation**\n[{short_id}…]({summary.conversation_url})"
+            )
+        else:
+            conv_md = f"**Conversation**\n`{short_id}…`"
+        columns.append(
+            {
+                "tag": "column",
+                "width": "weighted",
+                "weight": 1,
+                "elements": [{"tag": "markdown", "content": conv_md}],
+            }
+        )
+
+    user_preview = _truncate(summary.user_message or "", 200)
+    answer_preview = _truncate(summary.final_answer or "", 600)
+
+    return {
+        "schema": "2.0",
+        "config": {"update_multi": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": header_title},
+            "template": "green",
+        },
+        "body": {
+            "direction": "vertical",
+            "padding": "12px 12px 12px 12px",
+            "elements": [
+                {
+                    "tag": "column_set",
+                    "horizontal_spacing": "8px",
+                    "columns": columns,
+                },
+                {"tag": "hr"},
+                {
+                    "tag": "markdown",
+                    "content": f"**User message**\n{user_preview}",
+                },
+                {"tag": "hr"},
+                {
+                    "tag": "markdown",
+                    "content": f"**Final answer**\n{answer_preview}",
+                },
             ],
         },
     }

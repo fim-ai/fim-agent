@@ -16,6 +16,25 @@ class ChannelSendResult:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class CompletionSummary:
+    """Channel-agnostic description of a finished agent run.
+
+    Each channel subclass is responsible for rendering this into its
+    native message / card / attachment format (Feishu v2.0 card, Slack
+    Block Kit, DingTalk markdown, etc.).  Fields are raw — per-channel
+    truncation and formatting happens in ``send_completion``.
+    """
+
+    agent_name: str
+    duration_seconds: float
+    tools_used: list[str]
+    user_message: str
+    final_answer: str
+    conversation_id: str | None
+    conversation_url: str | None
+
+
 class BaseChannel(abc.ABC):
     """Platform-agnostic outbound messaging channel.
 
@@ -41,6 +60,20 @@ class BaseChannel(abc.ABC):
 
             {"chat_id": "oc_xxx", "msg_type": "text", "content": "hello"}
             {"chat_id": "oc_xxx", "msg_type": "interactive", "card": {...}}
+        """
+
+    @abc.abstractmethod
+    async def send_completion(
+        self,
+        summary: CompletionSummary,
+    ) -> ChannelSendResult:
+        """Render a task-completion notification in the channel's native
+        format and send it.
+
+        Each channel picks its own target (Feishu ``chat_id`` from
+        config, Slack default channel, DingTalk webhook, etc.) — the
+        abstraction stays semantic, not coupled to any one platform's
+        addressing vocabulary.
         """
 
     # -- Inbound (callbacks) --
