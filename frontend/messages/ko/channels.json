@@ -30,16 +30,16 @@
     "label": "조직",
     "placeholder": "조직 선택",
     "loadFailed": "조직을 로드하지 못했습니다",
-    "noOrgs": "채널을 구성하기 전에 조직을 생성하거나 참여해야 합니다.",
+    "noOrgs": "채널을 구성하기 전에 조직을 생성하거나 가입해야 합니다.",
     "goToOrgs": "조직으로 이동",
-    "memberReadOnly": "이 조직에 대한 읽기 전용 액세스 권한이 있습니다. 관리자와 소유자만 채널을 만들거나 편집할 수 있습니다. 관리자에게 더 높은 역할을 요청하거나 관리자인 조직으로 전환하세요.",
-    "memberReadOnlyEmpty": "아직 채널이 없으며 이 조직에서 채널을 만들 수 있는 권한이 없습니다. 관리자와 소유자만 채널을 만들 수 있습니다."
+    "memberReadOnly": "이 조직에 대한 읽기 전용 액세스 권한이 있습니다. 관리자와 소유자만 채널을 생성하거나 편집할 수 있습니다. 관리자에게 더 높은 역할을 부여해 달라고 요청하거나 관리자인 조직으로 전환하세요.",
+    "memberReadOnlyEmpty": "아직 채널이 없으며 이 조직에서 채널을 생성할 권한이 없습니다. 관리자와 소유자만 채널을 생성할 수 있습니다."
   },
   "form": {
     "createTitle": "새 채널",
     "editTitle": "채널 편집",
     "createDescription": "에이전트가 알림을 보내고 대화형 작업을 받을 수 있도록 메시징 채널을 구성합니다.",
-    "editDescription": "이 채널의 구성을 업데이트합니다. 비워둔 비밀 필드는 현재 값을 유지합니다.",
+    "editDescription": "이 채널의 구성을 업데이트합니다. 비워둔 보안 필드는 현재 값을 유지합니다.",
     "type": "채널 유형",
     "typePlaceholder": "채널 유형 선택",
     "name": "채널 이름",
@@ -51,70 +51,70 @@
     "app_id": "앱 ID",
     "app_id_placeholder": "cli_xxxxxxxxxxxx",
     "app_id_required": "App ID는 필수입니다.",
-    "app_secret": "앱 시크릿",
-    "app_secret_placeholder": "앱 비밀",
+    "app_secret": "앱 Secret",
+    "app_secret_placeholder": "앱 시크릿",
     "app_secret_edit_placeholder": "구성됨 - 유지하려면 비워두세요",
     "app_secret_required": "App Secret은 필수입니다.",
     "chat_id": "채팅 ID",
     "chat_id_placeholder": "oc_xxxxxxxxxxxx",
-    "chat_id_hint": "에이전트가 게시할 Feishu 그룹의 open_chat_id를 붙여넣습니다.",
+    "chat_id_hint": "에이전트가 게시해야 하는 Feishu 그룹의 open_chat_id를 붙여넣습니다.",
     "chat_id_required": "Chat ID는 필수입니다.",
     "verification_token": "검증 Token",
-    "verification_token_placeholder": "Feishu '이벤트 및 콜백' 페이지에서",
+    "verification_token_placeholder": "검증 Token을 붙여넣습니다",
     "verification_token_edit_placeholder": "구성됨 - 유지하려면 비워두세요",
     "verification_token_required": "검증 Token은 필수입니다.",
-    "encrypt_key": "암호화 키 (선택사항)",
+    "encrypt_key": "암호화 Key (선택사항)",
     "encrypt_key_placeholder": "이벤트 암호화가 활성화된 경우에만 필요",
     "encrypt_key_edit_placeholder": "구성됨 - 유지하려면 비워두세요",
     "pickChat": "그룹 목록에서 선택",
-    "verification_token_hint": "Feishu Open Platform -> Events & Callbacks (事件与回调) -> Encryption Strategy (加密策略) 탭 -> Verification Token 필드에서 찾을 수 있습니다. 눈 아이콘을 클릭하여 표시합니다."
+    "verification_token_hint": "Feishu Open Platform -> Events & Callbacks -> Encryption Strategy 탭 -> Verification Token 필드에서 찾을 수 있습니다. 눈 아이콘을 클릭하여 표시합니다."
   },
   "discard": {
     "title": "저장하지 않은 변경사항을 버릴까요?",
-    "description": "저장하지 않은 입력이 있습니다. 정말 닫으시겠습니까?",
+    "description": "저장하지 않은 입력이 있습니다. 정말 닫으시겠어요?",
     "confirm": "버리고 닫기"
   },
   "details": {
     "title": "채널 상세정보",
     "callbackUrlLabel": "콜백 URL",
-    "callbackUrlHint": "플랫폼의 webhook 페이지에 이 URL을 등록합니다. URL은 공개이며, 서명된 요청에는 플랫폼만 알고 있는 공유 비밀이 포함됩니다.",
+    "callbackUrlHint": "플랫폼의 webhook 페이지에서 이 URL을 등록하세요. URL은 공개되지만 서명된 요청에는 플랫폼만 알고 있는 공유 비밀이 포함됩니다.",
     "copyUrl": "URL 복사",
     "chatIdLabel": "채팅 ID",
-    "chatNameLabel": "채팅 이름",
+    "chatNameLabel": "Chat 이름",
     "appIdLabel": "앱 ID",
-    "secretsConfigured": "시크릿 구성됨",
-    "secretsMissing": "시크릿 누락됨",
+    "secretsConfigured": "비밀 설정됨",
+    "secretsMissing": "비밀 누락됨",
     "howTo": "설정을 완료하는 방법",
-    "step1": "위의 콜백 URL을 복사합니다.",
-    "step2": "Feishu Open Platform -> Events & Callbacks를 열고 URL을 붙여넣습니다.",
-    "step3": "챌린지 핸드셰이크를 완료합니다(FIM One이 자동으로 응답합니다).",
-    "step4": "card.action.trigger 이벤트를 구독하여 버튼 클릭이 에이전트에 도달하도록 합니다.",
-    "copyToastSuccess": "콜백 URL 복사됨",
+    "step1": "위의 콜백 URL을 복사하세요.",
+    "step2": "Feishu Open Platform에서 앱을 열고 왼쪽 사이드바에서 Events & Callbacks를 엽니다.",
+    "step3": "Callback Config 탭으로 전환합니다 — Event Config가 아닙니다.",
+    "step4": "'Send callbacks to developer server'를 선택하고 Callback URL을 요청 주소 필드에 붙여넣습니다.",
+    "copyToastSuccess": "콜백 URL이 복사되었습니다",
     "copyToastFailed": "복사 실패. URL을 수동으로 복사해주세요.",
-    "step5": "저장을 클릭합니다. Feishu가 즉시 URL 확인 챌린지를 POST합니다. FIM One이 자동으로 응답하므로 수동 작업이 필요하지 않습니다.",
-    "step6": "Subscribed Callbacks (已订阅的回调) 아래에서 '회신 추가' (添加回调)를 클릭하고 Card Action Trigger (card.action.trigger)를 선택합니다.",
-    "step7": "선택 사항: Encryption Strategy (加密策略) 탭에서 Encrypt Key를 설정한 경우, 이 채널을 편집할 때 동일한 값을 Encrypt Key 필드에 붙여넣습니다.",
+    "step5": "저장을 클릭하세요. Feishu가 즉시 URL 검증 챌린지를 POST하면 FIM One이 자동으로 응답하므로 수동 작업이 필요하지 않습니다.",
+    "step6": "Subscribed Callbacks에서 'Add Callback'을 클릭하고 Card Action Trigger(card.action.trigger)를 선택합니다.",
+    "step7": "선택사항: Encryption Strategy 탭에서 Encrypt Key를 설정한 경우, 이 채널을 편집할 때 동일한 값을 Encrypt Key 필드에 붙여넣습니다.",
     "openPlayground": "승인 흐름 테스트",
     "playgroundHint": "민감한 도구 호출을 시뮬레이션하고, 실제 승인 카드를 Feishu 그룹에 푸시한 후 실시간으로 결정을 확인하세요."
   },
   "actions": {
-    "viewDetails": "세부 정보 보기",
-    "edit": "구성 편집",
+    "viewDetails": "상세정보 보기",
+    "edit": "설정 편집",
     "enable": "활성화",
     "disable": "비활성화",
     "delete": "삭제"
   },
   "messages": {
-    "created": "채널 생성됨",
-    "updated": "채널 업데이트됨",
-    "deleted": "채널 삭제됨",
-    "enabled": "채널 활성화됨",
-    "disabled": "채널 비활성화됨",
-    "loadFailed": "채널 로드 실패"
+    "created": "채널이 생성되었습니다",
+    "updated": "채널이 업데이트되었습니다",
+    "deleted": "채널이 삭제되었습니다",
+    "enabled": "채널이 활성화되었습니다",
+    "disabled": "채널이 비활성화되었습니다",
+    "loadFailed": "채널을 로드하지 못했습니다"
   },
   "deleteDialog": {
-    "title": "채널을 삭제하시겠습니까?",
-    "description": "이 작업은 \"{name}\" 채널을 영구적으로 제거합니다. 이 채널에 메시지를 게시하는 에이전트는 메시지 전달을 중지합니다. 이 작업은 취소할 수 없습니다."
+    "title": "채널을 삭제할까요?",
+    "description": "이 작업은 채널 \"{name}\"을(를) 영구적으로 제거합니다. 이 채널에 게시하는 에이전트는 메시지 전달을 중지합니다. 이 작업은 취소할 수 없습니다."
   },
   "picker": {
     "title": "Feishu 그룹 선택",
@@ -123,49 +123,49 @@
     "empty": "그룹을 찾을 수 없습니다. 봇이 최소한 하나의 그룹에 추가되었는지 확인하세요.",
     "error": "그룹을 로드할 수 없습니다: {error}",
     "retry": "다시 시도",
-    "memberCount": "{n}명",
+    "memberCount": "{n}명의 멤버",
     "externalBadge": "외부",
     "needCredentials": "먼저 App ID와 App Secret을 입력하세요.",
     "select": "선택"
   },
   "playground": {
     "title": "Hook 승인 Playground",
-    "description": "프로덕션 등급의 승인 카드를 {chat}에 푸시하고 실제 검토자가 결정을 내리는 것을 확인하세요.",
-    "chatFallback": "구성된 Feishu 그룹",
+    "description": "프로덕션 수준의 승인 카드를 {chat}에 푸시하고 실제 검토자가 결정을 내리는 것을 지켜보세요.",
+    "chatFallback": "설정된 Feishu 그룹",
     "channelDisabledHint": "이 채널은 비활성화되어 있습니다. 승인 테스트를 실행하기 전에 활성화하세요.",
     "statusHeading": "왕복 상태",
     "form": {
       "toolName": "시뮬레이션된 도구 이름",
       "toolNameHint": "승인 카드에 검토 중인 작업으로 표시됩니다.",
       "toolArgs": "시뮬레이션된 도구 인수 (JSON)",
-      "toolArgsHint": "카드에 보기 좋게 인쇄되므로 검토자가 요청을 판단할 수 있습니다."
+      "toolArgsHint": "카드에 보기 좋게 인쇄되어 검토자가 요청을 판단할 수 있습니다."
     },
     "errors": {
       "jsonInvalid": "잘못된 JSON - 전송하기 전에 구문을 수정하세요.",
       "jsonNotObject": "도구 인수는 JSON 객체여야 합니다.",
-      "sendFailedUnknown": "승인 카드 전송에 실패했습니다."
+      "sendFailedUnknown": "승인 카드를 전송하지 못했습니다."
     },
     "status": {
       "unknownOperator": "Feishu 그룹 멤버",
       "sending": {
-        "title": "승인 요청 생성 중...",
-        "description": "보류 중인 ConfirmationRequest를 로깅하고 카드를 Feishu로 전송합니다."
+        "title": "승인 요청을 생성 중입니다...",
+        "description": "보류 중인 ConfirmationRequest를 기록하고 카드를 Feishu로 전송합니다."
       },
       "waiting": {
-        "title": "검토자 대기 중...",
-        "description": "카드 전달됨. 경과 {elapsed}초 - {remaining}초 동안 계속 폴링합니다."
+        "title": "검토자를 기다리는 중...",
+        "description": "카드가 전달되었습니다. 경과 {elapsed}s - {remaining}s 동안 계속 폴링합니다."
       },
       "approved": {
         "title": "승인됨",
-        "description": "{operator}이(가) 요청을 승인했습니다. 프로덕션에서는 hook이 이제 도구 호출을 해제합니다."
+        "description": "{operator}이(가) 요청을 승인했습니다. 프로덕션에서는 후크가 이제 도구 호출을 해제합니다."
       },
       "rejected": {
         "title": "거부됨",
-        "description": "{operator}이(가) 요청을 거부했습니다. 프로덕션에서는 hook이 이 결정으로 도구 호출을 차단합니다."
+        "description": "{operator}이(가) 요청을 거부했습니다. 프로덕션에서는 후크가 이 결정으로 도구 호출을 차단합니다."
       },
       "expired": {
         "title": "시간 초과",
-        "description": "폴링 윈도우 내에 결정이 도착하지 않았습니다. 프로덕션에서는 hook이 실패 폐쇄되고 호출을 차단합니다."
+        "description": "폴링 윈도우 내에 결정이 도착하지 않았습니다. 프로덕션에서는 후크가 실패-폐쇄되고 호출을 차단합니다."
       },
       "sendFailed": {
         "title": "카드를 전달할 수 없음"

@@ -4,8 +4,8 @@
   "docsLink": "查看频道文档 →",
   "create": "新建频道",
   "empty": {
-    "title": "还没有频道",
-    "description": "连接飞书群或其他消息平台以推送智能体通知并接收卡片操作。",
+    "title": "暂无频道",
+    "description": "连接飞书群组或其他消息平台以推送智能体通知并接收卡片操作。",
     "cta": "连接您的第一个频道"
   },
   "types": {
@@ -32,8 +32,8 @@
     "loadFailed": "加载组织失败",
     "noOrgs": "配置频道前，您需要创建或加入一个组织。",
     "goToOrgs": "前往组织",
-    "memberReadOnly": "您对此组织只有只读访问权限。只有管理员和所有者可以创建或编辑频道。请要求管理员授予您更高的角色，或切换到您是管理员的组织。",
-    "memberReadOnlyEmpty": "还没有频道，您没有权限在此组织中创建频道。只有管理员和所有者可以创建频道。"
+    "memberReadOnly": "您对此组织拥有只读权限。只有管理员和所有者可以创建或编辑频道。请要求管理员授予您更高的角色，或切换到您是管理员的组织。",
+    "memberReadOnlyEmpty": "暂无频道，且您没有权限在此组织中创建频道。只有管理员和所有者可以创建频道。"
   },
   "form": {
     "createTitle": "新建频道",
@@ -47,27 +47,27 @@
     "nameRequired": "请输入名称。",
     "sectionGeneral": "常规",
     "sectionFeishu": "飞书凭证",
-    "sectionFeishuDescription": "在飞书开放平台中创建应用并将其凭证复制到下方。",
+    "sectionFeishuDescription": "在飞书开放平台创建应用并复制其凭证到下方。",
     "app_id": "应用 ID",
     "app_id_placeholder": "cli_xxxxxxxxxxxx",
-    "app_id_required": "应用 ID 为必填项。",
+    "app_id_required": "App ID 为必填项。",
     "app_secret": "应用密钥",
     "app_secret_placeholder": "您的应用密钥",
     "app_secret_edit_placeholder": "已配置 - 留空以保持不变",
-    "app_secret_required": "应用密钥为必填项。",
+    "app_secret_required": "App Secret 为必填项。",
     "chat_id": "聊天 ID",
     "chat_id_placeholder": "oc_xxxxxxxxxxxx",
     "chat_id_hint": "粘贴智能体应该发布到的飞书群组的 open_chat_id。",
-    "chat_id_required": "Chat ID 是必需的。",
-    "verification_token_edit_placeholder": "已配置 - 留空以保持",
-    "verification_token_required": "验证token是必需的。",
+    "chat_id_required": "Chat ID 为必填项。",
+    "verification_token_edit_placeholder": "已配置 - 留空以保持不变",
+    "verification_token_required": "验证 Token 为必填项。",
     "encrypt_key": "加密密钥（可选）",
     "encrypt_key_placeholder": "仅在启用事件加密时需要",
-    "encrypt_key_edit_placeholder": "已配置 - 留空以保持",
+    "encrypt_key_edit_placeholder": "已配置 - 留空以保持不变",
     "pickChat": "从群组列表中选择",
-    "verification_token": "Verification Token",
-    "verification_token_placeholder": "From Feishu 'Events & Callbacks' page",
-    "verification_token_hint": "在飞书开放平台 -> 事件与回调 -> 加密策略标签页 -> 验证token字段中找到它。点击眼睛图标可以显示。"
+    "verification_token": "验证 Token",
+    "verification_token_placeholder": "粘贴验证 Token",
+    "verification_token_hint": "在飞书开放平台 -> 事件与回调 -> 加密策略选项卡 -> 验证 Token 字段中找到。点击眼睛图标以显示。"
   },
   "discard": {
     "title": "放弃未保存的更改？",
@@ -86,16 +86,16 @@
     "secretsMissing": "密钥缺失",
     "howTo": "如何完成设置",
     "step1": "复制上面的回调 URL。",
-    "step2": "打开飞书开放平台 -> 事件与回调，粘贴 URL。",
-    "step3": "完成挑战握手（FIM One 自动响应）。",
-    "step4": "订阅 card.action.trigger 事件，以便按钮点击到达您的智能体。",
+    "step2": "在飞书开放平台中，打开您的应用 -> 左侧边栏中的事件与回调。",
+    "step3": "切换到回调配置选项卡 — 不是事件配置。",
+    "step4": "选择'向开发者服务器发送回调'，并将回调URL粘贴到请求地址字段中。",
     "copyToastSuccess": "回调 URL 已复制",
     "copyToastFailed": "复制失败。请手动复制 URL。",
     "step5": "点击保存。飞书将立即发送URL验证挑战；FIM One会自动响应，无需手动操作。",
-    "step6": "Under Subscribed Callbacks (已订阅的回调), click 'Add Callback' (添加回调) and select Card Action Trigger (card.action.trigger).",
-    "step7": "Optional: If you set an Encrypt Key on the Encryption Strategy (加密策略) tab, paste the same value into the Encrypt Key field when editing this channel.",
+    "step6": "在已订阅的回调下，点击'添加回调'并选择卡片操作触发器 (card.action.trigger)。",
+    "step7": "可选：如果您在加密策略选项卡上设置了加密密钥，编辑此通道时请将相同的值粘贴到加密密钥字段中。",
     "openPlayground": "测试审批流程",
-    "playgroundHint": "模拟敏感工具调用，向飞书群组推送真实审批卡片，实时观看决策反馈。"
+    "playgroundHint": "模拟敏感工具调用，向飞书群组推送真实审批卡片，并实时查看决策结果。"
   },
   "actions": {
     "viewDetails": "查看详情",
@@ -114,65 +114,65 @@
   },
   "deleteDialog": {
     "title": "删除频道？",
-    "description": "这将永久删除频道 \"{name}\"。发送到此频道的智能体将停止传递消息。此操作无法撤销。"
+    "description": "这将永久删除频道 \"{name}\"。发布到此频道的智能体将停止传递消息。此操作无法撤销。"
   },
   "picker": {
     "title": "选择飞书群组",
-    "description": "选择确认卡片将被发送到的群组。机器人必须已添加到该群组。",
-    "loading": "正在加载群组...",
-    "empty": "未找到群组。请确保机器人已添加到至少一个群组。",
+    "description": "选择将发送确认卡片的群组。机器人必须已添加到该群组。",
+    "loading": "加载群组中...",
+    "empty": "未找到群组。确保机器人已添加到至少一个群组。",
     "error": "无法加载群组：{error}",
     "retry": "重试",
-    "memberCount": "{n} 个成员",
+    "memberCount": "{n} 名成员",
     "externalBadge": "外部",
-    "needCredentials": "请先填写 App ID 和 App Secret。",
+    "needCredentials": "请先填写应用 ID 和应用密钥。",
     "select": "选择"
   },
   "playground": {
-    "title": "Hook 审批演练场",
-    "description": "向 {chat} 推送生产级审批卡片，观看真实审核人驱动决策。",
+    "title": "Hook 批准游乐场",
+    "description": "将生产级批准卡推送到 {chat}，观看真实审阅者驱动决策。",
     "chatFallback": "配置的飞书群组",
-    "channelDisabledHint": "此频道已禁用。运行审批测试前请启用它。",
+    "channelDisabledHint": "此频道已禁用。在运行批准测试前请启用它。",
     "statusHeading": "往返状态",
     "form": {
       "toolName": "模拟工具名称",
-      "toolNameHint": "在审批卡片上显示为待审核的操作。",
-      "toolArgs": "模拟工具参数（JSON）",
-      "toolArgsHint": "在卡片上格式化显示，便于审核人判断请求。"
+      "toolNameHint": "在批准卡上显示为待审查的操作。",
+      "toolArgs": "模拟工具参数 (JSON)",
+      "toolArgsHint": "在卡上格式化显示，以便审阅者可以判断请求。"
     },
     "errors": {
-      "jsonInvalid": "JSON 无效 - 请在发送前修复语法。",
+      "jsonInvalid": "无效的 JSON - 请在发送前修复语法。",
       "jsonNotObject": "工具参数必须是 JSON 对象。",
-      "sendFailedUnknown": "发送审批卡片失败。"
+      "sendFailedUnknown": "发送批准卡失败。"
     },
     "status": {
       "unknownOperator": "飞书群组成员",
       "sending": {
-        "title": "创建审批请求中...",
-        "description": "记录待处理的 ConfirmationRequest 并将卡片发送到飞书。"
+        "title": "正在创建批准请求...",
+        "description": "记录待处理的 ConfirmationRequest 并将卡发送到飞书。"
       },
       "waiting": {
-        "title": "等待审核人...",
-        "description": "卡片已送达。已耗时 {elapsed}s - 将继续轮询 {remaining}s。"
+        "title": "等待审阅者...",
+        "description": "卡已送达。已用时 {elapsed}s - 将继续轮询 {remaining}s。"
       },
       "approved": {
         "title": "已批准",
-        "description": "{operator} 批准了请求。在生产环境中，hook 现在将释放工具调用。"
+        "description": "{operator} 批准了请求。在生产环境中，hook 现在会释放工具调用。"
       },
       "rejected": {
         "title": "已拒绝",
-        "description": "{operator} 拒绝了请求。在生产环境中，hook 将以此决策阻止工具调用。"
+        "description": "{operator} 拒绝了请求。在生产环境中，hook 会根据此决定阻止工具调用。"
       },
       "expired": {
         "title": "已超时",
-        "description": "轮询窗口内未收到决策。在生产环境中，hook 将采用失败关闭策略并阻止调用。"
+        "description": "在轮询窗口内未收到决定。在生产环境中，hook 会故障关闭并阻止调用。"
       },
       "sendFailed": {
-        "title": "无法送达卡片"
+        "title": "无法发送卡片"
       }
     },
     "actions": {
-      "send": "发送审批",
+      "send": "发送批准",
       "sending": "发送中...",
       "inFlight": "等待中...",
       "sendAgain": "重新发送",

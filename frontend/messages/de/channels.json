@@ -29,11 +29,11 @@
   "orgSelector": {
     "label": "Organisation",
     "placeholder": "Wählen Sie eine Organisation",
-    "loadFailed": "Organisationen konnten nicht geladen werden",
+    "loadFailed": "Fehler beim Laden von Organisationen",
     "noOrgs": "Sie müssen eine Organisation erstellen oder beitreten, bevor Sie Kanäle konfigurieren können.",
     "goToOrgs": "Zu Organisationen",
     "memberReadOnly": "Sie haben Lesezugriff auf diese Organisation. Nur Administratoren und Eigentümer können Kanäle erstellen oder bearbeiten. Bitten Sie einen Administrator, Ihnen eine höhere Rolle zu gewähren, oder wechseln Sie zu einer Organisation, in der Sie Administrator sind.",
-    "memberReadOnlyEmpty": "Noch keine Kanäle vorhanden, und Sie haben keine Berechtigung, einen in dieser Organisation zu erstellen. Nur Administratoren und Eigentümer können Kanäle erstellen."
+    "memberReadOnlyEmpty": "Noch keine Kanäle, und Sie haben keine Berechtigung, einen in dieser Organisation zu erstellen. Nur Administratoren und Eigentümer können Kanäle erstellen."
   },
   "form": {
     "createTitle": "Neuer Kanal",
@@ -47,55 +47,55 @@
     "nameRequired": "Bitte geben Sie einen Namen ein.",
     "sectionGeneral": "Allgemein",
     "sectionFeishu": "Feishu-Anmeldedaten",
-    "sectionFeishuDescription": "Erstellen Sie eine App auf der Feishu Open Platform und kopieren Sie ihre Anmeldedaten unten.",
+    "sectionFeishuDescription": "Erstellen Sie eine App in der Feishu Open Platform und kopieren Sie ihre Anmeldedaten unten.",
     "app_id": "App-ID",
     "app_id_placeholder": "cli_xxxxxxxxxxxx",
     "app_id_required": "App-ID ist erforderlich.",
     "app_secret": "App-Geheimnis",
     "app_secret_placeholder": "Ihr App-Geheimnis",
-    "app_secret_edit_placeholder": "Konfiguriert - leer lassen zum Beibehalten",
+    "app_secret_edit_placeholder": "Konfiguriert - lassen Sie leer, um beizubehalten",
     "app_secret_required": "App-Geheimnis ist erforderlich.",
     "chat_id": "Chat-ID",
     "chat_id_placeholder": "oc_xxxxxxxxxxxx",
     "chat_id_hint": "Fügen Sie die open_chat_id der Feishu-Gruppe ein, in die der Agent posten soll.",
     "chat_id_required": "Chat-ID ist erforderlich.",
     "verification_token": "Verifizierungstoken",
-    "verification_token_placeholder": "Von der Feishu-Seite 'Events & Callbacks'",
-    "verification_token_edit_placeholder": "Konfiguriert - leer lassen zum Beibehalten",
+    "verification_token_placeholder": "Fügen Sie das Verifizierungstoken ein",
+    "verification_token_edit_placeholder": "Konfiguriert - lassen Sie leer, um beizubehalten",
     "verification_token_required": "Verifizierungstoken ist erforderlich.",
     "encrypt_key": "Verschlüsselungsschlüssel (optional)",
-    "encrypt_key_placeholder": "Nur erforderlich, wenn die Ereignisverschlüsselung aktiviert ist",
-    "encrypt_key_edit_placeholder": "Konfiguriert - leer lassen zum Beibehalten",
+    "encrypt_key_placeholder": "Nur erforderlich, wenn Ereignisverschlüsselung aktiviert ist",
+    "encrypt_key_edit_placeholder": "Konfiguriert - lassen Sie leer, um beizubehalten",
     "pickChat": "Aus Gruppenliste auswählen",
-    "verification_token_hint": "Finden Sie es in der Feishu Open Platform -> Events & Callbacks (事件与回调) -> Encryption Strategy (加密策略) Tab -> Verification Token Feld. Klicken Sie auf das Augensymbol, um es anzuzeigen."
+    "verification_token_hint": "Finden Sie es in der Feishu Open Platform -> Events & Callbacks -> Registerkarte Encryption Strategy -> Feld Verification Token. Klicken Sie auf das Augensymbol, um es anzuzeigen."
   },
   "discard": {
-    "title": "Nicht gespeicherte Änderungen verwerfen?",
-    "description": "Sie haben nicht gespeicherte Eingaben. Sind Sie sicher, dass Sie schließen möchten?",
-    "confirm": "Verwerfen und schließen"
+    "title": "Ungespeicherte Änderungen verwerfen?",
+    "description": "Sie haben ungespeicherte Eingaben. Möchten Sie wirklich schließen?",
+    "confirm": "Verwerfen & schließen"
   },
   "details": {
-    "title": "Kanaldetails",
+    "title": "Kanal-Details",
     "callbackUrlLabel": "Callback-URL",
     "callbackUrlHint": "Registrieren Sie diese URL auf der Webhook-Seite der Plattform. Die URL ist öffentlich; die signierte Anfrage enthält ein gemeinsames Geheimnis, das nur die Plattform kennt.",
     "copyUrl": "URL kopieren",
     "chatIdLabel": "Chat-ID",
     "chatNameLabel": "Chat-Name",
-    "appIdLabel": "App-ID",
-    "secretsConfigured": "Secrets konfiguriert",
-    "secretsMissing": "Secrets fehlen",
+    "appIdLabel": "App ID",
+    "secretsConfigured": "Geheimnisse konfiguriert",
+    "secretsMissing": "Geheimnisse fehlen",
     "howTo": "So schließen Sie die Einrichtung ab",
     "step1": "Kopieren Sie die obige Callback-URL.",
-    "step2": "Öffnen Sie Feishu Open Platform -> Events & Callbacks und fügen Sie die URL ein.",
-    "step3": "Führen Sie den Challenge-Handshake durch (FIM One antwortet automatisch).",
-    "step4": "Abonnieren Sie das card.action.trigger-Ereignis, damit Schaltflächenklicks Ihren Agent erreichen.",
+    "step2": "Öffnen Sie in der Feishu Open Platform Ihre App -> Events & Callbacks in der linken Seitenleiste.",
+    "step3": "Wechseln Sie zur Registerkarte Callback Config — NICHT Event Config.",
+    "step4": "Wählen Sie 'Send callbacks to developer server' und fügen Sie die Callback URL in das Feld request address ein.",
     "copyToastSuccess": "Callback-URL kopiert",
     "copyToastFailed": "Kopieren fehlgeschlagen. Bitte kopieren Sie die URL manuell.",
-    "step5": "Klicken Sie auf Speichern. Feishu sendet sofort eine URL-Verifizierungsanforderung; FIM One antwortet automatisch, daher ist keine manuelle Aktion erforderlich.",
-    "step6": "Klicken Sie unter Subscribed Callbacks (已订阅的回调) auf 'Add Callback' (添加回调) und wählen Sie Card Action Trigger (card.action.trigger).",
-    "step7": "Optional: Wenn Sie einen Encrypt Key auf der Encryption Strategy (加密策略) Registerkarte festgelegt haben, fügen Sie denselben Wert in das Encrypt Key Feld ein, wenn Sie diesen Kanal bearbeiten.",
+    "step5": "Klicken Sie auf Speichern. Feishu sendet sofort eine URL-Verifizierungsanfrage; FIM One antwortet automatisch, daher ist keine manuelle Aktion erforderlich.",
+    "step6": "Klicken Sie unter Subscribed Callbacks auf 'Add Callback' und wählen Sie Card Action Trigger (card.action.trigger).",
+    "step7": "Optional: Wenn Sie einen Encrypt Key auf der Registerkarte Encryption Strategy festgelegt haben, fügen Sie denselben Wert in das Feld Encrypt Key ein, wenn Sie diesen Kanal bearbeiten.",
     "openPlayground": "Genehmigungsfluss testen",
-    "playgroundHint": "Simulieren Sie einen sensiblen Tool-Aufruf, senden Sie eine echte Genehmigungskarte an die Feishu-Gruppe und beobachten Sie, wie die Entscheidung live zurückkommt."
+    "playgroundHint": "Simulieren Sie einen sensiblen Tool-Aufruf, senden Sie eine echte Genehmigungskarte an die Feishu-Gruppe und beobachten Sie die Entscheidung in Echtzeit."
   },
   "actions": {
     "viewDetails": "Details anzeigen",
@@ -110,11 +110,11 @@
     "deleted": "Kanal gelöscht",
     "enabled": "Kanal aktiviert",
     "disabled": "Kanal deaktiviert",
-    "loadFailed": "Kanäle konnten nicht geladen werden"
+    "loadFailed": "Fehler beim Laden der Kanäle"
   },
   "deleteDialog": {
     "title": "Kanal löschen?",
-    "description": "Dies entfernt den Kanal \"{name}\" dauerhaft. Agents, die in diesen Kanal posten, stellen die Nachrichtenübermittlung ein. Diese Aktion kann nicht rückgängig gemacht werden."
+    "description": "Dies entfernt den Kanal \"{name}\" dauerhaft. Agenten, die in diesen Kanal posten, stellen die Nachrichtenübermittlung ein. Diese Aktion kann nicht rückgängig gemacht werden."
   },
   "picker": {
     "title": "Wählen Sie eine Feishu-Gruppe",
@@ -130,15 +130,15 @@
   },
   "playground": {
     "title": "Hook-Genehmigungsspielplatz",
-    "description": "Senden Sie eine produktionsreife Genehmigungskarte an {chat} und beobachten Sie, wie ein echter Reviewer die Entscheidung trifft.",
+    "description": "Senden Sie eine produktionsreife Genehmigungskarte an {chat} und beobachten Sie, wie ein echter Prüfer die Entscheidung trifft.",
     "chatFallback": "die konfigurierte Feishu-Gruppe",
     "channelDisabledHint": "Dieser Kanal ist deaktiviert. Aktivieren Sie ihn, bevor Sie einen Genehmigungstest durchführen.",
-    "statusHeading": "Hin- und Rückfahrtstatus",
+    "statusHeading": "Roundtrip-Status",
     "form": {
-      "toolName": "Simulierter Tool-Name",
-      "toolNameHint": "Wird auf der Genehmigungskarte als überprüfte Aktion angezeigt.",
+      "toolName": "Name des simulierten Tools",
+      "toolNameHint": "Wird auf der Genehmigungskarte als zu überprüfende Aktion angezeigt.",
       "toolArgs": "Simulierte Tool-Argumente (JSON)",
-      "toolArgsHint": "Auf der Karte schön formatiert, damit der Reviewer die Anfrage beurteilen kann."
+      "toolArgsHint": "Auf der Karte schön formatiert, damit der Prüfer die Anfrage beurteilen kann."
     },
     "errors": {
       "jsonInvalid": "Ungültiges JSON - bitte beheben Sie die Syntax vor dem Senden.",
@@ -152,12 +152,12 @@
         "description": "Protokollierung einer ausstehenden ConfirmationRequest und Versand der Karte an Feishu."
       },
       "waiting": {
-        "title": "Warten auf Reviewer...",
-        "description": "Karte zugestellt. Verstrichene Zeit {elapsed}s - wird noch {remaining}s lang abgefragt."
+        "title": "Warten auf Prüfer...",
+        "description": "Karte zugestellt. Verstrichene Zeit {elapsed}s - wird noch {remaining}s lang abgerufen."
       },
       "approved": {
         "title": "Genehmigt",
-        "description": "{operator} hat die Anfrage genehmigt. In der Produktion würde der Hook nun den Tool-Aufruf freigeben."
+        "description": "{operator} hat die Anfrage genehmigt. In der Produktion würde der Hook jetzt den Tool-Aufruf freigeben."
       },
       "rejected": {
         "title": "Abgelehnt",
@@ -165,7 +165,7 @@
       },
       "expired": {
         "title": "Zeitüberschreitung",
-        "description": "Keine Entscheidung innerhalb des Abfragefensters eingegangen. In der Produktion würde der Hook fehlgeschlagen und den Aufruf blockieren."
+        "description": "Keine Entscheidung innerhalb des Abruffensters eingegangen. In der Produktion würde der Hook fehlersicher schließen und den Aufruf blockieren."
       },
       "sendFailed": {
         "title": "Karte konnte nicht zugestellt werden"
@@ -174,7 +174,7 @@
     "actions": {
       "send": "Genehmigung senden",
       "sending": "Wird gesendet...",
-      "inFlight": "Warten...",
+      "inFlight": "Wird abgerufen...",
       "sendAgain": "Erneut senden",
       "close": "Schließen",
       "closeStopsPolling": "Schließen"

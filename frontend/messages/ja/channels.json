@@ -1,10 +1,10 @@
 {
   "title": "チャネル",
   "description": "外部メッセージングプラットフォームを接続して、エージェントからの通知とインタラクティブアクションを受け取ります。",
-  "docsLink": "チャネルのドキュメントを表示 →",
+  "docsLink": "チャネルドキュメントを表示 →",
   "create": "新しいチャネル",
   "empty": {
-    "title": "チャネルがまだありません",
+    "title": "チャネルはまだありません",
     "description": "Feishuグループまたは他のメッセージングプラットフォームを接続して、エージェント通知をプッシュし、カードアクションを受け取ります。",
     "cta": "最初のチャネルを接続"
   },
@@ -30,15 +30,15 @@
     "label": "組織",
     "placeholder": "組織を選択",
     "loadFailed": "組織の読み込みに失敗しました",
-    "noOrgs": "チャネルを設定する前に、組織を作成または参加する必要があります。",
+    "noOrgs": "チャネルを設定する前に、組織を作成するか参加する必要があります。",
     "goToOrgs": "組織に移動",
-    "memberReadOnly": "このオーガニゼーションへの読み取り専用アクセス権があります。チャネルの作成または編集はアドミンとオーナーのみが可能です。アドミンに高い役割の付与をリクエストするか、アドミンであるオーガニゼーションに切り替えてください。",
-    "memberReadOnlyEmpty": "まだチャネルがなく、このオーガニゼーションでチャネルを作成する権限がありません。チャネルの作成はアドミンとオーナーのみが可能です。"
+    "memberReadOnly": "この組織への読み取り専用アクセス権があります。チャネルの作成または編集はアドミンとオーナーのみが可能です。アドミンに高い役割を付与してもらうか、アドミンである別の組織に切り替えてください。",
+    "memberReadOnlyEmpty": "チャネルはまだなく、この組織でチャネルを作成する権限がありません。チャネルの作成はアドミンとオーナーのみが可能です。"
   },
   "form": {
     "createTitle": "新しいチャネル",
     "editTitle": "チャネルを編集",
-    "createDescription": "エージェントが通知を送信し、インタラクティブアクションを受け取るようにメッセージングチャネルを設定します。",
+    "createDescription": "エージェントが通知を送信し、インタラクティブアクションを受け取るためのメッセージングチャネルを設定します。",
     "editDescription": "このチャネルの設定を更新します。空白のままにされたシークレットフィールドは現在の値を保持します。",
     "type": "チャネルタイプ",
     "typePlaceholder": "チャネルタイプを選択",
@@ -47,37 +47,37 @@
     "nameRequired": "名前を入力してください。",
     "sectionGeneral": "一般",
     "sectionFeishu": "Feishu認証情報",
-    "sectionFeishuDescription": "Feishu Open Platformでアプリを作成し、その認証情報を以下にコピーします。",
+    "sectionFeishuDescription": "Feishu Open Platformでアプリを作成し、以下に認証情報をコピーします。",
     "app_id": "アプリID",
     "app_id_placeholder": "cli_xxxxxxxxxxxx",
-    "app_id_required": "App IDが必要です。",
+    "app_id_required": "App IDは必須です。",
     "app_secret": "アプリシークレット",
     "app_secret_placeholder": "アプリシークレット",
-    "app_secret_edit_placeholder": "設定済み - 保持するには空白のままにします",
-    "app_secret_required": "App Secretが必要です。",
+    "app_secret_edit_placeholder": "設定済み - 保持するには空白のままにしてください",
+    "app_secret_required": "App Secretは必須です。",
     "chat_id": "チャットID",
     "chat_id_placeholder": "oc_xxxxxxxxxxxx",
     "chat_id_hint": "エージェントが投稿すべきFeishuグループのopen_chat_idを貼り付けます。",
-    "chat_id_required": "Chat IDが必要です。",
+    "chat_id_required": "Chat IDは必須です。",
     "verification_token": "検証トークン",
-    "verification_token_placeholder": "Feishuの「イベントとコールバック」ページから",
-    "verification_token_edit_placeholder": "設定済み - 保持するには空白のままにします",
-    "verification_token_required": "検証トークンが必要です。",
+    "verification_token_placeholder": "検証トークンを貼り付けます",
+    "verification_token_edit_placeholder": "設定済み - 保持するには空白のままにしてください",
+    "verification_token_required": "検証トークンは必須です。",
     "encrypt_key": "暗号化キー（オプション）",
-    "encrypt_key_placeholder": "イベント暗号化が有効な場合のみ必要",
-    "encrypt_key_edit_placeholder": "設定済み - 保持するには空白のままにします",
+    "encrypt_key_placeholder": "イベント暗号化が有効な場合のみ必須",
+    "encrypt_key_edit_placeholder": "設定済み - 保持するには空白のままにしてください",
     "pickChat": "グループリストから選択",
-    "verification_token_hint": "Feishu Open Platform → Events & Callbacks (事件与回调) → Encryption Strategy (加密策略) タブ → Verification Token フィールドで確認できます。目のアイコンをクリックして表示してください。"
+    "verification_token_hint": "Feishu Open Platform -> Events & Callbacks -> Encryption Strategy タブ -> Verification Token フィールドで見つけることができます。目のアイコンをクリックして表示します。"
   },
   "discard": {
     "title": "保存されていない変更を破棄しますか？",
-    "description": "保存されていない入力があります。本当に閉じますか？",
+    "description": "保存されていない入力があります。本当に閉じてもよろしいですか？",
     "confirm": "破棄して閉じる"
   },
   "details": {
     "title": "チャネルの詳細",
     "callbackUrlLabel": "コールバックURL",
-    "callbackUrlHint": "このURLをプラットフォームのウェブフックページに登録します。URLは公開されていますが、署名されたリクエストにはプラットフォームのみが知っている共有シークレットが含まれています。",
+    "callbackUrlHint": "このURLをプラットフォームのWebhookページに登録してください。URLは公開されていますが、署名付きリクエストにはプラットフォームのみが知っている共有シークレットが含まれています。",
     "copyUrl": "URLをコピー",
     "chatIdLabel": "チャットID",
     "chatNameLabel": "チャット名",
@@ -86,16 +86,16 @@
     "secretsMissing": "シークレットが不足しています",
     "howTo": "セットアップを完了する方法",
     "step1": "上記のコールバックURLをコピーします。",
-    "step2": "Feishu Open Platform → イベント＆コールバックを開き、URLを貼り付けます。",
-    "step3": "チャレンジハンドシェイクを完了します（FIM Oneが自動的に応答します）。",
-    "step4": "card.action.triggerイベントをサブスクライブして、ボタンクリックがエージェントに到達するようにします。",
+    "step2": "Feishu Open Platform で、アプリを開き、左側のサイドバーから Events & Callbacks を選択します。",
+    "step3": "Callback Config タブに切り替えます — Event Config ではありません。",
+    "step4": "'Send callbacks to developer server' を選択し、Callback URL をリクエストアドレスフィールドに貼り付けます。",
     "copyToastSuccess": "コールバックURLをコピーしました",
     "copyToastFailed": "コピーに失敗しました。URLを手動でコピーしてください。",
-    "step5": "保存をクリックします。Feishu は直ちに URL 検証チャレンジを POST します。FIM One は自動的に応答するため、手動操作は不要です。",
-    "step6": "Subscribed Callbacks (已订阅的回调) の下で「Add Callback」(添加回调) をクリックし、Card Action Trigger (card.action.trigger) を選択します。",
-    "step7": "オプション: Encryption Strategy (加密策略) タブで Encrypt Key を設定した場合、このチャネルを編集する際に同じ値を Encrypt Key フィールドに貼り付けてください。",
+    "step5": "保存をクリックします。FeishuはすぐにURL検証チャレンジをPOSTします。FIM Oneが自動的に応答するため、手動操作は不要です。",
+    "step6": "Subscribed Callbacks の下で、'Add Callback' をクリックし、Card Action Trigger (card.action.trigger) を選択します。",
+    "step7": "オプション: Encryption Strategy タブで Encrypt Key を設定した場合、このチャネルを編集する際に同じ値を Encrypt Key フィールドに貼り付けます。",
     "openPlayground": "承認フローをテスト",
-    "playgroundHint": "機密ツール呼び出しをシミュレートし、実際の承認カードをFeishuグループにプッシュして、リアルタイムで決定を確認します。"
+    "playgroundHint": "機密ツール呼び出しをシミュレートし、実際の承認カードをFeishuグループにプッシュし、リアルタイムで決定を確認します。"
   },
   "actions": {
     "viewDetails": "詳細を表示",
@@ -114,34 +114,34 @@
   },
   "deleteDialog": {
     "title": "チャネルを削除しますか？",
-    "description": "チャネル「{name}」を永続的に削除します。このチャネルに投稿するエージェントはメッセージの配信を停止します。この操作は取り消せません。"
+    "description": "これにより、チャネル「{name}」が永久に削除されます。このチャネルに投稿するエージェントはメッセージの配信を停止します。このアクションは取り消せません。"
   },
   "picker": {
-    "title": "Feishu グループを選択",
-    "description": "確認カードが送信されるグループを選択してください。ボットは既にそのグループに追加されている必要があります。",
+    "title": "Feishuグループを選択",
+    "description": "確認カードが送信されるグループを選択します。ボットは既にグループに追加されている必要があります。",
     "loading": "グループを読み込み中...",
-    "empty": "グループが見つかりません。ボットが少なくとも 1 つのグループに追加されていることを確認してください。",
-    "error": "グループを読み込めません: {error}",
+    "empty": "グループが見つかりません。ボットが少なくとも1つのグループに追加されていることを確認してください。",
+    "error": "グループの読み込みに失敗しました：{error}",
     "retry": "再試行",
-    "memberCount": "{n} 名",
+    "memberCount": "{n}人のメンバー",
     "externalBadge": "外部",
-    "needCredentials": "先に App ID と App Secret を入力してください。",
+    "needCredentials": "まずApp IDとApp Secretを入力してください。",
     "select": "選択"
   },
   "playground": {
-    "title": "フック承認プレイグラウンド",
-    "description": "本番環境対応の承認カードを{chat}にプッシュして、実際のレビュアーが決定を下すのを確認します。",
+    "title": "Hook承認プレイグラウンド",
+    "description": "本番環境グレードの承認カードを{chat}にプッシュし、実際のレビュアーが決定を行うのを確認します。",
     "chatFallback": "設定されたFeishuグループ",
     "channelDisabledHint": "このチャネルは無効です。承認テストを実行する前に有効にしてください。",
-    "statusHeading": "往復ステータス",
+    "statusHeading": "ラウンドトリップステータス",
     "form": {
       "toolName": "シミュレートされたツール名",
       "toolNameHint": "承認カードにレビュー対象のアクションとして表示されます。",
       "toolArgs": "シミュレートされたツール引数（JSON）",
-      "toolArgsHint": "カードに見やすく表示され、レビュアーがリクエストを判断できます。"
+      "toolArgsHint": "カードに見やすく印刷されるため、レビュアーはリクエストを判断できます。"
     },
     "errors": {
-      "jsonInvalid": "無効なJSON - 送信前に構文を修正してください。",
+      "jsonInvalid": "無効なJSON - 送信する前に構文を修正してください。",
       "jsonNotObject": "ツール引数はJSONオブジェクトである必要があります。",
       "sendFailedUnknown": "承認カードの送信に失敗しました。"
     },
@@ -153,19 +153,19 @@
       },
       "waiting": {
         "title": "レビュアーの応答を待機中...",
-        "description": "カード配信完了。経過時間 {elapsed}秒 - {remaining}秒間ポーリングを続けます。"
+        "description": "カードが配信されました。経過時間 {elapsed}s - {remaining}s の間ポーリングを続けます。"
       },
       "approved": {
         "title": "承認済み",
-        "description": "{operator}がリクエストを承認しました。本番環境では、フックはツール呼び出しをリリースします。"
+        "description": "{operator} がリクエストを承認しました。本番環境では、フックはツール呼び出しをリリースします。"
       },
       "rejected": {
         "title": "却下",
-        "description": "{operator}がリクエストを却下しました。本番環境では、フックはこの決定でツール呼び出しをブロックします。"
+        "description": "{operator} がリクエストを却下しました。本番環境では、フックはこの決定でツール呼び出しをブロックします。"
       },
       "expired": {
         "title": "タイムアウト",
-        "description": "ポーリングウィンドウ内に決定が到着しませんでした。本番環境では、フックはフェイルクローズしてコールをブロックします。"
+        "description": "ポーリング期間内に決定が到着しませんでした。本番環境では、フックはフェイルクローズして呼び出しをブロックします。"
       },
       "sendFailed": {
         "title": "カードを配信できませんでした"
@@ -175,7 +175,7 @@
       "send": "承認を送信",
       "sending": "送信中...",
       "inFlight": "待機中...",
-      "sendAgain": "再度送信",
+      "sendAgain": "もう一度送信",
       "close": "閉じる",
       "closeStopsPolling": "閉じる"
     }
