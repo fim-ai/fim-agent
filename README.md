@@ -242,17 +242,7 @@ We welcome contributions of all kinds — code, docs, translations, bug reports,
 
 ## Activity
 
-<p align="center">
-  <a href="https://github.com/fim-ai/fim-one/pulse">
-    <img src="https://github-readme-stats.vercel.app/api/pin/?username=fim-ai&repo=fim-one&show_owner=true&theme=dark" alt="fim-one repo stats" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/fim-ai/fim-one/commits">
-    <img src="https://github-readme-activity-graph.vercel.app/graph?username=fim-ai&theme=github-compact&hide_border=true&area=true&custom_title=fim-ai%20activity" alt="fim-ai activity graph" />
-  </a>
-</p>
+![Alt](https://repobeats.axiom.co/api/embed/49402c7d85e343e9cb5909da7b48db1930c76554.svg "Repobeats analytics image")
 
 ## Contributors
 
