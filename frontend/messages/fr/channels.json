@@ -95,14 +95,18 @@
     "step6": "Sous Subscribed Callbacks, cliquez sur « Add Callback » et sélectionnez Card Action Trigger (card.action.trigger).",
     "step7": "Facultatif : Si vous avez défini une Encrypt Key dans l'onglet Encryption Strategy, collez la même valeur dans le champ Encrypt Key lors de la modification de ce canal.",
     "openPlayground": "Tester le flux d'approbation",
-    "playgroundHint": "Simulez un appel d'outil sensible, envoyez une véritable carte d'approbation au groupe Feishu et observez la décision revenir en direct."
+    "playgroundHint": "Simulez un appel d'outil sensible, envoyez une véritable carte d'approbation au groupe Feishu et observez la décision revenir en direct.",
+    "testSend": "Envoyer un message de test",
+    "testing": "Envoi en cours...",
+    "testSendHint": "Envoyer une notification simple au chat configuré — utile pour vérifier les identifiants sans impliquer le flux d'approbation."
   },
   "actions": {
     "viewDetails": "Afficher les détails",
     "edit": "Modifier la configuration",
     "enable": "Activer",
     "disable": "Désactiver",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "test": "Envoyer un message de test"
   },
   "messages": {
     "created": "Canal créé",
@@ -110,7 +114,10 @@
     "deleted": "Canal supprimé",
     "enabled": "Canal activé",
     "disabled": "Canal désactivé",
-    "loadFailed": "Échec du chargement des canaux"
+    "loadFailed": "Échec du chargement des canaux",
+    "testSentWithChat": "Message de test envoyé à {chat}",
+    "testSent": "Message de test envoyé",
+    "testFailed": "Échec de l'envoi du message de test : {error}"
   },
   "deleteDialog": {
     "title": "Supprimer le canal ?",

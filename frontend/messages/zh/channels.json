@@ -95,14 +95,18 @@
     "step6": "在已订阅的回调下，点击'添加回调'并选择卡片操作触发器 (card.action.trigger)。",
     "step7": "可选：如果您在加密策略选项卡上设置了加密密钥，编辑此通道时请将相同的值粘贴到加密密钥字段中。",
     "openPlayground": "测试审批流程",
-    "playgroundHint": "模拟敏感工具调用，向飞书群组推送真实审批卡片，并实时查看决策结果。"
+    "playgroundHint": "模拟敏感工具调用，向飞书群组推送真实审批卡片，并实时查看决策结果。",
+    "testSend": "发送测试消息",
+    "testing": "发送中...",
+    "testSendHint": "向配置的聊天发送纯通知 — 用于验证凭证，无需涉及审批流程。"
   },
   "actions": {
     "viewDetails": "查看详情",
     "edit": "编辑配置",
     "enable": "启用",
     "disable": "禁用",
-    "delete": "删除"
+    "delete": "删除",
+    "test": "发送测试消息"
   },
   "messages": {
     "created": "频道已创建",
@@ -110,7 +114,10 @@
     "deleted": "频道已删除",
     "enabled": "频道已启用",
     "disabled": "频道已禁用",
-    "loadFailed": "加载频道失败"
+    "loadFailed": "加载频道失败",
+    "testSentWithChat": "测试消息已发送到 {chat}",
+    "testSent": "测试消息已发送",
+    "testFailed": "测试消息发送失败：{error}"
   },
   "deleteDialog": {
     "title": "删除频道？",

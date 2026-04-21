@@ -95,14 +95,18 @@
     "step6": "Subscribed Callbacks에서 'Add Callback'을 클릭하고 Card Action Trigger(card.action.trigger)를 선택합니다.",
     "step7": "선택사항: Encryption Strategy 탭에서 Encrypt Key를 설정한 경우, 이 채널을 편집할 때 동일한 값을 Encrypt Key 필드에 붙여넣습니다.",
     "openPlayground": "승인 흐름 테스트",
-    "playgroundHint": "민감한 도구 호출을 시뮬레이션하고, 실제 승인 카드를 Feishu 그룹에 푸시한 후 실시간으로 결정을 확인하세요."
+    "playgroundHint": "민감한 도구 호출을 시뮬레이션하고, 실제 승인 카드를 Feishu 그룹에 푸시한 후 실시간으로 결정을 확인하세요.",
+    "testSend": "테스트 메시지 전송",
+    "testing": "전송 중...",
+    "testSendHint": "구성된 채팅으로 일반 알림을 전송합니다 — 승인 흐름을 포함하지 않고 자격 증명을 확인하는 데 유용합니다."
   },
   "actions": {
     "viewDetails": "상세정보 보기",
     "edit": "설정 편집",
     "enable": "활성화",
     "disable": "비활성화",
-    "delete": "삭제"
+    "delete": "삭제",
+    "test": "테스트 메시지 전송"
   },
   "messages": {
     "created": "채널이 생성되었습니다",
@@ -110,7 +114,10 @@
     "deleted": "채널이 삭제되었습니다",
     "enabled": "채널이 활성화되었습니다",
     "disabled": "채널이 비활성화되었습니다",
-    "loadFailed": "채널을 로드하지 못했습니다"
+    "loadFailed": "채널을 로드하지 못했습니다",
+    "testSentWithChat": "{chat}으로 테스트 메시지가 전송되었습니다",
+    "testSent": "테스트 메시지가 전송되었습니다",
+    "testFailed": "테스트 메시지 전송 실패: {error}"
   },
   "deleteDialog": {
     "title": "채널을 삭제할까요?",

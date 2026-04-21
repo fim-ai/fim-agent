@@ -32,6 +32,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - Feishu channel form no longer shows a spurious "discard unsaved changes" prompt when interacting with the chat picker that's layered above the dialog.
 - Feishu channel setup hints no longer duplicate Chinese labels when the UI itself is already in Chinese (e.g. previously rendered "事件与回调 (事件与回调)").
 - Feishu approval cards now become read-only after the first decision: the `/callback` webhook returns a replacement card with the Approve/Reject buttons removed and the header coloured green (approved) or red (rejected), preventing repeated clicks. Duplicate clicks that still arrive from stale Feishu clients get a "This request was already approved/rejected." toast and a fresh copy of the decided card so the stale view catches up.
+- Restored the plain "Send Test Message" action on channel rows and the details sheet. The Approval Playground exercises the full hook round-trip, but a notification-only channel (no approval hook wired) still needs a quick credential/connectivity sanity check, which the plain test-send covers.
 
 ## [v0.8.4] - 2026-04-17
 

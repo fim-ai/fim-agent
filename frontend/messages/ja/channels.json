@@ -95,14 +95,18 @@
     "step6": "Subscribed Callbacks の下で、'Add Callback' をクリックし、Card Action Trigger (card.action.trigger) を選択します。",
     "step7": "オプション: Encryption Strategy タブで Encrypt Key を設定した場合、このチャネルを編集する際に同じ値を Encrypt Key フィールドに貼り付けます。",
     "openPlayground": "承認フローをテスト",
-    "playgroundHint": "機密ツール呼び出しをシミュレートし、実際の承認カードをFeishuグループにプッシュし、リアルタイムで決定を確認します。"
+    "playgroundHint": "機密ツール呼び出しをシミュレートし、実際の承認カードをFeishuグループにプッシュし、リアルタイムで決定を確認します。",
+    "testSend": "テストメッセージを送信",
+    "testing": "送信中...",
+    "testSendHint": "設定されたチャットにプレーン通知を送信します — 承認フローを含めずに認証情報を検証するのに役立ちます。"
   },
   "actions": {
     "viewDetails": "詳細を表示",
     "edit": "設定を編集",
     "enable": "有効にする",
     "disable": "無効にする",
-    "delete": "削除"
+    "delete": "削除",
+    "test": "テストメッセージを送信"
   },
   "messages": {
     "created": "チャネルが作成されました",
@@ -110,7 +114,10 @@
     "deleted": "チャネルが削除されました",
     "enabled": "チャネルが有効になりました",
     "disabled": "チャネルが無効になりました",
-    "loadFailed": "チャネルの読み込みに失敗しました"
+    "loadFailed": "チャネルの読み込みに失敗しました",
+    "testSentWithChat": "テストメッセージが {chat} に送信されました",
+    "testSent": "テストメッセージが送信されました",
+    "testFailed": "テストメッセージの送信に失敗しました: {error}"
   },
   "deleteDialog": {
     "title": "チャネルを削除しますか？",

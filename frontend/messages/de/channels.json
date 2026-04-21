@@ -95,14 +95,18 @@
     "step6": "Klicken Sie unter Subscribed Callbacks auf 'Add Callback' und wählen Sie Card Action Trigger (card.action.trigger).",
     "step7": "Optional: Wenn Sie einen Encrypt Key auf der Registerkarte Encryption Strategy festgelegt haben, fügen Sie denselben Wert in das Feld Encrypt Key ein, wenn Sie diesen Kanal bearbeiten.",
     "openPlayground": "Genehmigungsfluss testen",
-    "playgroundHint": "Simulieren Sie einen sensiblen Tool-Aufruf, senden Sie eine echte Genehmigungskarte an die Feishu-Gruppe und beobachten Sie die Entscheidung in Echtzeit."
+    "playgroundHint": "Simulieren Sie einen sensiblen Tool-Aufruf, senden Sie eine echte Genehmigungskarte an die Feishu-Gruppe und beobachten Sie die Entscheidung in Echtzeit.",
+    "testSend": "Testnachricht senden",
+    "testing": "Wird gesendet...",
+    "testSendHint": "Senden Sie eine einfache Benachrichtigung an den konfigurierten Chat – nützlich zur Überprüfung der Anmeldedaten ohne Genehmigungsablauf."
   },
   "actions": {
     "viewDetails": "Details anzeigen",
     "edit": "Konfiguration bearbeiten",
     "enable": "Aktivieren",
     "disable": "Deaktivieren",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "test": "Testnachricht senden"
   },
   "messages": {
     "created": "Kanal erstellt",
@@ -110,7 +114,10 @@
     "deleted": "Kanal gelöscht",
     "enabled": "Kanal aktiviert",
     "disabled": "Kanal deaktiviert",
-    "loadFailed": "Fehler beim Laden der Kanäle"
+    "loadFailed": "Fehler beim Laden der Kanäle",
+    "testSentWithChat": "Testnachricht an {chat} gesendet",
+    "testSent": "Testnachricht gesendet",
+    "testFailed": "Testnachricht fehlgeschlagen: {error}"
   },
   "deleteDialog": {
     "title": "Kanal löschen?",

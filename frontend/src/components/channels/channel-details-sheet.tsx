@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
-import { Check, Copy, Sparkles } from "lucide-react"
+import { Check, Copy, Loader2, Send, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { channelsApi } from "@/lib/api/channels"
+import { getErrorMessage } from "@/lib/error-utils"
 import type { Channel } from "@/types/channel"
 import { HookPlaygroundDialog } from "@/components/channels/hook-playground-dialog"
 
@@ -26,8 +28,10 @@ export function ChannelDetailsSheet({
   onOpenChange,
 }: ChannelDetailsSheetProps) {
   const t = useTranslations("channels")
+  const tError = useTranslations("errors")
 
   const [copied, setCopied] = useState(false)
+  const [isSending, setIsSending] = useState(false)
   const [playgroundOpen, setPlaygroundOpen] = useState(false)
 
   const handleCopyUrl = async () => {
@@ -39,6 +43,30 @@ export function ChannelDetailsSheet({
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
       toast.error(t("details.copyToastFailed"))
+    }
+  }
+
+  const handleTest = async () => {
+    if (!channel) return
+    setIsSending(true)
+    try {
+      const result = await channelsApi.test(channel.id)
+      if (result.ok) {
+        const chat = result.chat_name ?? channel.config.chat_name
+        if (chat) {
+          toast.success(t("messages.testSentWithChat", { chat }))
+        } else {
+          toast.success(t("messages.testSent"))
+        }
+      } else {
+        toast.error(
+          t("messages.testFailed", { error: result.error ?? "unknown" }),
+        )
+      }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -143,10 +171,31 @@ export function ChannelDetailsSheet({
               </div>
             </section>
 
-            {/* Hook Approval Playground — full round-trip test */}
+            {/* Plain notification test — verifies credentials without
+                wiring an approval hook. */}
             <section className="space-y-2">
               <Button
                 variant="default"
+                className="w-full gap-1.5"
+                onClick={handleTest}
+                disabled={isSending || !channel.is_active}
+              >
+                {isSending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {isSending ? t("details.testing") : t("details.testSend")}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {t("details.testSendHint")}
+              </p>
+            </section>
+
+            {/* Hook Approval Playground — full round-trip test */}
+            <section className="space-y-2">
+              <Button
+                variant="outline"
                 className="w-full gap-1.5"
                 onClick={() => setPlaygroundOpen(true)}
                 disabled={!channel.is_active}
