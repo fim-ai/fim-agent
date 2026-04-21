@@ -413,6 +413,7 @@ class ReActAgent:
         self,
         tool_name: str,
         tool_call_id: str | None = None,
+        tool_args: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Assemble the ``HookContext.metadata`` dict for a tool call.
 
@@ -434,13 +435,29 @@ class ReActAgent:
         if tool_call_id is not None:
             meta["tool_call_id"] = tool_call_id
 
-        # Duck-type on ``requires_confirmation`` — this is exposed as a
-        # property by :class:`ConnectorToolAdapter` and absent on every
-        # built-in tool (workspace, web_search, ...).  The attribute is
-        # typed ``bool`` when present, ``False`` when absent.
+        # ``requires_confirmation`` resolution — three paths in order:
+        #   1. ``tool.requires_confirmation_for(args)`` — used by
+        #      :class:`ConnectorMetaTool`, which proxies many connector
+        #      actions through a single tool.  The flag lives per-action,
+        #      so the meta tool needs the args to look up the right one.
+        #   2. ``tool.requires_confirmation`` attribute — used by
+        #      per-action :class:`ConnectorToolAdapter` instances.
+        #   3. Default ``False`` for every built-in tool.
         tool = self._tools.get(tool_name)
-        requires_attr = getattr(tool, "requires_confirmation", False)
-        meta["requires_confirmation"] = bool(requires_attr)
+        requires: bool = False
+        per_args_fn = getattr(tool, "requires_confirmation_for", None)
+        if callable(per_args_fn):
+            try:
+                requires = bool(per_args_fn(tool_args or {}))
+            except Exception:  # pragma: no cover - defensive
+                logger.exception(
+                    "requires_confirmation_for raised on %s — falling back",
+                    tool_name,
+                )
+                requires = False
+        else:
+            requires = bool(getattr(tool, "requires_confirmation", False))
+        meta["requires_confirmation"] = requires
         return meta
 
     @staticmethod
@@ -1922,7 +1939,9 @@ class ReActAgent:
                     tool_args=tool_args,
                     agent_id=self._agent_id,
                     user_id=self._user_id,
-                    metadata=self._build_hook_metadata(tc.name, tool_call_id=tc.id),
+                    metadata=self._build_hook_metadata(
+                        tc.name, tool_call_id=tc.id, tool_args=tool_args
+                    ),
                 )
                 pre_result = await self._hook_registry.run_pre_tool(pre_ctx)
                 if not pre_result.allow:
@@ -1970,7 +1989,9 @@ class ReActAgent:
                         tool_result=observation,
                         agent_id=self._agent_id,
                         user_id=self._user_id,
-                        metadata=self._build_hook_metadata(tc.name, tool_call_id=tc.id),
+                        metadata=self._build_hook_metadata(
+                            tc.name, tool_call_id=tc.id, tool_args=tool_args
+                        ),
                     )
                     post_result = await self._hook_registry.run_post_tool(post_ctx)
                     if post_result.modified_result is not None:
@@ -2478,7 +2499,7 @@ class ReActAgent:
                 tool_args=tool_args,
                 agent_id=self._agent_id,
                 user_id=self._user_id,
-                metadata=self._build_hook_metadata(tool_name),
+                metadata=self._build_hook_metadata(tool_name, tool_args=tool_args),
             )
             pre_result = await self._hook_registry.run_pre_tool(pre_ctx)
             if not pre_result.allow:
@@ -2516,7 +2537,7 @@ class ReActAgent:
                     tool_result=observation,
                     agent_id=self._agent_id,
                     user_id=self._user_id,
-                    metadata=self._build_hook_metadata(tool_name),
+                    metadata=self._build_hook_metadata(tool_name, tool_args=tool_args),
                 )
                 post_result = await self._hook_registry.run_post_tool(post_ctx)
                 if post_result.modified_result is not None:

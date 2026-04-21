@@ -159,6 +159,31 @@ class ConnectorMetaTool(BaseTool):
             "required": ["subcommand", "connector"],
         }
 
+    def requires_confirmation_for(self, tool_args: dict[str, Any]) -> bool:
+        """Per-call confirmation lookup for the hook system.
+
+        ``ConnectorMetaTool`` proxies every connector action through a
+        single tool, so the bool flag lives on the specific ``ActionStub``
+        pointed at by ``tool_args``. Resolve it from
+        ``{connector, action, subcommand}``:
+
+        * ``subcommand != "execute"`` → never requires confirmation
+          (``discover`` is a read-only listing).
+        * Unknown connector or action → ``False`` (stubs list is the
+          source of truth; the hook should not block on a typo).
+        """
+        if tool_args.get("subcommand") != "execute":
+            return False
+        connector_name = str(tool_args.get("connector") or "")
+        action_name = str(tool_args.get("action") or "")
+        stub = self._stubs.get(connector_name)
+        if stub is None:
+            return False
+        for action in stub.actions:
+            if action.name == action_name:
+                return bool(action.requires_confirmation)
+        return False
+
     async def run(self, **kwargs: Any) -> str:
         """Route to discover or execute subcommand."""
         subcommand = kwargs.get("subcommand", "")

@@ -371,6 +371,51 @@ class TestExecute:
 # ---------------------------------------------------------------------------
 
 
+class TestRequiresConfirmationFor:
+    """Per-call confirmation flag lookup, used by FeishuGateHook."""
+
+    def test_execute_flagged_action_returns_true(self) -> None:
+        flagged = _make_action_stub(name="send_email", requires_confirmation=True)
+        stub = _make_connector_stub(name="gmail", actions=[flagged])
+        tool = ConnectorMetaTool(stubs=[stub])
+        assert tool.requires_confirmation_for(
+            {"subcommand": "execute", "connector": "gmail", "action": "send_email"}
+        ) is True
+
+    def test_execute_unflagged_action_returns_false(self) -> None:
+        unflagged = _make_action_stub(name="list_inbox", requires_confirmation=False)
+        stub = _make_connector_stub(name="gmail", actions=[unflagged])
+        tool = ConnectorMetaTool(stubs=[stub])
+        assert tool.requires_confirmation_for(
+            {"subcommand": "execute", "connector": "gmail", "action": "list_inbox"}
+        ) is False
+
+    def test_discover_subcommand_never_requires_confirmation(self) -> None:
+        flagged = _make_action_stub(name="delete_repo", requires_confirmation=True)
+        stub = _make_connector_stub(name="github", actions=[flagged])
+        tool = ConnectorMetaTool(stubs=[stub])
+        assert tool.requires_confirmation_for(
+            {"subcommand": "discover", "connector": "github"}
+        ) is False
+
+    def test_unknown_connector_returns_false(self) -> None:
+        tool = ConnectorMetaTool(stubs=[_make_connector_stub()])
+        assert tool.requires_confirmation_for(
+            {"subcommand": "execute", "connector": "ghost", "action": "x"}
+        ) is False
+
+    def test_unknown_action_returns_false(self) -> None:
+        stub = _make_connector_stub(actions=[_make_action_stub(name="known_op")])
+        tool = ConnectorMetaTool(stubs=[stub])
+        assert tool.requires_confirmation_for(
+            {
+                "subcommand": "execute",
+                "connector": stub.name,
+                "action": "nonexistent",
+            }
+        ) is False
+
+
 class TestEdgeCases:
     """Miscellaneous edge case tests."""
 
