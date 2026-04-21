@@ -1052,6 +1052,124 @@ class TestFeishuCallback:
             assert row.responded_by_open_id == "ou_a"
 
     @pytest.mark.asyncio
+    async def test_first_click_returns_decided_card(
+        self,
+        client: AsyncClient,
+        seed: dict[str, Any],
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> None:
+        """The webhook replaces the confirmation card with a decided
+        card on the first approve — this is what disables the buttons
+        client-side so the user can't click again.
+        """
+        async with session_factory() as db:
+            ch = Channel(
+                id=str(uuid.uuid4()),
+                name="CB-Decided-1",
+                type="feishu",
+                org_id=seed["org_id"],
+                created_by=seed["user_id"],
+                config={"app_id": "cli_x", "app_secret": "s"},
+            )
+            db.add(ch)
+            req = ConfirmationRequest(
+                id=str(uuid.uuid4()),
+                tool_call_id="tc-decided-1",
+                agent_id=None,
+                user_id=seed["user_id"],
+                org_id=seed["org_id"],
+                channel_id=ch.id,
+                status="pending",
+                payload={"tool_name": "send_email"},
+            )
+            db.add(req)
+            await db.commit()
+
+        payload = {
+            "action": {
+                "value": {"confirmation_id": req.id, "decision": "approve"}
+            },
+            "open_id": "ou_first",
+        }
+        resp = await client.post(
+            f"/api/channels/{ch.id}/callback", json=payload
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["toast"]["type"] == "success"
+        assert body["toast"]["content"] == "Approval recorded."
+        assert body["card"]["type"] == "raw"
+        new_card = body["card"]["data"]
+        assert new_card["schema"] == "2.0"
+        assert new_card["header"]["template"] == "green"
+        # No buttons in the decided card — this is what prevents
+        # further clicks.
+        elements = new_card["body"]["elements"]
+        serialized = json.dumps(elements)
+        assert '"tag": "button"' not in serialized
+
+    @pytest.mark.asyncio
+    async def test_second_click_toast_says_already_decided(
+        self,
+        client: AsyncClient,
+        seed: dict[str, Any],
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> None:
+        """Duplicate click (e.g. stale client) must show a distinct
+        toast and still return the decided card — the DB stays
+        unchanged.
+        """
+        async with session_factory() as db:
+            ch = Channel(
+                id=str(uuid.uuid4()),
+                name="CB-Decided-2",
+                type="feishu",
+                org_id=seed["org_id"],
+                created_by=seed["user_id"],
+                config={"app_id": "cli_x", "app_secret": "s"},
+            )
+            db.add(ch)
+            req = ConfirmationRequest(
+                id=str(uuid.uuid4()),
+                tool_call_id="tc-decided-2",
+                agent_id=None,
+                user_id=seed["user_id"],
+                org_id=seed["org_id"],
+                channel_id=ch.id,
+                status="pending",
+                payload={"tool_name": "ship_it"},
+            )
+            db.add(req)
+            await db.commit()
+
+        payload = {
+            "action": {
+                "value": {"confirmation_id": req.id, "decision": "approve"}
+            },
+            "open_id": "ou_first",
+        }
+        # First click — terminal approved.
+        first = await client.post(
+            f"/api/channels/{ch.id}/callback", json=payload
+        )
+        assert first.status_code == 200
+        assert first.json()["toast"]["content"] == "Approval recorded."
+
+        # Second click — must tell the clicker it's already approved.
+        second = await client.post(
+            f"/api/channels/{ch.id}/callback", json=payload
+        )
+        assert second.status_code == 200
+        sbody = second.json()
+        assert sbody["toast"]["type"] == "success"
+        assert sbody["toast"]["content"] == (
+            "This request was already approved."
+        )
+        # Decided card is still returned so a stale client catches up.
+        assert sbody["card"]["type"] == "raw"
+        assert sbody["card"]["data"]["header"]["template"] == "green"
+
+    @pytest.mark.asyncio
     async def test_invalid_signature_rejected(
         self,
         client: AsyncClient,

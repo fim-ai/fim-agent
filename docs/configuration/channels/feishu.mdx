@@ -125,9 +125,18 @@ In the Feishu Open Platform console, open **Dev Tools → API Explorer**, find `
 
 In the Feishu desktop or mobile client, open the group → **Group settings → Group info**, and some versions expose a **Copy group ID** affordance. Availability depends on client version and admin-set permissions, so this is the least reliable fallback.
 
-### Card clicks don't reach FIM One
+### Card clicks don't reach FIM One (error 200340)
 
-The `card.action.trigger` event must be subscribed (step 3). If you enabled approval gates before subscribing, click **Resubscribe** in the Feishu console.
+If clicking **Approve** or **Reject** on a card produces `出错了，请稍后重试 code: 200340` in the Feishu client, work down this list:
+
+1. **`card.action.trigger` must be subscribed** (step 3). If you enabled approval gates before subscribing, click **Resubscribe** in the Feishu console.
+2. **Re-save the callback URL.** Feishu sometimes caches a stale subscription state that survives restarts — even when the URL verification handshake still passes, event routing can silently stop. Open the event subscription page in the Feishu open platform, re-enter the exact same callback URL, and click **Save / Verify** again. The URL will re-verify in one round-trip and live button clicks start flowing on the next press. This is the most common fix when the channel worked yesterday but stopped today with no code change.
+3. **Check the Event Debugger** in the Feishu open platform (`事件与回调 → 事件调试`). Each button press should appear there with the delivery status (`2xx` / `4xx` / `未投递`). If you see `未投递`, Feishu itself is rejecting the event before sending — usually a missing scope or a disabled subscription.
+4. **Scope check.** In `权限管理`, make sure the app has the `im:message` and any `card`-related scopes your tenant requires. A missing scope manifests as the subscription showing green in the UI but events silently dropped at delivery.
+
+### Approve/Reject buttons can be clicked repeatedly
+
+The webhook now returns a replacement card on the first decision — the buttons are removed and the card header flips to green (approved) or red (rejected). If you still see clickable buttons after the first click, your Feishu client may be showing a cached copy; re-open the chat and the decided card will render.
 
 ### One org, two Feishu channels
 

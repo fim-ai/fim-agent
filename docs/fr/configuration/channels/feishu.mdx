@@ -125,9 +125,18 @@ Dans la console Feishu Open Platform, ouvrez **Dev Tools → API Explorer**, tro
 
 Dans le client Feishu de bureau ou mobile, ouvrez le groupe → **Group settings → Group info**, et certaines versions exposent une affordance **Copy group ID**. La disponibilité dépend de la version du client et des permissions définies par l'administrateur, donc c'est la solution de secours la moins fiable.
 
-### Les clics sur les cartes n'atteignent pas FIM One
+### Les clics sur les cartes n'atteignent pas FIM One (erreur 200340)
 
-L'événement `card.action.trigger` doit être abonné (étape 3). Si vous avez activé les portes d'approbation avant de vous abonner, cliquez sur **Resubscribe** dans la console Feishu.
+Si cliquer sur **Approve** ou **Reject** sur une carte produit `出错了，请稍后重试 code: 200340` dans le client Feishu, parcourez cette liste :
+
+1. **`card.action.trigger` doit être abonné** (étape 3). Si vous avez activé les portes d'approbation avant de vous abonner, cliquez sur **Resubscribe** dans la console Feishu.
+2. **Re-enregistrez l'URL de rappel.** Feishu met parfois en cache un état d'abonnement obsolète qui persiste après les redémarrages — même si la poignée de main de vérification d'URL réussit toujours, l'acheminement des événements peut s'arrêter silencieusement. Ouvrez la page d'abonnement aux événements sur la plateforme ouverte Feishu, entrez à nouveau l'URL de rappel exacte, et cliquez sur **Save / Verify**. L'URL se re-vérifiera en un aller-retour et les clics de bouton en direct commenceront à circuler à la prochaine pression. C'est le correctif le plus courant quand le canal fonctionnait hier mais s'est arrêté aujourd'hui sans changement de code.
+3. **Vérifiez le débogueur d'événements** sur la plateforme ouverte Feishu (`事件与回调 → 事件调试`). Chaque appui sur un bouton devrait y apparaître avec le statut de livraison (`2xx` / `4xx` / `未投递`). Si vous voyez `未投递`, Feishu lui-même rejette l'événement avant d'envoyer — généralement une portée manquante ou un abonnement désactivé.
+4. **Vérification de la portée.** Dans `权限管理`, assurez-vous que l'application dispose des portées `im:message` et de toute portée liée aux `card` que votre locataire nécessite. Une portée manquante se manifeste par l'abonnement s'affichant en vert dans l'interface utilisateur mais les événements étant silencieusement supprimés à la livraison.
+
+### Les boutons Approuver/Rejeter peuvent être cliqués plusieurs fois
+
+Le webhook retourne maintenant une carte de remplacement à la première décision — les boutons sont supprimés et l'en-tête de la carte devient vert (approuvé) ou rouge (rejeté). Si vous voyez toujours des boutons cliquables après le premier clic, votre client Feishu affiche peut-être une copie en cache ; rouvrez le chat et la carte décidée s'affichera correctement.
 
 ### Une org, deux canaux Feishu
 

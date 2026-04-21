@@ -125,9 +125,18 @@ In der Feishu Open Platform Konsole öffnen Sie **Dev Tools → API Explorer**, 
 
 Im Feishu Desktop- oder Mobile-Client öffnen Sie die Gruppe → **Gruppeneinstellungen → Gruppeninfo**, und einige Versionen bieten eine **Copy group ID** Funktion. Die Verfügbarkeit hängt von der Client-Version und den vom Administrator festgelegten Berechtigungen ab, daher ist dies der am wenigsten zuverlässige Fallback.
 
-### Card-Klicks erreichen FIM One nicht
+### Card-Klicks erreichen FIM One nicht (Fehler 200340)
 
-Das `card.action.trigger`-Ereignis muss abonniert sein (Schritt 3). Wenn Sie Genehmigungsgates aktiviert haben, bevor Sie sich angemeldet haben, klicken Sie in der Feishu-Konsole auf **Resubscribe**.
+Wenn das Klicken auf **Genehmigen** oder **Ablehnen** auf einer Karte `出错了，请稍后重试 code: 200340` im Feishu-Client erzeugt, arbeiten Sie diese Liste ab:
+
+1. **`card.action.trigger` muss abonniert sein** (Schritt 3). Wenn Sie Genehmigungsgates aktiviert haben, bevor Sie abonniert haben, klicken Sie auf **Erneut abonnieren** in der Feishu-Konsole.
+2. **Speichern Sie die Callback-URL erneut.** Feishu speichert manchmal einen veralteten Abonnementzustand zwischen, der Neustarts übersteht — selbst wenn der URL-Verifizierungs-Handshake noch funktioniert, kann das Event-Routing stillschweigend stoppen. Öffnen Sie die Event-Abonnementseite in der Feishu Open Platform, geben Sie die exakte gleiche Callback-URL erneut ein, und klicken Sie erneut auf **Speichern / Verifizieren**. Die URL wird in einer Roundtrip erneut verifiziert und Live-Button-Klicks beginnen beim nächsten Drücken zu fließen. Dies ist die häufigste Lösung, wenn der Kanal gestern funktioniert hat, aber heute ohne Code-Änderung gestoppt hat.
+3. **Überprüfen Sie den Event Debugger** in der Feishu Open Platform (`事件与回调 → 事件调试`). Jeder Button-Druck sollte dort mit dem Lieferstatus (`2xx` / `4xx` / `未投递`) angezeigt werden. Wenn Sie `未投递` sehen, lehnt Feishu das Event selbst ab, bevor es gesendet wird — normalerweise ein fehlender Scope oder ein deaktiviertes Abonnement.
+4. **Scope-Überprüfung.** Stellen Sie in `权限管理` sicher, dass die App die Scopes `im:message` und alle `card`-bezogenen Scopes hat, die Ihr Mandant benötigt. Ein fehlender Scope manifestiert sich dadurch, dass das Abonnement in der UI grün angezeigt wird, aber Events bei der Lieferung stillschweigend gelöscht werden.
+
+### Approve/Reject-Schaltflächen können wiederholt angeklickt werden
+
+Der Webhook gibt jetzt beim ersten Entscheidungsfall eine Ersatzkarte zurück – die Schaltflächen werden entfernt und die Kartenüberschrift wechselt zu Grün (genehmigt) oder Rot (abgelehnt). Falls Sie nach dem ersten Klick immer noch anklickbare Schaltflächen sehen, zeigt Ihr Feishu-Client möglicherweise eine zwischengespeicherte Kopie an; öffnen Sie den Chat erneut und die entschiedene Karte wird korrekt angezeigt.
 
 ### Eine Organisation, zwei Feishu-Kanäle
 

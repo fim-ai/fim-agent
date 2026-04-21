@@ -22,7 +22,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_one.core.channels import build_channel
-from fim_one.core.channels.feishu import FeishuChannel, build_confirmation_card
+from fim_one.core.channels.feishu import (
+    FeishuChannel,
+    build_confirmation_card,
+    build_decided_card,
+)
 from fim_one.db import get_session
 from fim_one.web.auth import (
     get_current_user,
@@ -657,20 +661,36 @@ async def channel_callback(
         confirmation_id = event.get("confirmation_id")
         decision = event.get("action")
         if confirmation_id and decision in ("approve", "reject"):
-            await _record_decision(
+            open_id_raw = event.get("open_id")
+            open_id = str(open_id_raw) if open_id_raw else None
+            final_status, newly_applied, payload = await _record_decision(
                 db,
                 confirmation_id=str(confirmation_id),
                 decision=str(decision),
-                open_id=(
-                    str(event.get("open_id"))
-                    if event.get("open_id")
-                    else None
-                ),
+                open_id=open_id,
             )
-            response_body = _build_card_action_response(
-                decision=str(decision),
-                confirmation_id=str(confirmation_id),
-            )
+            if final_status is None:
+                # Confirmation row gone (deleted / expired sweep).  Return
+                # a benign toast so Feishu doesn't show 200340.
+                response_body = {
+                    "toast": {
+                        "type": "error",
+                        "content": "Confirmation request not found.",
+                    }
+                }
+            else:
+                tool_name: str | None = None
+                if isinstance(payload, dict):
+                    raw_tool = payload.get("tool_name")
+                    if raw_tool:
+                        tool_name = str(raw_tool)
+                response_body = _build_card_action_response(
+                    final_status=final_status,
+                    newly_applied=newly_applied,
+                    confirmation_id=str(confirmation_id),
+                    tool_name=tool_name,
+                    decided_by=open_id,
+                )
         else:
             # Unknown / malformed payload — still return a well-formed
             # toast so Feishu doesn't flash 200340.
@@ -690,27 +710,58 @@ async def channel_callback(
 
 
 def _build_card_action_response(
-    *, decision: str, confirmation_id: str
+    *,
+    final_status: str,
+    newly_applied: bool,
+    confirmation_id: str,
+    tool_name: str | None,
+    decided_by: str | None,
 ) -> dict[str, Any]:
     """Build the Feishu-compliant response for an Approve/Reject click.
 
-    Feishu expects a ``toast`` (user-visible banner) and, optionally, a
-    ``card`` stanza to replace the current card with an updated state.
-    Returning just ``{}`` triggers error 200340 on the clicker's client.
+    Returns a ``toast`` (user-visible banner) *plus* a ``card`` stanza
+    that replaces the original confirmation card with a stripped-down
+    "decided" card — that's how we prevent further clicks on the same
+    card.  Returning just ``{}`` triggers error 200340 on the clicker's
+    client.
+
+    ``newly_applied=False`` means the DB row was already in a terminal
+    state when this click arrived (duplicate/stale click).  In that
+    case we still update the card (defense in depth — the user's client
+    may have cached an old copy) but the toast wording reflects that
+    nothing changed.
     """
-    if decision == "approve":
-        return {
-            "toast": {
-                "type": "success",
-                "content": "Approval recorded.",
-            }
-        }
-    # reject
+    if final_status == "approved":
+        toast_type = "success"
+        toast_content = (
+            "Approval recorded."
+            if newly_applied
+            else "This request was already approved."
+        )
+    elif final_status == "rejected":
+        toast_type = "info"
+        toast_content = (
+            "Rejection recorded."
+            if newly_applied
+            else "This request was already rejected."
+        )
+    else:
+        toast_type = "warning"
+        toast_content = "This request is no longer active."
+
+    decided_card = build_decided_card(
+        confirmation_id=confirmation_id,
+        decision=final_status,
+        tool_name=tool_name,
+        decided_by=decided_by,
+        was_already_decided=not newly_applied,
+    )
     return {
-        "toast": {
-            "type": "info",
-            "content": "Rejection recorded.",
-        }
+        "toast": {"type": toast_type, "content": toast_content},
+        "card": {
+            "type": "raw",
+            "data": decided_card,
+        },
     }
 
 
@@ -720,8 +771,22 @@ async def _record_decision(
     confirmation_id: str,
     decision: str,
     open_id: str | None,
-) -> None:
-    """Flip the ConfirmationRequest status if still pending."""
+) -> tuple[str | None, bool, dict[str, Any] | None]:
+    """Flip the ConfirmationRequest status if still pending.
+
+    Returns a tuple ``(final_status, newly_applied, payload)``:
+
+    * ``(None, False, None)`` — confirmation row not found.
+    * ``(status, True, payload)`` — transitioned from ``pending`` to
+      ``status`` as a result of this call.
+    * ``(status, False, payload)`` — row was already in ``status`` when
+      we looked it up; this call was a no-op (duplicate click).
+
+    ``payload`` is the row's JSON payload (e.g., ``tool_name``,
+    ``tool_args``), cached at creation time — returned so the caller can
+    render an informative "decided" card back to Feishu without doing a
+    second query.
+    """
     row = (
         await db.execute(
             select(ConfirmationRequest).where(
@@ -730,14 +795,24 @@ async def _record_decision(
         )
     ).scalar_one_or_none()
     if row is None:
-        return
+        return (None, False, None)
+
+    # Snapshot payload before commit so we can return it after the
+    # row's attributes are expired.
+    payload_snapshot: dict[str, Any] | None = (
+        dict(row.payload) if isinstance(row.payload, dict) else None
+    )
+
     if row.status != "pending":
         # Already decided — ignore duplicate clicks.
-        return
+        return (row.status, False, payload_snapshot)
+
     row.status = "approved" if decision == "approve" else "rejected"
     row.responded_at = datetime.now(UTC)
     row.responded_by_open_id = open_id
+    new_status = row.status
     await db.commit()
+    return (new_status, True, payload_snapshot)
 
 
 __all__ = ["router"]

@@ -537,6 +537,63 @@ def build_confirmation_card(
     }
 
 
+def build_decided_card(
+    *,
+    confirmation_id: str,
+    decision: str,
+    tool_name: str | None = None,
+    decided_by: str | None = None,
+    was_already_decided: bool = False,
+) -> dict[str, Any]:
+    """Render a post-decision v2.0 card with buttons stripped.
+
+    Returned from the ``/callback`` webhook inside
+    ``{"card": {"type": "raw", "data": <this>}}``.  Feishu replaces the
+    original confirmation card in the chat with this one, which is how
+    we prevent further clicks on Approve/Reject — the buttons simply
+    no longer exist after the first decision.
+
+    ``decision`` is one of ``approved`` / ``rejected`` / ``expired``.
+    """
+    if decision == "approved":
+        template = "green"
+        heading = "Approved"
+    elif decision == "rejected":
+        template = "red"
+        heading = "Rejected"
+    else:
+        template = "grey"
+        heading = "Expired"
+
+    lines: list[str] = []
+    if tool_name:
+        lines.append(f"**Tool** · {tool_name}")
+    if decided_by:
+        lines.append(f"**Decided by** · {decided_by}")
+    if was_already_decided:
+        lines.append(
+            "_This request had already been finalized; the new click "
+            "was ignored._"
+        )
+    lines.append(f"**Request ID** · `{confirmation_id}`")
+
+    return {
+        "schema": "2.0",
+        "config": {"update_multi": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": heading},
+            "template": template,
+        },
+        "body": {
+            "direction": "vertical",
+            "padding": "12px 12px 12px 12px",
+            "elements": [
+                {"tag": "markdown", "content": "\n\n".join(lines)},
+            ],
+        },
+    }
+
+
 def _constant_time_eq(a: str, b: str) -> bool:
     """Constant-time string comparison (prevents timing attacks)."""
     if len(a) != len(b):
@@ -560,6 +617,7 @@ def _constant_time_eq(a: str, b: str) -> bool:
 __all__ = [
     "FeishuChannel",
     "build_confirmation_card",
+    "build_decided_card",
     "DEFAULT_BASE_URL",
     "TOKEN_CACHE_TTL_SECONDS",
 ]
