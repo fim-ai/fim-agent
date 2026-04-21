@@ -1199,41 +1199,14 @@ async def _resolve_tools(
                                 tools.register(t)
                             db_tool_count += len(db_tools)
                     else:
-                        # API connector — resolve per-user credentials
-                        from fim_one.core.security.encryption import decrypt_credential
-                        from fim_one.web.models.connector_credential import (
-                            ConnectorCredential as ConnectorCredentialModel,
+                        # API connector — resolve per-user / default credentials
+                        from fim_one.core.security.connector_credentials import (
+                            resolve_connector_credentials,
                         )
 
-                        resolved_creds: dict[str, Any] = {}
-                        _calling_user_id = user_id
-                        _allow_fallback = getattr(conn, "allow_fallback", True)
-
-                        if _calling_user_id:
-                            # Try user-specific credential first
-                            _user_cred_result = await session.execute(
-                                select(ConnectorCredentialModel).where(
-                                    ConnectorCredentialModel.connector_id == conn.id,
-                                    ConnectorCredentialModel.user_id == _calling_user_id,
-                                )
-                            )
-                            _user_cred_row = _user_cred_result.scalar_one_or_none()
-                            if _user_cred_row:
-                                resolved_creds = decrypt_credential(_user_cred_row.credentials_blob)
-
-                        if not resolved_creds and _allow_fallback:
-                            # Fall back to default (owner) credential
-                            _default_cred_result = await session.execute(
-                                select(ConnectorCredentialModel).where(
-                                    ConnectorCredentialModel.connector_id == conn.id,
-                                    ConnectorCredentialModel.user_id.is_(None),
-                                )
-                            )
-                            _default_cred_row = _default_cred_result.scalar_one_or_none()
-                            if _default_cred_row:
-                                resolved_creds = decrypt_credential(
-                                    _default_cred_row.credentials_blob
-                                )
+                        resolved_creds: dict[str, Any] = await resolve_connector_credentials(
+                            conn, user_id, session
+                        )
 
                         if _connector_tool_mode == "progressive":
                             # Collect for batch meta-tool creation

@@ -893,21 +893,16 @@ class ConnectorExecutor:
                         duration_ms=_ms_since(t0),
                     )
 
-                # Decrypt auth credentials if present
-                auth_credentials: dict[str, str] = {}
-                from fim_one.web.models.connector_credential import ConnectorCredential
-
-                cred_result = await db.execute(
-                    select(ConnectorCredential).where(
-                        ConnectorCredential.connector_id == connector_id,
-                        ConnectorCredential.user_id == context.user_id,
-                    )
+                # Resolve auth credentials via the shared helper so workflow
+                # and chat paths share identical lookup semantics (per-user
+                # override, owner-exempt default fallback, etc).
+                from fim_one.core.security.connector_credentials import (
+                    resolve_connector_credentials,
                 )
-                cred = cred_result.scalar_one_or_none()
-                if cred:
-                    from fim_one.core.security.encryption import decrypt_credential
 
-                    auth_credentials = decrypt_credential(cred.credentials_blob)
+                auth_credentials: dict[str, Any] = await resolve_connector_credentials(
+                    connector, context.user_id, db
+                )
 
                 adapter = ConnectorToolAdapter(
                     connector_name=connector.name,
