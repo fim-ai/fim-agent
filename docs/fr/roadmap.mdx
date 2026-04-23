@@ -63,6 +63,14 @@ flowchart LR
 | Land | Copilot | Intégrer dans un système, prouver la valeur dans leur interface utilisateur |
 | Expand | Copilot → Hub | Déployer sur plus de systèmes ; Hub les agrège |
 
+## Problèmes connus
+
+Bugs tracés qui sont reproductibles en production mais pas encore corrigés. Chaque entrée nomme le symptôme, la zone de surface suspecte et la solution de contournement (le cas échéant). Les éléments passent à une section de version une fois qu'un correctif est défini et planifié.
+
+- **L'éditeur d'agent affiche un avertissement de modifications non enregistrées sans aucune modification.** L'ouverture d'un agent existant via `/agents/[id]` et le clic immédiat sur le bouton retour déclenchent la boîte de dialogue « Modifications non enregistrées » même si aucun champ n'a été modifié. La vérification de modification compare 20+ champs par rapport à la charge utile de l'agent chargée, donc une asymétrie de défaut entre l'initialisation d'état et la comparaison de modification suffit à causer une discordance fantôme — la suspicion actuelle porte sur l'un des champs imbriqués `model_config_json` / notification / approbation-routage, possiblement à partir de la normalisation `undefined` vs `null` vs `""`. Se reproduit particulièrement sur les agents limités à l'organisation. Solution de contournement : rejeter la boîte de dialogue (`Discard and leave`) — aucune perte de données puisque rien n'a réellement changé. Tentative de correctif (`cb40c86a`) a supprimé un scintillement de badge orphelin connexe sur les sélecteurs de ressources mais n'a pas résolu ce problème.
+
+- **L'enregistrement d'une modification d'agent peut échouer avec `Input should be 'initiator', 'agent_owner' or 'org_members'`.** Pydantic rejette le champ `confirmation_approver_scope` à la limite PUT `/api/agents/{id}` même si chaque valeur stockée dans la base de données est l'un des trois littéraux valides. Suspicion : le cast frontend `as "initiator" | "agent_owner" | "org_members"` est une promesse de compilation uniquement, donc une chaîne héritée ou inattendue au moment de l'exécution (possiblement à partir d'un modèle, d'une importation ou d'une migration plus ancienne) peut passer par `setConfirmationApproverScope` et être renvoyée verbatim. Solution de contournement : re-sélectionnez explicitement une valeur dans la liste déroulante Approbation → Étendue de l'approbateur avant d'enregistrer.
+
 ## Versions Livrées
 
 ### v0.1 (2026-02-22) — MVP: ReAct + DAG Planner

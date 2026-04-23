@@ -63,6 +63,14 @@ flowchart LR
 | Land | Copilot | Embed into one system, prove value inside their UI |
 | Expand | Copilot → Hub | Roll out to more systems; Hub aggregates them |
 
+## Known Issues
+
+Tracked bugs that are reproducible in production but not yet fixed. Each entry names the symptom, the suspected surface area, and the workaround (if any). Items move to a version section once a fix is scoped and scheduled.
+
+- **Agent editor shows unsaved-changes warning on entry without any edit.** Opening an existing agent via `/agents/[id]` and immediately clicking back triggers the "Unsaved changes" dialog even when no field was touched. The dirty check diffs 20+ fields against the loaded agent payload, so one asymmetric default between state init and dirty compare is enough to cause a phantom mismatch — current suspicion is one of the nested `model_config_json` / notification / approval-routing fields, possibly from `undefined` vs `null` vs `""` normalization. Reproduces on org-scoped agents in particular. Workaround: dismiss the dialog (`Discard and leave`) — no data loss since nothing actually changed. Attempted fix (`cb40c86a`) removed a related orphan-badge flicker on the resource pickers but did not resolve this.
+
+- **Saving an agent edit can fail with `Input should be 'initiator', 'agent_owner' or 'org_members'`.** Pydantic rejects the `confirmation_approver_scope` field at the `/api/agents/{id}` PUT boundary even though every stored value in the database is one of the three valid literals. Suspicion: the frontend `as "initiator" | "agent_owner" | "org_members"` cast is a compile-time-only promise, so a legacy or unexpected runtime string (possibly from a template, import, or older migration) can slip through `setConfirmationApproverScope` and be echoed back verbatim. Workaround: explicitly re-select a value in the Approval → Approver Scope dropdown before saving.
+
 ## Shipped Versions
 
 ### v0.1 (2026-02-22) — MVP: ReAct + DAG Planner

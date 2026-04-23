@@ -63,6 +63,14 @@ flowchart LR
 | Land | Copilot | In ein System einbetten, Wert in ihrer UI nachweisen |
 | Expand | Copilot → Hub | Auf mehr Systeme ausrollen; Hub aggregiert sie |
 
+## Bekannte Probleme
+
+Nachverfolgter Fehler, die in der Produktion reproduzierbar sind, aber noch nicht behoben wurden. Jeder Eintrag nennt das Symptom, den vermuteten Bereich und die Umgehungslösung (falls vorhanden). Elemente werden in einen Versionsabschnitt verschoben, sobald eine Behebung definiert und geplant ist.
+
+- **Agent-Editor zeigt Warnung zu ungespeicherten Änderungen bei Eintrag ohne Bearbeitung an.** Das Öffnen eines vorhandenen Agenten über `/agents/[id]` und sofortiges Zurückklicken löst den Dialog „Ungespeicherte Änderungen" aus, auch wenn kein Feld berührt wurde. Die Dirty-Überprüfung vergleicht 20+ Felder mit der geladenen Agent-Payload, daher reicht eine asymmetrische Standardeinstellung zwischen State-Initialisierung und Dirty-Vergleich aus, um einen Phantom-Mismatch zu verursachen — aktuelle Vermutung ist eines der verschachtelten `model_config_json` / Benachrichtigungs- / Genehmigungsrouting-Felder, möglicherweise von `undefined` vs `null` vs `""` Normalisierung. Reproduzierbar besonders bei organisationsgebundenen Agenten. Umgehungslösung: Dialog verwerfen (`Discard and leave`) — kein Datenverlust, da sich tatsächlich nichts geändert hat. Versuchte Behebung (`cb40c86a`) entfernte ein verwandtes Flackern des Waisenabzeichens in den Ressourcen-Pickern, löste dies aber nicht.
+
+- **Das Speichern einer Agent-Bearbeitung kann mit `Input should be 'initiator', 'agent_owner' or 'org_members'` fehlschlagen.** Pydantic lehnt das Feld `confirmation_approver_scope` an der Grenze `/api/agents/{id}` PUT ab, obwohl jeder gespeicherte Wert in der Datenbank eines der drei gültigen Literale ist. Vermutung: Die Frontend-Umwandlung `as "initiator" | "agent_owner" | "org_members"` ist nur ein Compile-Zeit-Versprechen, daher kann ein Legacy- oder unerwarteter Runtime-String (möglicherweise aus einer Vorlage, einem Import oder einer älteren Migration) durch `setConfirmationApproverScope` durchschlüpfen und wörtlich zurückgegeben werden. Umgehungslösung: Wählen Sie explizit einen Wert in der Dropdown-Liste Genehmigung → Genehmiger-Bereich aus, bevor Sie speichern.
+
 ## Ausgelieferte Versionen
 
 ### v0.1 (2026-02-22) — MVP: ReAct + DAG Planner
