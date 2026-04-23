@@ -10,6 +10,10 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ## [Unreleased]
 
+### Behoben
+
+- **Agent-Einstellungen: gebundene Ressourcen flackern beim Eintrag nicht mehr als "(gelöscht)".** Die KB- / Connector- / MCP-Server-Picker leiteten das Waisenkennzeichen synchron von `selected − available` ab, sodass jeder Agent, dessen Inventarlisten-Abruf langsamer war als der Agent-Abruf, kurzzeitig jede verknüpfte Ressource als gelöscht markierte, bevor es zum korrekten Status zurücksprang — besonders auffällig bei Org-Agenten mit mehreren Connectoren. Das Waisenkennzeichen wartet nun darauf, dass jeder Inventarabruf abgeschlossen ist, bevor es gerendert wird.
+
 ### Geändert
 
 - **Übersetzungsautorität verschoben von Locale-Dateien zur Glossar**: Übersetzungsregeln befinden sich jetzt in [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md) — eine einzige Quelle der Wahrheit, die in jeden LLM-Übersetzungsaufruf (JSON, MDX, README) geladen wird. Der Pre-Commit-Hook lehnt jetzt bedingungslos manuelle Änderungen an generierten Locale-Dateien ab (wodurch die vorherige `ALLOW_LOCALE_EDIT=1`-Außerkraftsetzung entfernt wird), da verstreute Änderungen pro Locale stillschweigend abweichen und bei vollständiger Neuübersetzung überschrieben werden. Um eine Fehlübersetzung zu beheben, bearbeiten Sie die Glossar (eine permanente Regel, die auf alle fünf Locales angewendet wird) und generieren Sie betroffene Dateien mit `--force` neu. Inline-Glossar-Regeln, die zuvor in drei Systemaufforderungen eingebettet waren, wurden in die externe Glossar-Datei konsolidiert.
