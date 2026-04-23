@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Agent settings: bound resources no longer flicker as "(已删除)" on entry.** The KB / connector / MCP-server pickers used to derive the orphan badge synchronously from `selected − available`, so any agent whose inventory list fetch was slower than the agent fetch would briefly mark every linked resource as deleted before snapping back to the correct state — most noticeable for org agents with multiple connectors. The orphan badge now waits for each inventory fetch to settle before rendering.
 - **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
 - **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.
+- **Self-hosted deploys no longer fail intermittently with `container name already in use`.** A new idempotent `./deploy.sh` wrapper sweeps hash-prefixed zombie containers and DooD sandbox children before `docker compose up`, so repeat deploys stop colliding on the sandbox service name.
 
 ### Changed
 

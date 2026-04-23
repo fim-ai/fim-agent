@@ -14,11 +14,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 - **Utilisateurs administrateurs : quota illimité par utilisateur + colonne Registered.** Laisser le champ quota vide hérite désormais de la limite globale ; le définir à `0` accorde à l'utilisateur un usage illimité. Auparavant, les deux états s'effondraient dans le même état, donc accorder un accès illimité individuel nécessitait une édition directe de la base de données. La table des utilisateurs gagne également une colonne Registered pour les audits d'intégration.
 
-### Corrections
+### Corrigé
 
-- **Paramètres d'agent : les ressources liées ne scintillent plus en tant que "(已删除)" à l'entrée.** Les sélecteurs KB / connecteur / serveur MCP utilisaient auparavant le badge orphelin de manière synchrone à partir de `selected − available`, donc tout agent dont la récupération de liste d'inventaire était plus lente que la récupération d'agent marquait brièvement chaque ressource liée comme supprimée avant de revenir à l'état correct — particulièrement visible pour les agents org avec plusieurs connecteurs. Le badge orphelin attend maintenant que chaque récupération d'inventaire se stabilise avant le rendu.
-- **Les toasts suivent maintenant le thème clair/sombre.** Le grille-pain racine était codé en dur en sombre indépendamment de la préférence de l'utilisateur.
-- **La ventilation de l'utilisation par agent ne duplique plus les lignes "Direct Chat".** Les conversations liées à des agents supprimés produisaient auparavant une ligne par `agent_id` orphelin ; elles se regroupent maintenant en une seule ligne.
+- **Les paramètres d'agent : les ressources liées ne scintillent plus en tant que « (已删除) » à l'entrée.** Les sélecteurs KB / connecteur / serveur MCP dérivaient autrefois le badge orphelin de manière synchrone à partir de `selected − available`, donc tout agent dont la récupération de la liste d'inventaire était plus lente que la récupération de l'agent marquait brièvement chaque ressource liée comme supprimée avant de revenir à l'état correct — particulièrement visible pour les agents d'organisation avec plusieurs connecteurs. Le badge orphelin attend désormais que chaque récupération d'inventaire se stabilise avant de s'afficher.
+- **Les toasts suivent désormais le thème clair/sombre.** Le toaster racine était codé en dur en mode sombre indépendamment de la préférence de l'utilisateur.
+- **La répartition de l'utilisation par agent ne duplique plus les lignes « Direct Chat ».** Les conversations liées à des agents supprimés produisaient autrefois une ligne par `agent_id` orphelin ; elles se regroupent désormais en une seule ligne.
+- **Les déploiements auto-hébergés ne échouent plus par intermittence avec `container name already in use`.** Un nouveau wrapper `./deploy.sh` idempotent nettoie les conteneurs zombies préfixés par un hash et les enfants du bac à sable DooD avant `docker compose up`, de sorte que les redéploiements répétés cessent de créer des collisions sur le nom du service de bac à sable.
 
 ### Modifié
 

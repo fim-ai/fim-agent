@@ -14,11 +14,12 @@ description: "FIM Oneへの全ての注目すべき変更。"
 
 - **管理者ユーザー: ユーザーごとの無制限クォータ + 登録列。** クォータフィールドを空のままにするとグローバルリミットを継承し、`0`に設定するとユーザーに無制限の使用を許可します。以前は両方が同じ状態に折りたたまれていたため、個別に無制限アクセスを付与するにはDBを直接編集する必要がありました。ユーザーテーブルにはオンボーディング監査用の登録列も追加されます。
 
-### 修正
+### Fixed
 
-- **エージェント設定：バウンドリソースが入力時に「(已删除)」としてちらつかなくなりました。** KB / コネクタ / MCP サーバーピッカーは、孤立バッジを `selected − available` から同期的に導出していたため、インベントリリスト取得がエージェント取得より遅いエージェントは、リンクされたすべてのリソースが削除されたものとして一時的にマークされてから正しい状態にスナップバックしていました——特に複数のコネクタを持つ組織エージェントで顕著でした。孤立バッジは、各インベントリ取得が完了してからレンダリングされるようになりました。
-- **トーストがライト/ダークテーマに従うようになりました。** ルートトースターはユーザー設定に関わらずダークにハードコードされていました。
-- **エージェント別の使用状況の内訳が「Direct Chat」行を重複させなくなりました。** 削除されたエージェントに関連付けられた会話は、孤立した `agent_id` ごとに 1 行を生成していましたが、現在は 1 行に統合されます。
+- **Agent settings: bound resources no longer flicker as "(已删除)" on entry.** The KB / connector / MCP-server pickers used to derive the orphan badge synchronously from `selected − available`, so any agent whose inventory list fetch was slower than the agent fetch would briefly mark every linked resource as deleted before snapping back to the correct state — most noticeable for org agents with multiple connectors. The orphan badge now waits for each inventory fetch to settle before rendering.
+- **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
+- **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.
+- **Self-hosted deploys no longer fail intermittently with `container name already in use`.** A new idempotent `./deploy.sh` wrapper sweeps hash-prefixed zombie containers and DooD sandbox children before `docker compose up`, so repeat deploys stop colliding on the sandbox service name.
 
 ### 変更
 

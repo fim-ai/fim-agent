@@ -16,9 +16,10 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ### Behoben
 
-- **Agent-Einstellungen: gebundene Ressourcen flackern nicht mehr als "(已删除)" beim Eintritt.** Die KB- / Connector- / MCP-Server-Picker leiteten das Waisenkennzeichen synchron von `selected − available` ab, sodass jeder Agent, dessen Bestandsliste langsamer abgerufen wurde als der Agent selbst, kurzzeitig jede verknüpfte Ressource als gelöscht markierte, bevor sie zum korrekten Status zurücksprangen — am deutlichsten bei Org-Agenten mit mehreren Connectoren. Das Waisenkennzeichen wartet nun, bis jeder Bestandsabruf abgeschlossen ist, bevor es gerendert wird.
-- **Toasts folgen nun dem Hell-/Dunkel-Design.** Der Root-Toaster war unabhängig von der Benutzereinstellung auf Dunkel hartcodiert.
-- **Nutzung nach Agent-Aufschlüsselung dupliziert nicht mehr "Direct Chat"-Zeilen.** Unterhaltungen, die an gelöschte Agenten gebunden waren, erzeugten eine Zeile pro verwaister `agent_id`; sie werden nun in einer einzelnen Zeile zusammengefasst.
+- **Agent-Einstellungen: gebundene Ressourcen flackern nicht mehr als "(已删除)" beim Eintrag.** Die KB- / Connector- / MCP-Server-Picker leiteten das Waisenkennzeichen synchron von `selected − available` ab, sodass jeder Agent, dessen Bestandslistenabruf langsamer war als der Agent-Abruf, kurzzeitig jede verknüpfte Ressource als gelöscht markierte, bevor es zum korrekten Status zurücksprang — besonders auffällig bei Org-Agenten mit mehreren Connectoren. Das Waisenkennzeichen wartet jetzt, bis jeder Bestandslistenabruf abgeschlossen ist, bevor es gerendert wird.
+- **Toasts folgen jetzt dem Light/Dark-Theme.** Der Root-Toaster war unabhängig von der Benutzereinstellung auf Dark hartcodiert.
+- **Nutzungsaufschlüsselung nach Agent dupliziert nicht mehr "Direct Chat"-Zeilen.** Konversationen, die an gelöschte Agenten gebunden waren, erzeugten früher eine Zeile pro verwaister `agent_id`; sie werden jetzt zu einer einzelnen Zeile zusammengefasst.
+- **Self-Hosted-Bereitstellungen schlagen nicht mehr intermittierend mit `container name already in use` fehl.** Ein neuer idempotenter `./deploy.sh`-Wrapper räumt Hash-Präfix-Zombie-Container und DooD-Sandbox-Kinder vor `docker compose up` auf, sodass wiederholte Bereitstellungen nicht mehr bei der Sandbox-Service-Bezeichnung kollidieren.
 
 ### Geändert
 
