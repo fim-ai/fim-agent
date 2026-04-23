@@ -1384,35 +1384,6 @@ function PlaygroundContent({
 
   const retryQuery = wasStopped ? pendingQuery : refreshStoppedQuery
 
-  // Retry path dedup: runWithQuery() unconditionally calls selectConversation()
-  // which reloads the stopped turn's orphan user message, so during retry
-  // both history rendering and pendingQuery carry the same text. Hide
-  // pendingQuery only when a history source is about to render the same
-  // content — otherwise (e.g. live-streaming phase when the fallback is
-  // gated off by hasLiveMessages) pendingQuery must stay visible or the
-  // query disappears entirely.
-  const pendingQueryShadowsHistory = useMemo(() => {
-    if (!pendingQuery) return false
-    // Case A: allHistoryTurns is populated — HistoryTurn renders userContent.
-    if (allHistoryTurns && allHistoryTurns.length > 0) {
-      const lastTurn = allHistoryTurns[allHistoryTurns.length - 1]
-      return lastTurn?.user?.content === pendingQuery
-    }
-    // Case B: allHistoryTurns is null — fallback HistoryMessages renders,
-    // but only while !hasLiveMessages. Once SSE streams, the fallback is
-    // gated off and pendingQuery is the sole rendering source.
-    if (hasLiveMessages) return false
-    const msgs = activeConversation?.messages
-    if (!msgs?.length) return false
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i]
-      if (m.role === "user" && m.message_type !== "inject") {
-        return m.content === pendingQuery
-      }
-    }
-    return false
-  }, [pendingQuery, allHistoryTurns, hasLiveMessages, activeConversation?.messages])
-
   return (
     <>
     <div
@@ -1533,7 +1504,7 @@ function PlaygroundContent({
                     />
                   )}
                   {/* Current turn: user message + live output */}
-                  {pendingQuery && !pendingQueryShadowsHistory && (
+                  {pendingQuery && (
                     <div className={cn("flex gap-3", !pendingClipMetadata && !pendingFilesMetadata && "items-center")}>
                       <UserAvatar avatar={user?.avatar} userId={user?.id} fallback={userFallback} className="h-7 w-7 shrink-0" iconClassName="h-3.5 w-3.5" />
                       <div className="flex-1">
