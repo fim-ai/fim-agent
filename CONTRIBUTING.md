@@ -250,7 +250,9 @@ pnpm build
 
 ```bash
 cp example.env .env
-# Edit .env with your API keys (at minimum: LLM_API_KEY, LLM_MODEL)
+# LLM_API_KEY is only needed if you run the backend locally or want the
+# pre-commit hook to preview translations — contributors who only touch
+# frontend/docs and let CI handle translation can skip it.
 ```
 
 ### Git Hooks (required — run once after clone)
