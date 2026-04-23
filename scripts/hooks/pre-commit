@@ -8,6 +8,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 # Used to build the exclusion list for docs locale subdirs.
 # ---------------------------------------------------------------------------
 LOCALE_EXCLUDE_PATTERN=""
+LOCALE_GUARD_PATTERN=""
 if [ -d "$ROOT/frontend/messages" ]; then
   for locale_dir in "$ROOT/frontend/messages"/*/; do
     locale_name="$(basename "$locale_dir")"
@@ -17,8 +18,44 @@ if [ -d "$ROOT/frontend/messages" ]; then
       else
         LOCALE_EXCLUDE_PATTERN="${LOCALE_EXCLUDE_PATTERN}|^docs/${locale_name}/"
       fi
+      # Broader pattern covering all three auto-generated locale surfaces
+      for pat in "^docs/${locale_name}/" "^frontend/messages/${locale_name}/" "^README\.${locale_name}\.md$"; do
+        if [ -z "$LOCALE_GUARD_PATTERN" ]; then
+          LOCALE_GUARD_PATTERN="$pat"
+        else
+          LOCALE_GUARD_PATTERN="${LOCALE_GUARD_PATTERN}|${pat}"
+        fi
+      done
     fi
   done
+fi
+
+# ---------------------------------------------------------------------------
+# Locale-edit guard: refuse manual edits to auto-generated locale files
+# (messages/{locale}/, docs/{locale}/, README.{locale}.md). These are
+# regenerated from EN sources by scripts/translate.py — manual edits get
+# silently overwritten and cause translation drift.
+#
+# Emergency override: ALLOW_LOCALE_EDIT=1 git commit ...
+# ---------------------------------------------------------------------------
+if [ "${ALLOW_LOCALE_EDIT:-0}" != "1" ] && [ -n "$LOCALE_GUARD_PATTERN" ]; then
+  FORBIDDEN_LOCALE=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E "$LOCALE_GUARD_PATTERN" || true)
+  if [ -n "$FORBIDDEN_LOCALE" ]; then
+    echo "" >&2
+    echo "ERROR: commit touches auto-generated locale files:" >&2
+    echo "$FORBIDDEN_LOCALE" | sed 's/^/  /' >&2
+    echo "" >&2
+    echo "These files are regenerated from EN sources. Edit the source instead:" >&2
+    echo "  frontend/messages/en/*.json   (UI strings)" >&2
+    echo "  docs/*.mdx                     (docs — root level only)" >&2
+    echo "  README.md" >&2
+    echo "" >&2
+    echo "Emergency override (for legitimate manual translation fixes):" >&2
+    echo "  ALLOW_LOCALE_EDIT=1 git commit ..." >&2
+    echo "" >&2
+    exit 1
+  fi
 fi
 
 # ---------------------------------------------------------------------------

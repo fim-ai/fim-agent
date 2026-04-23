@@ -150,6 +150,33 @@ Bonus points:
 
 ## Code Contributions
 
+> **⚠️ Before you write a single line of code — read [`CLAUDE.md`](CLAUDE.md).**
+>
+> It is the canonical spec for how this repo expects code to be written: commit scope, frontend UI rules (no native `confirm`, shadcn-only, focus-ring conventions, admin-table dropdown pattern), two-tier error feedback, dirty-state guards, i18n workflow, Alembic dual-track (SQLite/PG), user-deletion file cleanup, and the post-commit doc sync checklist.
+>
+> `CLAUDE.md` was originally written for [Claude Code](https://claude.com/claude-code), but every rule applies equally to human contributors — the AI just enforces them automatically. If you are hand-coding, you are responsible for following them yourself. PRs that ignore these rules (especially the UI conventions and the locale edit guard below) will be sent back for rework.
+>
+> ### i18n: you don't need an LLM key
+>
+> The pre-commit hook auto-translates EN → ZH/JA/KO/DE/FR when you commit changes to `messages/en/`, `docs/*.mdx`, or `README.md`. Two paths exist:
+>
+> - **If you set `LLM_API_KEY` in `.env`** — translation runs locally on commit, so you can preview the ZH/JA/... output before pushing. Any fast, cheap LLM works (DeepSeek, GPT-4o-mini, Claude Haiku, etc.); see `example.env`.
+> - **If you don't** — the hook detects the missing key, skips translation silently, and your commit still goes through with EN changes only. **After your PR is merged, a GitHub Actions workflow automatically generates the missing translations on `master`.** No action required from you.
+>
+> Either way, locale files end up correct on `master`. Configuring the key is purely a convenience for previewing translations locally.
+>
+> ### Never manually edit translated files
+>
+> `messages/{zh,ja,ko,de,fr}/`, `docs/{zh,ja,ko,de,fr}/`, and `README.{zh,ja,ko,de,fr}.md` are regenerated from English sources — manual edits get silently overwritten. The pre-commit hook **refuses commits** that touch these files and will show you an error.
+>
+> If you really need to fix a bad translation by hand (rare, e.g. wrong domain terminology the LLM can't infer), override once with:
+>
+> ```bash
+> ALLOW_LOCALE_EDIT=1 git commit ...
+> ```
+>
+> and mention in the PR description what you fixed and why.
+
 ### What's Welcome
 
 | Type                 | Examples                                            |
@@ -232,9 +259,11 @@ cp example.env .env
 bash scripts/setup-hooks.sh
 ```
 
-This installs a pre-commit hook that **auto-translates i18n strings** whenever you change English source files. You only need to edit `messages/en/`, `docs/*.mdx`, or `README.md` — other locales (ZH, JA, KO, DE, FR) are generated automatically on commit using the project's Fast LLM.
+This installs a pre-commit hook that **auto-translates i18n strings** whenever you change English source files. You only need to edit `messages/en/`, `docs/*.mdx`, or `README.md` — other locales (ZH, JA, KO, DE, FR) are generated automatically.
 
-> The hook requires `LLM_API_KEY` in your `.env`. If you don't have one, the hook will warn and skip translation — your commit still goes through.
+> **You do not need an LLM API key to contribute.** If `LLM_API_KEY` is set in your `.env`, the pre-commit hook translates locally so you can preview the output. If it isn't, the hook skips translation and a [GitHub Actions workflow](.github/workflows/i18n-sync.yml) generates the missing locale files on `master` after your PR is merged. Either path produces the same final state.
+>
+> The hook also refuses commits that manually edit generated locale files — see the [i18n section](#i18n-you-dont-need-an-llm-key) above for the override.
 
 ## Project Structure
 

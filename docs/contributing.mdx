@@ -14,11 +14,15 @@ Prerequisites: Python 3.11+, [uv](https://docs.astral.sh/uv/), Node.js 18+, pnpm
 
 ```bash
 git clone https://github.com/fim-ai/fim-one.git && cd fim-one
-cp example.env .env                        # set LLM_API_KEY at minimum
+cp example.env .env                        # LLM_API_KEY is optional for contributors
 uv sync --all-extras                       # Python dependencies
 cd frontend && pnpm install && cd ..       # frontend dependencies
 bash scripts/setup-hooks.sh                # pre-commit hooks (required)
 ```
+
+<Note>
+  `LLM_API_KEY` is only required to run the backend locally or to preview auto-translated locale output on commit. Contributors without a key can still commit EN changes — a GitHub Actions workflow translates on `master` after PR merge. See [i18n](#i18n) below.
+</Note>
 
 Verify everything works:
 
@@ -96,8 +100,9 @@ The hook runs automatically on every commit. It only processes staged files rele
 
 | Order | Step | Trigger | What it does |
 |---|---|---|---|
+| 0 | Locale-edit guard | Any staged file under `messages/{locale}/`, `docs/{locale}/`, or `README.{locale}.md` | Aborts the commit. Override: `ALLOW_LOCALE_EDIT=1 git commit ...` |
 | 1 | OpenAPI spec regen | `src/fim_one/web/**/*.py` changed | Re-exports `docs/openapi.json` from FastAPI routes |
-| 2 | i18n translation | `messages/en/*.json`, `docs/*.mdx`, or `README.md` changed | Translates new/changed keys into all target locales |
+| 2 | i18n translation | `messages/en/*.json`, `docs/*.mdx`, or `README.md` changed (needs local `LLM_API_KEY`, else CI handles it after merge) | Translates new/changed keys into all target locales |
 | 3 | mypy type checking | Any `src/fim_one/**/*.py` changed | Runs mypy with full import chain on staged files |
 | 4 | MDX validation | Any `.mdx` file staged | Validates JSX/MDX syntax before it reaches Mintlify |
 
@@ -115,11 +120,18 @@ FIM One supports 6 locales (EN, ZH, JA, KO, DE, FR). Translations are fully auto
 - `docs/*.mdx` (root level, not locale subdirs) -- documentation
 - `README.md` -- project readme
 
-Other locale files (`messages/zh/`, `docs/zh/`, `README.zh.md`, etc.) are **auto-generated** by the pre-commit hook. Never edit them manually.
+Other locale files (`messages/zh/`, `docs/zh/`, `README.zh.md`, etc.) are **auto-generated** and the pre-commit hook refuses commits that manually edit them. If you need to hand-fix a translation, override once with `ALLOW_LOCALE_EDIT=1 git commit ...` and note the reason in your PR.
 
-**Adding a new i18n namespace:** Create `messages/en/{ns}.json` -- other locale files are generated on the next commit.
+**Two paths to generating locale files:**
 
-**Force full retranslation:** `uv run scripts/translate.py --all`.
+1. **Local pre-commit hook** — runs if `LLM_API_KEY` is set in `.env`. Translation happens before push, so you can preview the output.
+2. **CI fallback** — if the local hook had no key and skipped, [`.github/workflows/i18n-sync.yml`](https://github.com/fim-ai/fim-one/blob/master/.github/workflows/i18n-sync.yml) translates on `master` after merge and auto-commits the result.
+
+Contributors without an API key can commit EN changes freely — the CI path ensures locales land correctly.
+
+**Adding a new i18n namespace:** Create `messages/en/{ns}.json` -- other locale files are generated on the next commit or on CI after merge.
+
+**Force full retranslation:** `uv run scripts/translate.py --all` (requires local `LLM_API_KEY`).
 
 ---
 
