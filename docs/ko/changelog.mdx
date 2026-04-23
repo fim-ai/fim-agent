@@ -14,12 +14,13 @@ description: "FIM One의 모든 주요 변경 사항."
 
 - **관리자 사용자: 사용자별 무제한 할당량 + Registered 열.** 할당량 필드를 비워두면 이제 전역 제한을 상속하고, `0`으로 설정하면 사용자에게 무제한 사용을 부여합니다. 이전에는 둘 다 동일한 상태로 축소되어 개별 사용자에게 무제한 액세스를 부여하려면 DB를 직접 편집해야 했습니다. 사용자 테이블에는 온보딩 감사를 위한 Registered 열도 추가됩니다.
 
-### Fixed
+### 수정 사항
 
-- **Agent settings: bound resources no longer flicker as "(已删除)" on entry.** The KB / connector / MCP-server pickers used to derive the orphan badge synchronously from `selected − available`, so any agent whose inventory list fetch was slower than the agent fetch would briefly mark every linked resource as deleted before snapping back to the correct state — most noticeable for org agents with multiple connectors. The orphan badge now waits for each inventory fetch to settle before rendering.
-- **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
-- **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.
-- **Self-hosted deploys no longer fail intermittently with `container name already in use`.** A new idempotent `./deploy.sh` wrapper sweeps hash-prefixed zombie containers and DooD sandbox children before `docker compose up`, so repeat deploys stop colliding on the sandbox service name.
+- **에이전트 설정: 바운드 리소스가 진입 시 "(已删除)"로 깜빡이지 않습니다.** KB / 커넥터 / MCP-server 선택기가 동기적으로 `selected − available`에서 고아 배지를 파생했기 때문에, 인벤토리 목록 가져오기가 에이전트 가져오기보다 느린 에이전트는 연결된 모든 리소스를 삭제된 것으로 잠깐 표시했다가 올바른 상태로 다시 스냅되었습니다 — 여러 커넥터가 있는 조직 에이전트에서 가장 눈에 띕니다. 고아 배지는 이제 각 인벤토리 가져오기가 정착될 때까지 기다린 후 렌더링합니다.
+- **토스트가 이제 라이트/다크 테마를 따릅니다.** 루트 토스터가 사용자 선호도와 관계없이 다크로 하드코딩되어 있었습니다.
+- **에이전트별 사용량 분석이 더 이상 "Direct Chat" 행을 중복하지 않습니다.** 삭제된 에이전트에 연결된 대화는 고아 `agent_id`당 하나의 행을 생성했으며, 이제 단일 행으로 축소됩니다.
+- **자체 호스팅 배포가 더 이상 `container name already in use`로 간헐적으로 실패하지 않습니다.** 새로운 멱등성 `./deploy.sh` 래퍼가 `docker compose up` 전에 해시 접두사가 붙은 좀비 컨테이너와 DooD 샌드박스 자식을 정리하므로, 반복 배포가 샌드박스 서비스 이름에서 충돌하지 않습니다.
+- **푸시 후 중복된 `chore(i18n): sync translations` 커밋이 더 이상 없습니다.** 사전 커밋 번역 훅이 디스크의 `.translation-cache.json`을 업데이트했지만 스테이징하는 것을 잊었으므로, CI는 오래된 캐시 항목을 보고, 동일한 섹션을 다시 번역하고, LLM 비결정성으로 인해 약간 다른 출력을 자동 커밋했습니다. 훅은 이제 번역된 파일과 함께 캐시를 스테이징합니다 — CI는 차이를 감지하지 못하고 의도대로 조용히 종료됩니다.
 
 ### 변경사항
 

@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 - **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
 - **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.
 - **Self-hosted deploys no longer fail intermittently with `container name already in use`.** A new idempotent `./deploy.sh` wrapper sweeps hash-prefixed zombie containers and DooD sandbox children before `docker compose up`, so repeat deploys stop colliding on the sandbox service name.
+- **No more redundant `chore(i18n): sync translations` commits after pushes.** The pre-commit translation hook updated `.translation-cache.json` on disk but forgot to stage it, so CI would see stale cache entries, re-translate the same sections, and auto-commit a slightly different output due to LLM nondeterminism. The hook now stages the cache alongside the translated files — CI detects no diff and exits silently as intended.
 
 ### Changed
 

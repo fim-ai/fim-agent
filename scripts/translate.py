@@ -1302,11 +1302,18 @@ def main() -> None:
     # Flush cache to disk once at the end
     _flush_cache()
 
-    # Git hook mode: stage all output files
+    # Git hook mode: stage all output files AND the translation cache.
+    # Forgetting the cache makes CI see stale entries, cache-miss on any
+    # newly-translated section, and re-invoke the LLM — which produces
+    # slightly different (nondeterministic) output and triggers a redundant
+    # `chore(i18n)` auto-commit from the i18n-sync workflow.
     if git_hook and output_files:
+        to_stage = [str(p) for p in output_files]
+        if _CACHE_PATH.exists():
+            to_stage.append(str(_CACHE_PATH))
         try:
-            subprocess.run(["git", "add", "--"] + [str(p) for p in output_files], check=True, cwd=ROOT)
-            print(f"Staged {len(output_files)} translated file(s)")
+            subprocess.run(["git", "add", "--"] + to_stage, check=True, cwd=ROOT)
+            print(f"Staged {len(output_files)} translated file(s) + cache")
         except subprocess.CalledProcessError as exc:
             print(f"WARNING: git add failed: {exc}")
     elif output_files:
