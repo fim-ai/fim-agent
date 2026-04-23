@@ -10,9 +10,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ## [Non publié]
 
-### Modifications
+### Modifié
 
-- **L'autorité de traduction s'est déplacée des fichiers de paramètres régionaux vers le glossaire** : les règles de traduction résident désormais dans [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md) — une source unique de vérité chargée dans chaque appel de traduction LLM (JSON, MDX, README). Le hook de pré-commit refuse désormais inconditionnellement les modifications manuelles des fichiers de paramètres régionaux générés (supprimant le remplacement antérieur `ALLOW_LOCALE_EDIT=1`), car les modifications dispersées par paramètre régional dérivent silencieusement et sont écrasées lors d'une retraduction complète. Pour corriger une traduction incorrecte, modifiez le glossaire (une règle permanente qui s'applique à tous les cinq paramètres régionaux) et régénérez les fichiers affectés avec `--force`. Les règles de glossaire en ligne précédemment intégrées dans trois invites système ont été consolidées dans le fichier de glossaire externe.
+- **L'autorité de traduction s'est déplacée des fichiers de locale vers le glossaire** : les règles de traduction vivent désormais dans [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md) — une source unique de vérité chargée dans chaque appel de traduction LLM (JSON, MDX, README). Le hook de pré-commit refuse maintenant inconditionnellement les modifications manuelles des fichiers de locale générés (supprimant le remplacement antérieur `ALLOW_LOCALE_EDIT=1`), car les modifications dispersées par locale dérivent silencieusement et sont écrasées lors d'une retradution complète. Pour corriger une mauvaise traduction, modifiez le glossaire (une règle permanente qui s'applique aux cinq locales) et régénérez les fichiers affectés avec `--force`. Les règles de glossaire en ligne précédemment intégrées dans trois invites système ont été consolidées dans le fichier de glossaire externe.
 
 ### Ajouté
 

@@ -94,15 +94,15 @@ Jedes neue Modul **muss** eine entsprechende Testdatei haben. Jeder Feature-Comm
 
 ## Pre-commit Hook-Pipeline
 
-Der Hook wird automatisch bei jedem Commit ausgeführt. Er verarbeitet nur die für jeden Schritt relevanten Dateien — wenn Sie nur Python-Dateien geändert haben, wird der i18n-Schritt übersprungen und umgekehrt.
+Der Hook wird bei jedem Commit automatisch ausgeführt. Er verarbeitet nur gestaffelte Dateien, die für jeden Schritt relevant sind – wenn Sie nur Python-Dateien geändert haben, wird der i18n-Schritt übersprungen und umgekehrt.
 
 | Reihenfolge | Schritt | Auslöser | Funktion |
 |---|---|---|---|
-| 0 | Locale-Edit-Schutz | Beliebige bereitgestellte Datei unter `messages/{locale}/`, `docs/{locale}/` oder `README.{locale}.md` | Bricht den Commit ab — keine Überschreibung möglich. Beheben Sie Übersetzungen stattdessen über `scripts/translation-glossary.md`. |
-| 1 | OpenAPI-Spec-Regenerierung | `src/fim_one/web/**/*.py` geändert | Exportiert `docs/openapi.json` erneut aus FastAPI-Routen |
-| 2 | i18n-Übersetzung | `messages/en/*.json`, `docs/*.mdx` oder `README.md` geändert (benötigt lokalen `LLM_API_KEY`, ansonsten wird es nach dem Merge von CI verarbeitet) | Übersetzt neue/geänderte Schlüssel in alle Zielsprachen |
-| 3 | mypy-Typprüfung | Beliebige `src/fim_one/**/*.py` geändert | Führt mypy mit vollständiger Importkette auf bereitgestellten Dateien aus |
-| 4 | MDX-Validierung | Beliebige `.mdx`-Datei bereitgestellt | Validiert JSX/MDX-Syntax, bevor sie Mintlify erreicht |
+| 0 | Locale-Edit-Schutz | Alle gestaffelten Dateien unter `messages/{locale}/`, `docs/{locale}/` oder `README.{locale}.md` | Bricht den Commit ab – kein Override möglich. Beheben Sie Übersetzungen über `scripts/translation-glossary.md`. |
+| 1 | OpenAPI-Spec-Regeneration | `src/fim_one/web/**/*.py` geändert | Exportiert `docs/openapi.json` neu aus FastAPI-Routen |
+| 2 | i18n-Übersetzung | `messages/en/*.json`, `docs/*.mdx` oder `README.md` geändert (benötigt lokalen `LLM_API_KEY`, sonst wird es nach dem Merge von CI verarbeitet) | Übersetzt neue/geänderte Schlüssel in alle Zielsprachen |
+| 3 | mypy-Typprüfung | Beliebige `src/fim_one/**/*.py` geändert | Führt mypy mit vollständiger Import-Kette auf gestaffelten Dateien aus |
+| 4 | MDX-Validierung | Beliebige `.mdx`-Datei gestaffelt | Validiert JSX/MDX-Syntax, bevor sie Mintlify erreicht |
 
 Wenn ein Schritt fehlschlägt, wird der Commit abgebrochen. Beheben Sie die gemeldeten Fehler und versuchen Sie es erneut.
 
@@ -113,19 +113,19 @@ FIM One unterstützt 6 Sprachen (EN, ZH, JA, KO, DE, FR). Übersetzungen sind vo
 **Bearbeiten Sie nur englische Quelldateien:**
 
 - `frontend/messages/en/{namespace}.json` -- UI-Strings
-- `docs/*.mdx` (Stammebene, nicht Sprach-Unterverzeichnisse) -- Dokumentation
+- `docs/*.mdx` (Stammebene, nicht in Locale-Unterverzeichnissen) -- Dokumentation
 - `README.md` -- Projekt-Readme
 
-Andere Sprachdateien (`messages/zh/`, `docs/zh/`, `README.zh.md` usw.) werden **automatisch generiert** und der Pre-Commit-Hook lehnt Commits ab, die diese manuell bearbeiten. Um eine Fehlübersetzung zu beheben, bearbeiten Sie [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md) — die in jeden Übersetzungs-Prompt injizierte Single Source of Truth für jede Übersetzungsregel — und generieren Sie dann betroffene Dateien mit `uv run scripts/translate.py --files <en-sources> --force` neu. Jede Glossar-Korrektur gilt dauerhaft für alle fünf Sprachen.
+Andere Locale-Dateien (`messages/zh/`, `docs/zh/`, `README.zh.md` usw.) werden **automatisch generiert** und der Pre-Commit-Hook lehnt Commits ab, die diese manuell bearbeiten. Um eine Fehlübersetzung zu beheben, bearbeiten Sie [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md) — die in jeden Übersetzungs-Prompt injizierte Single Source of Truth für jede Übersetzungsregel — und generieren Sie dann betroffene Dateien mit `uv run scripts/translate.py --files <en-sources> --force` neu. Jede Glossar-Korrektur gilt dauerhaft für alle fünf Sprachen.
 
-**Zwei Wege zur Generierung von Sprachdateien:**
+**Zwei Wege zur Generierung von Locale-Dateien:**
 
-1. **Lokaler Pre-Commit-Hook** — wird ausgeführt, wenn `LLM_API_KEY` in `.env` gesetzt ist. Die Übersetzung erfolgt vor dem Push, sodass Sie die Ausgabe in der Vorschau sehen können.
+1. **Lokaler Pre-Commit-Hook** — wird ausgeführt, wenn `LLM_API_KEY` in `.env` gesetzt ist. Die Übersetzung erfolgt vor dem Push, sodass Sie die Ausgabe in der Vorschau anzeigen können.
 2. **CI-Fallback** — wenn der lokale Hook keinen Schlüssel hatte und übersprungen wurde, übersetzt [`.github/workflows/i18n-sync.yml`](https://github.com/fim-ai/fim-one/blob/master/.github/workflows/i18n-sync.yml) nach dem Merge auf `master` und committed das Ergebnis automatisch.
 
-Mitwirkende ohne API-Schlüssel können EN-Änderungen frei committen — der CI-Pfad stellt sicher, dass Sprachen korrekt landen.
+Mitwirkende ohne API-Schlüssel können EN-Änderungen frei committen — der CI-Pfad stellt sicher, dass Locales korrekt landen.
 
-**Neuen i18n-Namespace hinzufügen:** Erstellen Sie `messages/en/{ns}.json` -- andere Sprachdateien werden beim nächsten Commit oder nach dem Merge auf CI generiert.
+**Neuen i18n-Namespace hinzufügen:** Erstellen Sie `messages/en/{ns}.json` -- andere Locale-Dateien werden beim nächsten Commit oder nach dem Merge auf CI generiert.
 
 **Vollständige Neuübersetzung erzwingen:** `uv run scripts/translate.py --all` (erfordert lokalen `LLM_API_KEY`).
 
