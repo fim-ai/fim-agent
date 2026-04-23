@@ -33,7 +33,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
-        run: uv run pytest -x -q --tb=short
+        run: uv run pytest -x -q --tb=short -m "not docker"
 
   frontend:
     runs-on: ubuntu-latest
