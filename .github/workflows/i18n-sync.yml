@@ -21,16 +21,14 @@ permissions:
 jobs:
   translate:
     runs-on: ubuntu-latest
-    # Skip the auto-commit this workflow itself produces, to avoid recursion
-    # even if someone later swaps GITHUB_TOKEN for a PAT.
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(i18n): sync') }}
+    # Recursion is prevented by the [skip ci] marker in the auto-commit
+    # message (natively honored by GitHub Actions push trigger).
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute changed EN source files
         id: changes
