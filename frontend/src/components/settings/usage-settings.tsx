@@ -13,6 +13,7 @@ interface DailyUsage {
 }
 
 interface AgentUsage {
+  agent_id: string | null
   agent_name: string
   tokens: number
 }
@@ -205,7 +206,7 @@ export function UsageSettings() {
                           : 0
                       return (
                         <tr
-                          key={a.agent_name}
+                          key={a.agent_id ?? `direct-chat:${a.agent_name}`}
                           className="hover:bg-muted/20 transition-colors"
                         >
                           <td className="px-4 py-2 font-medium text-foreground">

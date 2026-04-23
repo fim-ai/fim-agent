@@ -341,20 +341,26 @@ async def get_my_usage(
     daily_rows = (await db.execute(daily_q)).all()
     daily = [DailyUsage(date=str(r.day), tokens=int(r.tokens)) for r in daily_rows]
 
-    # By agent breakdown
+    # By agent breakdown. Collapse rows where the agent was deleted
+    # (Agent.name is NULL via outer join) into the "Direct Chat" bucket
+    # so orphaned conversations don't produce multiple same-named rows.
+    resolved_agent_id = case(
+        (Agent.name.isnot(None), Conversation.agent_id),
+        else_=None,
+    )
     agent_name_expr = case(
         (Agent.name.isnot(None), Agent.name),
         else_="Direct Chat",
     )
     agent_q = (
         select(
-            Conversation.agent_id,
+            resolved_agent_id.label("agent_id"),
             agent_name_expr.label("agent_name"),
             func.coalesce(func.sum(Conversation.total_tokens), 0).label("tokens"),
         )
         .outerjoin(Agent, Conversation.agent_id == Agent.id)
         .where(Conversation.user_id == current_user.id, Conversation.created_at >= since)
-        .group_by(Conversation.agent_id, agent_name_expr)
+        .group_by(resolved_agent_id, agent_name_expr)
         .order_by(func.sum(Conversation.total_tokens).desc())
     )
     agent_rows = (await db.execute(agent_q)).all()
