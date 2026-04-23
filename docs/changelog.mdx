@@ -10,9 +10,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
+### Added
+
+- **Admin users: per-user unlimited quota + Registered column.** Leaving the quota field empty now inherits the global limit; setting it to `0` grants the user unlimited usage. Previously both collapsed into the same state, so granting an individual unlimited access required editing the DB directly. The users table also gains a Registered column for onboarding audits.
+
 ### Fixed
 
 - **Agent settings: bound resources no longer flicker as "(已删除)" on entry.** The KB / connector / MCP-server pickers used to derive the orphan badge synchronously from `selected − available`, so any agent whose inventory list fetch was slower than the agent fetch would briefly mark every linked resource as deleted before snapping back to the correct state — most noticeable for org agents with multiple connectors. The orphan badge now waits for each inventory fetch to settle before rendering.
+- **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
+- **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.
 
 ### Changed
 

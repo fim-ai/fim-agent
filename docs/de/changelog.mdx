@@ -10,9 +10,15 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Admin-Benutzer: unbegrenztes Kontingent pro Benutzer + Spalte „Registriert".** Wenn das Kontingentfeld leer gelassen wird, wird das globale Limit geerbt; wenn es auf `0` gesetzt wird, erhält der Benutzer unbegrenzten Zugriff. Zuvor führten beide Zustände zum gleichen Ergebnis, sodass das Gewähren von unbegrenztem Zugriff für einen einzelnen Benutzer eine direkte Bearbeitung der Datenbank erforderte. Die Benutzertabelle erhält auch eine Spalte „Registriert" für Onboarding-Audits.
+
 ### Behoben
 
-- **Agent-Einstellungen: gebundene Ressourcen flackern beim Eintrag nicht mehr als "(gelöscht)".** Die KB- / Connector- / MCP-Server-Picker leiteten das Waisenkennzeichen synchron von `selected − available` ab, sodass jeder Agent, dessen Inventarlisten-Abruf langsamer war als der Agent-Abruf, kurzzeitig jede verknüpfte Ressource als gelöscht markierte, bevor es zum korrekten Status zurücksprang — besonders auffällig bei Org-Agenten mit mehreren Connectoren. Das Waisenkennzeichen wartet nun darauf, dass jeder Inventarabruf abgeschlossen ist, bevor es gerendert wird.
+- **Agent-Einstellungen: gebundene Ressourcen flackern nicht mehr als "(已删除)" beim Eintritt.** Die KB- / Connector- / MCP-Server-Picker leiteten das Waisenkennzeichen synchron von `selected − available` ab, sodass jeder Agent, dessen Bestandsliste langsamer abgerufen wurde als der Agent selbst, kurzzeitig jede verknüpfte Ressource als gelöscht markierte, bevor sie zum korrekten Status zurücksprangen — am deutlichsten bei Org-Agenten mit mehreren Connectoren. Das Waisenkennzeichen wartet nun, bis jeder Bestandsabruf abgeschlossen ist, bevor es gerendert wird.
+- **Toasts folgen nun dem Hell-/Dunkel-Design.** Der Root-Toaster war unabhängig von der Benutzereinstellung auf Dunkel hartcodiert.
+- **Nutzung nach Agent-Aufschlüsselung dupliziert nicht mehr "Direct Chat"-Zeilen.** Unterhaltungen, die an gelöschte Agenten gebunden waren, erzeugten eine Zeile pro verwaister `agent_id`; sie werden nun in einer einzelnen Zeile zusammengefasst.
 
 ### Geändert
 
