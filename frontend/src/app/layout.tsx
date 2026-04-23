@@ -10,7 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppShell } from "@/components/layout/app-shell"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "sonner"
+import { ThemedToaster } from "@/components/themed-toaster"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -88,7 +88,7 @@ export default async function RootLayout({
             <AuthProvider>
               <TooltipProvider>
                 <AppShell>{children}</AppShell>
-                <Toaster theme="dark" position="top-center" richColors />
+                <ThemedToaster />
               </TooltipProvider>
             </AuthProvider>
           </ThemeProvider>
