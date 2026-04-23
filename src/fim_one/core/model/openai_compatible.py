@@ -21,6 +21,7 @@ from .base import REASONING_INHERIT, BaseLLM
 
 # Local alias — shorter than importing from base everywhere.
 _REASONING_INHERIT = REASONING_INHERIT
+from .normalize import normalize_alternating_messages
 from .rate_limit import RateLimitConfig, TokenBucketRateLimiter
 from .retry import RetryConfig, retry_async_call, retry_async_iterator
 from .types import ChatMessage, LLMResult, StreamChunk, ToolCallRequest
@@ -313,6 +314,11 @@ class OpenAICompatibleLLM(BaseLLM):
         The call is automatically wrapped with rate limiting and retry logic
         according to the configuration supplied at construction time.
         """
+        # Collapse any consecutive same-role runs — notably orphan user
+        # messages left behind by stopped-then-retried turns — before the
+        # message list hits the provider. Anthropic rejects such sequences
+        # outright; other providers silently degrade.
+        messages = normalize_alternating_messages(messages)
         return await retry_async_call(
             self._chat_impl,
             self._retry_config,
@@ -388,6 +394,9 @@ class OpenAICompatibleLLM(BaseLLM):
         accumulated and emitted as complete ``ToolCallRequest`` objects once the
         stream signals ``finish_reason`` of ``"tool_calls"`` or ``"stop"``.
         """
+        # Same rationale as in ``chat()`` — normalize before retry so each
+        # attempt sees a protocol-legal message sequence.
+        messages = normalize_alternating_messages(messages)
         async for chunk in retry_async_iterator(
             self._stream_chat_impl,
             self._retry_config,
