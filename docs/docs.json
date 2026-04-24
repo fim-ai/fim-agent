@@ -32,6 +32,13 @@
             "tab": "Guides",
             "groups": [
               {
+                "group": "Why FIM One",
+                "icon": "lightbulb",
+                "pages": [
+                  "whitepaper"
+                ]
+              },
+              {
                 "group": "Getting Started",
                 "icon": "rocket",
                 "pages": [
@@ -160,13 +167,6 @@
             "tab": "Updates",
             "groups": [
               {
-                "group": "Whitepaper",
-                "icon": "scroll",
-                "pages": [
-                  "whitepaper"
-                ]
-              },
-              {
                 "group": "Roadmap",
                 "icon": "map",
                 "pages": [
@@ -190,6 +190,13 @@
           {
             "tab": "开发指南",
             "groups": [
+              {
+                "group": "为什么选 FIM One",
+                "icon": "lightbulb",
+                "pages": [
+                  "zh/whitepaper"
+                ]
+              },
               {
                 "group": "快速入门",
                 "icon": "rocket",
@@ -304,13 +311,6 @@
             "tab": "项目动态",
             "groups": [
               {
-                "group": "白皮书",
-                "pages": [
-                  "zh/whitepaper"
-                ],
-                "icon": "scroll"
-              },
-              {
                 "group": "路线图",
                 "pages": [
                   "zh/roadmap"
@@ -334,6 +334,13 @@
           {
             "tab": "ガイド",
             "groups": [
+              {
+                "group": "なぜ FIM One なのか",
+                "icon": "lightbulb",
+                "pages": [
+                  "ja/whitepaper"
+                ]
+              },
               {
                 "group": "はじめに",
                 "icon": "rocket",
@@ -448,13 +455,6 @@
             "tab": "更新情報",
             "groups": [
               {
-                "group": "ホワイトペーパー",
-                "pages": [
-                  "ja/whitepaper"
-                ],
-                "icon": "scroll"
-              },
-              {
                 "group": "ロードマップ",
                 "pages": [
                   "ja/roadmap"
@@ -478,6 +478,13 @@
           {
             "tab": "가이드",
             "groups": [
+              {
+                "group": "왜 FIM One인가",
+                "icon": "lightbulb",
+                "pages": [
+                  "ko/whitepaper"
+                ]
+              },
               {
                 "group": "시작하기",
                 "icon": "rocket",
@@ -592,13 +599,6 @@
             "tab": "업데이트",
             "groups": [
               {
-                "group": "백서",
-                "pages": [
-                  "ko/whitepaper"
-                ],
-                "icon": "scroll"
-              },
-              {
                 "group": "로드맵",
                 "pages": [
                   "ko/roadmap"
@@ -622,6 +622,13 @@
           {
             "tab": "Leitfäden",
             "groups": [
+              {
+                "group": "Warum FIM One",
+                "icon": "lightbulb",
+                "pages": [
+                  "de/whitepaper"
+                ]
+              },
               {
                 "group": "Erste Schritte",
                 "icon": "rocket",
@@ -736,13 +743,6 @@
             "tab": "Aktualisierungen",
             "groups": [
               {
-                "group": "Whitepaper",
-                "pages": [
-                  "de/whitepaper"
-                ],
-                "icon": "scroll"
-              },
-              {
                 "group": "Roadmap",
                 "pages": [
                   "de/roadmap"
@@ -766,6 +766,13 @@
           {
             "tab": "Guides",
             "groups": [
+              {
+                "group": "Pourquoi FIM One",
+                "icon": "lightbulb",
+                "pages": [
+                  "fr/whitepaper"
+                ]
+              },
               {
                 "group": "Démarrage rapide",
                 "icon": "rocket",
@@ -879,13 +886,6 @@
           {
             "tab": "Mises à jour",
             "groups": [
-              {
-                "group": "Livre blanc",
-                "pages": [
-                  "fr/whitepaper"
-                ],
-                "icon": "scroll"
-              },
               {
                 "group": "Feuille de route",
                 "pages": [
