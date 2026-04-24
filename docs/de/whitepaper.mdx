@@ -1,6 +1,6 @@
 ---
 title: "FIM One Whitepaper"
-description: "Why enterprise AI needs a Connector Hub, not another agent framework."
+description: "Data never leaves your boundary. The enterprise AI infrastructure layer, not another iPaaS."
 icon: "scroll"
 ---
 
@@ -9,123 +9,126 @@ icon: "scroll"
 </Frame>
 
 <Info>
-  **Version 1.0 · April 2026.** Dieses Whitepaper dokumentiert die architektonische These, Designprinzipien und das Bereitstellungsmodell von FIM One.
-  Es richtet sich an CTOs, Enterprise Architects, AI-Plattformleiter und technische Investoren, die evaluieren, wie sie KI in Systemen einführen können, die vor dem Zeitalter der KI entwickelt wurden.
+  **Version 1.1 · April 2026.** Dieses Whitepaper dokumentiert die architektonische These, die Kategoriepositionierung und das Bereitstellungsmodell von FIM One.
+  Es richtet sich an CTOs, Enterprise Architects, AI-Plattformleiter und technische Investoren, die evaluieren, wie sie KI in die Systeme bringen, die sie bereits betreiben.
 </Info>
 
 ## Zusammenfassung
 
-Die meisten Unternehmen verfügen bereits über die Systeme, die sie benötigen — ERP, CRM, OA, benutzerdefinierte Datenbanken, interne APIs. Was ihnen fehlt, ist eine Möglichkeit für AI, diese Systeme zu **erreichen**, ohne für jeden Use Case ein sechsmonatiges Integrationsprojekt durchzuführen.
+**Daten verlassen niemals Ihre Grenze.** Dieser eine Satz ist die erste Designvorgabe hinter jeder Entscheidung in FIM One und der Grund, warum eine neue Infrastrukturschicht erforderlich ist — nicht noch eine iPaaS und nicht noch ein universeller Agent.
 
-Bestehende Ansätze scheitern auf vorhersehbare Weise. Workflow-Builder (n8n, Zapier-ähnlich) verlangen von Ihnen, Geschäftslogik zu replizieren, die bereits in Ihren Systemen vorhanden ist. General-Purpose-Agenten (Manus, AutoGPT) können das Web durchsuchen, können sich aber nicht in Ihre SAP-Instanz einloggen. RPA-Tools sind anfällig und driften mit jeder UI-Änderung. Vertikale AI-SaaS zwingt Sie, Daten in noch ein weiteres Silo zu migrieren.
+Die meisten Unternehmen haben bereits die Systeme, die sie benötigen — ERP, CRM, OA, benutzerdefinierte Datenbanken, interne APIs, Branchen-SaaS. Was ihnen fehlt, ist eine Möglichkeit für AI, diese Systeme zu **erreichen**, ohne Daten in eine Vendor-Cloud zu migrieren und ohne ein sechsmonatiges Integrationsprojekt für jeden Use Case. Der Markt ist groß, bewegt sich schnell und positioniert sich bereits neu: Die globalen Enterprise-GenAI-Infrastrukturausgaben werden für 2025 auf **US$18B prognostiziert, mit 3,2× YoY-Wachstum** (Menlo Ventures 2025). China bewegt sich noch schneller — Enterprise-AI-Agent-Ausgaben bei **120% CAGR (2023–2027), erreichend ¥65,5B bis 2027** (iResearch · CAICT 2025). Zentral- und staatseigene Unternehmen machen **60%+ der Großmodell-Beschaffung** aus, und Xinchuang (信创) Private-Deployment ist eine harte Vorgabe.
 
-FIM One ist ein **Connector Hub**: ein Provider-agnostisches Python-Framework, bei dem AI-Agenten dynamisch Aufgaben über Ihre bestehenden Systeme planen und ausführen. Die Kernidee ist, dass das schwierige Problem nicht das Reasoning ist — Frontier-LLMs beherrschen das — sondern die **Ausrichtung**: dem AI eine stabile, typisierte, authentifizierte und kontrollierte Oberfläche zu Legacy-Systemen zu geben, die nie erwartet haben, mit einem Modell zu kommunizieren.
+Gartner hat diese Kategorie formal in "AI Agent Platform" umbenannt (Dokument 6300015, 2025); CaICTs 2025 Agentic AI Technology Report nennt es "智能体平台"; MuleSoft, der historische iPaaS-Marktführer, wurde **vom Leader zum Challenger** im 2025 iPaaS Magic Quadrant **herabgestuft**. Die Kategorie, die Enterprise-Integration ein Jahrzehnt lang dominierte, wird in Echtzeit ersetzt.
 
-Das Ergebnis ist ein Agent-Kern, der auf drei Arten bereitgestellt wird:
+FIM One ist für die neue Kategorie konzipiert. Es ist ein **Connector Hub** — ein anbieteragnostisches Python-Framework, in dem AI-Agenten dynamisch Aufgaben über Ihre bestehenden Systeme planen und ausführen, in Ihrer eigenen Umgebung bereitgestellt, end-to-end nachvollziehbar. Ein Agent-Kern, drei Liefermodi:
 
-| Modus | Wo es sich befindet | Typische Bereitstellung |
+| Modus | Wo es lebt | Typische Bereitstellung |
 |---|---|---|
 | **Standalone** | Ein eigenes Portal | Knowledge Q&A, interner Chat, Code-Sandbox |
-| **Copilot** | Eingebettet in ein Host-System | „Finance Copilot" in einer ERP-Web-UI |
+| **Copilot** | Eingebettet in ein Host-System | "Finance Copilot" in einer ERP-Web-UI |
 | **Hub** | Zentraler systemübergreifender Orchestrator | Agent fragt ERP ab, prüft OA, benachrichtigt über Feishu |
 
-Dieses Dokument erklärt, warum diese Struktur richtig ist, wie die Architektur unter der Haube aussieht, wie sie in der Produktion sicher bleibt, und wohin es als Nächstes geht.
+Dieses Dokument erklärt, warum sich die Kategorie bewegt, warum iPaaS die neue Workload nicht aufnehmen kann, wie FIM One unter der Haube aussieht und wie Sie es in die Produktion bringen.
 
 ## 1. Das Problem: Enterprise-KI ist ein Alignment-Problem
 
-Die öffentliche KI-Diskussion in 2025–2026 wurde von Leistungsfähigkeit dominiert: längere Kontextfenster, besseres Reasoning, günstigere Token. In Unternehmen war Leistungsfähigkeit selten der Engpass. Der Engpass ist, dass **die KI keine Hände hat**.
+Die öffentliche KI-Diskussion in 2025–2026 wurde von Modellkapazität dominiert — längere Kontexte, besseres Reasoning, günstigere Token. In Unternehmen ist Kapazität selten der Engpass. Der Engpass ist, dass **die KI keine Hände in Ihren Systemen hat**.
 
-Ein LLM, das eine zehntausendzeilige Codebasis lesen und einen korrekten Fix vorschlagen kann, kann von selbst nicht:
+Ein Frontier-LLM, das eine zehntausendzeilige Codebasis lesen und einen korrekten Fix vorschlagen kann, kann von selbst nicht:
 
 - Gestrige Bestandszahlen aus einer lokalen SAP-Instanz abrufen.
-- Eine Urlaubsanfrage in einem SaaS-HR-Tool genehmigen, das nur eine Legacy-SOAP-API hat.
-- Eine Zeile in ein chinesisches ERP-System schreiben, dessen Authentifizierung ein Login-Ticket-Service statt OAuth2 ist.
-- Eine Benachrichtigung in eine Feishu-Gruppenchat senden und dabei die Genehmigungsregeln der Gruppe respektieren.
+- Eine Urlaubsanfrage in einem SaaS-HR-Tool genehmigen, dessen einzige Integrationsoberfläche eine Legacy-SOAP-API ist.
+- Eine Zeile in ein Xinchuang-konformes ERP schreiben, dessen Authentifizierung ein Login-Ticket-Service statt OAuth2 ist.
+- Eine Benachrichtigung in eine Feishu-Gruppe senden und dabei die eigenen Genehmigungsregeln der Gruppe respektieren.
 
-Jedes dieser Probleme ist einmal gelöst — als Integrationsproblem. Die Schwierigkeit besteht darin, dass jedes Unternehmen Dutzende solcher Systeme hat, jedes mit seinem eigenen Authentifizierungsmodell, Datenmodell und Fehlermodi. Sie in einen einzelnen Agent hardcodieren ergibt einen spröden Monolithen. Das LLM zur Laufzeit dazu aufzufordern, sie zu entdecken, führt zu halluzinierten API-Aufrufen.
+Jedes dieser Probleme ist einmal gelöst — eine gelöste Integrationsfrage. Die Schwierigkeit besteht darin, dass jedes Unternehmen Dutzende solcher Systeme hat, jedes mit seinem eigenen Authentifizierungsmodell, seiner eigenen Datenform und seinen eigenen Fehlermodi. Sie hardcodieren zu lassen, ergibt einen spröden Monolithen. Das LLM zur Laufzeit dazu zu bringen, sie zu entdecken, ergibt halluzinierte API-Aufrufe.
 
 **Die fehlende Primitive ist eine ausgerichtete Oberfläche.** Eine typisierte, authentifizierte, auffindbare Schnittstelle zwischen dem Modell und dem System — eine, die dem Modell genau sagt, was es tun kann, was jede Aktion kostet, wer sie genehmigen muss und wie das Ergebnis aussieht. Diese Primitive ist das, was FIM One einen **Connector** nennt.
 
 ## 2. Warum bestehende Ansätze nicht ausreichen
 
-### 2.1 Workflow Builder (n8n, Zapier, Dify)
+### 2.1 iPaaS und Workflow Builder — eine Kategorie im Niedergang
 
-Workflow Builder behandeln Integration als visuellen Graphen: Knoten ziehen, verbinden, ausführen. Sie funktionieren gut für zehnstufige Marketing-Automatisierungen. Sie scheitern bei Enterprise-AI, weil:
+iPaaS (MuleSoft, Boomi, Workato) und die leichtere Workflow-Familie (n8n, Zapier, Dify, Coze) behandeln Integration als ein **Design-Zeit**-Problem: Ein Mensch zeichnet einen Graphen von Knoten und verbindet sie auf Feldebene, der Graph läuft zur Laufzeit deterministisch ab. Das Modell funktionierte, als Integrationen wenige und stabil waren.
 
-- Die Logik, die sie kodieren, **existiert bereits** im Zielsystem. Jeder Knoten ist ein dünner Wrapper um einen API-Aufruf, den Sie an zwei Stellen pflegen müssen.
-- Sie gehen davon aus, dass der menschliche Designer den Plan im Voraus kennt. Enterprise-Fragen sind offen — „Q1 für alle APAC-Einheiten abschließen" — und der Plan muss spontan generiert werden.
-- Sie behandeln die KI als einen Knoten unter vielen, anstatt als den Planer, der entscheidet, welche Knoten aufgerufen werden sollen.
+Es funktioniert nicht für KI-gesteuerte Enterprise-Automatisierung, aus drei sich verstärkenden Gründen:
 
-### 2.2 General-Purpose Agents (Manus, AutoGPT, OpenAI Assistants)
+1. **Die Logik existiert bereits im Zielsystem.** Jeder Knoten ist ein dünner Wrapper um einen API-Aufruf, den Sie jetzt an zwei Stellen pflegen.
+2. **Der Mensch muss den Plan im Voraus kennen.** Enterprise-Fragen wie „Q1 für alle APAC-Entitäten abschließen" sind offen — der Plan muss zur Laufzeit generiert werden, nicht von einem Designer gezeichnet.
+3. **Feldebenen-Mapping kollabiert bei Skalierung.** Ein Graph mit tausend Knoten über ein Dutzend Systeme ist nicht wartbar; KI-lesbare Action-Oberflächen ersetzen ihn vollständig.
 
-General agents sind für Consumer- und Knowledge-Work-Aufgaben konzipiert — Web-Browsing, Dokumentenerstellung, Tabellenkalkulationsbearbeitung. Sie können nicht in Ihr VPN eindringen, sich bei Ihrem ERP authentifizieren oder Ihre Sicherheitsprüfung bestehen. Wenn sie um Enterprise-Systeme herum eingesetzt werden, werden sie zu einer Demo, die in der Pilotphase scheitert.
+Die Kategorie bewegt sich sichtbar. Gartner klassifizierte den Bereich 2025 als „AI Agent Platform" um (Dokument 6300015). CAICT übernahm denselben Rahmen in seinem 2025 Agentic AI Technology Report. Am aussagekräftigsten: **MuleSoft — der Referenz-iPaaS-Anbieter für ein Jahrzehnt — wurde im Gartner 2025 iPaaS Magic Quadrant von Leader auf Challenger herabgestuft**. Gleichzeitig wuchs das MCP-Protokoll von Anthropic, das im November 2024 veröffentlicht wurde, auf **über 10.000 Server und 97 Millionen monatliche SDK-Downloads in 15 Monaten**. Das Signal ist unmissverständlich: die Integrations-Schicht der Enterprise-Automatisierung wird neu aufgebaut.
 
-### 2.3 Vertical AI SaaS
+### 2.2 Allzweck-Agenten (Manus, AutoGPT, OpenAI Assistants)
 
-Vertikale AI-Tools (AI-native CRMs, AI-native Finanz-Tools) lösen einen Workflow wunderbar, erfordern aber eine Datenmigration, um dorthin zu gelangen. Unternehmen landen am Ende mit mehr Silos, nicht weniger, und ohne systemübergreifende Orchestrierung.
+Allzweck-Agenten sind für Consumer- und Knowledge-Work-Aufgaben konzipiert — Web-Browsing, Dokumentenerstellung, Tabellenkalkulationen. Sie können nicht in Ihr VPN eindringen, sich bei Ihrem ERP authentifizieren oder Ihre Sicherheitsprüfung bestehen. Wenn sie um Unternehmensysteme herum eingesetzt werden, werden sie zu Demos, die in der Pilotphase scheitern.
 
-### 2.4 RPA
+### 2.3 Vendor-Embedded AI (Feishu AI, SAP Joule, Salesforce Einstein)
 
-Robotic Process Automation steuert die Benutzeroberfläche wie ein Mensch. Es ist das allgemeinste der vier — alles, das ein Mensch anklicken kann, kann RPA anklicken — und auch das zerbrechlichste: jede UI-Änderung bricht es, jede Authentifizierungsaufforderung stoppt es, jedes CAPTCHA beendet den Durchlauf. Es ist ein Pflaster über dem Fehlen von APIs, keine Grundlage zum Aufbau von KI.
+Vendors haben ihre eigene KI in ihre eigenen Produkte integriert. Das Problem ist strukturell: **Kein vorgelagerter Anbieter hat einen Anreiz, seine eigene Datensilo zu durchbrechen.** Feishu AI kennt Ihre ERP-Daten nicht; DingTalk AI kennt Ihren Vertragsstatus nicht. Die KI jedes Anbieters sieht nur das, was dieser Anbieter Ihnen verkauft hat. Für systemübergreifende Arbeiten sind sie keine Option.
 
-FIM One befindet sich in der Lücke, die alle vier hinterlassen: typisierte APIs über echte Systeme, geplant durch das Modell, gesteuert durch das Unternehmen.
+### 2.4 Build-Your-Own und RPA
+
+Eigenentwicklungen haben lange Entwicklungszyklen und konstante Anpassungskosten. RPA steuert die Benutzeroberfläche wie ein Mensch — der allgemeinste Ansatz und der zerbrechlichste: Jede UI-Änderung bricht ihn, jede Authentifizierungsaufforderung stoppt ihn. Es ist ein Pflaster über fehlenden APIs, keine Grundlage zum Aufbau von KI.
+
+FIM One besetzt die Lücke, die all diese hinterlassen: typisierte APIs über echte Systeme, vom Modell geplant, vom Unternehmen gesteuert, innerhalb der Unternehmensgrenze bereitgestellt.
 
 ## 3. Die FIM One These
 
-Drei Überzeugungen prägen jede Designentscheidung in FIM One.
+Drei Überzeugungen prägen jede Designentscheidung.
 
-**Überzeugung 1 — Die Systeme existieren bereits.** Fordern Sie das Unternehmen nicht auf, alles neu aufzubauen; treffen Sie es dort, wo es ist. Jeder Connector ist eine Brücke, keine Ersetzung. Daten verlassen niemals die Quelle der Wahrheit.
+**Überzeugung 1 — Die Systeme existieren bereits.** Fordern Sie das Unternehmen nicht auf, alles neu aufzubauen; treffen Sie es dort, wo es ist. Jeder Connector ist eine Brücke, keine Ersetzung. Daten verlassen niemals die Quelle der Wahrheit und niemals die Unternehmensgrenze.
 
-**Überzeugung 2 — Ausrichtung schlägt Leistung.** Ein schwächeres Modell mit einem ausgerichteten Toolset übertrifft ein stärkeres Modell, das mit rohen APIs kämpft. Der Burggraben ist die Connector-Bibliothek und sein Authentifizierungsmodell, nicht die Reasoning-Fähigkeit des Agenten.
+**Überzeugung 2 — Ausrichtung schlägt Leistung.** Ein schwächeres Modell mit einem ausgerichteten Toolset übertrifft ein stärkeres Modell, das an rohen APIs herumfummelt. Der Burggraben ist die Connector-Bibliothek, sein Authentifizierungsmodell und die Governance-Schicht — nicht das reine Reasoning des Agenten.
 
-**Überzeugung 3 — Dynamische Planung ist der richtige Mittelweg.** Starre Workflows sind zu brüchig für echte Enterprise-Aufgaben; vollständig autonome Agenten sind zu unvorhersehbar für die Produktion. Die Agenten von FIM One planen zur Laufzeit, aber innerhalb eines typisierten Action Space — jeder Schritt ist ein Connector-Aufruf, keine offene LLM-Monolog.
+**Überzeugung 3 — Dynamische Planung ist der richtige Mittelweg.** Starre Workflows (iPaaS, BPM) sind zu spröde für echte Unternehmensaufgaben; vollständig autonome Agenten (AutoGPT, Manus) sind zu unvorhersehbar für die Produktion. FIM One plant zur Laufzeit, aber innerhalb eines typisierten Action Space — jeder Schritt ist ein Connector-Aufruf, kein offenes LLM-Monolog. Begrenzte Autonomie: `re-plan ≤ 3 | token budget | confirmation gate`.
 
-Diese drei zusammen erzeugen den Connector Hub.
+### Beyond iPaaS
 
-## 4. Architekturprinzipien
+FIM One ist bewusst keine iPaaS, und dieser Unterschied ist nicht kosmetisch. iPaaS ist feldebenenbasiert, designzeitlich, von Menschen modelliert und in der Vendor-Cloud gehostet. FIM One ist aktionsebenenbasiert, laufzeitlich, modellgeplant und unternehmensgehostet.
+
+| Axis | iPaaS | FIM One |
+|---|---|---|
+| Granularity | Field mapping | Typed action |
+| Planning time | Design time | Run time |
+| Who models it | Human designer | The model |
+| Data location | Vendor cloud | Your servers |
+| Governance | External add-on | Built-in hooks |
+| Category (Gartner 2025) | iPaaS MQ (declining) | AI Agent Platform |
+
+## 4. Architektur-Prinzipien
 
 <CardGroup cols={2}>
-  <Card title="Provider-agnostisch" icon="shuffle">
-    Jedes OpenAI-kompatible LLM — OpenAI, Anthropic, DeepSeek, Qwen, lokales Ollama. Die Modellwahl ist eine Bereitstellungsvariable, keine architektonische Verpflichtung.
+  <Card title="Provider-Agnostisch" icon="shuffle">
+    Jedes OpenAI-kompatible LLM — OpenAI, Anthropic, DeepSeek, Qwen, lokales Ollama, Xinchuang-zertifizierte Modelle. Die Modellwahl ist eine Bereitstellungsvariable, keine architektonische Verpflichtung.
   </Card>
   <Card title="Protokoll-First" icon="network-wired">
-    Jeder Connector veröffentlicht ein typisiertes Schema. Der Agent sieht Aktionen, Parameter und Rückgabetypen — niemals rohes HTTP.
+    Jeder Connector veröffentlicht ein typisiertes Schema. Der Agent sieht Aktionen, Parameter und Rückgabetypen — niemals rohes HTTP. OpenAPI, MCP und direkte Datenbankverbindungen sind gleichberechtigt.
   </Card>
-  <Card title="Asynchron standardmäßig" icon="bolt">
-    Python async durchgehend. Ein einzelner Agent-Lauf kann sich zu Dutzenden von Connectoren verzweigen; blockierendes I/O würde das wirtschaftlich unmöglich machen.
+  <Card title="Drei Ausführungs-Engines" icon="sitemap">
+    **ReAct** für explorative Aufgaben, **DAG** für strukturierte Pipelines, **Workflow** (bis zu 25 Knoten) für deterministische, von Menschen entworfene Pipelines. Ein Agent-Kern wählt die Engine pro Aufgabe.
   </Card>
-  <Card title="Zwei Ausführungs-Engines" icon="sitemap">
-    ReAct für explorative Aufgaben, DAG für strukturierte Pipelines. Ein Agent-Kern wählt die Engine pro Aufgabe.
+  <Card title="Schema-First Tool Loading" icon="bolt">
+    Tool-Schemas werden mit ~30 Token vorgespeichert; der Agent erweitert bei Bedarf. Der Prompt-Overhead pro Sitzung sinkt um ~80%, und die Plattform skaliert auf **10.000+ APIs**, ohne das Kontextfenster zu überlasten.
   </Card>
-  <Card title="Hook-gesteuert" icon="shield-halved">
-    Jeder Tool-Aufruf durchläuft eine Hook-Kette: Audit, Richtlinie, Genehmigung durch Menschen. Governance ist keine nachträgliche Überlegung.
+  <Card title="Hook-Gesteuert" icon="shield-halved">
+    Jeder Tool-Aufruf durchläuft eine konfigurierbare Hook-Kette: Audit, Richtlinie, Genehmigung durch Menschen. Hooks laufen außerhalb der LLM-Schleife — deterministisch und nachvollziehbar.
   </Card>
-  <Card title="Speicher-bewusst" icon="brain">
-    Kurzfristige Konversation, langfristige Wissensdatenbank und sitzungsübergreifender Speicher sind erste Klasse — nicht nachträglich hinzugefügt.
+  <Card title="Speicher-Bewusst" icon="brain">
+    Kurzfristige Konversation, langfristige Wissensdatenbank und sitzungsübergreifender Speicher sind First-Class-Primitive, keine Zusätze.
   </Card>
 </CardGroup>
 
 ## 5. Drei Liefermodi — Ein Agent-Kern
 
-Derselbe Planner, Memory und die Connector-Bibliothek treiben drei unterschiedliche Produktformen an. Die Wahl ist eine Bereitstellungsentscheidung, keine Code-Verzweigung.
+Der gleiche Planner, die Memory und die Connector-Bibliothek treiben drei unterschiedliche Produktformen an. Die Wahl ist eine Bereitstellungsentscheidung, keine Code-Abzweigung.
 
-### 5.1 Standalone
+**Standalone** — ein in sich geschlossenes Portal. Der Käufer möchte eine Chat-Schnittstelle über einer kuratierten Wissensdatenbank, oder einer Code-Sandbox, oder einem allgemeinen Assistenten. Kein Host-System beteiligt. Passt zu internen IT-Helpdesks, Engineering-Produktivität, Customer-Support-KBs.
 
-Ein in sich geschlossenes Portal. Der Käufer wünscht sich eine Chat-Schnittstelle über eine kuratierte Wissensdatenbank, einen Code-Sandbox oder einen allgemeinen Assistenten für sein Team. Kein Host-System beteiligt.
+**Copilot** — der Agent, eingebettet in ein bestehendes Host-System über iframe, Widget oder direktes Embed. Der Host verwaltet die Authentifizierung; der Copilot erbt den Benutzerkontext. Passt zu Finance Copilot in SAP Fiori, Sales Copilot in Salesforce, DevOps Copilot in einem internen Developer Portal.
 
-**Typischer Anwendungsfall:** Interner IT-Helpdesk, Engineering-Produktivität, Wissensdatenbank für den Kundensupport.
-
-### 5.2 Copilot
-
-Der Agent ist in ein bestehendes Host-System eingebettet — eine ERP-Web-UI, einen CRM-Tab, ein benutzerdefiniertes internes Tool — über iframe, Widget oder direktes Embedding. Das Host-System verwaltet bereits die Authentifizierung; der Copilot erbt den Benutzerkontext und arbeitet mit den Daten des Host-Systems.
-
-**Typischer Anwendungsfall:** Finance Copilot in SAP Fiori, Sales Copilot in Salesforce, DevOps Copilot in einem internen Entwicklerportal.
-
-### 5.3 Hub
-
-Die zentrale Orchestrierungsoberfläche. Jedes verbundene System — ERP, CRM, OA, Feishu, benutzerdefinierte Datenbanken — endet im Hub. Benutzer stellen systemübergreifende Fragen; der Agent plant und führt systemübergreifend aus.
-
-**Typische Anwendungsfälle:** "Close out Q1 for all APAC entities", "find every customer who missed a renewal and draft outreach", "reconcile yesterday's payments between the payment gateway and our ledger".
+**Hub** — die zentrale Orchestrierungsoberfläche. Jedes verbundene System endet hier. Benutzer stellen systemübergreifende Fragen; der Agent plant und führt systemübergreifend aus. Passt zu „Q1 für alle APAC-Entitäten abschließen", „jeden Kunden finden, der eine Erneuerung verpasst hat, und Outreach-Entwürfe erstellen", „gestrige Zahlungen zwischen Gateway und Ledger abgleichen".
 
 ```mermaid
 flowchart LR
@@ -154,73 +157,92 @@ flowchart LR
   C --> Reports
 ```
 
-## 6. Connector-Ausrichtungsmodell
+## 6. Connector Alignment Model
 
-Ein Connector ist eine typisierte Aktionsoberfläche, die durch eine Authentifizierungsstrategie unterstützt wird. FIM One definiert drei Authentifizierungsstufen, die die überwiegende Mehrheit der Unternehmenssysteme abdecken.
+Ein Connector ist eine typisierte Action-Oberfläche, die durch eine Authentifizierungsstrategie unterstützt wird. FIM One definiert drei Authentifizierungsstufen, die die große Mehrheit der Unternehmenssysteme abdecken.
 
 <AccordionGroup>
-  <Accordion title="Stufe 1 — Datenbank-Connectors (Vollständig oder Basis)">
-    Direkte Verbindung zu einer relationalen oder Dokumentendatenbank. Der Modus **Vollständig** stellt beliebiges SQL für den Agenten bereit, geschützt durch eine schreibgeschützte Rolle; der Modus **Basis** stellt nur vorab registrierte parametrisierte Abfragen bereit. Wird für benutzerdefinierte interne Systeme verwendet, bei denen die Quelle der Wahrheit eine Datenbank ist, die Sie kontrollieren.
+  <Accordion title="Tier 1 — Database Connectors (Full oder Basic)">
+    Direkte Verbindung zu einer relationalen oder dokumentorientierten Datenbank. Der **Full**-Modus stellt beliebiges SQL für den Agent bereit, gated durch eine Read-Only-Rolle; der **Basic**-Modus stellt nur vorregistrierte parametrisierte Abfragen bereit. Native Unterstützung für **Xinchuang-konforme Datenbanken — Dameng (DM8), KingbaseES, HighGo, GBase** — neben PostgreSQL, MySQL und Oracle. Zentrale/staatliche und regulierte Kunden bestehen die Compliance-Beschaffung am ersten Tag.
   </Accordion>
-  <Accordion title="Stufe 2 — OpenAPI-Connectors (Benutzer-Schlüssel)">
-    Jede REST-API mit einer OpenAPI-Spezifikation. Der Agent liest die Spezifikation, wählt den richtigen Endpunkt aus und ruft ihn mit dem Schlüssel des angemeldeten Benutzers auf. Deckt modernes SaaS (Slack, Linear, GitHub) und gut dokumentierte interne APIs ab.
+  <Accordion title="Tier 2 — OpenAPI Connectors (User-Key)">
+    Jede REST API mit einer OpenAPI-Spezifikation. Der Agent liest die Spezifikation, wählt den Endpunkt aus und ruft ihn mit dem Schlüssel des angemeldeten Benutzers auf. Deckt modernes SaaS (Slack, Linear, GitHub) und gut dokumentierte interne APIs ab.
   </Accordion>
-  <Accordion title="Stufe 3 — Login-Ticket-Connectors">
-    Für Legacy-Systeme — besonders häufig auf dem chinesischen Markt — die sich über einen Login-Ticket-Service authentifizieren, anstatt OAuth2 zu verwenden. Der Connector verwaltet den Ticket-Lebenszyklus (Erwerben, Aktualisieren, Ungültigmachen) und präsentiert eine normale typisierte Oberfläche nach oben. Dies ist die Stufe, die Systeme freischaltet, die jeder andere Anbieter überspringt.
+  <Accordion title="Tier 3 — Login-Ticket / Legacy Connectors">
+    Für Systeme — besonders häufig auf dem chinesischen Markt — die sich über einen Login-Ticket-Service statt OAuth2 authentifizieren. Der Connector verwaltet den Ticket-Lebenszyklus (erwerben, aktualisieren, ungültig machen) und präsentiert eine normale typisierte Oberfläche nach oben. Diese Stufe erschließt Systeme, die jeder andere Anbieter überspringt.
   </Accordion>
 </AccordionGroup>
 
-Jeder Connector deklariert auch eine **Channel/Integration-Dualität**: dasselbe zugrunde liegende System kann sowohl als *Channel* (Benachrichtigungssenke, Genehmigungsoberfläche) als auch als *Integration* (Datenquelle, Aktionsziel) erscheinen. Feishu ist beispielsweise ein Benachrichtigungskanal für den Agenten und eine Datenquellen-Integration für Gruppenchat-Verlauf — ein Connector, zwei Rollen.
+Jeder Connector deklariert auch eine **Channel/Integration-Dualität**: dasselbe zugrunde liegende System kann sowohl als *Channel* (Benachrichtigungssenke, Genehmigungsoberfläche) als auch als *Integration* (Datenquelle, Action-Ziel) erscheinen. Feishu ist sowohl ein Benachrichtigungskanal als auch eine Gruppenchat-Datenquelle; DingTalk und WeCom folgen dem gleichen Muster.
 
-## 7. Sicherheit und Governance
+## 7. Vertrauenswürdige Enterprise-KI — Drei Säulen
 
-Enterprise-AI scheitert in der Produktion nicht, weil das Modell falsch ist, sondern weil die Organisation nicht nachweisen kann, dass es richtig ist. FIM One behandelt Governance als Architektur.
-
-**Hook-Kette.** Jeder Tool-Aufruf durchläuft vor der Ausführung eine konfigurierbare Kette von Hooks. Hooks können protokollieren, Daten maskieren, Rate-Limiting durchsetzen, menschliche Genehmigung erfordern oder Aufrufe vollständig blockieren. Genehmigungen können inline (im selben Chat) oder asynchron (in einer Feishu-Gruppe, in der jedes Mitglied einer Allowlist genehmigen oder ablehnen kann) erfolgen.
-
-**Richtlinien sind Daten, nicht Code.** Hook-Konfigurationen befinden sich in Datenbankzeilen, nicht im Quellcode. Ein Compliance Officer kann „Tool X erfordert Genehmigung durch Gruppe Y zwischen 9 und 17 Uhr an Wochentagen" ändern, ohne neu bereitzustellen.
-
-**Alles ist beobachtbar.** Jede Agent-Ausführung gibt eine strukturierte Trace aus: Plan, Tool-Aufrufe, Argumente, Beobachtungen, Genehmigungen, endgültige Antwort. Traces sind die Einheit der Audit.
-
-**Fehler sind explizit.** Wenn ein Operator einen Tool-Aufruf ablehnt, stoppt der Agent — er paraphrasiert die Anfrage nicht und versucht es erneut. Ablehnung ist eine Richtlinienentscheidung, kein Fehler, von dem man sich erholen muss.
-
-## 8. Bereitstellung und Kostenmodell
-
-FIM One ist Open-Source unter einer permissiven Lizenz. Drei Bereitstellungsoptionen decken das gesamte Spektrum ab.
+Enterprise-KI scheitert in der Produktion nicht, weil das Modell falsch ist, sondern weil die Organisation nicht nachweisen kann, dass es richtig ist. FIM One behandelt Vertrauen als Architektur, ausgedrückt in drei Säulen.
 
 <CardGroup cols={3}>
-  <Card title="Self-Host" icon="server">
-    Docker Compose oder Kubernetes in Ihrer VPC. Ihre LLM-Schlüssel, Ihre Daten, Ihr Audit-Log. Bevorzugt für regulierte Branchen und On-Prem-Unternehmen.
+  <Card title="Jede Schlussfolgerung Ist Zitiert" icon="paperclip">
+    RAG-Abruf + Zitatkette ermöglicht es dem Agenten, für jeden Anspruch einen bestimmten Absatz in einem bestimmten Dokument zu referenzieren. Schlussfolgerungen sind nachverfolgbar und prüfbar. Keine Black-Box-Ausgabe.
   </Card>
-  <Card title="Managed Cloud" icon="cloud">
-    cloud.fim.ai — keine Einrichtung, bezahlen Sie pro Nutzung. Schnellster Weg zum ersten Mehrwert. Multi-Tenant mit strenger Isolation an der Organisationsgrenze.
+  <Card title="Jeder Schreibvorgang Wird Bestätigt" icon="hand">
+    Schreibvorgänge werden gezwungen, vor der Ausführung zu pausieren und auf eine menschliche Genehmigung zu warten — inline im Portal oder außerhalb über eine Feishu-Genehmigungsgruppe. Die Hook-Kette ist eine architektonische Einschränkung, keine Richtlinienempfehlung. Sie kann nicht umgangen werden.
   </Card>
-  <Card title="Hybrid" icon="bridge">
-    Verwaltete Kontrolleben, selbst gehostete Connector-Worker. Sie behalten Daten und Anmeldedaten On-Prem; wir betreiben den Planer und die UI.
+  <Card title="Jede Veröffentlichung Wird Gemessen" icon="chart-bar">
+    Datengesteuerte Evaluierung quantifiziert die Qualität vor jeder Veröffentlichung. Jede Iteration ist messbar; Enterprise-Beschaffung erhält Nachweise, keine Versprechungen.
   </Card>
 </CardGroup>
 
-Die dominanten Kosten sind LLM-Token, nicht Infrastruktur. FIM One ist Provider-agnostisch, genau damit diese Kosten eine Marktgröße sind: Wenn die Frontier die Preise senkt, profitieren Sie ohne Migration.
+Zur Unterstützung gibt jede Agent-Ausführung eine strukturierte Spur aus: Plan, Tool-Aufrufe, Argumente, Beobachtungen, Genehmigungen, endgültige Antwort. Spuren sind die Einheit der Prüfung. Anmeldedaten verwenden Fernet-Verschlüsselung (AES-128-CBC + HMAC-SHA256). Vollständige Audit-Protokolle werden gespeichert und exportierbar.
 
-## 9. Wo dies hingehört
+Wenn ein Operator einen Tool-Aufruf ablehnt, stoppt der Agent — er paraphrasiert nicht und versucht es erneut. Ablehnung ist eine Richtlinienentscheidung, kein Fehler, von dem man sich erholen kann.
 
-Die kurzfristige Roadmap konzentriert sich auf drei Achsen.
+## 8. Deployment und Geschäftsmodell
 
-**Connector-Tiefe** — mehr Tier-3-Legacy-Connector für den chinesischen Markt (Xinchuang-konforme Datenbanken, Login-Ticket-ERPs) und ein AI Builder, der eine OpenAPI-Spezifikation oder einen Screenshot eines Datenbankschemas in wenigen Minuten in einen funktionierenden Connector umwandelt.
+FIM One ist Open-Source unter einer permissiven Lizenz (FIM-SAL) mit drei Deployment-Varianten und drei Edition-Stufen.
 
-**Agent-Qualität** — straffere Evaluierungs-Harnesses, ein öffentliches Eval Center und Skills/Hooks inspiriert von modernen Agent CLIs, angepasst an die Hub-Form.
+<CardGroup cols={3}>
+  <Card title="Community" icon="code">
+    Kostenlos für immer. Self-hosted. Für Entwickler und Evaluierungsteams.
+  </Card>
+  <Card title="Cloud" icon="cloud">
+    Wuzhi-gehostet auf cloud.fim.ai. Pro-Benutzer + Pro-Connector-Abonnement. Singapurer Unternehmen handhabt Auslandsverträge.
+  </Card>
+  <Card title="Enterprise" icon="briefcase">
+    Private Deployment, benutzerdefinierte Preisgestaltung, Compliance-Tools, dedizierter technischer Support. Für große Unternehmen und Kunden aus Regierung/staatlichen Betrieben.
+  </Card>
+</CardGroup>
 
-**Enterprise-Eignung** — SSO standardmäßig, umfangreichere RBAC, Multi-Org-Isolation und Compliance-Anforderungen für SOC 2 und ISO 27001.
+Die Codebasis umfasst ~170.000 Zeilen Python über 1.590+ Module, mit ~100 Test-Dateien und integrierter Unterstützung für 6 UI-Sprachen. Der Quellcode ist unter FIM-SAL offen — Unternehmen können die Sicherheit selbst prüfen. Die dominanten Laufzeitkosten entstehen durch LLM-Token, nicht durch Infrastruktur; Provider-Unabhängigkeit bedeutet, dass Sie von Preissenkungen an der Grenze profitieren, ohne Migration.
 
-Die langfristige Annahme ist, dass die Form von Enterprise AI viel mehr wie ein Hub aussehen wird als wie eine CLI. Knowledge Worker werden nicht zehn AI-Assistenten installieren; sie werden ihren Hub des Unternehmens fragen, und der Hub wird wissen, wie er jedes System erreicht, das die Antwort enthält. FIM One baut den Hub.
+## 9. Lieferpfad
 
-## 10. Appendix — Getting Technical
+Die Produktionsbereitstellung folgt einem dreistufigen Pfad, der das Risiko begrenzt und die Time-to-Value kurz hält.
 
-- **[System Overview](/architecture/system-overview)** — Component-level architecture diagram.
-- **[Connector Architecture](/architecture/connector-architecture)** — The connector contract, lifecycle, and extension model.
-- **[Design Philosophy](/architecture/design-philosophy)** — Why we made each core tradeoff.
-- **[Hook System](/architecture/hook-system)** — Policy, approval, and audit in depth.
-- **[Quickstart](/quickstart)** — Run FIM One on your laptop in under ten minutes.
+| Schritt | Zeitrahmen | Was passiert |
+|---|---|---|
+| **1. PoC** | 2 Wochen | 1–2 repräsentative Szenarien (Finanzprüfung, Vertragsüberprüfung, Datenberichterstattung), End-to-End mit echten Daten. Erste Version in 7 Tagen, Validierungsbericht in 14. |
+| **2. Pilot** | 1–2 Monate | Private Bereitstellung auf Ihren Servern. Erste 3–5 Konnektoren (ERP / OA / Feishu / DingTalk / Datenbank). Eine Geschäftslinie abgedeckt. Audit- und Genehmigungsbaselines etabliert. |
+| **3. Scale** | 3–6 Monate | Erweiterung auf weitere Geschäftslinien und Konnektoren. Industry Skill Packs gesammelt. Interne Administratoren geschult. Operations Runbook und SLA bereitgestellt. |
+
+Acht vordefinierte vertikale Lösungsvorlagen decken die häufigsten Szenarien ab: Finanzprüfung, Vertragsüberprüfung, Datenberichterstattung, Beschaffungsabstimmung, Kundenzahlungseinzug, Compliance-Screening, HR-Screening, Ops On-Call.
+
+## 10. Wohin das führt
+
+**Kurzfristig — Connector-Tiefe.** Mehr Tier-3-Legacy-Konnektoren für den chinesischen Markt, tiefere Xinchuang-Zertifizierung und ein AI Builder, der eine OpenAPI-Spezifikation oder einen Datenbankschema-Screenshot in Minuten in einen funktionierenden Connector umwandelt.
+
+**Kurzfristig — Governance-Tiefe.** Umfassendere RBAC, vierstufige Connector-Berechtigungen, unabhängiger IdP, SSO standardmäßig, SOC 2 und ISO 27001 Compliance.
+
+**Mittelfristig — Ökosystem.** Cloud SaaS, ein Connector Marketplace und branchenspezifische Solution Packs — die Infrastrukturebene, auf der Dritte aufbauen.
+
+Die langfristige Strategie ist, dass die Form von Enterprise AI viel mehr wie ein Hub aussehen wird als wie eine CLI. Knowledge Worker werden nicht zehn AI-Assistenten installieren; sie werden ihren Company Hub fragen, und der Hub wird wissen, wie man jedes System erreicht, das die Antwort enthält. FIM One baut den Hub.
+
+## 11. Appendix — Going Deeper
+
+- **[System Overview](/architecture/system-overview)** — component-level architecture.
+- **[Connector Architecture](/architecture/connector-architecture)** — the connector contract, lifecycle, and extension model.
+- **[Design Philosophy](/architecture/design-philosophy)** — why we made each core tradeoff.
+- **[Hook System](/architecture/hook-system)** — policy, approval, and audit in depth.
+- **[Competitive Landscape](/strategy/competitive-landscape)** — category positioning and head-to-head comparison.
+- **[Quickstart](/quickstart)** — run FIM One on your laptop in under ten minutes.
 
 <Tip>
   Questions, corrections, or commercial inquiries: hi@fim.ai · [Discord](https://discord.gg/z64czxdC7z) · [GitHub](https://github.com/fim-ai/fim-one)
