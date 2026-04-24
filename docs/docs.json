@@ -160,6 +160,13 @@
             "tab": "Updates",
             "groups": [
               {
+                "group": "Whitepaper",
+                "icon": "scroll",
+                "pages": [
+                  "whitepaper"
+                ]
+              },
+              {
                 "group": "Roadmap",
                 "icon": "map",
                 "pages": [
@@ -296,6 +303,13 @@
           {
             "tab": "项目动态",
             "groups": [
+              {
+                "group": "白皮书",
+                "pages": [
+                  "zh/whitepaper"
+                ],
+                "icon": "scroll"
+              },
               {
                 "group": "路线图",
                 "pages": [
@@ -434,6 +448,13 @@
             "tab": "更新情報",
             "groups": [
               {
+                "group": "ホワイトペーパー",
+                "pages": [
+                  "ja/whitepaper"
+                ],
+                "icon": "scroll"
+              },
+              {
                 "group": "ロードマップ",
                 "pages": [
                   "ja/roadmap"
@@ -570,6 +591,13 @@
           {
             "tab": "업데이트",
             "groups": [
+              {
+                "group": "백서",
+                "pages": [
+                  "ko/whitepaper"
+                ],
+                "icon": "scroll"
+              },
               {
                 "group": "로드맵",
                 "pages": [
@@ -708,6 +736,13 @@
             "tab": "Aktualisierungen",
             "groups": [
               {
+                "group": "Whitepaper",
+                "pages": [
+                  "de/whitepaper"
+                ],
+                "icon": "scroll"
+              },
+              {
                 "group": "Roadmap",
                 "pages": [
                   "de/roadmap"
@@ -844,6 +879,13 @@
           {
             "tab": "Mises à jour",
             "groups": [
+              {
+                "group": "Livre blanc",
+                "pages": [
+                  "fr/whitepaper"
+                ],
+                "icon": "scroll"
+              },
               {
                 "group": "Feuille de route",
                 "pages": [
