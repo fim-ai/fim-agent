@@ -1,8 +1,8 @@
 FIM One Source Available License
 Version 1.2, March 2026
 
-Copyright 2024-2026 FIM AI / Beijing Feimu Network Technology Co., Ltd.
-(北京飞沐网络科技有限公司)
+Copyright 2024-2026 FIM Labs Pte. Ltd.
+68 Circular Road, #02-01, Singapore 049422
 
 https://github.com/fim-ai/fim-one
 
@@ -15,9 +15,10 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 "License" shall mean the terms and conditions for use, reproduction, and
 distribution as defined in this document.
 
-"Licensor" shall mean Beijing Feimu Network Technology Co., Ltd.
-(北京飞沐网络科技有限公司), doing business as FIM AI, or the entity
-authorized by it that is granting this License.
+"Licensor" shall mean FIM Labs Pte. Ltd., a company incorporated in
+Singapore with registered office at 68 Circular Road, #02-01, Singapore
+049422, doing business as FIM AI, or the entity authorized by it that is
+granting this License.
 
 "Affiliate" shall mean any entity that directly or indirectly controls, is
 controlled by, or is under common control with You, where "control" means
@@ -210,14 +211,16 @@ DAMAGES.
     remaining provisions shall remain in full force and effect.
 
 (c) This License shall be governed by and construed in accordance with the
-    laws of the People's Republic of China, without regard to conflict of
-    law principles.
+    laws of Singapore, without regard to conflict of law principles.
 
-(d) Any dispute arising out of or in connection with this License shall be
-    submitted to the China International Economic and Trade Arbitration
-    Commission (CIETAC) for arbitration in accordance with its then
-    effective arbitration rules. The seat of arbitration shall be
-    Beijing, China. The arbitral award shall be final and binding upon
+(d) Any dispute arising out of or in connection with this License,
+    including any question regarding its existence, validity or
+    termination, shall be referred to and finally resolved by arbitration
+    administered by the Singapore International Arbitration Centre (SIAC)
+    in accordance with the Arbitration Rules of SIAC for the time being
+    in force. The seat of arbitration shall be Singapore. The tribunal
+    shall consist of one (1) arbitrator. The language of the arbitration
+    shall be English. The arbitral award shall be final and binding upon
     both parties.
 
 (e) Failure by the Licensor to enforce any provision of this License does

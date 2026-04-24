@@ -1,0 +1,38 @@
+FIM One
+=======
+
+Copyright 2024-2026 FIM Labs Pte. Ltd.
+68 Circular Road, #02-01, Singapore 049422
+https://fim.ai
+
+This product is licensed under the FIM One Source Available License.
+See the LICENSE file for the full terms.
+
+
+Research and Development
+------------------------
+
+Research and development is performed by:
+
+  Beijing Feimu Network Technology Co., Ltd.
+  北京飞沐网络科技有限公司
+
+Contributions made by R&D center staff are assigned to, and the copyright
+is held by, FIM Labs Pte. Ltd.
+
+
+Trademarks
+----------
+
+"FIM", "FIM One", and "FIM AI", together with the FIM logo, are
+trademarks of FIM Labs Pte. Ltd. Use of these marks is subject to the
+trademark terms in the FIM One Source Available License.
+
+
+Third-Party Components
+----------------------
+
+This product includes third-party open-source software. Each such
+component retains its original copyright and is distributed under its
+own license. See the respective project sources and the dependency
+manifests (pyproject.toml, frontend/package.json) for details.

@@ -212,7 +212,7 @@ def create_app() -> FastAPI:
     # -- License notice (stderr — cannot be silenced by log config) ----------
     print(
         "🚀 FIM One — Licensed under FIM One Source Available License\n"
-        "Copyright 2024-2026 Beijing Feimu Network Technology Co., Ltd.",
+        "Copyright 2024-2026 FIM Labs Pte. Ltd.",
         file=sys.stderr,
     )
 
