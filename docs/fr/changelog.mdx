@@ -10,9 +10,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ## [Non publié]
 
-### Ajouté
+### Added
 
-- **Utilisateurs administrateurs : quota illimité par utilisateur + colonne Registered.** Laisser le champ quota vide hérite désormais de la limite globale ; le définir à `0` accorde à l'utilisateur un usage illimité. Auparavant, les deux états s'effondraient dans le même état, donc accorder un accès illimité individuel nécessitait une édition directe de la base de données. La table des utilisateurs gagne également une colonne Registered pour les audits d'intégration.
+- **Les docs non-anglaises affichent désormais la référence API complète (endpoints OpenAPI) et les pages de configuration des canaux.** Auparavant, seul le site anglais rendait ces sections — la navigation `zh` / `ja` / `ko` / `de` / `fr` ne contenait pas le groupe `Endpoints` ni le sous-groupe `Configuration > Channels`, ce qui empêchait les lecteurs de ces langues d'accéder au playground API auto-généré ou au guide de configuration du canal Feishu. Corrigé comme effet secondaire de la migration de `docs/docs.json` vers une source unique en anglais (`docs/nav.template.json` + `scripts/docs-nav-glossary.json`) qui régénère les six langues de manière déterministe ; la synchronisation manuelle par langue n'est plus nécessaire lors de l'ajout de nouvelles pages de documentation.
+- **Utilisateurs administrateurs : quota illimité par utilisateur + colonne Registered.** Laisser le champ quota vide hérite désormais de la limite globale ; le définir à `0` accorde à l'utilisateur un usage illimité. Auparavant, les deux cas s'effondraient dans le même état, donc accorder un accès illimité à un utilisateur individuel nécessitait une édition directe de la base de données. Le tableau des utilisateurs gagne également une colonne Registered pour les audits d'intégration.
 
 ### Corrections
 

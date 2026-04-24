@@ -1,0 +1,6 @@
+{
+  "_comment": "Per-locale nav overrides. Use to encode locale-specific differences (e.g., pages excluded for regional compliance). Supported keys: 'exclude' (list of EN-form page paths to drop), 'replace' (map EN-form path → alternate path), 'extend' (list of extra groups/pages). All paths in this file are EN-form (no locale prefix); the generator handles prefixing. See scripts/build-docs-nav.py.",
+  "exclude": [],
+  "replace": {},
+  "extend": []
+}

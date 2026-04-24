@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Added
 
+- **Non-English docs now show the full API Reference (OpenAPI endpoints) and Channels configuration pages.** Previously only the English site rendered these sections — the `zh` / `ja` / `ko` / `de` / `fr` nav was missing the `Endpoints` group and the `Configuration > Channels` sub-group, so readers on those locales couldn't reach the auto-generated API playground or the Feishu channel setup guide. Fixed as a side-effect of migrating `docs/docs.json` to a single English source of truth (`docs/nav.template.json` + `scripts/docs-nav-glossary.json`) that regenerates all six locales deterministically; manual per-locale sync is no longer required when adding new doc pages.
 - **Admin users: per-user unlimited quota + Registered column.** Leaving the quota field empty now inherits the global limit; setting it to `0` grants the user unlimited usage. Previously both collapsed into the same state, so granting an individual unlimited access required editing the DB directly. The users table also gains a Registered column for onboarding audits.
 
 ### Fixed

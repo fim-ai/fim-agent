@@ -54,37 +54,58 @@ jobs:
           CHANGED=$(git diff --name-only --diff-filter=ACM "$BEFORE" HEAD \
             | grep -E '^(frontend/messages/en/.*\.json|docs/.*\.mdx|README\.md)$' || true)
 
+          # docs.json nav sources (base metadata, template, glossary, overrides)
+          NAV_CHANGED=$(git diff --name-only --diff-filter=ACM "$BEFORE" HEAD \
+            | grep -E '^(docs/docs\.base\.json|docs/nav\.template\.json|scripts/docs-nav-glossary\.json|docs/nav-overrides/.+\.json)$' || true)
+          if [ -n "$NAV_CHANGED" ]; then
+            echo "nav_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "nav_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if [ -n "$LOCALE_EXCLUDE" ] && [ -n "$CHANGED" ]; then
             CHANGED=$(echo "$CHANGED" | grep -vE "$LOCALE_EXCLUDE" || true)
           fi
 
           if [ -z "$CHANGED" ]; then
-            echo "No EN source files changed in this push."
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No EN content source files changed in this push."
+            echo "has_content_changes=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Changed EN sources:"
+            echo "Changed EN content sources:"
             echo "$CHANGED" | sed 's/^/  /'
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "has_content_changes=true" >> "$GITHUB_OUTPUT"
             # Use $'\n'-delimited list passed via file to handle paths with spaces safely
             echo "$CHANGED" > /tmp/changed-files.txt
           fi
 
+          # Combined gate: install tooling/commit if either content OR nav changed
+          if [ -n "$CHANGED" ] || [ -n "$NAV_CHANGED" ]; then
+            echo "has_any_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_any_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install uv
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.changes.outputs.has_any_changes == 'true'
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
 
       - name: Set up Python
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.changes.outputs.has_any_changes == 'true'
         run: uv python install 3.12
 
       - name: Install dependencies
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.changes.outputs.has_content_changes == 'true'
         run: uv sync --all-extras
 
-      - name: Run translation
-        if: steps.changes.outputs.has_changes == 'true'
+      - name: Regenerate docs/docs.json (nav + labels across 6 locales)
+        if: steps.changes.outputs.nav_changed == 'true'
+        run: |
+          python3 scripts/build-docs-nav.py
+
+      - name: Run translation (content)
+        if: steps.changes.outputs.has_content_changes == 'true'
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
@@ -99,8 +120,8 @@ jobs:
           # accepts --files with a space-separated list.
           xargs -a /tmp/changed-files.txt uv run scripts/translate.py --files
 
-      - name: Commit and push if translations changed
-        if: steps.changes.outputs.has_changes == 'true'
+      - name: Commit and push if anything changed
+        if: steps.changes.outputs.has_any_changes == 'true'
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "No translation diff — locales already up to date."

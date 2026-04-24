@@ -10,9 +10,10 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ## [Unreleased]
 
-### Hinzugefügt
+### Added
 
-- **Admin-Benutzer: unbegrenztes Kontingent pro Benutzer + Spalte „Registriert".** Wenn das Kontingentfeld leer gelassen wird, wird das globale Limit geerbt; wenn es auf `0` gesetzt wird, erhält der Benutzer unbegrenzten Zugriff. Zuvor führten beide Zustände zum gleichen Ergebnis, sodass das Gewähren von unbegrenztem Zugriff für einen einzelnen Benutzer eine direkte Bearbeitung der Datenbank erforderte. Die Benutzertabelle erhält auch eine Spalte „Registriert" für Onboarding-Audits.
+- **Nicht-englische Dokumentation zeigt jetzt die vollständige API-Referenz (OpenAPI-Endpunkte) und Konfigurationsseiten für Kanäle.** Zuvor wurden diese Abschnitte nur auf der englischen Website angezeigt — die Navigation für `zh` / `ja` / `ko` / `de` / `fr` fehlte die Gruppe `Endpoints` und die Untergruppe `Configuration > Channels`, sodass Leser in diesen Sprachen nicht auf den automatisch generierten API-Spielplatz oder die Feishu-Kanal-Einrichtungsanleitung zugreifen konnten. Dies wurde als Nebeneffekt der Migration von `docs/docs.json` zu einer einzigen englischen Quelle der Wahrheit (`docs/nav.template.json` + `scripts/docs-nav-glossary.json`) behoben, die alle sechs Sprachen deterministisch regeneriert; eine manuelle sprachspezifische Synchronisierung ist nicht mehr erforderlich, wenn neue Dokumentationsseiten hinzugefügt werden.
+- **Admin-Benutzer: unbegrenzte Kontingente pro Benutzer + Spalte „Registered".** Das Kontingentfeld leer zu lassen erbt jetzt das globale Limit; das Setzen auf `0` gewährt dem Benutzer unbegrenzte Nutzung. Zuvor führten beide zum gleichen Zustand, sodass die Gewährung von unbegrenztem Zugriff für einen einzelnen Benutzer eine direkte Datenbankbearbeitung erforderte. Die Benutzertabelle erhält auch eine Spalte „Registered" für Onboarding-Audits.
 
 ### Behoben
 

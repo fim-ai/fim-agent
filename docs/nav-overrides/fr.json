@@ -1,0 +1,6 @@
+{
+  "_comment": "Per-locale nav overrides. Supported keys: 'exclude' (EN-form paths to drop), 'replace' (map), 'extend' (extra items). Paths in this file are EN-form; generator handles prefixing.",
+  "exclude": [],
+  "replace": {},
+  "extend": []
+}

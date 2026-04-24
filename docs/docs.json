@@ -298,8 +298,8 @@
             "tab": "API 参考",
             "groups": [
               {
-                "group": "入门指南",
-                "icon": "key",
+                "group": "概述",
+                "icon": "book",
                 "pages": [
                   "zh/api/overview",
                   "zh/api/authentication"
@@ -312,17 +312,17 @@
             "groups": [
               {
                 "group": "路线图",
+                "icon": "map",
                 "pages": [
                   "zh/roadmap"
-                ],
-                "icon": "map"
+                ]
               },
               {
                 "group": "变更日志",
+                "icon": "clock-rotate-left",
                 "pages": [
                   "zh/changelog"
-                ],
-                "icon": "clock-rotate-left"
+                ]
               }
             ]
           }
@@ -442,8 +442,8 @@
             "tab": "API リファレンス",
             "groups": [
               {
-                "group": "はじめに",
-                "icon": "key",
+                "group": "概要",
+                "icon": "book",
                 "pages": [
                   "ja/api/overview",
                   "ja/api/authentication"
@@ -456,17 +456,17 @@
             "groups": [
               {
                 "group": "ロードマップ",
+                "icon": "map",
                 "pages": [
                   "ja/roadmap"
-                ],
-                "icon": "map"
+                ]
               },
               {
                 "group": "変更履歴",
+                "icon": "clock-rotate-left",
                 "pages": [
                   "ja/changelog"
-                ],
-                "icon": "clock-rotate-left"
+                ]
               }
             ]
           }
@@ -586,8 +586,8 @@
             "tab": "API 참조",
             "groups": [
               {
-                "group": "시작하기",
-                "icon": "key",
+                "group": "개요",
+                "icon": "book",
                 "pages": [
                   "ko/api/overview",
                   "ko/api/authentication"
@@ -600,17 +600,17 @@
             "groups": [
               {
                 "group": "로드맵",
+                "icon": "map",
                 "pages": [
                   "ko/roadmap"
-                ],
-                "icon": "map"
+                ]
               },
               {
                 "group": "변경 이력",
+                "icon": "clock-rotate-left",
                 "pages": [
                   "ko/changelog"
-                ],
-                "icon": "clock-rotate-left"
+                ]
               }
             ]
           }
@@ -730,8 +730,8 @@
             "tab": "API-Referenz",
             "groups": [
               {
-                "group": "Erste Schritte",
-                "icon": "key",
+                "group": "Übersicht",
+                "icon": "book",
                 "pages": [
                   "de/api/overview",
                   "de/api/authentication"
@@ -744,17 +744,17 @@
             "groups": [
               {
                 "group": "Roadmap",
+                "icon": "map",
                 "pages": [
                   "de/roadmap"
-                ],
-                "icon": "map"
+                ]
               },
               {
                 "group": "Änderungsprotokoll",
+                "icon": "clock-rotate-left",
                 "pages": [
                   "de/changelog"
-                ],
-                "icon": "clock-rotate-left"
+                ]
               }
             ]
           }
@@ -874,8 +874,8 @@
             "tab": "Référence API",
             "groups": [
               {
-                "group": "Démarrage",
-                "icon": "key",
+                "group": "Aperçu",
+                "icon": "book",
                 "pages": [
                   "fr/api/overview",
                   "fr/api/authentication"
@@ -888,17 +888,17 @@
             "groups": [
               {
                 "group": "Feuille de route",
+                "icon": "map",
                 "pages": [
                   "fr/roadmap"
-                ],
-                "icon": "map"
+                ]
               },
               {
                 "group": "Journal des modifications",
+                "icon": "clock-rotate-left",
                 "pages": [
                   "fr/changelog"
-                ],
-                "icon": "clock-rotate-left"
+                ]
               }
             ]
           }

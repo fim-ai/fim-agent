@@ -1,0 +1,53 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "FIM One",
+  "description": "AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.",
+  "openapi": "openapi.json",
+  "api": {
+    "auth": {
+      "method": "bearer",
+      "name": "Authorization"
+    },
+    "playground": {
+      "mode": "simple"
+    }
+  },
+  "colors": {
+    "primary": "#D97706",
+    "light": "#C8922A",
+    "dark": "#FBBF24"
+  },
+  "background": {
+    "color": {
+      "light": "#FBF9F7",
+      "dark": "#120E0C"
+    }
+  },
+  "navigation": {
+    "languages": []
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo-light.svg",
+    "dark": "/logo-dark.svg",
+    "href": "https://one.fim.ai"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/fim-ai/fim-one"
+      },
+      {
+        "label": "Cloud",
+        "href": "https://cloud.fim.ai"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://one.fim.ai"
+    }
+  }
+}

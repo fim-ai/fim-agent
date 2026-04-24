@@ -103,6 +103,21 @@ if [ -n "$STAGED_WEB_PY" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Re-generate docs/docs.json if any of its sources changed
+# (base metadata, nav template, label glossary, per-locale overrides).
+# docs/docs.json is a GENERATED artifact — never edit it directly.
+# ---------------------------------------------------------------------------
+STAGED_NAV_SOURCES=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^(docs/docs\.base\.json|docs/nav\.template\.json|scripts/docs-nav-glossary\.json|docs/nav-overrides/.+\.json)$' || true)
+
+if [ -n "$STAGED_NAV_SOURCES" ]; then
+  echo "nav: regenerating docs/docs.json..."
+  cd "$ROOT"
+  python3 scripts/build-docs-nav.py
+  git add docs/docs.json
+fi
+
+# ---------------------------------------------------------------------------
 # Run the translation script (skip if only web py changed, no docs)
 # ---------------------------------------------------------------------------
 if [ -n "$STAGED_JSON" ] || [ -n "$STAGED_MDX" ] || [ -n "$STAGED_README" ]; then

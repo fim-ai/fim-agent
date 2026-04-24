@@ -74,10 +74,9 @@ All UI text via `next-intl` — **never hardcode English**. `useTranslations("{n
 **Adding a new locale:**
 - Frontend: `SUPPORTED_LOCALES` in `frontend/src/i18n/request.ts`.
 - Backend: all locale regex in `src/fim_one/web/schemas/auth.py` — `preferred_language` (`UpdateProfileRequest`) + `locale` (`Send{Verification,Login,Reset,Forgot}CodeRequest`). Miss this = silent 400 + locale won't persist.
-- Docs: new `navigation.languages[]` entry in `docs/docs.json` — copy existing block, update `"language"`, translate tab/group names, prefix paths with `{locale}/`.
+- Docs nav: add to `LOCALES` in `scripts/build-docs-nav.py`, fill glossary, create empty `docs/nav-overrides/{locale}.json`.
 
-**Adding doc page/group — MANDATORY nav sync across 5 locales:**
-`docs/docs.json` is NOT auto-translated. When EN changes pages/groups, mirror the change in all 5 locale sections (`zh`, `ja`, `ko`, `de`, `fr`) in the same commit. Translate group names using canonical terms from `frontend/messages/{locale}/<ns>.json`. Verify: `grep -c "<new-path>" docs/docs.json` = 6.
+**`docs/docs.json` is generated** — edit `docs/nav.template.json` / `scripts/docs-nav-glossary.json` / `docs/nav-overrides/*.json`. Pre-commit + `i18n-sync.yml` regenerate it.
 
 ## Alembic Migrations (MANDATORY — SQLite/PG dual-track)
 

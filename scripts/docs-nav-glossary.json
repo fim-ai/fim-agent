@@ -1,0 +1,131 @@
+{
+  "_comment": "Canonical translations for labels (tab names, group names) used in docs/nav.template.json. Keys are EN strings as they appear in the template. Edit here to change how a label renders in zh/ja/ko/de/fr. Consumed by scripts/build-docs-nav.py.",
+  "labels": {
+    "Guides": {
+      "zh": "开发指南",
+      "ja": "ガイド",
+      "ko": "가이드",
+      "de": "Leitfäden",
+      "fr": "Guides"
+    },
+    "Concepts": {
+      "zh": "概念与架构",
+      "ja": "コンセプト",
+      "ko": "개념",
+      "de": "Konzepte",
+      "fr": "Concepts"
+    },
+    "API Reference": {
+      "zh": "API 参考",
+      "ja": "API リファレンス",
+      "ko": "API 참조",
+      "de": "API-Referenz",
+      "fr": "Référence API"
+    },
+    "Updates": {
+      "zh": "项目动态",
+      "ja": "更新情報",
+      "ko": "업데이트",
+      "de": "Aktualisierungen",
+      "fr": "Mises à jour"
+    },
+    "Why FIM One": {
+      "zh": "为什么选 FIM One",
+      "ja": "なぜ FIM One なのか",
+      "ko": "왜 FIM One인가",
+      "de": "Warum FIM One",
+      "fr": "Pourquoi FIM One"
+    },
+    "Getting Started": {
+      "zh": "快速入门",
+      "ja": "はじめに",
+      "ko": "시작하기",
+      "de": "Erste Schritte",
+      "fr": "Démarrage rapide"
+    },
+    "Configuration": {
+      "zh": "配置",
+      "ja": "設定",
+      "ko": "구성",
+      "de": "Konfiguration",
+      "fr": "Configuration"
+    },
+    "Channels": {
+      "zh": "渠道",
+      "ja": "チャネル",
+      "ko": "채널",
+      "de": "Kanäle",
+      "fr": "Canaux"
+    },
+    "Integrations": {
+      "zh": "集成",
+      "ja": "統合",
+      "ko": "통합",
+      "de": "Integrationen",
+      "fr": "Intégrations"
+    },
+    "Features": {
+      "zh": "功能",
+      "ja": "機能",
+      "ko": "기능",
+      "de": "Funktionen",
+      "fr": "Fonctionnalités"
+    },
+    "Extending FIM One": {
+      "zh": "扩展 FIM One",
+      "ja": "FIM One の拡張",
+      "ko": "FIM One 확장",
+      "de": "FIM One erweitern",
+      "fr": "Extension de FIM One"
+    },
+    "Architecture": {
+      "zh": "架构",
+      "ja": "アーキテクチャ",
+      "ko": "아키텍처",
+      "de": "Architektur",
+      "fr": "Architecture"
+    },
+    "Execution Engines": {
+      "zh": "执行引擎",
+      "ja": "実行エンジン",
+      "ko": "실행 엔진",
+      "de": "Ausführungsmaschinen",
+      "fr": "Moteurs d'exécution"
+    },
+    "Strategy": {
+      "zh": "策略",
+      "ja": "戦略",
+      "ko": "전략",
+      "de": "Strategie",
+      "fr": "Stratégie"
+    },
+    "Overview": {
+      "zh": "概述",
+      "ja": "概要",
+      "ko": "개요",
+      "de": "Übersicht",
+      "fr": "Aperçu"
+    },
+    "Endpoints": {
+      "zh": "端点",
+      "ja": "エンドポイント",
+      "ko": "엔드포인트",
+      "de": "Endpunkte",
+      "fr": "Points de terminaison"
+    },
+    "Roadmap": {
+      "zh": "路线图",
+      "ja": "ロードマップ",
+      "ko": "로드맵",
+      "de": "Roadmap",
+      "fr": "Feuille de route"
+    },
+    "Changelog": {
+      "zh": "变更日志",
+      "ja": "変更履歴",
+      "ko": "변경 이력",
+      "de": "Änderungsprotokoll",
+      "fr": "Journal des modifications"
+    }
+  }
+}
