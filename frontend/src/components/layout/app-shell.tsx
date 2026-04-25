@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { BookOpen, Bot, FlaskConical, GitBranch, LayoutDashboard, Layers, Library, Loader2, Monitor, Moon, PanelLeftClose, PanelLeftOpen, Plug, Plus, Search, ShoppingBag, Sun, Wrench, X } from "lucide-react"
+import { BookOpen, Bot, Equal, FlaskConical, GitBranch, LayoutDashboard, Layers, Library, Loader2, Monitor, Moon, PanelLeftClose, Plug, Plus, Search, ShoppingBag, Sun, Wrench, X } from "lucide-react"
 import { getApiBaseUrl } from "@/lib/constants"
 import { setMaintenanceCallback } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -534,7 +534,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   onClick={() => setCollapsed(false)}
                   className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
-                  <PanelLeftOpen className="h-4 w-4" />
+                  <Equal className="h-4 w-4" />
                 </button>
               </SidebarTooltip>
             ) : (
