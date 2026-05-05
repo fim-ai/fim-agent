@@ -33,9 +33,9 @@ Die Kernidee: **drei Liefermodi, ein Agent-Kern**.
 | **Copilot** | KI eingebettet in ein Host-System — arbeitet neben Benutzern in ihrer bestehenden UI | iframe / Widget / Embed | „Finance Copilot" in Ihrer ERP-Web-UI |
 | **Hub** | Zentrale systemübergreifende Orchestrierung — alle Ihre Systeme verbunden | Portal / API | Agent fragt ERP ab, prüft OA, benachrichtigt über Lark |
 
-## Die Hub-Architektur
+## Ein Agent-Kern, jedes System
 
-Der Hub ist der zentrale Differenziator — ein zentrales Portal, in dem alle Ihre Systeme auf AI treffen:
+Der Agent-Kern ist der Differenziator — eine zentrale Orchestrierungsschicht, wo globale SaaS, der China-Enterprise-Stack und alles dazwischen auf KI treffen:
 
 ```mermaid
 flowchart LR
@@ -47,7 +47,7 @@ flowchart LR
   Hub["FIM One Hub<br/>(AI orchestration)"] --> CustomAPI["Custom API"]
 ```
 
-Jeder Konnektor ist eine standardisierte Brücke. Der Agent weiß nicht und kümmert sich nicht darum, ob er mit SAP oder einer benutzerdefinierten PostgreSQL-Datenbank spricht. Ihre Daten bleiben in Ihren Systemen; FIM One bietet die AI-Schicht, die diese orchestriert.
+Jeder Connector ist eine standardisierte Brücke. Der Agent weiß nicht und kümmert sich nicht darum, ob er mit SAP oder einer benutzerdefinierten PostgreSQL-Datenbank spricht. Ihre Daten bleiben in Ihren Systemen; FIM One bietet die KI-Schicht, die sie orchestriert.
 
 ## Erste Schritte
 

@@ -33,9 +33,9 @@ L'idée centrale : **trois modes de livraison, un cœur d'agent unique**.
 | **Copilote** | IA intégrée dans un système hôte — fonctionne aux côtés des utilisateurs dans leur interface existante | iframe / widget / embed | "Copilote Finance" dans votre interface web ERP |
 | **Hub** | Orchestration centrale inter-systèmes — tous vos systèmes connectés | Portail / API | L'agent interroge l'ERP, vérifie l'OA, notifie via Lark |
 
-## Architecture du Hub
+## Un cœur d'agent unique, tous les systèmes
 
-Le Hub est le différenciateur central — un portail central où tous vos systèmes rencontrent l'IA :
+Le cœur de l'agent est le différenciateur — une couche d'orchestration centrale où le SaaS mondial, la pile d'entreprise chinoise et tout ce qui se trouve entre les deux rencontrent l'IA :
 
 ```mermaid
 flowchart LR
@@ -44,7 +44,7 @@ flowchart LR
   Lark --> Hub
   Hub --> CRM
   Hub --> OA
-  Hub["FIM One Hub<br/>(orchestration IA)"] --> CustomAPI["Custom API"]
+  Hub["FIM One Hub<br/>(AI orchestration)"] --> CustomAPI["Custom API"]
 ```
 
 Chaque connecteur est un pont standardisé. L'agent ne sait pas et ne se soucie pas de savoir s'il communique avec SAP ou une base de données PostgreSQL personnalisée. Vos données restent dans vos systèmes ; FIM One fournit la couche IA qui orchestre l'ensemble.
