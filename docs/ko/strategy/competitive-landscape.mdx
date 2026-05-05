@@ -5,7 +5,7 @@ description: "내부 전략 참고 자료 — FIM One이 경쟁사들 중에서 
 mode: "wide"
 ---
 
-## 위치 지정
+## 포지셔닝
 
 ```
 Dify:       "Build AI workflows visually"
@@ -13,20 +13,20 @@ Manus:      "Your AI that does the work"
 FIM One:  "The hub where your systems meet AI"
 ```
 
-Dify / Manus는 **대체 제품**입니다 — 사용자에게 새로운 플랫폼으로 작업을 이동하도록 요청합니다. FIM One은 **커넥터 허브**입니다 — 사용자가 이미 보유한 시스템을 연결하여 AI를 통해 통신할 수 있도록 합니다.
+Dify / Manus는 **대체 제품**입니다 — 사용자에게 새로운 플랫폼으로 작업을 이동하도록 요청합니다. FIM One은 **국경을 넘는 에이전트 플랫폼**입니다 — 사용자가 이미 보유한 시스템을 연결하여 AI를 통해 통신할 수 있게 합니다.
 
 ## 경쟁 매트릭스
 
 | 차원 | Dify | Manus | Coze | FIM One |
 |-----------|------|-------|------|-----------|
-| **접근 방식** | 시각적 DAG 워크플로우 빌더 | 자율 소비자 에이전트 | 시각적 빌더 + 에이전트 공간 | AI 커넥터 허브 |
+| **접근 방식** | 시각적 DAG 워크플로우 빌더 | 자율 소비자 에이전트 | 시각적 빌더 + 에이전트 공간 | 크로스보더 에이전트 플랫폼 |
 | **배포** | 독립형 플랫폼 | 클라우드 SaaS + API | 클라우드 SaaS + 자체 호스팅(Coze Studio) | 플랫폼 / API / 임베드 |
-| **계획** | 인간 설계 정적 DAG | 다중 에이전트 Chain-of-Thought | 정적 워크플로우 + 동적 에이전트 | LLM DAG 계획 + ReAct 루프 |
-| **레거시 시스템 통합** | API 노드(수동 연결) | 없음 | 플러그인 마켓플레이스 | 커넥터 플랫폼(표준화됨) |
-| **시스템 간 오케스트레이션** | 없음 | 없음 | 없음 | Hub Mode(N:N) |
-| **임베드 가능** | iframe + 스크립트 임베드 | API만 | Chat SDK + 10개 이상 채널 | API / iframe(Widget 계획 중) |
-| **인간 확인** | 없음 | 없음 | 없음 | 있음(실행 전 게이트) |
-| **자체 호스팅** | 예(Docker Compose) | 없음 | 예(Coze Studio, Apache 2.0) | 예(단일 프로세스) |
+| **계획** | 인간 설계 정적 DAG | 멀티에이전트 Chain-of-Thought | 정적 워크플로우 + 동적 에이전트 | LLM DAG 계획 + ReAct 루프 |
+| **레거시 시스템 통합** | API 노드(수동 연결) | 없음 | 플러그인 마켓플레이스 | 커넥터 플랫폼(표준화) |
+| **크로스시스템 오케스트레이션** | 아니오 | 아니오 | 아니오 | 허브 모드(N:N) |
+| **임베드 가능** | iframe + 스크립트 임베드 | API만 | 채팅 SDK + 10개 이상 채널 | API / iframe(Widget 계획 중) |
+| **인간 확인** | 아니오 | 아니오 | 아니오 | 예(실행 전 게이트) |
+| **자체 호스팅** | 예(Docker Compose) | 아니오 | 예(Coze Studio, Apache 2.0) | 예(단일 프로세스) |
 | **라이선스** | Apache 2.0 | 독점 | Apache 2.0(Coze Studio) | Source Available |
 | **인기도** | 121K+ 스타 | Meta 인수($2B+, 중국 규제 검토) | ByteDance 지원, 20K+ 스타(Studio) | 초기 단계 |
 
@@ -115,14 +115,14 @@ Embedded:    <script src="fim-one.js"> injected into host page
 
 ## MuleSoft 유추
 
-FIM One의 커넥터 아키텍처는 개념적으로 **AI 시대의 MuleSoft**입니다:
+FIM One의 Connector 아키텍처는 개념적으로 **AI 시대의 MuleSoft**입니다:
 
 | | MuleSoft | FIM One |
 |-|----------|-----------|
-| **What** | 시스템 간 API 통합 | AI 커넥터 허브를 통한 시스템 통합 |
-| **How** | 커넥터 + 선언적 매핑 | MCP 서버 + 커넥터 거버넌스 계층 |
-| **Protocol** | Anypoint SDK | MCP (개방형 표준) + 거버넌스 계층 |
-| **Standardization** | Anypoint 커넥터 | Level 1 (Python MCP Server) -> Level 2 (YAML) -> Level 3 (AI 생성) |
-| **Value** | "모든 것을 연결" | "모든 시스템이 AI를 만나는 허브" |
+| **What** | System-to-system API integration | Cross-Border Agent Platform for system integration |
+| **How** | Connectors + declarative mapping | MCP Servers + Connector Governance Layer |
+| **Protocol** | Anypoint SDK | MCP (open standard) + governance layer |
+| **Standardization** | Anypoint connectors | Level 1 (Python MCP Server) -> Level 2 (YAML) -> Level 3 (AI-generated) |
+| **Value** | "Connect everything" | "The hub where all your systems meet AI" |
 
 이 유추는 엔터프라이즈 포지셔닝에 강력합니다.

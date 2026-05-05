@@ -1,35 +1,35 @@
 ---
 title: "Livre blanc FIM One"
-description: "Les données ne quittent jamais votre périmètre. La couche d'infrastructure IA d'entreprise, pas un autre iPaaS."
+description: "Les données ne quittent jamais votre périmètre. La couche infrastructure IA d'entreprise, pas une autre iPaaS."
 icon: "scroll"
 ---
 
 <Frame>
-  <img src="/banner.jpg" alt="FIM One — AI-Powered Connector Hub" />
+  <img src="/banner.jpg" alt="FIM One — All-in-One Agent Platform for Global × China Enterprises" />
 </Frame>
 
 <Info>
-  **Version 1.1 · Avril 2026.** Ce livre blanc documente la thèse architecturale, le positionnement de catégorie et le modèle de déploiement de FIM One.
-  Il est destiné aux CTO, aux architectes d'entreprise, aux responsables de plateformes IA et aux investisseurs techniques évaluant comment intégrer l'IA aux systèmes qu'ils utilisent déjà.
+  **Version 1.1 · April 2026.** Ce livre blanc documente la thèse architecturale, le positionnement catégorique et le modèle de déploiement de FIM One.
+  Il est destiné aux CTO, architectes d'entreprise, responsables de plateformes IA et investisseurs techniques évaluant comment intégrer l'IA aux systèmes qu'ils utilisent déjà.
 </Info>
 
 ## Résumé exécutif
 
-**Les données ne quittent jamais votre périmètre.** Cette seule phrase est la contrainte de conception de premier ordre derrière chaque décision dans FIM One, et c'est la raison pour laquelle une nouvelle couche d'infrastructure est nécessaire — pas une autre iPaaS, et pas un autre agent généraliste.
+**Les données ne quittent jamais votre périmètre.** Cette seule phrase est la contrainte de conception de premier ordre derrière chaque décision dans FIM One, et c'est la raison pour laquelle une nouvelle couche d'infrastructure est nécessaire — pas un autre iPaaS, et pas un autre agent généraliste.
 
-La plupart des entreprises disposent déjà des systèmes dont elles ont besoin — ERP, CRM, OA, bases de données personnalisées, API internes, SaaS sectoriels. Ce qui leur manque, c'est un moyen pour l'IA de **accéder** à ces systèmes sans migrer les données vers le cloud d'un fournisseur et sans un projet d'intégration de six mois pour chaque cas d'usage. Le marché est vaste, se déplace rapidement et se repositionne déjà : les dépenses mondiales en infrastructure GenAI pour les entreprises sont projetées à **18 milliards USD en 2025, avec une croissance de 3,2× en glissement annuel** (Menlo Ventures 2025). La Chine se déplace encore plus vite — les dépenses en Agent IA pour les entreprises à **120% TCAC (2023–2027), atteignant ¥65,5 milliards d'ici 2027** (iResearch · CAICT 2025). Les entreprises centrales/détenues par l'État représentent **60%+ des achats de grands modèles**, et le déploiement privé Xinchuang (信创) est une contrainte incontournable.
+La plupart des entreprises disposent déjà des systèmes dont elles ont besoin — ERP, CRM, OA, bases de données personnalisées, API internes, SaaS sectoriels. Ce qui leur manque, c'est un moyen pour l'IA de **accéder** à ces systèmes sans migrer les données vers le cloud d'un fournisseur et sans un projet d'intégration de six mois pour chaque cas d'usage. Le marché est vaste, évolue rapidement et se repositionne déjà : les dépenses mondiales en infrastructure GenAI pour les entreprises devraient atteindre **18 milliards USD en 2025, avec une croissance de 3,2× en glissement annuel** (Menlo Ventures 2025). La Chine évolue encore plus vite — les dépenses en Agent IA pour les entreprises à **120% TCAC (2023–2027), atteignant ¥65,5 milliards d'ici 2027** (iResearch · CAICT 2025). Les entreprises centrales et détenues par l'État représentent **plus de 60% des achats de grands modèles**, et le déploiement privé Xinchuang (信创) est une contrainte incontournable.
 
-Gartner a officiellement renommé cette catégorie « AI Agent Platform » (document 6300015, 2025) ; le rapport 2025 Agentic AI Technology Report du CAICT l'appelle « 智能体平台 » ; MuleSoft, le leader historique des iPaaS, a été **rétrogradé de Leader à Challenger** dans le Magic Quadrant iPaaS 2025. La catégorie qui a dominé l'intégration d'entreprise pendant une décennie est remplacée en temps réel.
+Gartner a officiellement renommé cette catégorie « AI Agent Platform » (document 6300015, 2025) ; le rapport 2025 de CAICT sur la technologie Agentic AI l'appelle « 智能体平台 » ; MuleSoft, le leader historique de l'iPaaS, a été **rétrogradé de Leader à Challenger** dans le Magic Quadrant iPaaS 2025. La catégorie qui a dominé l'intégration d'entreprise pendant une décennie est remplacée en temps réel.
 
-FIM One est construit pour la nouvelle catégorie. C'est un **Connector Hub** — un framework Python agnostique vis-à-vis des fournisseurs où les agents IA planifient et exécutent dynamiquement des tâches sur vos systèmes existants, déployés dans votre propre environnement, auditables de bout en bout. Un cœur d'agent, trois modes de livraison :
+FIM One est conçu pour la nouvelle catégorie. C'est une **plateforme d'agent tout-en-un** pour les entreprises mondiales et chinoises — un framework Python agnostique vis-à-vis des fournisseurs où les agents IA planifient et exécutent dynamiquement des tâches dans vos systèmes existants, reliant les SaaS mondiaux et la pile chinoise via un cœur d'agent unique, déployé dans votre propre environnement, auditable de bout en bout. Un cœur d'agent, trois modes de livraison :
 
 | Mode | Où il réside | Déploiement typique |
 |---|---|---|
-| **Standalone** | Un portail qui lui est propre | Q&A de connaissances, chat interne, bac à sable de code |
-| **Copilot** | Intégré dans un système hôte | « Copilot Finance » dans une interface web ERP |
+| **Standalone** | Un portail qui lui est propre | Q&A sur les connaissances, chat interne, bac à sable de code |
+| **Copilot** | Intégré dans un système hôte | « Finance Copilot » dans une interface web ERP |
 | **Hub** | Orchestrateur central inter-systèmes | L'agent interroge l'ERP, vérifie l'OA, notifie via Feishu |
 
-Ce document explique pourquoi la catégorie se déplace, pourquoi iPaaS ne peut pas absorber la nouvelle charge de travail, à quoi ressemble FIM One sous le capot, et comment le mettre en production.
+Ce document explique pourquoi la catégorie évolue, pourquoi l'iPaaS ne peut pas absorber la nouvelle charge de travail, à quoi ressemble FIM One sous le capot, et comment le mettre en production.
 
 ## 1. Le problème : l'IA d'entreprise est un problème d'alignement
 

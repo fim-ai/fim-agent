@@ -13,22 +13,22 @@ Manus:      "Your AI that does the work"
 FIM One:  "The hub where your systems meet AI"
 ```
 
-Dify / Manus 是**替代产品** — 它们要求用户将工作迁移到新平台。FIM One 是一个**连接器中心** — 它连接用户已有的系统，让它们通过 AI 进行通信。
+Dify / Manus 是**替代产品**——它们要求用户将工作迁移到新平台。FIM One 是**跨境智能体平台**——它连接用户已有的系统，让他们通过AI进行沟通。
 
 ## 竞争矩阵
 
 | 维度 | Dify | Manus | Coze | FIM One |
 |-----------|------|-------|------|-----------|
-| **方法** | 可视化 DAG 工作流构建器 | 自主消费者智能体 | 可视化构建器 + 智能体空间 | AI 连接器中心 |
-| **交付方式** | 独立平台 | 云 SaaS + API | 云 SaaS + 自托管（Coze Studio） | 平台 / API / 嵌入 |
-| **规划** | 人工设计的静态 DAG | 多智能体思维链 | 静态工作流 + 动态智能体 | LLM DAG 规划 + ReAct 循环 |
-| **遗留系统集成** | API 节点（手动连接） | 无 | 插件市场 | 连接器平台（标准化） |
-| **跨系统编排** | 否 | 否 | 否 | 中心模式（N:N） |
-| **可嵌入** | iframe + 脚本嵌入 | 仅 API | Chat SDK + 10+ 渠道 | API / iframe（计划 Widget） |
-| **人工确认** | 否 | 否 | 否 | 是（执行前门控） |
+| **方法** | 可视化DAG工作流构建器 | 自主消费者智能体 | 可视化构建器+智能体空间 | 跨境智能体平台 |
+| **交付方式** | 独立平台 | 云SaaS+API | 云SaaS+自托管（Coze Studio） | 平台/API/嵌入 |
+| **规划** | 人工设计的静态DAG | 多智能体思维链 | 静态工作流+动态智能体 | LLM DAG规划+ReAct循环 |
+| **遗留系统集成** | API节点（手动连接） | 无 | 插件市场 | 连接器平台（标准化） |
+| **跨系统编排** | 否 | 否 | 否 | 是（Hub模式，N:N） |
+| **可嵌入** | iframe+脚本嵌入 | 仅API | Chat SDK+10+通道 | API/iframe（Widget计划中） |
+| **人工确认** | 否 | 否 | 否 | 是（执行前闸门） |
 | **自托管** | 是（Docker Compose） | 否 | 是（Coze Studio，Apache 2.0） | 是（单进程） |
 | **许可证** | Apache 2.0 | 专有 | Apache 2.0（Coze Studio） | 源代码可用 |
-| **热度** | 121K+ 星标 | 被 Meta 收购（20 亿美元+，中国监管审查） | ByteDance 支持，20K+ 星标（Studio） | 早期阶段 |
+| **关注度** | 121K+星标 | 被Meta收购（20亿美元+，中国监管审查） | ByteDance支持，20K+星标（Studio） | 早期阶段 |
 
 ## 基准测试策略
 
@@ -115,14 +115,14 @@ Embedded:    <script src="fim-one.js"> injected into host page
 
 ## MuleSoft 类比
 
-FIM One 的连接器架构在概念上是 **AI 时代的 MuleSoft**：
+FIM One的连接器架构在概念上是**AI时代的MuleSoft**：
 
 | | MuleSoft | FIM One |
 |-|----------|-----------|
-| **What** | 系统间 API 集成 | 用于系统集成的 AI 连接器中心 |
-| **How** | 连接器 + 声明式映射 | MCP 服务器 + 连接器治理层 |
+| **What** | 系统间API集成 | 跨境智能体平台，用于系统集成 |
+| **How** | 连接器 + 声明式映射 | MCP Servers + 连接器治理层 |
 | **Protocol** | Anypoint SDK | MCP（开放标准）+ 治理层 |
-| **Standardization** | Anypoint 连接器 | Level 1（Python MCP 服务器）-> Level 2（YAML）-> Level 3（AI 生成） |
-| **Value** | "连接一切" | "所有系统与 AI 相遇的中心" |
+| **Standardization** | Anypoint连接器 | Level 1（Python MCP Server）-> Level 2（YAML）-> Level 3（AI生成） |
+| **Value** | "连接一切" | "所有系统与AI相遇的枢纽" |
 
 这个类比对企业定位很有力。

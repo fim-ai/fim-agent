@@ -13,21 +13,21 @@ Manus:      "Your AI that does the work"
 FIM One:  "The hub where your systems meet AI"
 ```
 
-Dify / Manus sont des **produits de remplacement** — ils demandent aux utilisateurs de déplacer leur travail vers une nouvelle plateforme. FIM One est un **hub de connecteurs** — il relie les systèmes que les utilisateurs possèdent déjà, leur permettant de communiquer via l'IA.
+Dify / Manus sont des **produits de remplacement** — ils demandent aux utilisateurs de migrer leur travail vers une nouvelle plateforme. FIM One est une **plateforme d'agents transfrontalière** — elle relie les systèmes que les utilisateurs possèdent déjà, leur permettant de communiquer via l'IA.
 
-## Matrice Concurrentielle
+## Matrice concurrentielle
 
 | Dimension | Dify | Manus | Coze | FIM One |
 |-----------|------|-------|------|-----------|
-| **Approche** | Générateur de flux de travail DAG visuel | Agent consommateur autonome | Générateur visuel + espace agent | Hub de Connecteurs IA |
+| **Approche** | Générateur de flux de travail DAG visuel | Agent consommateur autonome | Générateur visuel + espace agent | Plateforme Agent transfrontalière |
 | **Livraison** | Plateforme autonome | Cloud SaaS + API | Cloud SaaS + auto-hébergé (Coze Studio) | Plateforme / API / intégration |
-| **Planification** | DAGs statiques conçus par l'homme | Chaîne de pensée multi-agent | Flux de travail statiques + agents dynamiques | Planification DAG par LLM + boucles ReAct |
-| **Intégration de systèmes hérités** | Nœuds API (câblage manuel) | Aucun | Marketplace de plugins | Plateforme de connecteurs (standardisée) |
+| **Planification** | DAG statique conçu par l'homme | Chaîne de pensée multi-agent | Flux de travail statiques + agents dynamiques | Planification DAG LLM + boucles ReAct |
+| **Intégration système hérité** | Nœuds API (câblage manuel) | Aucune | Marketplace de plugins | Plateforme de connecteurs (standardisée) |
 | **Orchestration inter-systèmes** | Non | Non | Non | Mode Hub (N:N) |
-| **Intégrable** | iframe + intégration de script | API uniquement | Chat SDK + 10+ canaux | API / iframe (Widget prévu) |
+| **Intégrable** | iframe + intégration de script | API uniquement | SDK Chat + 10+ canaux | API / iframe (Widget prévu) |
 | **Confirmation humaine** | Non | Non | Non | Oui (portail de pré-exécution) |
 | **Auto-hébergé** | Oui (Docker Compose) | Non | Oui (Coze Studio, Apache 2.0) | Oui (processus unique) |
-| **Licence** | Apache 2.0 | Propriétaire | Apache 2.0 (Coze Studio) | Source Available |
+| **Licence** | Apache 2.0 | Propriétaire | Apache 2.0 (Coze Studio) | Source disponible |
 | **Traction** | 121K+ stars | Acquis par Meta ($2B+, examen réglementaire chinois) | Soutenu par ByteDance, 20K+ stars (Studio) | Stade précoce |
 
 ## Stratégie d'analyse comparative
@@ -115,14 +115,14 @@ Lorsqu'il est intégré, le widget lit le contexte de la page hôte (ID de contr
 
 ## L'analogie MuleSoft
 
-L'architecture Connector de FIM One est conceptuellement **MuleSoft à l'ère de l'IA** :
+L'architecture Connector de FIM One est conceptuellement **le MuleSoft de l'ère de l'IA** :
 
 | | MuleSoft | FIM One |
 |-|----------|-----------|
-| **Quoi** | Intégration API système à système | Hub Connector IA pour l'intégration de systèmes |
-| **Comment** | Connecteurs + mappage déclaratif | Serveurs MCP + Couche de gouvernance des connecteurs |
-| **Protocole** | SDK Anypoint | MCP (standard ouvert) + couche de gouvernance |
-| **Standardisation** | Connecteurs Anypoint | Niveau 1 (Serveur MCP Python) -> Niveau 2 (YAML) -> Niveau 3 (généré par IA) |
-| **Valeur** | « Connecter tout » | « Le hub où tous vos systèmes rencontrent l'IA » |
+| **What** | Intégration API système à système | Plateforme Agent transfrontalière pour l'intégration système |
+| **How** | Connecteurs + mappage déclaratif | Serveurs MCP + Couche de gouvernance des connecteurs |
+| **Protocol** | Anypoint SDK | MCP (norme ouverte) + couche de gouvernance |
+| **Standardization** | Connecteurs Anypoint | Level 1 (Serveur MCP Python) -> Level 2 (YAML) -> Level 3 (généré par IA) |
+| **Value** | « Connecter tout » | « Le hub où tous vos systèmes rencontrent l'IA » |
 
 Cette analogie est puissante pour le positionnement en entreprise.

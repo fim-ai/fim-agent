@@ -10,27 +10,28 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**Der KI-Konnektorhub für globale Teams mit komplexen Enterprise-Stacks. Einbettbar als Copilot oder verbinde jedes System als Hub — einschließlich derjenigen, die deine globale Plattform nicht erreichen kann.**
+**All-in-One Agent Platform für globale Unternehmen × China-Unternehmen.**
+*Verbinden Sie jedes System, das Sie bereits nutzen — globale SaaS bis zum China-Stack — über einen Agent-Kern.*
 
-🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Bug melden](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
+🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ Überspringe das Setup — probiere FIM One in der Cloud.**
-> Eine verwaltete Version ist live unter **[cloud.fim.ai](https://cloud.fim.ai/)**: kein Docker, keine API-Schlüssel, keine Konfiguration. Melde dich an und beginne, deine Systeme in Sekunden zu verbinden. _Early Access, Feedback willkommen._
+> **☁️ Setup überspringen — FIM One in der Cloud ausprobieren.**
+> Eine verwaltete Version ist live unter **[cloud.fim.ai](https://cloud.fim.ai/)**: kein Docker, keine API-Schlüssel, keine Konfiguration. Melden Sie sich an und verbinden Sie Ihre Systeme in Sekunden. _Early Access, Feedback willkommen._
 
 ---
 
 ## Übersicht
 
-Große Unternehmen betreiben eine Vielzahl von Systemen, die nicht miteinander kommunizieren — ERP, CRM, OA, HR, Finanzsysteme, Datenbanken, IM-Plattformen in verschiedenen Regionen. FIM One ist der **AI-Connector-Hub**, der alle diese Systeme orchestriert, einschließlich der nur in China verfügbaren Systeme (Feishu, WeCom, DingTalk, DM, Kingbase usw.), die Ihre globale AI-Plattform nicht erreichen kann.
+Große Unternehmen betreiben eine Vielzahl von Systemen, die nicht miteinander kommunizieren — ERP, CRM, OA, HR, Finanzen, Datenbanken, IM-Plattformen über verschiedene Regionen. FIM One ist die **All-in-One-Agent-Plattform**, die jedes System, das Sie bereits betreiben, mit einem Agent-Kern verbindet — globale SaaS auf der einen Seite, der vollständige China-Stack (Feishu, WeCom, DingTalk, DM, Kingbase usw.) auf der anderen. Ein Gehirn. Jedes System. Global SaaS × China Stack.
 
-| Modus           | Beschreibung                                              | Zugriff                  |
+| Modus           | Was es ist                                              | Zugriff                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
-| **Standalone** | Universeller AI-Assistent — Suche, Code, Wissensdatenbank         | Portal                  |
-| **Copilot**    | AI eingebettet in der Benutzeroberfläche eines Host-Systems                       | iframe / Widget / Embed |
-| **Hub**        | Zentrale AI-Orchestrierung über alle verbundenen Systeme   | Portal / API            |
+| **Standalone** | Universeller KI-Assistent — Suche, Code, KB         | Portal                  |
+| **Copilot**    | KI eingebettet in die Benutzeroberfläche eines Host-Systems                       | iframe / widget / embed |
+| **Hub**        | Zentrale KI-Orchestrierung über alle verbundenen Systeme   | Portal / API            |
 
 ```mermaid
 graph LR
@@ -115,10 +116,10 @@ cd frontend && pnpm install && cd ..
 
 ## Hauptfunktionen
 
-#### Connector Hub
+#### Grenzüberschreitende Konnektivität
 - **Drei Bereitstellungsmodi** — Eigenständiger Assistent, eingebetteter Copilot oder zentraler Hub; gleicher Agent-Kern.
-- **Jedes System, ein Muster** — Verbinden Sie APIs, Datenbanken, MCP-Server. Aktionen werden automatisch als Agent-Tools mit Auth-Injection registriert. Progressive Disclosure Meta-Tools reduzieren die Token-Nutzung um 80%+ über alle Tool-Typen hinweg.
-- **Datenbank-Connectoren** — PostgreSQL, MySQL, Oracle, SQL Server und in China verbreitete Enterprise-Datenbanken (DM, KingbaseES, GBase, Highgo), die die meisten globalen Plattformen nicht erreichen können. Schema-Introspection und KI-gestützte Annotation.
+- **Jedes System, ein Muster** — Verbinden Sie APIs, Datenbanken und MCP-Server. Aktionen registrieren sich automatisch als Agent-Tools mit Authentifizierungsinjektion. Progressive Disclosure Meta-Tools reduzieren die Token-Nutzung um 80%+ über alle Tool-Typen hinweg.
+- **Datenbank-Konnektoren** — PostgreSQL, MySQL, Oracle, SQL Server und in China verbreitete Enterprise-Datenbanken (DM, KingbaseES, GBase, Highgo), die die meisten globalen Plattformen nicht erreichen können. Schema-Introspektion und KI-gestützte Annotation.
 - **Drei Möglichkeiten zum Erstellen** — OpenAPI-Spezifikation importieren, KI-Chat-Builder verwenden oder MCP-Server direkt verbinden.
 
 #### Planung & Ausführung

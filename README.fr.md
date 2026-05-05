@@ -10,27 +10,28 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**Le hub de connecteurs IA pour les équipes mondiales avec des stacks d'entreprise complexes. Intégrez en tant que Copilot, ou connectez chaque système en tant que Hub — y compris ceux que votre plateforme mondiale ne peut pas atteindre.**
+**Plateforme d'agent tout-en-un pour les entreprises mondiales × Chine.**
+*Connectez tous les systèmes que vous utilisez déjà — des SaaS mondiaux à la pile China — via un cœur d'agent unique.*
 
-🌐 [Site Web](https://one.fim.ai/) · 📖 [Documentation](https://docs.fim.ai) · 📋 [Journal des modifications](https://docs.fim.ai/changelog) · 🐛 [Signaler un bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
+🌐 [Site web](https://one.fim.ai/) · 📖 [Documentation](https://docs.fim.ai) · 📋 [Journal des modifications](https://docs.fim.ai/changelog) · 🐛 [Signaler un bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ Ignorez la configuration — essayez FIM One sur Cloud.**
-> Une version gérée est en direct sur **[cloud.fim.ai](https://cloud.fim.ai/)** : pas de Docker, pas de clés API, pas de configuration. Connectez-vous et commencez à connecter vos systèmes en quelques secondes. _Accès anticipé, les commentaires sont les bienvenus._
+> **☁️ Ignorez la configuration — essayez FIM One sur le Cloud.**
+> Une version gérée est disponible à **[cloud.fim.ai](https://cloud.fim.ai/)** : pas de Docker, pas de clés API, pas de configuration. Connectez-vous et commencez à connecter vos systèmes en quelques secondes. _Accès anticipé, vos commentaires sont les bienvenus._
 
 ---
 
 ## Aperçu
 
-Les grandes entreprises exploitent une multitude de systèmes qui ne communiquent pas entre eux — ERP, CRM, OA, HR, finance, bases de données, plateformes de messagerie instantanée dans différentes régions. FIM One est le **hub de connecteurs AI** qui orchestre l'ensemble de ces systèmes, y compris les systèmes exclusifs à la Chine (Feishu, WeCom, DingTalk, DM, Kingbase, etc.) que votre plateforme AI mondiale ne peut pas atteindre.
+Les grandes entreprises gèrent une multitude de systèmes qui ne communiquent pas entre eux — ERP, CRM, OA, HR, finance, bases de données, plateformes IM dans différentes régions. FIM One est la **plateforme d'agents tout-en-un** qui intègre chaque système que vous utilisez déjà dans un cœur d'agent unique — SaaS mondial d'un côté, la pile complète de la Chine (Feishu, WeCom, DingTalk, DM, Kingbase, etc.) de l'autre. Un seul cerveau. Chaque système. SaaS mondial × Pile Chine.
 
-| Mode           | Description                                             | Accès                   |
+| Mode           | Description                                              | Accès                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
-| **Standalone** | Assistant AI polyvalent — recherche, code, KB           | Portail                 |
-| **Copilot**    | AI intégré dans l'interface utilisateur d'un système    | iframe / widget / embed |
-| **Hub**        | Orchestration AI centralisée sur tous les systèmes connectés | Portail / API           |
+| **Standalone** | Assistant IA polyvalent — recherche, code, KB         | Portal                  |
+| **Copilot**    | IA intégrée dans l'interface utilisateur d'un système hôte                       | iframe / widget / embed |
+| **Hub**        | Orchestration IA centralisée sur tous les systèmes connectés   | Portal / API            |
 
 ```mermaid
 graph LR
@@ -115,10 +116,10 @@ cd frontend && pnpm install && cd ..
 
 ## Fonctionnalités principales
 
-#### Hub de connecteurs
-- **Trois modes de livraison** — Assistant autonome, Copilot intégré ou Hub central ; même noyau d'agent.
+#### Connectivité transfrontalière
+- **Trois modes de livraison** — Assistant autonome, Copilot intégré ou Hub central ; même cœur d'agent.
 - **N'importe quel système, un seul modèle** — Connectez des API, des bases de données, des serveurs MCP. Les actions s'enregistrent automatiquement en tant qu'outils d'agent avec injection d'authentification. Les méta-outils à divulgation progressive réduisent l'utilisation de tokens de 80 %+ sur tous les types d'outils.
-- **Connecteurs de bases de données** — PostgreSQL, MySQL, Oracle, SQL Server et bases de données d'entreprise courantes en Chine (DM, KingbaseES, GBase, Highgo) que la plupart des plateformes mondiales ne peuvent pas atteindre. Introspection de schéma et annotation alimentée par l'IA.
+- **Connecteurs de base de données** — PostgreSQL, MySQL, Oracle, SQL Server et bases de données d'entreprise courantes en Chine (DM, KingbaseES, GBase, Highgo) que la plupart des plateformes mondiales ne peuvent pas atteindre. Introspection de schéma et annotation alimentée par l'IA.
 - **Trois façons de construire** — Importez une spécification OpenAPI, utilisez le générateur de chat IA ou connectez directement des serveurs MCP.
 
 #### Planification et exécution

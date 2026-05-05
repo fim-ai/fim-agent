@@ -10,27 +10,28 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**복잡한 엔터프라이즈 스택을 가진 글로벌 팀을 위한 AI 커넥터 허브. Copilot으로 임베드하거나, 글로벌 플랫폼이 도달할 수 없는 시스템을 포함한 모든 시스템을 허브로 연결하세요.**
+**글로벌 × 중국 기업을 위한 올인원 에이전트 플랫폼.**
+*이미 운영 중인 모든 시스템 — 글로벌 SaaS에서 중국 스택까지 — 하나의 에이전트 코어를 통해 연결하세요.*
 
 🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ 설정을 건너뛰고 클라우드에서 FIM One을 시도하세요.**
-> 관리형 버전이 **[cloud.fim.ai](https://cloud.fim.ai/)**에서 라이브 중입니다: Docker 없음, API 키 없음, 설정 없음. 로그인하고 몇 초 안에 시스템 연결을 시작하세요. _초기 액세스, 피드백 환영합니다._
+> **☁️ 설정을 건너뛰고 FIM One을 클라우드에서 시도하세요.**
+> 관리형 버전이 **[cloud.fim.ai](https://cloud.fim.ai/)**에서 라이브 중입니다: Docker 없음, API 키 없음, 설정 없음. 로그인하고 몇 초 안에 시스템 연결을 시작하세요. _얼리 액세스, 피드백 환영합니다._
 
 ---
 
 ## 개요
 
-글로벌 기업들은 서로 통신하지 않는 시스템들(ERP, CRM, OA, HR, 재무, 데이터베이스, 지역별 IM 플랫폼)을 운영하고 있습니다. FIM One은 Feishu, WeCom, DingTalk, DM, Kingbase 등 글로벌 AI 플랫폼이 접근할 수 없는 중국 전용 시스템을 포함하여 모든 시스템을 통합하는 **AI 커넥터 허브**입니다.
+글로벌 기업들은 서로 통신하지 않는 시스템들의 복잡한 환경을 운영합니다 — ERP, CRM, OA, HR, 재무, 데이터베이스, 지역별 IM 플랫폼. FIM One은 이미 운영 중인 모든 시스템을 하나의 에이전트 코어로 연결하는 **올인원 에이전트 플랫폼**입니다 — 한쪽에는 글로벌 SaaS, 다른 한쪽에는 완전한 중국 스택(Feishu, WeCom, DingTalk, DM, Kingbase 등). 하나의 두뇌. 모든 시스템. 글로벌 SaaS × 중국 스택.
 
 | 모드           | 설명                                              | 접근 방식                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
-| **Standalone** | 범용 AI 어시스턴트 — 검색, 코드, 지식베이스         | Portal                  |
+| **Standalone** | 범용 AI 어시스턴트 — 검색, 코드, KB         | Portal                  |
 | **Copilot**    | 호스트 시스템의 UI에 내장된 AI                       | iframe / widget / embed |
-| **Hub**        | 모든 연결된 시스템 간 중앙 AI 오케스트레이션   | Portal / API            |
+| **Hub**        | 모든 연결된 시스템 전반의 중앙 AI 오케스트레이션   | Portal / API            |
 
 ```mermaid
 graph LR
@@ -115,10 +116,10 @@ cd frontend && pnpm install && cd ..
 
 ## 주요 기능
 
-#### 커넥터 허브
+#### 크로스보더 연결성
 - **세 가지 배포 모드** — 독립형 어시스턴트, 임베디드 코파일럿 또는 중앙 허브; 동일한 에이전트 코어.
-- **모든 시스템, 하나의 패턴** — API, 데이터베이스, MCP 서버 연결. 작업은 인증 주입을 통해 에이전트 도구로 자동 등록됩니다. 점진적 공개 메타 도구는 모든 도구 유형에서 토큰 사용량을 80% 이상 감소시킵니다.
-- **데이터베이스 커넥터** — PostgreSQL, MySQL, Oracle, SQL Server 및 중국에서 일반적인 엔터프라이즈 데이터베이스(DM, KingbaseES, GBase, Highgo)로, 대부분의 글로벌 플랫폼이 접근할 수 없습니다. 스키마 내부 검사 및 AI 기반 주석.
+- **모든 시스템, 하나의 패턴** — API, 데이터베이스, MCP 서버 연결. 작업은 인증 주입과 함께 에이전트 도구로 자동 등록됩니다. 점진적 공개 메타 도구는 모든 도구 유형에서 토큰 사용량을 80% 이상 감소시킵니다.
+- **데이터베이스 커넥터** — PostgreSQL, MySQL, Oracle, SQL Server 및 대부분의 글로벌 플랫폼이 접근할 수 없는 중국의 일반적인 엔터프라이즈 데이터베이스(DM, KingbaseES, GBase, Highgo). 스키마 내부 검사 및 AI 기반 주석.
 - **세 가지 구축 방법** — OpenAPI 스펙 가져오기, AI 채팅 빌더 또는 MCP 서버 직접 연결.
 
 #### 계획 및 실행

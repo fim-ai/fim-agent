@@ -10,27 +10,28 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**全球团队复杂企业堆栈的 AI 连接器中心。作为 Copilot 嵌入，或将每个系统作为中心连接 — 包括全球平台无法访问的系统。**
+**全球×中国企业一体化智能体平台。**
+*通过一个智能体核心，连接全球SaaS到中国技术栈的每个系统。*
 
 🌐 [网站](https://one.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ 跳过设置 — 在云上尝试 FIM One。**
-> 托管版本已在 **[cloud.fim.ai](https://cloud.fim.ai/)** 上线：无需 Docker、无需 API 密钥、无需配置。登录并在几秒内开始连接您的系统。_早期访问，欢迎反馈。_
+> **☁️ 跳过本地设置——在云端试用FIM One。**
+> 托管版本已在**[cloud.fim.ai](https://cloud.fim.ai/)**上线：无需Docker、无需API密钥、无需配置。登录后即可在几秒内开始连接您的系统。_早期访问，欢迎反馈。_
 
 ---
 
 ## 概述
 
-全球企业运营着大量互不连接的系统——ERP、CRM、OA、HR、财务、数据库、即时通讯平台遍布各地区。FIM One 是**AI 连接器枢纽**，可跨所有系统进行编排，包括全球 AI 平台无法接触的中国特色系统（飞书、企业微信、钉钉、DM、金仓等）。
+全球企业运行着一系列互不相通的系统——ERP、CRM、OA、HR、财务、数据库、跨地区的即时通讯平台。FIM One是**一体化智能体平台**，将你已有的每个系统接入一个智能体核心——一侧是全球SaaS，另一侧是完整的中国技术栈（飞书、WeCom、钉钉、DM、国产数据库等）。一个大脑。每个系统。全球SaaS × 中国技术栈。
 
 | 模式           | 说明                                              | 访问方式                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
-| **独立模式** | 通用 AI 助手——搜索、代码、知识库         | Portal                  |
-| **Copilot**    | AI 嵌入宿主系统的 UI                       | iframe / widget / embed |
-| **Hub**    | 跨所有连接系统的中央 AI 编排   | Portal / API            |
+| **独立模式** | 通用AI助手——搜索、代码、知识库         | 门户                  |
+| **副驾驶**    | 嵌入宿主系统UI中的AI                       | iframe / widget / embed |
+| **中枢**        | 跨所有连接系统的中央AI编排   | 门户 / API            |
 
 ```mermaid
 graph LR
@@ -115,11 +116,11 @@ cd frontend && pnpm install && cd ..
 
 ## 主要功能
 
-#### 连接器中心
-- **三种交付模式** — 独立智能体、嵌入式 Copilot 或中央 Hub；同一智能体核心。
-- **任何系统，统一模式** — 连接 API、数据库、MCP 服务器。操作自动注册为智能体工具并注入身份验证。渐进式披露元工具可将所有工具类型的 token 使用量减少 80% 以上。
-- **数据库连接器** — PostgreSQL、MySQL、Oracle、SQL Server 以及中国常见的企业数据库（DM、KingbaseES、GBase、Highgo），这些是大多数全球平台无法接触的。支持 Schema 内省和 AI 驱动的注解。
-- **三种构建方式** — 导入 OpenAPI 规范、AI 聊天构建器或直接连接 MCP 服务器。
+#### 跨境连接
+- **三种交付模式** — 独立智能体、嵌入式Copilot或中央Hub；同一智能体核心。
+- **任何系统，统一模式** — 连接API、数据库、MCP服务器。操作自动注册为智能体工具并注入身份验证。渐进式披露元工具可将所有工具类型的令牌使用量减少80%以上。
+- **数据库连接器** — PostgreSQL、MySQL、Oracle、SQL Server以及中国常见的企业数据库（DM、KingbaseES、GBase、Highgo），这些是大多数全球平台无法访问的。支持模式内省和AI驱动的注释。
+- **三种构建方式** — 导入OpenAPI规范、AI聊天构建器或直接连接MCP服务器。
 
 #### 规划与执行
 - **动态 DAG 规划** — LLM 在运行时将目标分解为依赖图。无硬编码工作流。

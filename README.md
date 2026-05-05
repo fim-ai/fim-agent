@@ -10,7 +10,8 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**The AI connector hub for global teams with complex enterprise stacks. Embed as a Copilot, or connect every system as a Hub — including the ones your global platform can't reach.**
+**All-in-One Agent Platform for Global × China Enterprises.**
+*Wire every system you already run — global SaaS to the China stack — through one agent core.*
 
 🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
@@ -24,7 +25,7 @@
 
 ## Overview
 
-Global enterprises run a sprawl of systems that don't talk to each other — ERP, CRM, OA, HR, finance, databases, IM platforms across regions. FIM One is the **AI connector hub** that orchestrates across all of them, including the China-only systems (Feishu, WeCom, DingTalk, DM, Kingbase, etc.) that your global AI platform can't reach.
+Global enterprises run a sprawl of systems that don't talk to each other — ERP, CRM, OA, HR, finance, databases, IM platforms across regions. FIM One is the **all-in-one agent platform** that wires every system you already run into one agent core — global SaaS on one side, the full China stack (Feishu, WeCom, DingTalk, DM, Kingbase, etc.) on the other. One brain. Every system. Global SaaS × China Stack.
 
 | Mode           | What it is                                              | Access                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
@@ -115,7 +116,7 @@ cd frontend && pnpm install && cd ..
 
 ## Key Features
 
-#### Connector Hub
+#### Cross-Border Connectivity
 - **Three delivery modes** — Standalone assistant, embedded Copilot, or central Hub; same agent core.
 - **Any system, one pattern** — Connect APIs, databases, MCP servers. Actions auto-register as agent tools with auth injection. Progressive disclosure meta-tools reduce token usage by 80%+ across all tool types.
 - **Database connectors** — PostgreSQL, MySQL, Oracle, SQL Server, and enterprise databases common in China (DM, KingbaseES, GBase, Highgo) that most global platforms can't reach. Schema introspection and AI-powered annotation.
