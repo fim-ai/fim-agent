@@ -2,7 +2,14 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
   "name": "FIM One",
-  "description": "AI-Powered Connector Hub — embed into one system as a Copilot, or connect them all as a Hub.",
+  "description": "Open-source agent platform for Global × China enterprises — wire every system through one agent core. Self-hosted, any LLM.",
+  "metadata": {
+    "og:type": "website",
+    "og:image": "/og-image.png",
+    "twitter:card": "summary_large_image",
+    "twitter:image": "/og-image.png",
+    "twitter:site": "@FIM_One"
+  },
   "openapi": "openapi.json",
   "api": {
     "auth": {
