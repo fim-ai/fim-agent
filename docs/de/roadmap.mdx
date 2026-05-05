@@ -1,49 +1,49 @@
 ---
 title: "Roadmap"
 icon: "map"
-description: "Feature-Roadmap und Versionplanung für FIM One."
+description: "Feature roadmap and version planning for FIM One."
 ---
 
-> Goal: Build an **AI-powered Connector Hub** — Standalone (portal assistant), Copilot (embedded in host system), Hub (central cross-system orchestration).
+> Goal: Build an **all-in-one agent platform for Global × China enterprises** — delivered through three progressive modes: Standalone (portal assistant), Copilot (embedded in host system), Hub (central cross-system orchestration).
 >
 > Principles: **Provider-agnostic** (no vendor lock-in), **minimal-abstraction**, **protocol-first**, **connector-first** (integration is the core value).
 
 ## Produktvision
 
-FIM One ist ein **AI-Connector-Hub**, der drei progressive Modi bedient:
+FIM One ist eine **All-in-One-Agent-Plattform**, die drei progressive Bereitstellungsmodi bietet:
 
 ```
-Standalone   → Dein eigener KI-Assistent (Portal)
-Copilot      → KI eingebettet in ein Host-System (iframe / Widget / Embed)
-Hub          → Zentrale systemübergreifende Orchestrierung (Portal / API)
+Standalone   → Your own AI assistant (Portal)
+Copilot      → AI embedded in a host system (iframe / widget / embed)
+Hub          → Central cross-system orchestration (Portal / API)
 ```
 
-**Hub-Modus ist der Kernunterscheidungsfaktor.** Unternehmenskunden haben Legacy-Systeme — ERP, CRM, OA, Finanzen, HR — die über KI miteinander kommunizieren müssen:
+**Systemübergreifende Orchestrierung ist der Kernunterscheidungsfaktor.** Unternehmenskunden haben Legacy-Systeme — ERP, CRM, OA, Finance, HR — die über KI miteinander kommunizieren müssen:
 
 ```mermaid
 flowchart LR
-  subgraph Sources["Quellsysteme"]
+  subgraph Sources["Source Systems"]
     ERP["ERP<br/>(SAP/Kingdee)"]
     CRM["CRM<br/>(Salesforce)"]
     OA["OA<br/>(Seeyon/Weaver)"]
     DB["Custom DB<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM One Hub"]
+  subgraph Hub["FIM One Agent Core"]
     A["Agent A: Finance Audit"]
     B["Agent B: Contract Review"]
     C["Agent C: Approval Assist"]
     D["Agent D: Data Reporting"]
   end
 
-  subgraph Targets["Benachrichtigungsziele"]
+  subgraph Targets["Notification Targets"]
     T1["Lark / Slack"]
     T2["Email / WeCom"]
     T3["Teams / Webhook"]
     T4["Any API"]
   end
 
-  subgraph Delivery["Bereitstellung"]
+  subgraph Delivery["Delivery"]
     Portal["Portal (UI)"]
     API["API (headless)"]
     Embed["iframe (embed)"]
@@ -59,9 +59,9 @@ flowchart LR
 **GTM-Pfad: Land and Expand**
 
 | Schritt | Modus | Was passiert |
-|---------|-------|-------------|
-| Land | Copilot | In ein System einbetten, Wert in ihrer UI nachweisen |
-| Expand | Copilot → Hub | Auf mehr Systeme ausrollen; Hub aggregiert sie |
+|------|------|-------------|
+| Land | Copilot | In ein System einbetten, Wert in ihrer Benutzeroberfläche nachweisen |
+| Expand | Copilot → Hub | Auf weitere Systeme ausrollen; Hub-Modus aggregiert sie |
 
 ## Bekannte Probleme
 

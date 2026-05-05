@@ -218,7 +218,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="FIM One API",
-        description="AI-Powered Connector Hub — programmatic access to agents, conversations, knowledge bases, and more.",
+        description="All-in-one agent platform for Global × China enterprises — programmatic access to agents, conversations, knowledge bases, and more.",
         version=__version__,
         lifespan=lifespan,
     )

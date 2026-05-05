@@ -4,21 +4,21 @@ icon: "map"
 description: "FIM One の機能ロードマップとバージョン計画。"
 ---
 
-> Goal: Build an **AI-powered Connector Hub** — Standalone (portal assistant), Copilot (embedded in host system), Hub (central cross-system orchestration).
+> Goal: Build an **all-in-one agent platform for Global × China enterprises** — delivered through three progressive modes: Standalone (portal assistant), Copilot (embedded in host system), Hub (central cross-system orchestration).
 >
-> Principles: **Provider-agnostic** (no vendor lock-in), **minimal-abstraction**, **protocol-first**, **connector-first** (integration is the core value).
+> Principles: **Provider-agnostic** (no vendor lock-in), **minimal-abstraction**, **protocol-first** (integration is the core value).
 
 ## 製品ビジョン
 
-FIM One は、3つの段階的なモードで機能する **AI コネクタハブ** です：
+FIM Oneは、3つの段階的なデリバリーモードに対応する**オールインワンエージェントプラットフォーム**です。
 
 ```
-Standalone   → 独自の AI アシスタント (Portal)
-Copilot      → ホストシステムに組み込まれた AI (iframe / widget / embed)
-Hub          → 中央クロスシステムオーケストレーション (Portal / API)
+Standalone   → Your own AI assistant (Portal)
+Copilot      → AI embedded in a host system (iframe / widget / embed)
+Hub          → Central cross-system orchestration (Portal / API)
 ```
 
-**Hub モードが主要な差別化要因です。** エンタープライズクライアントは、ERP、CRM、OA、財務、HR などのレガシーシステムを持っており、これらが AI を通じて相互に通信する必要があります：
+**クロスシステムオーケストレーションがコア差別化要因です。** エンタープライズクライアントは、ERP、CRM、OA、財務、HRなどのレガシーシステムを保有しており、これらをAIを通じて相互に連携させる必要があります。
 
 ```mermaid
 flowchart LR
@@ -29,7 +29,7 @@ flowchart LR
     DB["Custom DB<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM One Hub"]
+  subgraph Hub["FIM One Agent Core"]
     A["Agent A: Finance Audit"]
     B["Agent B: Contract Review"]
     C["Agent C: Approval Assist"]
@@ -56,12 +56,12 @@ flowchart LR
   Hub --> Delivery
 ```
 
-**GTM パス：ランド・アンド・エクスパンド**
+**GTMパス：ランド・アンド・エクスパンド**
 
 | ステップ | モード | 実行内容 |
 |------|------|-------------|
-| Land | Copilot | 1つのシステムに組み込み、UI 内で価値を実証 |
-| Expand | Copilot → Hub | より多くのシステムにロールアウト；Hub がそれらを集約 |
+| ランド | Copilot | 1つのシステムに組み込み、そのUI内で価値を実証 |
+| エクスパンド | Copilot → Hub | より多くのシステムにロールアウト。Hubモードがそれらを集約 |
 
 ## 既知の問題
 

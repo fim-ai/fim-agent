@@ -25,17 +25,17 @@
 
 ## 개요
 
-글로벌 기업들은 서로 통신하지 않는 시스템들의 복잡한 환경을 운영합니다 — ERP, CRM, OA, HR, 재무, 데이터베이스, 지역별 IM 플랫폼. FIM One은 이미 운영 중인 모든 시스템을 하나의 에이전트 코어로 연결하는 **올인원 에이전트 플랫폼**입니다 — 한쪽에는 글로벌 SaaS, 다른 한쪽에는 완전한 중국 스택(Feishu, WeCom, DingTalk, DM, Kingbase 등). 하나의 두뇌. 모든 시스템. 글로벌 SaaS × 중국 스택.
+글로벌 기업들은 서로 통신하지 않는 ERP, CRM, OA, HR, 재무, 데이터베이스, 지역별 IM 플랫폼 등 다양한 시스템을 운영하고 있습니다. FIM One은 이미 운영 중인 모든 시스템을 하나의 에이전트 코어로 연결하는 **올인원 에이전트 플랫폼**입니다. 한쪽에는 글로벌 SaaS, 다른 한쪽에는 완전한 중국 스택(Feishu, WeCom, DingTalk, DM, Kingbase 등)이 있습니다. 하나의 두뇌. 모든 시스템. 글로벌 SaaS × 중국 스택.
 
 | 모드           | 설명                                              | 접근 방식                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
 | **Standalone** | 범용 AI 어시스턴트 — 검색, 코드, KB         | Portal                  |
-| **Copilot**    | 호스트 시스템의 UI에 내장된 AI                       | iframe / widget / embed |
+| **Copilot**    | 호스트 시스템의 UI에 임베드된 AI                       | iframe / widget / embed |
 | **Hub**        | 모든 연결된 시스템 전반의 중앙 AI 오케스트레이션   | Portal / API            |
 
 ```mermaid
 graph LR
-    ERP <--> Hub["🔗 FIM One Hub"]
+    ERP <--> Hub["🧠 FIM One Agent Core"]
     Database <--> Hub
     Lark <--> Hub
     Hub <--> CRM

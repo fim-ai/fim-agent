@@ -26,17 +26,17 @@ Das Endspiel: **Modelle besitzen das "Was" (Planungsintelligenz wird in das Mode
 
 ## Warum nicht Difys Workflow-Editor spiegeln
 
-Eine natürliche Frage: Wenn DAG den flexiblen Fall abdeckt, sollten wir nicht auch einen statischen Workflow-Editor für den deterministischen Fall bauen?
+Eine berechtigte Frage: Wenn DAG den flexiblen Fall abdeckt, sollten wir dann nicht auch einen statischen Workflow-Editor für den deterministischen Fall bauen?
 
-Nein. Die Begründung:
+Nein. Die Gründe:
 
-1. **Die Workflows existieren bereits anderswo.** Die festen Prozesse von Regierungs- und Unternehmenskunden leben in ihren OA-, ERP- und Legacy-Systemen. Sie wollen diese Flows nicht noch einmal auf einer weiteren Plattform neu aufbauen -- sie wollen KI, die sich mit den Systemen verbinden kann, in denen diese Flows bereits laufen. Die Connector-Plattform (v0.6) löst dies direkt.
+1. **Die Workflows existieren bereits anderswo.** Die festen Prozesse von Regierungs- und Enterprise-Kunden leben in ihren OA-, ERP- und Legacy-Systemen. Sie wollen diese Flows nicht in noch einer weiteren Plattform neu aufbauen – sie wollen AI, die sich mit den Systemen verbinden kann, in denen diese Flows bereits laufen. Die Connector Platform (v0.6) löst dies direkt.
 
-2. **Bestehende Funktionen setzen sich zu festen Pipelines zusammen.** Geplante Jobs (v1.0) triggern einen DAG-Agenten mit einem festen Prompt; der DAG plant die Schritte dynamisch; Connectors (v0.6) verbinden sich mit den Zielsystemen. Die Kombination entspricht einer statischen Pipeline -- ist aber flexibler, weil das LLM seinen Plan basierend auf den Daten, die es findet, anpassen kann. Keine separate Pipeline-DSL nötig.
+2. **Vorhandene Funktionen setzen sich zu festen Pipelines zusammen.** Scheduled Jobs (v1.0) triggern einen DAG-Agent mit einem festen Prompt; der DAG plant die Schritte dynamisch; Connectors (v0.6) verbinden sich mit den Zielsystemen. Die Kombination entspricht einer statischen Pipeline – ist aber flexibler, weil die LLM ihren Plan basierend auf den Daten, auf die sie trifft, anpassen kann. Keine separate Pipeline-DSL nötig.
 
-3. **Investitionsmismatch.** Ein produktionsreifer visueller Workflow-Editor (Canvas, Node-Typen, Variablenweitergabe, Debug/Replay) erfordert Monate dedizierter Arbeit. Das Ergebnis wäre eine minderwertige Kopie dessen, was Difys 120K-Star-Community bereits pflegt. Diese Arbeit ist besser in der Connector-Architektur investiert -- einer Fähigkeit, die kein Konkurrent bietet.
+3. **Investitionsmismatch.** Ein produktionsreifer visueller Workflow-Editor (Canvas, Node-Typen, Variable Passing, Debug/Replay) erfordert Monate dedizierter Arbeit. Das Ergebnis wäre eine Low-Fidelity-Kopie dessen, was Difys 120K-Star-Community bereits pflegt. Diese Arbeit ist besser in der Connector-Architektur aufgehoben – eine Fähigkeit, die kein Konkurrent bietet.
 
-Die strategische Wette: **konkurriere nicht bei der Workflow-Visualisierung; konkurriere darauf, der Hub zu sein, wo Systeme auf KI treffen**. Lass Dify "baue KI-Workflows visuell" besitzen. FIM One besitzt "der Hub, wo deine Systeme auf KI treffen."
+Die strategische Wette: **nicht bei der Workflow-Visualisierung konkurrieren; konkurrieren, indem man die Agent-Plattform ist, wo Systeme auf AI treffen**. Lass Dify „AI-Workflows visuell bauen" besitzen. FIM One besitzt „die All-in-One-Agent-Plattform für Global × China Enterprises."
 
 ## Wo FIM One steht
 

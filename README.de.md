@@ -25,7 +25,7 @@
 
 ## Übersicht
 
-Große Unternehmen betreiben eine Vielzahl von Systemen, die nicht miteinander kommunizieren — ERP, CRM, OA, HR, Finanzen, Datenbanken, IM-Plattformen über verschiedene Regionen. FIM One ist die **All-in-One-Agent-Plattform**, die jedes System, das Sie bereits betreiben, mit einem Agent-Kern verbindet — globale SaaS auf der einen Seite, der vollständige China-Stack (Feishu, WeCom, DingTalk, DM, Kingbase usw.) auf der anderen. Ein Gehirn. Jedes System. Global SaaS × China Stack.
+Große Unternehmen betreiben eine Vielzahl von Systemen, die nicht miteinander kommunizieren — ERP, CRM, OA, HR, Finanzen, Datenbanken, IM-Plattformen in verschiedenen Regionen. FIM One ist die **All-in-One-Agent-Plattform**, die jedes System, das Sie bereits betreiben, mit einem Agent-Kern verbindet — globale SaaS auf der einen Seite, der vollständige China-Stack (Feishu, WeCom, DingTalk, DM, Kingbase usw.) auf der anderen. Ein Gehirn. Jedes System. Global SaaS × China Stack.
 
 | Modus           | Was es ist                                              | Zugriff                  |
 | -------------- | ------------------------------------------------------- | ----------------------- |
@@ -35,7 +35,7 @@ Große Unternehmen betreiben eine Vielzahl von Systemen, die nicht miteinander k
 
 ```mermaid
 graph LR
-    ERP <--> Hub["🔗 FIM One Hub"]
+    ERP <--> Hub["🧠 FIM One Agent Core"]
     Database <--> Hub
     Lark <--> Hub
     Hub <--> CRM

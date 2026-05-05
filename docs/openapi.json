@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "FIM One API",
-    "description": "AI-Powered Connector Hub — programmatic access to agents, conversations, knowledge bases, and more.",
+    "description": "All-in-one agent platform for Global × China enterprises — programmatic access to agents, conversations, knowledge bases, and more.",
     "version": "0.8.5"
   },
   "paths": {

@@ -44,7 +44,7 @@ flowchart LR
   Lark --> Hub
   Hub --> CRM
   Hub --> OA
-  Hub["FIM One Hub<br/>(AI orchestration)"] --> CustomAPI["Custom API"]
+  Hub["FIM One Agent Core<br/>(orchestration)"] --> CustomAPI["Custom API"]
 ```
 
 各connectorは標準化されたブリッジです。エージェントはSAPと通信しているのか、カスタムPostgreSQLデータベースと通信しているのかを知る必要も気にする必要もありません。データはシステムに留まり、FIM Oneはそれらを横断してオーケストレーションするAIレイヤーを提供します。

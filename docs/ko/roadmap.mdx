@@ -4,46 +4,46 @@ icon: "map"
 description: "FIM One의 기능 로드맵 및 버전 계획."
 ---
 
-> 목표: **AI 기반 커넥터 허브** 구축 — 독립형(포털 어시스턴트), 코파일럿(호스트 시스템에 임베드), 허브(중앙 교차 시스템 오케스트레이션).
+> 목표: **글로벌 × 중국 기업을 위한 올인원 에이전트 플랫폼 구축** — 세 가지 점진적 모드를 통해 제공: Standalone(포털 어시스턴트), Copilot(호스트 시스템에 임베드), Hub(중앙 크로스 시스템 오케스트레이션).
 >
-> 원칙: **공급자 중립적**(벤더 종속성 없음), **최소 추상화**, **프로토콜 우선**, **커넥터 우선**(통합이 핵심 가치).
+> 원칙: **공급자 중립적**(벤더 락인 없음), **최소 추상화**, **프로토콜 우선**, **커넥터 우선**(통합이 핵심 가치).
 
 ## 제품 비전
 
-FIM One은 **AI 커넥터 허브**로서 세 가지 점진적 모드를 제공합니다:
+FIM One은 세 가지 점진적 배포 모드를 제공하는 **올인원 에이전트 플랫폼**입니다:
 
 ```
-Standalone   → 자신의 AI 어시스턴트 (Portal)
-Copilot      → 호스트 시스템에 내장된 AI (iframe / widget / embed)
-Hub          → 중앙 집중식 크로스 시스템 오케스트레이션 (Portal / API)
+Standalone   → Your own AI assistant (Portal)
+Copilot      → AI embedded in a host system (iframe / widget / embed)
+Hub          → Central cross-system orchestration (Portal / API)
 ```
 
-**Hub 모드가 핵심 차별화 요소입니다.** 엔터프라이즈 클라이언트는 ERP, CRM, OA, 재무, HR 등의 레거시 시스템을 보유하고 있으며, 이들이 AI를 통해 서로 통신해야 합니다:
+**크로스시스템 오케스트레이션이 핵심 차별화 요소입니다.** 엔터프라이즈 클라이언트는 ERP, CRM, OA, 재무, HR 등의 레거시 시스템을 보유하고 있으며, 이들을 AI를 통해 서로 연결해야 합니다:
 
 ```mermaid
 flowchart LR
-  subgraph Sources["소스 시스템"]
+  subgraph Sources["Source Systems"]
     ERP["ERP<br/>(SAP/Kingdee)"]
     CRM["CRM<br/>(Salesforce)"]
     OA["OA<br/>(Seeyon/Weaver)"]
     DB["Custom DB<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM One Hub"]
-    A["에이전트 A: 재무 감사"]
-    B["에이전트 B: 계약 검토"]
-    C["에이전트 C: 승인 지원"]
-    D["에이전트 D: 데이터 리포팅"]
+  subgraph Hub["FIM One Agent Core"]
+    A["Agent A: Finance Audit"]
+    B["Agent B: Contract Review"]
+    C["Agent C: Approval Assist"]
+    D["Agent D: Data Reporting"]
   end
 
-  subgraph Targets["알림 대상"]
+  subgraph Targets["Notification Targets"]
     T1["Lark / Slack"]
     T2["Email / WeCom"]
     T3["Teams / Webhook"]
     T4["Any API"]
   end
 
-  subgraph Delivery["전달"]
+  subgraph Delivery["Delivery"]
     Portal["Portal (UI)"]
     API["API (headless)"]
     Embed["iframe (embed)"]
@@ -58,10 +58,10 @@ flowchart LR
 
 **GTM 경로: Land and Expand**
 
-| 단계 | 모드 | 진행 상황 |
+| 단계 | 모드 | 수행 내용 |
 |------|------|-------------|
-| Land | Copilot | 한 시스템에 내장하여 UI 내에서 가치 입증 |
-| Expand | Copilot → Hub | 더 많은 시스템으로 확대; Hub가 이들을 통합 |
+| Land | Copilot | 한 시스템에 임베드하여 UI 내에서 가치 입증 |
+| Expand | Copilot → Hub | 더 많은 시스템으로 확대; Hub 모드가 이들을 통합 |
 
 ## Known Issues
 

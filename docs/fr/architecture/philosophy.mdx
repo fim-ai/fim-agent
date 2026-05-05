@@ -30,13 +30,13 @@ Une question naturelle : si DAG couvre le cas flexible, ne devrions-nous pas aus
 
 Non. Les raisons :
 
-1. **Les flux de travail existent déjà ailleurs.** Les processus fixes des clients gouvernementaux et d'entreprise vivent dans leurs systèmes OA, ERP et hérités. Ils ne veulent pas reconstruire ces flux dans encore une autre plateforme -- ils veulent une IA qui peut se connecter aux systèmes où ces flux s'exécutent déjà. La Plateforme de Connecteurs (v0.6) résout cela directement.
+1. **Les flux de travail existent déjà ailleurs.** Les processus fixes des clients gouvernementaux et d'entreprise vivent dans leurs systèmes OA, ERP et hérités. Ils ne veulent pas reconstruire ces flux dans une autre plateforme -- ils veulent une IA qui peut se connecter aux systèmes où ces flux s'exécutent déjà. La plateforme de connecteurs (v0.6) résout cela directement.
 
-2. **Les capacités existantes se composent en pipelines fixes.** Les Tâches Planifiées (v1.0) déclenchent un agent DAG avec une invite fixe ; le DAG planifie dynamiquement les étapes ; les Connecteurs (v0.6) se connectent aux systèmes cibles. La combinaison équivaut à un pipeline statique -- mais plus flexible, car le LLM peut ajuster son plan en fonction des données qu'il rencontre. Aucun DSL de pipeline séparé nécessaire.
+2. **Les capacités existantes se composent en pipelines fixes.** Les tâches planifiées (v1.0) déclenchent un agent DAG avec une invite fixe ; le DAG planifie dynamiquement les étapes ; les connecteurs (v0.6) se connectent aux systèmes cibles. La combinaison équivaut à un pipeline statique -- mais plus flexible, car l'LLM peut ajuster son plan en fonction des données qu'il rencontre. Aucun DSL de pipeline séparé nécessaire.
 
-3. **Décalage d'investissement.** Un éditeur de flux de travail visuel de qualité production (canevas, types de nœuds, passage de variables, débogage/relecture) représente des mois d'effort dédié. Le résultat serait une copie de faible fidélité de ce que la communauté de 120K étoiles de Dify maintient déjà. Cet effort est mieux dépensé sur l'architecture des Connecteurs -- une capacité qu'aucun concurrent n'offre.
+3. **Décalage d'investissement.** Un éditeur de flux de travail visuel de qualité production (canevas, types de nœuds, passage de variables, débogage/relecture) représente des mois d'effort dédié. Le résultat serait une copie de faible fidélité de ce que la communauté de 120K stars de Dify maintient déjà. Cet effort est mieux dépensé sur l'architecture des connecteurs -- une capacité qu'aucun concurrent n'offre.
 
-Le pari stratégique : **ne pas concurrencer sur la visualisation de flux de travail ; concurrencer en étant le hub où les systèmes rencontrent l'IA**. Laissez Dify posséder « construire des flux de travail IA visuellement ». FIM One possède « le hub où vos systèmes rencontrent l'IA ».
+Le pari stratégique : **ne pas concurrencer sur la visualisation de flux de travail ; concurrencer en étant la plateforme d'agents où les systèmes rencontrent l'IA**. Laissez Dify posséder « construire des flux de travail IA visuellement ». FIM One possède « la plateforme d'agents tout-en-un pour les entreprises Global × China ».
 
 ## Où FIM One se positionne
 

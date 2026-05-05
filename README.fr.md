@@ -25,17 +25,17 @@
 
 ## Aperçu
 
-Les grandes entreprises gèrent une multitude de systèmes qui ne communiquent pas entre eux — ERP, CRM, OA, HR, finance, bases de données, plateformes IM dans différentes régions. FIM One est la **plateforme d'agents tout-en-un** qui intègre chaque système que vous utilisez déjà dans un cœur d'agent unique — SaaS mondial d'un côté, la pile complète de la Chine (Feishu, WeCom, DingTalk, DM, Kingbase, etc.) de l'autre. Un seul cerveau. Chaque système. SaaS mondial × Pile Chine.
+Les grandes entreprises gèrent un ensemble disparate de systèmes qui ne communiquent pas entre eux — ERP, CRM, OA, HR, finance, bases de données, plateformes de messagerie instantanée dans différentes régions. FIM One est la **plateforme d'agents tout-en-un** qui intègre chaque système que vous utilisez déjà dans un cœur d'agent unique — SaaS mondial d'un côté, l'ensemble complet de la pile China (Feishu, WeCom, DingTalk, DM, Kingbase, etc.) de l'autre. Un seul cerveau. Chaque système. SaaS mondial × Pile China.
 
-| Mode           | Description                                              | Accès                  |
+| Mode           | Description                                              | Accès                   |
 | -------------- | ------------------------------------------------------- | ----------------------- |
-| **Standalone** | Assistant IA polyvalent — recherche, code, KB         | Portal                  |
-| **Copilot**    | IA intégrée dans l'interface utilisateur d'un système hôte                       | iframe / widget / embed |
-| **Hub**        | Orchestration IA centralisée sur tous les systèmes connectés   | Portal / API            |
+| **Standalone** | Assistant IA polyvalent — recherche, code, base de connaissances | Portail                  |
+| **Copilot**    | IA intégrée dans l'interface utilisateur d'un système hôte | iframe / widget / embed |
+| **Hub**        | Orchestration IA centralisée sur tous les systèmes connectés   | Portail / API            |
 
 ```mermaid
 graph LR
-    ERP <--> Hub["🔗 FIM One Hub"]
+    ERP <--> Hub["🧠 FIM One Agent Core"]
     Database <--> Hub
     Lark <--> Hub
     Hub <--> CRM

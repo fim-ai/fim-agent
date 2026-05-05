@@ -35,7 +35,7 @@ Global enterprises run a sprawl of systems that don't talk to each other — ERP
 
 ```mermaid
 graph LR
-    ERP <--> Hub["🔗 FIM One Hub"]
+    ERP <--> Hub["🧠 FIM One Agent Core"]
     Database <--> Hub
     Lark <--> Hub
     Hub <--> CRM

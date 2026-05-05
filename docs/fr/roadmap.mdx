@@ -4,46 +4,46 @@ icon: "map"
 description: "Feuille de route des fonctionnalités et planification des versions pour FIM One."
 ---
 
-> Objectif : Construire un **Hub de connecteurs alimenté par l'IA** — Autonome (assistant de portail), Copilote (intégré au système hôte), Hub (orchestration centrale inter-systèmes).
+> Objectif : Construire une **plateforme d'agents tout-en-un pour les entreprises mondiales × chinoises** — livrée via trois modes progressifs : Standalone (assistant portail), Copilot (intégré au système hôte), Hub (orchestration centrale inter-systèmes).
 >
-> Principes : **Agnostique des fournisseurs** (pas de verrouillage des fournisseurs), **abstraction minimale**, **protocole en premier**, **connecteur en premier** (l'intégration est la valeur fondamentale).
+> Principes : **Agnostique vis-à-vis des fournisseurs** (pas de verrouillage propriétaire), **abstraction minimale**, **protocole-first**, **connecteur-first** (l'intégration est la valeur fondamentale).
 
-## Vision du Produit
+## Vision produit
 
-FIM One est un **Hub de Connecteurs IA** qui propose trois modes progressifs :
+FIM One est une **plateforme d'agent tout-en-un** qui propose trois modes de livraison progressifs :
 
 ```
-Standalone   → Votre propre assistant IA (Portal)
-Copilot      → IA intégrée dans un système hôte (iframe / widget / embed)
-Hub          → Orchestration centrale inter-systèmes (Portal / API)
+Standalone   → Your own AI assistant (Portal)
+Copilot      → AI embedded in a host system (iframe / widget / embed)
+Hub          → Central cross-system orchestration (Portal / API)
 ```
 
-**Le mode Hub est le différenciateur clé.** Les clients entreprise disposent de systèmes hérités — ERP, CRM, OA, finance, HR — qui doivent communiquer entre eux via l'IA :
+**L'orchestration inter-systèmes est le différenciateur clé.** Les clients d'entreprise disposent de systèmes hérités — ERP, CRM, OA, finance, HR — qui doivent communiquer entre eux via l'IA :
 
 ```mermaid
 flowchart LR
-  subgraph Sources["Systèmes Source"]
+  subgraph Sources["Source Systems"]
     ERP["ERP<br/>(SAP/Kingdee)"]
     CRM["CRM<br/>(Salesforce)"]
     OA["OA<br/>(Seeyon/Weaver)"]
-    DB["Base de données personnalisée<br/>(PG/MySQL)"]
+    DB["Custom DB<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM One Hub"]
-    A["Agent A: Audit Financier"]
-    B["Agent B: Révision de Contrat"]
-    C["Agent C: Assistance d'Approbation"]
-    D["Agent D: Rapports de Données"]
+  subgraph Hub["FIM One Agent Core"]
+    A["Agent A: Finance Audit"]
+    B["Agent B: Contract Review"]
+    C["Agent C: Approval Assist"]
+    D["Agent D: Data Reporting"]
   end
 
-  subgraph Targets["Cibles de Notification"]
+  subgraph Targets["Notification Targets"]
     T1["Lark / Slack"]
     T2["Email / WeCom"]
     T3["Teams / Webhook"]
-    T4["Toute API"]
+    T4["Any API"]
   end
 
-  subgraph Delivery["Livraison"]
+  subgraph Delivery["Delivery"]
     Portal["Portal (UI)"]
     API["API (headless)"]
     Embed["iframe (embed)"]
@@ -61,7 +61,7 @@ flowchart LR
 | Étape | Mode | Ce qui se passe |
 |------|------|-------------|
 | Land | Copilot | Intégrer dans un système, prouver la valeur dans leur interface utilisateur |
-| Expand | Copilot → Hub | Déployer sur plus de systèmes ; Hub les agrège |
+| Expand | Copilot → Hub | Déployer sur plusieurs systèmes ; le mode Hub les agrège |
 
 ## Problèmes connus
 

@@ -1,24 +1,24 @@
 ---
 title: "路线图"
 icon: "map"
-description: "FIM One 的功能路线图和版本规划。"
+description: "FIM One的功能路线图和版本规划。"
 ---
 
-> 目标：构建一个**AI 驱动的连接器中心** — 独立门户（门户助手）、副驾驶（嵌入主机系统）、中心（跨系统中央编排）。
+> 目标：构建**面向全球×中国企业的一体化智能体平台**——通过三种渐进式模式交付：独立版（门户助手）、副驾驶（嵌入主系统）、中枢（跨系统中央编排）。
 >
 > 原则：**提供商无关**（无供应商锁定）、**最小抽象**、**协议优先**、**连接器优先**（集成是核心价值）。
 
 ## 产品愿景
 
-FIM One 是一个 **AI 连接器中心**，提供三种渐进式模式：
+FIM One是一个**一体化智能体平台**，提供三种渐进式交付模式：
 
 ```
-Standalone   → 您自己的 AI 助手 (Portal)
-Copilot      → AI 嵌入到主系统中 (iframe / widget / embed)
-Hub          → 中央跨系统编排 (Portal / API)
+Standalone   → Your own AI assistant (Portal)
+Copilot      → AI embedded in a host system (iframe / widget / embed)
+Hub          → Central cross-system orchestration (Portal / API)
 ```
 
-**Hub 模式是核心差异化优势。** 企业客户拥有遗留系统——ERP、CRM、OA、财务、HR——需要通过 AI 相互通信：
+**跨系统编排是核心差异化优势。** 企业客户拥有遗留系统——ERP、CRM、OA、财务、HR——需要通过AI相互通信：
 
 ```mermaid
 flowchart LR
@@ -29,7 +29,7 @@ flowchart LR
     DB["Custom DB<br/>(PG/MySQL)"]
   end
 
-  subgraph Hub["FIM One Hub"]
+  subgraph Hub["FIM One Agent Core"]
     A["Agent A: Finance Audit"]
     B["Agent B: Contract Review"]
     C["Agent C: Approval Assist"]
@@ -56,12 +56,12 @@ flowchart LR
   Hub --> Delivery
 ```
 
-**GTM 路径：先着陆后扩展**
+**GTM路径：先着陆，后扩展**
 
-| 步骤 | 模式 | 发生的事情 |
+| 步骤 | 模式 | 发生的事 |
 |------|------|-------------|
-| 着陆 | Copilot | 嵌入到一个系统中，在其 UI 内证明价值 |
-| 扩展 | Copilot → Hub | 推广到更多系统；Hub 聚合它们 |
+| 着陆 | Copilot | 嵌入到一个系统中，在其UI内证明价值 |
+| 扩展 | Copilot → Hub | 推广到更多系统；Hub模式聚合它们 |
 
 ## 已知问题
 

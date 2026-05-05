@@ -122,13 +122,13 @@ FIM One n'est délibérément pas une iPaaS, et cette distinction n'est pas cosm
 
 ## 5. Trois modes de livraison — Un cœur d'agent unique
 
-Le même planificateur, la mémoire et la bibliothèque de connecteurs alimentent trois formes de produits distincts. Le choix est une décision de déploiement, non une bifurcation de code.
+Le même planificateur, la même mémoire et la même bibliothèque de connecteurs alimentent trois formes de produits distincts. Le choix est une décision de déploiement, non un fork de code.
 
 **Standalone** — un portail autonome. L'acheteur souhaite une interface de chat sur une base de connaissances organisée, ou un bac à sable de code, ou un assistant général. Aucun système hôte impliqué. Convient aux services d'assistance informatique internes, à la productivité de l'ingénierie, aux bases de connaissances d'assistance client.
 
 **Copilot** — l'agent intégré dans un système hôte existant via iframe, widget ou intégration directe. L'hôte gère l'authentification ; le Copilot hérite du contexte utilisateur. Convient à Finance Copilot dans SAP Fiori, Sales Copilot dans Salesforce, DevOps Copilot dans un portail développeur interne.
 
-**Hub** — la surface d'orchestration centrale. Chaque système connecté s'y termine. Les utilisateurs posent des questions inter-systèmes ; l'agent planifie et exécute à travers les systèmes. Convient à « clôturer Q1 pour toutes les entités APAC », « trouver chaque client qui a manqué un renouvellement et rédiger une sensibilisation », « réconcilier les paiements d'hier entre la passerelle et le grand livre ».
+**Hub** — la surface d'orchestration centrale. Chaque système connecté s'y termine. Les utilisateurs posent des questions multi-systèmes ; l'agent planifie et exécute sur les systèmes. Convient à « clôturer Q1 pour toutes les entités APAC », « trouver tous les clients qui ont manqué un renouvellement et rédiger une relance », « rapprocher les paiements d'hier entre la passerelle et le grand livre ».
 
 ```mermaid
 flowchart LR
@@ -138,7 +138,7 @@ flowchart LR
     OA[OA]
     FS[Feishu]
   end
-  subgraph Hub["FIM One Hub"]
+  subgraph Hub["FIM One Agent Core"]
     P[Planner] --> C[Connector Layer]
     M[Memory] --> P
     H[Hook Chain] --> C

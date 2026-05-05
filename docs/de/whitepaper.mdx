@@ -122,13 +122,13 @@ FIM One ist bewusst keine iPaaS, und dieser Unterschied ist nicht kosmetisch. iP
 
 ## 5. Drei Liefermodi — Ein Agent-Kern
 
-Der gleiche Planner, die Memory und die Connector-Bibliothek treiben drei unterschiedliche Produktformen an. Die Wahl ist eine Bereitstellungsentscheidung, keine Code-Abzweigung.
+Der gleiche Planner, die gleiche Memory und die gleiche Connector-Bibliothek unterstützen drei unterschiedliche Produktformen. Die Wahl ist eine Bereitstellungsentscheidung, keine Code-Abspaltung.
 
-**Standalone** — ein in sich geschlossenes Portal. Der Käufer möchte eine Chat-Schnittstelle über einer kuratierten Wissensdatenbank, oder einer Code-Sandbox, oder einem allgemeinen Assistenten. Kein Host-System beteiligt. Passt zu internen IT-Helpdesks, Engineering-Produktivität, Customer-Support-KBs.
+**Standalone** — ein in sich geschlossenes Portal. Der Käufer möchte eine Chat-Schnittstelle über eine kuratierte Wissensdatenbank, einen Code-Sandbox oder einen allgemeinen Assistenten. Kein Host-System beteiligt. Passt zu internen IT-Helpdesks, Engineering-Produktivität, Customer-Support-KBs.
 
-**Copilot** — der Agent, eingebettet in ein bestehendes Host-System über iframe, Widget oder direktes Embed. Der Host verwaltet die Authentifizierung; der Copilot erbt den Benutzerkontext. Passt zu Finance Copilot in SAP Fiori, Sales Copilot in Salesforce, DevOps Copilot in einem internen Developer Portal.
+**Copilot** — der Agent, eingebettet in ein vorhandenes Host-System über iframe, Widget oder direktes Embed. Der Host verwaltet die Authentifizierung; der Copilot erbt den Benutzerkontext. Passt zu Finance Copilot in SAP Fiori, Sales Copilot in Salesforce, DevOps Copilot in einem internen Developer Portal.
 
-**Hub** — die zentrale Orchestrierungsoberfläche. Jedes verbundene System endet hier. Benutzer stellen systemübergreifende Fragen; der Agent plant und führt systemübergreifend aus. Passt zu „Q1 für alle APAC-Entitäten abschließen", „jeden Kunden finden, der eine Erneuerung verpasst hat, und Outreach-Entwürfe erstellen", „gestrige Zahlungen zwischen Gateway und Ledger abgleichen".
+**Hub** — die zentrale Orchestrierungsoberfläche. Jedes verbundene System endet hier. Benutzer stellen systemübergreifende Fragen; der Agent plant und führt systemübergreifend aus. Passt zu „Q1 für alle APAC-Entitäten abschließen", „jeden Kunden finden, der eine Verlängerung verpasst hat, und Outreach-Entwürfe erstellen", „gestrige Zahlungen zwischen Gateway und Ledger abstimmen".
 
 ```mermaid
 flowchart LR
@@ -138,7 +138,7 @@ flowchart LR
     OA[OA]
     FS[Feishu]
   end
-  subgraph Hub["FIM One Hub"]
+  subgraph Hub["FIM One Agent Core"]
     P[Planner] --> C[Connector Layer]
     M[Memory] --> P
     H[Hook Chain] --> C

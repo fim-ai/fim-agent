@@ -44,7 +44,7 @@ flowchart LR
   Lark --> Hub
   Hub --> CRM
   Hub --> OA
-  Hub["FIM One Hub<br/>(AI orchestration)"] --> CustomAPI["Custom API"]
+  Hub["FIM One Agent Core<br/>(orchestration)"] --> CustomAPI["Custom API"]
 ```
 
 Each connector is a standardized bridge. The agent doesn't know or care whether it's talking to SAP or a custom PostgreSQL database. Your data stays in your systems; FIM One provides the AI layer that orchestrates across them.
