@@ -11,15 +11,15 @@
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
 **全球×中国企业一体化智能体平台。**
-*通过一个智能体核心，连接全球SaaS到中国技术栈的每个系统。*
+*通过一个智能体核心，连接您已有的每个系统——全球SaaS到中国技术栈。*
 
 🌐 [网站](https://one.fim.ai/) · 📖 [文档](https://docs.fim.ai) · 📋 [更新日志](https://docs.fim.ai/changelog) · 🐛 [报告问题](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
-> **☁️ 跳过本地设置——在云端试用FIM One。**
-> 托管版本已在**[cloud.fim.ai](https://cloud.fim.ai/)**上线：无需Docker、无需API密钥、无需配置。登录后即可在几秒内开始连接您的系统。_早期访问，欢迎反馈。_
+> **☁️ 跳过设置——在云端尝试FIM One。**
+> 托管版本已在[cloud.fim.ai](https://cloud.fim.ai/)上线——无需Docker、无需API密钥、无需配置。登录后即可在几秒内开始连接您的系统。*早期访问，欢迎反馈。*
 
 ---
 

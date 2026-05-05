@@ -10,16 +10,16 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**Plateforme d'agent tout-en-un pour les entreprises mondiales × Chine.**
-*Connectez tous les systèmes que vous utilisez déjà — des SaaS mondiaux à la pile China — via un cœur d'agent unique.*
+**Plateforme d'agent tout-en-un pour les entreprises mondiales × chinoises.**
+*Connectez tous les systèmes que vous utilisez déjà — des SaaS mondiaux à l'écosystème chinois — via un seul cœur d'agent.*
 
-🌐 [Site web](https://one.fim.ai/) · 📖 [Documentation](https://docs.fim.ai) · 📋 [Journal des modifications](https://docs.fim.ai/changelog) · 🐛 [Signaler un bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
+🌐 [Site web](https://one.fim.ai/) · 📖 [Documentation](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Signaler un bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
 </div>
 
 > [!TIP]
 > **☁️ Ignorez la configuration — essayez FIM One sur le Cloud.**
-> Une version gérée est disponible à **[cloud.fim.ai](https://cloud.fim.ai/)** : pas de Docker, pas de clés API, pas de configuration. Connectez-vous et commencez à connecter vos systèmes en quelques secondes. _Accès anticipé, vos commentaires sont les bienvenus._
+> Une version gérée est disponible sur [cloud.fim.ai](https://cloud.fim.ai/) — pas de Docker, pas de clés API, pas de configuration. Connectez-vous et commencez à connecter vos systèmes en quelques secondes. _Accès anticipé, les retours sont les bienvenus._
 
 ---
 

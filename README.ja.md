@@ -11,7 +11,7 @@
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
 **グローバル × 中国企業向けオールインワン智能体プラットフォーム。**
-*既に実行しているすべてのシステム — グローバル SaaS から中国スタックまで — 1 つの智能体コアを通じて接続します。*
+*既に運用しているすべてのシステム — グローバル SaaS から中国スタックまで — 1 つの智能体コアを通じて接続します。*
 
 🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
@@ -19,7 +19,7 @@
 
 > [!TIP]
 > **☁️ セットアップをスキップ — FIM One をクラウドで試す。**
-> マネージド版は **[cloud.fim.ai](https://cloud.fim.ai/)** で利用可能です：Docker なし、API キーなし、設定なし。サインインして、数秒でシステムの接続を開始できます。_早期アクセス、フィードバック歓迎。_
+> マネージド版は [cloud.fim.ai](https://cloud.fim.ai/) で利用可能です — Docker、API キー、設定は不要です。サインインして数秒でシステムの接続を開始できます。_早期アクセス、フィードバック歓迎。_
 
 ---
 

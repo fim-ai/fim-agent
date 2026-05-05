@@ -19,7 +19,7 @@
 
 > [!TIP]
 > **☁️ Skip the setup — try FIM One on Cloud.**
-> A managed version is live at **[cloud.fim.ai](https://cloud.fim.ai/)**: no Docker, no API keys, no config. Sign in and start connecting your systems in seconds. _Early access, feedback welcome._
+> A managed version is live at [cloud.fim.ai](https://cloud.fim.ai/) — no Docker, no API keys, no config. Sign in and start connecting your systems in seconds. _Early access, feedback welcome._
 
 ---
 

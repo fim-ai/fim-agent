@@ -10,8 +10,8 @@
 
 [🌐 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇯🇵 日本語](README.ja.md) | [🇰🇷 한국어](README.ko.md) | [🇩🇪 Deutsch](README.de.md) | [🇫🇷 Français](README.fr.md)
 
-**All-in-One Agent Platform für globale Unternehmen × China-Unternehmen.**
-*Verbinden Sie jedes System, das Sie bereits nutzen — globale SaaS bis zum China-Stack — über einen Agent-Kern.*
+**All-in-One Agent Platform für globale × China-Unternehmen.**
+*Verbinden Sie jedes System, das Sie bereits nutzen — globale SaaS bis zum China-Stack — durch einen Agent-Kern.*
 
 🌐 [Website](https://one.fim.ai/) · 📖 [Docs](https://docs.fim.ai) · 📋 [Changelog](https://docs.fim.ai/changelog) · 🐛 [Report Bug](https://github.com/fim-ai/fim-one/issues) · 💬 [Discord](https://discord.gg/z64czxdC7z) · 🐦 [Twitter](https://x.com/FIM_One) · 🏆 [Product Hunt](https://www.producthunt.com/products/fim-one)
 
@@ -19,7 +19,7 @@
 
 > [!TIP]
 > **☁️ Setup überspringen — FIM One in der Cloud ausprobieren.**
-> Eine verwaltete Version ist live unter **[cloud.fim.ai](https://cloud.fim.ai/)**: kein Docker, keine API-Schlüssel, keine Konfiguration. Melden Sie sich an und verbinden Sie Ihre Systeme in Sekunden. _Early Access, Feedback willkommen._
+> Eine verwaltete Version ist live unter [cloud.fim.ai](https://cloud.fim.ai/) — kein Docker, keine API-Schlüssel, keine Konfiguration. Melden Sie sich an und beginnen Sie in Sekunden, Ihre Systeme zu verbinden. _Early Access, Feedback willkommen._
 
 ---
 
