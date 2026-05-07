@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
-import { Loader2, ShieldOff, ShieldCheck, Megaphone, Wrench, LogOut, AlertTriangle, Zap, Plus, Ticket, Copy, X, Eye } from "lucide-react"
+import { Loader2, ShieldOff, ShieldCheck, Megaphone, Wrench, LogOut, AlertTriangle, Zap, Plus, Ticket, Copy, X, Eye, CreditCard } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { apiFetch, adminApi } from "@/lib/api"
 import { getErrorMessage } from "@/lib/error-utils"
+import { setBillingEnabled as setBillingEnabledApi } from "@/lib/billing-flag"
 import { toast } from "sonner"
 import { useDateFormatter } from "@/hooks/use-date-formatter"
 import type { InviteCode } from "@/types/admin"
@@ -50,6 +51,10 @@ interface SystemSettings {
   announcement_text: string
   default_token_quota: number
   smtp_configured: boolean
+  /** True when the operator has enabled the Stripe billing pipeline. */
+  billing_enabled: boolean
+  /** True when STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET are present. */
+  stripe_configured: boolean
 }
 
 export function AdminSettings() {
@@ -284,6 +289,14 @@ export function AdminSettings() {
           </Button>
         </div>
       </SettingSection>
+
+      <Separator />
+
+      {/* -- Billing pipeline feature flag -- */}
+      <BillingToggleSection
+        settings={settings}
+        onUpdated={(updated) => setSettings(updated)}
+      />
 
       <Separator />
 
@@ -589,6 +602,98 @@ function InviteCodeManager() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Billing pipeline toggle — encodes the
+ * "front-loaded data, switch-only state" architectural rule.
+ *
+ * - First-time activation (FALSE → TRUE) calls the dedicated activation
+ *   endpoint. The backend seeds Free + Pro plans, sets the
+ *   default_plan_id pointer, and backfills users.plan_id.
+ * - Subsequent flips toggle the flag without touching any data.
+ * - Re-running activation on an already-activated install is a no-op.
+ * ──────────────────────────────────────────────────────────────────── */
+function BillingToggleSection({
+  settings,
+  onUpdated,
+}: {
+  settings: SystemSettings | null
+  onUpdated: (s: SystemSettings) => void
+}) {
+  const t = useTranslations("admin.settings")
+  const tError = useTranslations("errors")
+  const [isSaving, setIsSaving] = useState(false)
+
+  if (!settings) return null
+
+  const handleToggle = async (next: boolean) => {
+    if (next && !settings.stripe_configured) {
+      toast.error(t("billingStripeMissing"))
+      return
+    }
+    setIsSaving(true)
+    try {
+      const result = await setBillingEnabledApi(next)
+      onUpdated({ ...settings, billing_enabled: result.billing_enabled })
+      if (next) {
+        if (result.plans_seeded > 0 || result.users_backfilled > 0) {
+          toast.success(
+            t("billingActivatedSeeded", {
+              plans: result.plans_seeded,
+              users: result.users_backfilled,
+            }),
+          )
+        } else {
+          toast.success(t("billingEnabled"))
+        }
+      } else {
+        toast.success(t("billingDisabled"))
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err, tError))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <SettingSection
+      icon={CreditCard}
+      iconColor={
+        settings.billing_enabled ? "text-green-500" : "text-muted-foreground"
+      }
+      title={t("billingTitle")}
+      description={t("billingDesc")}
+    >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="pr-4">
+            <Label htmlFor="billing-toggle" className="text-sm font-medium cursor-pointer">
+              {t("billingToggle")}
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {t("billingToggleHelper")}
+            </p>
+            {!settings.stripe_configured && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                {t("billingStripeMissing")}
+              </p>
+            )}
+          </div>
+          <Switch
+            id="billing-toggle"
+            checked={settings.billing_enabled}
+            onCheckedChange={handleToggle}
+            disabled={
+              isSaving ||
+              (!settings.billing_enabled && !settings.stripe_configured)
+            }
+          />
+        </div>
+      </div>
+    </SettingSection>
   )
 }
 

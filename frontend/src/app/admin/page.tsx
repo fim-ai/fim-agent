@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { fetchBillingEnabled } from "@/lib/billing-flag"
 import {
   LayoutDashboard, Activity, Plug, Settings, Shield, Users, MessageSquare,
   HardDrive, Cpu, Lock, Key, Bot, BookOpen, FileText, BarChart3, Wrench,
@@ -145,6 +146,25 @@ function AdminPanelContent() {
 
   const activeTab = (searchParams.get("tab") as TabKey) || "overview"
 
+  // Admin Billing nav group is gated on the system-level
+  // ``billing_enabled`` flag — hidden by default so private deployments
+  // don't expose Stripe-specific UI they haven't opted into. Admins
+  // flip it on from System Settings.
+  const [billingEnabled, setBillingEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    fetchBillingEnabled().then((on) => {
+      if (!cancelled) setBillingEnabled(on)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const visibleNavGroups = NAV_GROUPS.filter(
+    (g) => g.label !== "billing" || billingEnabled,
+  )
+
   usePageTitle(`${t("panelTitle")} · ${t(`tabs.${activeTab}` as never)}`)
 
   // Auth guard: admin only
@@ -175,7 +195,7 @@ function AdminPanelContent() {
       <div className="flex flex-1 min-h-0">
         {/* Left nav */}
         <nav className="w-52 shrink-0 border-r border-border/40 p-4 space-y-0.5 overflow-y-auto">
-          {NAV_GROUPS.map((group, gi) => (
+          {visibleNavGroups.map((group, gi) => (
             <div key={gi}>
               {group.label ? (
                 <div className="px-2 pt-3 pb-1">
