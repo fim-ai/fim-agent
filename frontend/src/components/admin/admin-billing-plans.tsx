@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import {
@@ -46,7 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { adminApi, ApiError } from "@/lib/api"
 import { getErrorMessage } from "@/lib/error-utils"
-import { formatTokens } from "@/lib/utils"
+import { formatTokens } from "@/lib/format-tokens"
 import type { AdminBillingPlan } from "@/types/admin"
 
 // ---------------------------------------------------------------------------
@@ -663,6 +664,14 @@ interface PlanFormFieldsProps {
 
 function PlanFormFields({ form, setField, fieldErrors, slugReadOnly }: PlanFormFieldsProps) {
   const t = useTranslations("admin.billing.plans")
+  // The Free plan's quota is the canonical "default for unsubscribed
+  // users" — its source of truth is the System Settings page's
+  // ``Default Monthly Token Quota`` field, which both the admin
+  // settings PATCH and the activation flow keep in sync. We lock the
+  // input here so the operator edits one knob, not two — and the
+  // backend also ignores the field on the slug='free' plan as
+  // defence-in-depth.
+  const isFreePlan = slugReadOnly && form.slug === "free"
   return (
     <div className="space-y-4 py-2">
       <div className="space-y-1.5">
@@ -711,9 +720,20 @@ function PlanFormFields({ form, setField, fieldErrors, slugReadOnly }: PlanFormF
             onChange={(e) => setField("monthly_token_quota", e.target.value)}
             placeholder="5000000"
             aria-invalid={!!fieldErrors.monthly_token_quota}
+            disabled={isFreePlan}
           />
           {fieldErrors.monthly_token_quota ? (
             <p className="text-sm text-destructive">{fieldErrors.monthly_token_quota}</p>
+          ) : isFreePlan ? (
+            <p className="text-xs text-muted-foreground">
+              {t("freeQuotaSyncedHint")}{" "}
+              <Link
+                href="/admin?tab=settings"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                {t("freeQuotaEditLink")}
+              </Link>
+            </p>
           ) : (
             <p className="text-xs text-muted-foreground">{t("fields.monthlyTokenQuotaHint")}</p>
           )}

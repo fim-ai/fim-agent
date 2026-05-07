@@ -301,64 +301,67 @@ export function BillingPage() {
         </div>
 
         {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : billingDisabled ? (
-            <NotConfiguredCard />
-          ) : (
-            <>
-              {/* Banners (past_due / pending cancellation) — always at the
-                  top so the user can react before scrolling. */}
-              {showPastDueBanner && (
-                <Banner
-                  tone="destructive"
-                  title={t("banner.pastDueTitle")}
-                  body={t("banner.pastDueBody")}
-                />
-              )}
-              {showCanceledBanner && subscription && (
-                <Banner
-                  tone="warning"
-                  title={t("banner.canceledTitle")}
-                  body={t("banner.canceledBody", {
-                    date: formatLongDate(subscription.current_period_end, locale),
-                  })}
-                />
-              )}
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : billingDisabled ? (
+          <NotConfiguredCard />
+        ) : (
+          <>
+            {/* Banners (past_due / pending cancellation) — always at the
+                top so the user can react before scrolling. */}
+            {showPastDueBanner && (
+              <Banner
+                tone="destructive"
+                title={t("banner.pastDueTitle")}
+                body={t("banner.pastDueBody")}
+              />
+            )}
+            {showCanceledBanner && subscription && (
+              <Banner
+                tone="warning"
+                title={t("banner.canceledTitle")}
+                body={t("banner.canceledBody", {
+                  date: formatLongDate(subscription.current_period_end, locale),
+                })}
+              />
+            )}
 
-              {/* Top row: current plan + usage side-by-side on wide screens.
-                  Each card stays self-contained on mobile. */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <CurrentPlanCard plan={currentPlan} />
-                <UsageCard
-                  usage={usage}
-                  percent={usagePercent}
-                  subscription={subscription}
-                  locale={locale}
-                />
-              </div>
-
-              <SubscriptionStatusCard
+            {/* Top row: current plan + usage side-by-side on wide screens.
+                Each card stays self-contained on mobile. The Usage card is
+                deliberately a thin progress + reset summary; deep
+                per-agent breakdowns live on the Usage tab to avoid
+                duplicating the same data twice in the same page. */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <CurrentPlanCard plan={currentPlan} locale={locale} />
+              <UsageCard
+                usage={usage}
+                percent={usagePercent}
                 subscription={subscription}
                 locale={locale}
-                onManage={handlePortal}
-                portalPending={actionPending === "portal"}
               />
+            </div>
 
-              <PlansComparison
-                plans={plans}
-                currentPlanSlug={currentPlan?.slug ?? null}
-                onCheckout={handleCheckout}
-                pendingSlug={
-                  actionPending?.startsWith("checkout:")
-                    ? actionPending.slice("checkout:".length)
-                    : null
-                }
-              />
-            </>
-          )}
-        </div>
+            <SubscriptionStatusCard
+              subscription={subscription}
+              locale={locale}
+              onManage={handlePortal}
+              portalPending={actionPending === "portal"}
+            />
+
+            <PlansComparison
+              plans={plans}
+              currentPlanSlug={currentPlan?.slug ?? null}
+              onCheckout={handleCheckout}
+              pendingSlug={
+                actionPending?.startsWith("checkout:")
+                  ? actionPending.slice("checkout:".length)
+                  : null
+              }
+              locale={locale}
+            />
+          </>
+        )}
       </div>
     </div>
   )
@@ -412,7 +415,13 @@ function Banner({ tone, title, body }: BannerProps) {
   )
 }
 
-function CurrentPlanCard({ plan }: { plan: PlanInfo | null }) {
+function CurrentPlanCard({
+  plan,
+  locale,
+}: {
+  plan: PlanInfo | null
+  locale: string
+}) {
   const t = useTranslations("billing")
   return (
     <Card>
@@ -445,7 +454,7 @@ function CurrentPlanCard({ plan }: { plan: PlanInfo | null }) {
           </p>
           <p className="mt-0.5 font-medium tabular-nums">
             {plan && plan.monthly_token_quota > 0
-              ? plan.monthly_token_quota.toLocaleString()
+              ? formatTokens(plan.monthly_token_quota, locale)
               : t("currentPlan.unlimited")}
           </p>
         </div>
@@ -534,6 +543,23 @@ function UsageCard({ usage, percent, subscription, locale }: UsageCardProps) {
             )}
 
             <p className="text-xs text-muted-foreground">{resetText}</p>
+
+            {/* Deep-link to the detailed Usage tab (per-agent breakdown,
+                daily history). Keeps the billing card focused on
+                "where am I in the cycle" without duplicating the data. */}
+            <div className="pt-1">
+              <Button
+                asChild
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+              >
+                <Link href="/settings?tab=usage">
+                  {t("usage.viewDetailed")}
+                  <ArrowRight className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">{t("usage.loadFailed")}</p>
@@ -617,6 +643,7 @@ interface PlansComparisonProps {
   currentPlanSlug: string | null
   onCheckout: (plan: PlanInfo) => void
   pendingSlug: string | null
+  locale: string
 }
 
 function PlansComparison({
@@ -624,6 +651,7 @@ function PlansComparison({
   currentPlanSlug,
   onCheckout,
   pendingSlug,
+  locale,
 }: PlansComparisonProps) {
   const t = useTranslations("billing")
 
@@ -653,6 +681,7 @@ function PlansComparison({
               isCurrent={plan.slug === currentPlanSlug}
               onCheckout={onCheckout}
               isPending={pendingSlug === plan.slug}
+              locale={locale}
             />
           ))}
         </div>
@@ -666,9 +695,16 @@ interface PlanCardProps {
   isCurrent: boolean
   onCheckout: (plan: PlanInfo) => void
   isPending: boolean
+  locale: string
 }
 
-function PlanCard({ plan, isCurrent, onCheckout, isPending }: PlanCardProps) {
+function PlanCard({
+  plan,
+  isCurrent,
+  onCheckout,
+  isPending,
+  locale,
+}: PlanCardProps) {
   const t = useTranslations("billing")
 
   // Free tier has no `stripe_price_id`, so it can't be checked out — we
@@ -708,7 +744,7 @@ function PlanCard({ plan, isCurrent, onCheckout, isPending }: PlanCardProps) {
         <p className="text-sm font-medium tabular-nums">
           {plan.monthly_token_quota > 0
             ? t("plans.monthlyQuotaLabel", {
-                quota: plan.monthly_token_quota.toLocaleString(),
+                quota: formatTokens(plan.monthly_token_quota, locale),
               })
             : t("currentPlan.unlimited")}
         </p>
