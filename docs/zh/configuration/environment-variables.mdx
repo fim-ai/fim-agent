@@ -391,24 +391,22 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 
 ## 工作流运行保留
 
-自动清除旧工作流运行的后台清理任务。每个工作流的覆盖设置（在工作流设置 UI 中配置）优先于这些全局默认值。
+自动清理旧工作流运行的后台任务。按工作流的覆盖设置（在工作流设置UI中配置）优先于这些全局默认值。
 
 | 变量 | 必需 | 默认值 | 描述 |
 |---|---|---|---|
-| `WORKFLOW_RUN_MAX_AGE_DAYS` | 否 | `30` | 删除超过此天数的工作流运行 |
+| `WORKFLOW_RUN_MAX_AGE_DAYS` | 否 | `30` | 删除早于此天数的工作流运行 |
 | `WORKFLOW_RUN_MAX_PER_WORKFLOW` | 否 | `100` | 每个工作流最多保留此数量的运行（最旧的优先删除） |
 | `WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS` | 否 | `24` | 后台清理任务运行的频率，单位为小时 |
 
-### 频道确认请求过期
+### 通道确认请求过期
 
-后台清理程序，将由频道钩子（如 `FeishuGateHook` 或 Approval Playground）产生的陈旧待批准请求标记为已过期。确保数天后点击被遗忘的卡片不会翻转已被拆除的智能体状态。
+后台清理程序，将陈旧的待审批请求（由通道钩子如 `FeishuGateHook` 或审批演练场产生）标记为已过期。确保稍后点击被遗忘的卡片不会翻转已被拆除的智能体状态。
 
 | 变量 | 必需 | 默认值 | 描述 |
 |---|---|---|---|
-| `CHANNEL_CONFIRMATION_TTL_MINUTES` | 否 | `1440` | 超过此时间的待确认请求将自动过期（默认：24 小时） |
-| `CHANNEL_CONFIRMATION_SWEEP_INTERVAL_SECONDS` | 否 | `600` | 过期清理程序的运行频率（默认：每 10 分钟） |
-
----
+| `CHANNEL_CONFIRMATION_TTL_MINUTES` | 否 | `1440` | 超过此时间的待确认请求将自动过期（默认值：24小时） |
+| `CHANNEL_CONFIRMATION_SWEEP_INTERVAL_SECONDS` | 否 | `600` | 过期清理程序运行的频率（默认值：每10分钟） |
 
 ## OAuth（可选）
 
@@ -458,14 +456,24 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 
 ## 分析（可选）
 
-所有分析提供商都是可选的。设置任意组合 — 所有活跃提供商同时加载。全部留空以完全禁用分析（建议用于本地开发）。
+所有分析提供商都是可选的。设置任意组合——所有活跃的提供商同时加载。全部留空可禁用分析（建议用于本地开发）。
 
 | 变量 | 必需 | 默认值 | 描述 |
 |---|---|---|---|
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | 否 | — | Google Analytics 4 测量 ID（例如 `G-XXXXXXXXXX`）。在 [analytics.google.com](https://analytics.google.com) 获取 |
-| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | 否 | — | Umami 分析脚本 URL（例如 `https://your-umami.com/script.js`）。自托管、隐私友好的替代方案 — [umami.is](https://umami.is) |
-| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | 否 | — | Umami 网站 ID。当设置 `NEXT_PUBLIC_UMAMI_SCRIPT_URL` 时必需 |
-| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | 否 | — | Plausible 分析域名（例如 `yourdomain.com`）。轻量级、隐私友好 — [plausible.io](https://plausible.io) |
-| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` | 否 | `https://plausible.io/js/script.js` | 自托管实例的自定义 Plausible 脚本 URL |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | 否 | — | Google Analytics 4 测量ID（例如 `G-XXXXXXXXXX`）。在 [analytics.google.com](https://analytics.google.com) 获取 |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | 否 | — | Umami 分析脚本URL（例如 `https://your-umami.com/script.js`）。自托管、隐私友好的替代方案——[umami.is](https://umami.is) |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | 否 | — | Umami 网站ID。设置 `NEXT_PUBLIC_UMAMI_SCRIPT_URL` 时必需 |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | 否 | — | Plausible 分析域名（例如 `yourdomain.com`）。轻量级、隐私友好——[plausible.io](https://plausible.io) |
+| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` | 否 | `https://plausible.io/js/script.js` | 自托管实例的自定义Plausible脚本URL |
 
-> 所有 `NEXT_PUBLIC_*` 分析变量都是**构建时** — 更改需要重新构建前端才能生效。
+> 所有 `NEXT_PUBLIC_*` 分析变量都是**构建时**的——更改需要前端重新构建才能生效。
+
+## Stripe Billing（可选）
+
+Stripe 为 Pro 订阅提供支持。将所有三个变量留空可禁用计费——FIM One 的其余部分保持不变。**必须**同时设置 `STRIPE_SECRET_KEY` **和** `STRIPE_WEBHOOK_SECRET`；部分配置会在首次使用时引发错误。
+
+| 变量 | 必需 | 默认值 | 描述 |
+|---|---|---|---|
+| `STRIPE_SECRET_KEY` | 否 | — | Stripe API 密钥。必须以 `sk_test_` / `sk_live_`（完全访问）或 `rk_test_` / `rk_live_`（受限密钥）开头。从 Stripe Dashboard → Developers → API keys 获取。切勿将 `sk_live_*` 密钥提交到源代码。 |
+| `STRIPE_WEBHOOK_SECRET` | 否 | — | Stripe webhook 签名密钥（`whsec_*`）。在 Stripe Dashboard → Developers → Webhooks → Add endpoint 中注册 webhook 端点时创建。验证入站 webhook 有效负载时需要。 |
+| `STRIPE_BILLING_RETURN_URL` | 否 | `http://localhost:3000/settings/billing` | Stripe 在 Checkout / Customer Portal 会话后将用户重定向到的 URL。将其设置为你的生产环境计费设置页面（例如 `https://your-domain.com/settings/billing`）。 |

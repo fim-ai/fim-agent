@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fim_one.core.security.encryption import EncryptedString
@@ -14,6 +14,7 @@ from fim_one.db.base import Base, TimestampMixin, UUIDPKMixin
 
 if TYPE_CHECKING:
     from .agent import Agent
+    from .billing import BillingPlan, Subscription
     from .connector import Connector
     from .conversation import Conversation
     from .knowledge_base import KnowledgeBase
@@ -65,6 +66,24 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     )
     totp_backup_codes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Stripe billing (v1 MVP). ``token_quota`` above stays as the legacy
+    # admin-override knob; v2 will migrate that semantic into the plan layer.
+    # ``tokens_used_this_period`` is a soft counter reset on Stripe's
+    # ``invoice.payment_succeeded`` webhook; ``quota_reset_at`` mirrors the
+    # current Subscription's ``current_period_end`` for fast read paths.
+    stripe_customer_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, unique=True, index=True
+    )
+    tokens_used_this_period: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    quota_reset_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    plan_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("billing_plans.id"), nullable=True, index=True
+    )
+
     conversations: Mapped[list[Conversation]] = relationship(
         back_populates="user", lazy="raise", cascade="all, delete-orphan"
     )
@@ -94,4 +113,16 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     )
     notification_preferences: Mapped[list[NotificationPreference]] = relationship(
         back_populates="user", lazy="raise", cascade="all, delete-orphan"
+    )
+    # One-to-one with Subscription (v1 MVP allows at most one active sub
+    # per user). ``uselist=False`` projects the collection as a single row.
+    subscription: Mapped[Subscription | None] = relationship(
+        "Subscription",
+        back_populates="user",
+        lazy="raise",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    plan: Mapped[BillingPlan | None] = relationship(
+        "BillingPlan", lazy="joined", foreign_keys=[plan_id]
     )

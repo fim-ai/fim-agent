@@ -385,19 +385,19 @@ Enregistre automatiquement l'outil intégré `email_send` lorsque `SMTP_HOST`, `
 - **Développement local** : SQLite + multi-worker est correct pour une utilisation légère ; ajoutez simplement `REDIS_URL` si vous utilisez la fonctionnalité d'injection.
 </Warning>
 
-## Rétention des exécutions de flux de travail
+## Workflow Run Retention
 
-Tâche de nettoyage en arrière-plan qui purge automatiquement les anciennes exécutions de flux de travail. Les remplacements par flux de travail (configurés dans l'interface utilisateur des paramètres du flux de travail) ont priorité sur ces valeurs par défaut globales.
+Background cleanup task that automatically purges old workflow runs. Per-workflow overrides (configured in the workflow settings UI) take priority over these global defaults.
 
-| Variable | Requis | Par défaut | Description |
+| Variable | Required | Default | Description |
 |---|---|---|---|
-| `WORKFLOW_RUN_MAX_AGE_DAYS` | Non | `30` | Supprimer les exécutions de flux de travail antérieures à ce nombre de jours |
-| `WORKFLOW_RUN_MAX_PER_WORKFLOW` | Non | `100` | Conserver au maximum ce nombre d'exécutions par flux de travail (les plus anciennes supprimées en premier) |
-| `WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS` | Non | `24` | Fréquence d'exécution de la tâche de nettoyage en arrière-plan, en heures |
+| `WORKFLOW_RUN_MAX_AGE_DAYS` | No | `30` | Delete workflow runs older than this many days |
+| `WORKFLOW_RUN_MAX_PER_WORKFLOW` | No | `100` | Keep at most this many runs per workflow (oldest deleted first) |
+| `WORKFLOW_RUN_CLEANUP_INTERVAL_HOURS` | No | `24` | How often the background cleanup task runs, in hours |
 
 ### Expiration des demandes de confirmation de canal
 
-Sweeper en arrière-plan qui marque les demandes d'approbation en attente obsolètes (produites par des hooks de canal comme `FeishuGateHook` ou le Approval Playground) comme expirées. Garantit qu'un clic quelques jours plus tard sur une carte oubliée ne bascule pas l'état de l'agent qui a déjà été démonté.
+Sweeper en arrière-plan qui marque les demandes d'approbation en attente obsolètes (produites par des hooks de canal comme `FeishuGateHook` ou le Playground d'approbation) comme expirées. Garantit qu'un clic quelques jours plus tard sur une carte oubliée ne bascule pas l'état de l'agent qui a déjà été démantelé.
 
 | Variable | Requis | Par défaut | Description |
 |---|---|---|---|
@@ -450,16 +450,26 @@ Acheminez tout le trafic via le réseau de Cloudflare au lieu d'exposer directem
 
 ---
 
-## Analytique (Optionnel)
+## Analyse (Optionnel)
 
-Tous les fournisseurs d'analytique sont optionnels. Définissez n'importe quelle combinaison — tous les fournisseurs actifs se chargent simultanément. Laissez tous les champs vides pour désactiver complètement l'analytique (recommandé pour le développement local).
+Tous les fournisseurs d'analyse sont optionnels. Définissez n'importe quelle combinaison — tous les fournisseurs actifs se chargent simultanément. Laissez tous les champs vides pour désactiver complètement l'analyse (recommandé pour le développement local).
 
 | Variable | Requis | Par défaut | Description |
 |---|---|---|---|
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Non | — | ID de mesure Google Analytics 4 (par ex. `G-XXXXXXXXXX`). Obtenez le vôtre sur [analytics.google.com](https://analytics.google.com) |
-| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | Non | — | URL du script d'analytique Umami (par ex. `https://your-umami.com/script.js`). Alternative auto-hébergée et respectueuse de la vie privée — [umami.is](https://umami.is) |
-| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | Non | — | ID du site web Umami. Requis quand `NEXT_PUBLIC_UMAMI_SCRIPT_URL` est défini |
-| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Non | — | Domaine d'analytique Plausible (par ex. `yourdomain.com`). Léger et respectueux de la vie privée — [plausible.io](https://plausible.io) |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Non | — | ID de mesure Google Analytics 4 (par exemple `G-XXXXXXXXXX`). Obtenez le vôtre sur [analytics.google.com](https://analytics.google.com) |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | Non | — | URL du script d'analyse Umami (par exemple `https://your-umami.com/script.js`). Alternative auto-hébergée et respectueuse de la vie privée — [umami.is](https://umami.is) |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | Non | — | ID du site web Umami. Requis lorsque `NEXT_PUBLIC_UMAMI_SCRIPT_URL` est défini |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Non | — | Domaine d'analyse Plausible (par exemple `yourdomain.com`). Léger et respectueux de la vie privée — [plausible.io](https://plausible.io) |
 | `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` | Non | `https://plausible.io/js/script.js` | URL de script Plausible personnalisée pour les instances auto-hébergées |
 
-> Toutes les variables d'analytique `NEXT_PUBLIC_*` sont au **moment de la compilation** — les modifications nécessitent une reconstruction du frontend pour prendre effet.
+> Toutes les variables d'analyse `NEXT_PUBLIC_*` sont au **moment de la compilation** — les modifications nécessitent une reconstruction du frontend pour prendre effet.
+
+## Stripe Billing (Optional)
+
+Stripe powers Pro subscriptions. Leave all three variables blank to disable billing — the rest of FIM One works unchanged. **Both** `STRIPE_SECRET_KEY` **and** `STRIPE_WEBHOOK_SECRET` must be set together; partial config raises an error at first use.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `STRIPE_SECRET_KEY` | No | — | Stripe API secret key. Must start with `sk_test_` / `sk_live_` (full access) or `rk_test_` / `rk_live_` (restricted key). Get yours from the Stripe Dashboard → Developers → API keys. Never commit a `sk_live_*` key to source. |
+| `STRIPE_WEBHOOK_SECRET` | No | — | Stripe webhook signing secret (`whsec_*`). Created when you register the webhook endpoint in Stripe Dashboard → Developers → Webhooks → Add endpoint. Required to verify inbound webhook payloads. |
+| `STRIPE_BILLING_RETURN_URL` | No | `http://localhost:3000/settings/billing` | URL Stripe redirects users to after Checkout / Customer Portal sessions. Set this to your production billing settings page (e.g. `https://your-domain.com/settings/billing`). |

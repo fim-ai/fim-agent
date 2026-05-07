@@ -406,8 +406,6 @@ Background sweeper that marks stale pending approval requests (produced by chann
 | `CHANNEL_CONFIRMATION_TTL_MINUTES` | No | `1440` | Pending confirmations older than this are auto-expired (default: 24 hours) |
 | `CHANNEL_CONFIRMATION_SWEEP_INTERVAL_SECONDS` | No | `600` | How often the expiry sweeper runs (default: every 10 minutes) |
 
----
-
 ## OAuth (Optional)
 
 Wenn sowohl `CLIENT_ID` als auch `CLIENT_SECRET` für einen Anbieter gesetzt sind, zeigt die Anmeldeseite automatisch die entsprechende OAuth-Schaltfläche an.
@@ -460,10 +458,20 @@ Alle Analytics-Anbieter sind optional. Legen Sie eine beliebige Kombination fest
 
 | Variable | Erforderlich | Standard | Beschreibung |
 |---|---|---|---|
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Nein | — | Google Analytics 4 Measurement ID (z. B. `G-XXXXXXXXXX`). Rufen Sie Ihre ID unter [analytics.google.com](https://analytics.google.com) ab |
-| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | Nein | — | Umami Analytics Script URL (z. B. `https://your-umami.com/script.js`). Selbst gehostete, datenschutzfreundliche Alternative — [umami.is](https://umami.is) |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Nein | — | Google Analytics 4 Measurement ID (z. B. `G-XXXXXXXXXX`). Erhalten Sie Ihre ID unter [analytics.google.com](https://analytics.google.com) |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | Nein | — | Umami Analytics Script URL (z. B. `https://your-umami.com/script.js`). Selbst gehostet, datenschutzfreundliche Alternative — [umami.is](https://umami.is) |
 | `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | Nein | — | Umami Website ID. Erforderlich, wenn `NEXT_PUBLIC_UMAMI_SCRIPT_URL` gesetzt ist |
 | `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Nein | — | Plausible Analytics Domain (z. B. `yourdomain.com`). Leichtgewichtig, datenschutzfreundlich — [plausible.io](https://plausible.io) |
 | `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL` | Nein | `https://plausible.io/js/script.js` | Benutzerdefinierte Plausible Script URL für selbst gehostete Instanzen |
 
 > Alle `NEXT_PUBLIC_*` Analytics-Variablen sind **Build-Zeit** — Änderungen erfordern einen Frontend-Rebuild, um wirksam zu werden.
+
+## Stripe Billing (Optional)
+
+Stripe powers Pro subscriptions. Leave all three variables blank to disable billing — the rest of FIM One works unchanged. **Both** `STRIPE_SECRET_KEY` **and** `STRIPE_WEBHOOK_SECRET` must be set together; partial config raises an error at first use.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `STRIPE_SECRET_KEY` | No | — | Stripe API secret key. Must start with `sk_test_` / `sk_live_` (full access) or `rk_test_` / `rk_live_` (restricted key). Get yours from the Stripe Dashboard → Developers → API keys. Never commit a `sk_live_*` key to source. |
+| `STRIPE_WEBHOOK_SECRET` | No | — | Stripe webhook signing secret (`whsec_*`). Created when you register the webhook endpoint in Stripe Dashboard → Developers → Webhooks → Add endpoint. Required to verify inbound webhook payloads. |
+| `STRIPE_BILLING_RETURN_URL` | No | `http://localhost:3000/settings/billing` | URL Stripe redirects users to after Checkout / Customer Portal sessions. Set this to your production billing settings page (e.g. `https://your-domain.com/settings/billing`). |

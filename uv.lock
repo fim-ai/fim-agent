@@ -908,6 +908,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "simpleeval" },
+    { name = "stripe" },
 ]
 
 [package.optional-dependencies]
@@ -1006,6 +1007,7 @@ requires-dist = [
     { name = "simpleeval", specifier = ">=0.9" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'web'", specifier = ">=2.0" },
     { name = "sqlparse", marker = "extra == 'database'", specifier = ">=0.5" },
+    { name = "stripe", specifier = ">=11.0,<13" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'web'", specifier = ">=0.34" },
 ]
 provides-extras = ["dev", "web", "mcp", "files", "rag", "redis", "postgres", "database", "kingbase", "dm8"]
@@ -3649,6 +3651,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/68/79977123bb7be889ad680d79a40f339082c1978b5cfcf62c2d8d196873ac/starlette-0.52.1.tar.gz", hash = "sha256:834edd1b0a23167694292e94f597773bc3f89f362be6effee198165a35d62933", size = 2653702, upload-time = "2026-01-18T13:34:11.062Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/0d/13d1d239a25cbfb19e740db83143e95c772a1fe10202dda4b76792b114dd/starlette-0.52.1-py3-none-any.whl", hash = "sha256:0029d43eb3d273bc4f83a08720b4912ea4b071087a3b48db01b7c839f7954d74", size = 74272, upload-time = "2026-01-18T13:34:09.188Z" },
+]
+
+[[package]]
+name = "stripe"
+version = "12.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/92/f1b72783e13662026efc7d3f0fc201230edab55edd1604326a97162d8ce4/stripe-12.5.1.tar.gz", hash = "sha256:5407d092c355c31393e767d2dcb2d5a8c3980caa9a073acb32d0ccb3c01b04b5", size = 1432826, upload-time = "2025-09-05T13:27:07.976Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/8d/f4c2f047eedc943aea573cb56af2c9481b2d97ee8de9819f8c5d87e9ba34/stripe-12.5.1-py2.py3-none-any.whl", hash = "sha256:39b47b331dfe933ce6cf6bd654e0ae9ba082caa9d1dd8d0ae9ae48293975f115", size = 1664067, upload-time = "2025-09-05T13:27:05.559Z" },
 ]
 
 [[package]]

@@ -34,6 +34,7 @@ dependencies = [
     "simpleeval>=0.9",
     "croniter>=6.0.0",
     "pyotp>=2.9.0",
+    "stripe>=11.0,<13",
 ]
 
 [project.optional-dependencies]

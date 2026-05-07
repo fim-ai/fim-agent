@@ -6,6 +6,7 @@ from .agent import Agent
 from .announcement import Announcement
 from .api_key import ApiKey
 from .audit_log import AuditLog
+from .billing import BillingPlan, StripeWebhookEvent, Subscription
 from .channel import Channel, ConfirmationRequest
 from .connector import Connector, ConnectorAction
 from .connector_credential import ConnectorCredential
@@ -38,6 +39,7 @@ __all__ = [
     "Announcement",
     "ApiKey",
     "AuditLog",
+    "BillingPlan",
     "Channel",
     "ConfirmationRequest",
     "Connector",
@@ -70,6 +72,8 @@ __all__ = [
     "SchemaColumn",
     "SensitiveWord",
     "Skill",
+    "StripeWebhookEvent",
+    "Subscription",
     "SystemSetting",
     "User",
     "UserOAuthBinding",
