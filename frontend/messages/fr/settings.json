@@ -9,9 +9,9 @@
     "credentials": "Identifiants",
     "usage": "Utilisation",
     "notifications": "Notifications",
-    "subscriptions": "Abonnements",
+    "subscriptions": "Marketplace",
     "channels": "Canaux",
-    "billing": "Facturation"
+    "billing": "Plan & Facturation"
   },
   "general": {
     "profileTitle": "Profil",
@@ -410,6 +410,6 @@
     "loadFailed": "Échec du chargement des abonnements"
   },
   "sidebar": {
-    "billing": "Facturation"
+    "billing": "Plan & Facturation"
   }
 }

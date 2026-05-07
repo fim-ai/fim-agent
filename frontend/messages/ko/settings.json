@@ -9,9 +9,9 @@
     "credentials": "자격증명",
     "usage": "사용량",
     "notifications": "알림",
-    "subscriptions": "구독",
+    "subscriptions": "마켓플레이스",
     "channels": "채널",
-    "billing": "결제"
+    "billing": "요금제 & 청구"
   },
   "general": {
     "profileTitle": "프로필",
@@ -410,6 +410,6 @@
     "loadFailed": "구독을 로드하지 못했습니다"
   },
   "sidebar": {
-    "billing": "결제"
+    "billing": "요금제 & 청구"
   }
 }

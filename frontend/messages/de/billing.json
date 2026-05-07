@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Abrechnung",
+    "title": "Plan & Abrechnung",
     "description": "Verwalten Sie Ihr Abonnement, überwachen Sie die Nutzung und upgraden Sie Ihren Plan."
   },
   "currentPlan": {
@@ -22,7 +22,8 @@
     "periodEndsOn": "Zeitraum endet am {date}",
     "unlimited": "Unbegrenzt — kein Kontingent-Limit bei diesem Plan.",
     "noPeriod": "Keine aktive Abrechnungsperiode.",
-    "loadFailed": "Nutzungsdaten konnten nicht geladen werden."
+    "loadFailed": "Nutzungsdaten konnten nicht geladen werden.",
+    "viewDetailed": "Detaillierte Nutzungshistorie anzeigen"
   },
   "subscription": {
     "title": "Abonnementstatus",
@@ -71,6 +72,6 @@
     "noStripeCustomer": "Abonnieren Sie zunächst einen bezahlten Plan, um Abrechnungsdetails zu verwalten."
   },
   "sidebar": {
-    "billing": "Abrechnung"
+    "billing": "Plan & Abrechnung"
   }
 }

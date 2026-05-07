@@ -9,9 +9,9 @@
     "credentials": "凭证",
     "usage": "使用情况",
     "notifications": "通知",
-    "subscriptions": "订阅",
+    "subscriptions": "应用市场",
     "channels": "通道",
-    "billing": "账单"
+    "billing": "套餐与账单"
   },
   "general": {
     "profileTitle": "个人资料",
@@ -410,6 +410,6 @@
     "loadFailed": "加载订阅失败"
   },
   "sidebar": {
-    "billing": "账单"
+    "billing": "套餐与账单"
   }
 }

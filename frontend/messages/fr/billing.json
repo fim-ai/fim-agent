@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Facturation",
+    "title": "Plan et facturation",
     "description": "Gérez votre abonnement, surveillez votre utilisation et mettez à niveau votre plan."
   },
   "currentPlan": {
@@ -22,7 +22,8 @@
     "periodEndsOn": "La période se termine le {date}",
     "unlimited": "Illimité — aucune limite de quota sur ce plan.",
     "noPeriod": "Aucune période de facturation active.",
-    "loadFailed": "Échec du chargement des données d'utilisation."
+    "loadFailed": "Échec du chargement des données d'utilisation.",
+    "viewDetailed": "Afficher l'historique d'utilisation détaillé"
   },
   "subscription": {
     "title": "Statut de l'abonnement",
@@ -71,6 +72,6 @@
     "noStripeCustomer": "Abonnez-vous d'abord à un plan payant pour gérer les détails de facturation."
   },
   "sidebar": {
-    "billing": "Facturation"
+    "billing": "Plan et facturation"
   }
 }

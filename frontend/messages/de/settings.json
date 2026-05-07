@@ -9,9 +9,9 @@
     "credentials": "Anmeldedaten",
     "usage": "Nutzung",
     "notifications": "Benachrichtigungen",
-    "subscriptions": "Abonnements",
+    "subscriptions": "Marketplace",
     "channels": "Kanäle",
-    "billing": "Abrechnung"
+    "billing": "Plan & Abrechnung"
   },
   "general": {
     "profileTitle": "Profil",
@@ -410,6 +410,6 @@
     "loadFailed": "Abos konnten nicht geladen werden"
   },
   "sidebar": {
-    "billing": "Abrechnung"
+    "billing": "Plan & Abrechnung"
   }
 }

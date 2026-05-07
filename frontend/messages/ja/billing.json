@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "請求",
+    "title": "プラン & 請求",
     "description": "サブスクリプション、使用状況の監視、プランのアップグレードを管理します。"
   },
   "currentPlan": {
@@ -22,7 +22,8 @@
     "periodEndsOn": "期間は{date}に終了",
     "unlimited": "無制限 — このプランではクォータ上限なし。",
     "noPeriod": "アクティブな請求期間なし。",
-    "loadFailed": "使用状況データの読み込みに失敗しました。"
+    "loadFailed": "使用状況データの読み込みに失敗しました。",
+    "viewDetailed": "詳細な使用履歴を表示"
   },
   "subscription": {
     "title": "サブスクリプションステータス",
@@ -71,6 +72,6 @@
     "noStripeCustomer": "請求詳細を管理するには、まず有料プランに登録してください。"
   },
   "sidebar": {
-    "billing": "請求"
+    "billing": "プラン & 請求"
   }
 }

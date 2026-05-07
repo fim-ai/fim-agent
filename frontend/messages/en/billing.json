@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Billing",
+    "title": "Plan & Billing",
     "description": "Manage your subscription, monitor usage, and upgrade your plan."
   },
 
@@ -24,7 +24,8 @@
     "periodEndsOn": "Period ends on {date}",
     "unlimited": "Unlimited — no quota cap on this plan.",
     "noPeriod": "No active billing period.",
-    "loadFailed": "Failed to load usage data."
+    "loadFailed": "Failed to load usage data.",
+    "viewDetailed": "View detailed usage history"
   },
 
   "subscription": {
@@ -80,6 +81,6 @@
   },
 
   "sidebar": {
-    "billing": "Billing"
+    "billing": "Plan & Billing"
   }
 }

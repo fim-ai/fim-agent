@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "账单",
+    "title": "套餐与账单",
     "description": "管理您的订阅、监控使用情况并升级您的套餐。"
   },
   "currentPlan": {
@@ -22,7 +22,8 @@
     "periodEndsOn": "周期结束于{date}",
     "unlimited": "无限制——此套餐无配额上限。",
     "noPeriod": "无活跃计费周期。",
-    "loadFailed": "加载使用数据失败。"
+    "loadFailed": "加载使用数据失败。",
+    "viewDetailed": "查看详细使用历史"
   },
   "subscription": {
     "title": "订阅状态",
@@ -71,6 +72,6 @@
     "noStripeCustomer": "请先订阅付费套餐以管理账单详情。"
   },
   "sidebar": {
-    "billing": "账单"
+    "billing": "套餐与账单"
   }
 }
