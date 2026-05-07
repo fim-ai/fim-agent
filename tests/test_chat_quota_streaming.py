@@ -145,9 +145,11 @@ class TestGetQuotaStatus:
         assert used == 120
 
     @pytest.mark.asyncio
-    async def test_plan_quota_overrides_legacy_user_quota(self) -> None:
-        # Billing plan attaches a 5M quota; legacy admin override of 500
-        # must be ignored once the user is on a plan.
+    async def test_admin_override_wins_over_plan_quota(self) -> None:
+        # Scheme A (override-first): the per-user admin cap of 500 wins
+        # over the Pro plan's 5M quota — this is the VIP/abuse-control
+        # use case where an admin needs to throttle a paying user
+        # without revoking their plan.
         session = _FakeSession(
             user_quota=500,
             plan_quota=5_000_000,
@@ -155,8 +157,36 @@ class TestGetQuotaStatus:
         )
         with _patch_create_session(session), _patch_get_setting("0"):
             used, cap = await _get_quota_status("user-1")
+        assert cap == 500
+        assert used == 120
+
+    @pytest.mark.asyncio
+    async def test_plan_quota_used_when_legacy_override_unset(self) -> None:
+        # When ``users.token_quota IS NULL``, the user's plan tier
+        # provides the quota.
+        session = _FakeSession(
+            user_quota=None,
+            plan_quota=5_000_000,
+            monthly_tokens=120,
+        )
+        with _patch_create_session(session), _patch_get_setting("0"):
+            used, cap = await _get_quota_status("user-1")
         assert cap == 5_000_000
         assert used == 120
+
+    @pytest.mark.asyncio
+    async def test_user_quota_zero_means_unlimited_even_with_plan(self) -> None:
+        # ``users.token_quota == 0`` is the admin VIP gift — the user
+        # has unlimited tokens regardless of plan.
+        session = _FakeSession(
+            user_quota=0,
+            plan_quota=5_000_000,
+            monthly_tokens=10_000_000,
+        )
+        with _patch_create_session(session), _patch_get_setting("0"):
+            used, cap = await _get_quota_status("user-1")
+        assert cap == 0  # 0 = unlimited / disabled in chat.py's contract
+        assert used == 0
 
 
 # ---------------------------------------------------------------------------

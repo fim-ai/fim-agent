@@ -31,6 +31,7 @@ from fim_one.web.models.agent import Agent
 from fim_one.web.models.connector import Connector
 from fim_one.web.models.conversation import Conversation
 from fim_one.web.models.mcp_server import MCPServer
+from fim_one.web.services.quota_enforcer import get_user_quota_by_id
 from fim_one.web.schemas.user_settings import (
     AgentUsage,
     ConnectorCredentialInfo,
@@ -373,9 +374,10 @@ async def get_my_usage(
         for r in agent_rows
     ]
 
-    # Quota info
-    result = await db.execute(select(User.token_quota).where(User.id == current_user.id))
-    quota = result.scalar()
+    # Quota info — resolve through the unified precedence chain so
+    # plan tier, admin override, and system default all agree with
+    # what chat.py enforces. ``None`` means "unlimited".
+    quota = await get_user_quota_by_id(current_user.id, db)
     quota_used_pct = None
     if quota is not None and quota > 0:
         quota_used_pct = round(total_tokens / quota * 100, 2)

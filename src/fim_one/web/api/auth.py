@@ -29,6 +29,7 @@ from fim_one.web.api.admin import (
     SETTING_REGISTRATION_ENABLED,
 )
 from fim_one.web.api.admin_utils import get_setting
+from fim_one.web.services.default_plan import get_free_plan_id
 from fim_one.web.models.audit_log import AuditLog
 from fim_one.web.models.email_verification import EmailVerification
 from fim_one.web.models.invite_code import InviteCode
@@ -326,12 +327,17 @@ async def register(
         verif.verified_at = datetime.now(UTC)
         await db.flush()
 
-    # First registered user automatically becomes admin
+    # First registered user automatically becomes admin.
+    # Auto-bind to the Free plan so the quota resolver always finds a
+    # finite tier; the helper returns ``None`` on a missing seed row,
+    # in which case the backfill migration will catch it later.
+    free_plan_id = await get_free_plan_id(db)
     user = User(
         password_hash=await hash_password_async(body.password),
         email=body.email,
         is_admin=is_first_user_check,
         privacy_accepted_at=datetime.now(UTC) if body.privacy_accepted else None,
+        plan_id=free_plan_id,
     )
     db.add(user)
     await db.flush()
@@ -1430,10 +1436,12 @@ async def setup(
     if count > 0:
         raise AppError("system_already_initialized", status_code=403)
 
+    free_plan_id = await get_free_plan_id(db)
     user = User(
         password_hash=await hash_password_async(body.password),
         email=body.email,
         is_admin=True,
+        plan_id=free_plan_id,
     )
     db.add(user)
     await db.flush()

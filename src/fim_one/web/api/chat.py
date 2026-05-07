@@ -671,11 +671,17 @@ async def _get_plan_quota_for_user(session: Any, user_id: str) -> int | None:
 async def _get_quota_status(user_id: str) -> tuple[int, int]:
     """Return ``(monthly_tokens_used, effective_quota)`` for *user_id*.
 
-    ``effective_quota`` is resolved by plan precedence:
-    ``user.plan.monthly_token_quota`` (Stripe-billed) > ``user.token_quota``
-    (legacy admin override) > the system-wide ``default_token_quota``
-    admin setting. A value of ``0`` means "unlimited / disabled" —
-    callers should skip quota enforcement when this is returned.
+    ``effective_quota`` is resolved by the Scheme A precedence chain
+    (override-first):
+
+      1. ``user.token_quota == 0``  → ``0`` (unlimited; admin VIP gift)
+      2. ``user.token_quota >  0``  → that value (admin hard cap)
+      3. ``user.token_quota IS NULL`` → ``user.plan.monthly_token_quota``
+      4. *(fallback)* the system-wide ``default_token_quota`` admin setting
+      5. ``0`` → unlimited / disabled (callers skip enforcement)
+
+    A returned cap of ``0`` means "unlimited / disabled" — callers
+    short-circuit and skip quota enforcement when this is returned.
 
     This helper is shared by the pre-stream gate (``_check_token_quota``)
     and the mid-stream guard (``_quota_exceeded`` inside the answer loop)
@@ -689,17 +695,25 @@ async def _get_quota_status(user_id: str) -> tuple[int, int]:
         result = await session.execute(sa_select(User.token_quota).where(User.id == user_id))
         user_quota: int | None = result.scalar_one_or_none()
 
-        # Plan-aware override: when the user has a billing plan, its
-        # ``monthly_token_quota`` wins over the legacy admin override.
-        # Looked up separately so the legacy ``User.token_quota`` query
-        # above keeps its single-column shape (callers mock that fake).
+        # Plan lookup is fired unconditionally so the legacy mock
+        # contract (3-step FIFO: user_quota, plan_quota, sum) keeps
+        # working — see tests/test_chat_quota_streaming.py.
         plan_quota = await _get_plan_quota_for_user(session, user_id)
-        if plan_quota is not None:
-            user_quota = plan_quota
 
-        if user_quota is None:
-            default_str = await get_setting(session, "default_token_quota", "0")
-            user_quota = int(default_str) if default_str.isdigit() else 0
+        # Scheme A: admin override wins over plan, with the 3-state
+        # ``users.token_quota`` semantic (NULL=follow plan, 0=unlimited,
+        # N>0=hard cap).
+        if user_quota is not None:
+            if user_quota == 0:
+                return (0, 0)
+            # user_quota > 0 → hard cap, ignore plan_quota.
+        else:
+            # No override → fall through to plan tier, then default.
+            if plan_quota is not None:
+                user_quota = plan_quota
+            else:
+                default_str = await get_setting(session, "default_token_quota", "0")
+                user_quota = int(default_str) if default_str.isdigit() else 0
 
         if not user_quota or user_quota <= 0:
             return (0, 0)

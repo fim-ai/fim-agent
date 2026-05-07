@@ -180,7 +180,10 @@
     "registered": "Registriert",
     "inheritGlobal": "Globales Limit",
     "quotaTooLarge": "Kontingent darf 2.000.000.000 nicht überschreiten",
-    "quotaInvalid": "Bitte geben Sie eine gültige nicht-negative ganze Zahl ein"
+    "quotaInvalid": "Bitte geben Sie eine gültige nicht-negative ganze Zahl ein",
+    "quotaHintEmpty": "Leer: verwendet das Plankontingent des Benutzers (Free / Pro / ...).",
+    "quotaHintZero": "0: unbegrenzte Token — Admin-VIP-Überschreibung.",
+    "quotaHintPositive": "N: harte Obergrenze von N Token — setzt das Plan-Kontingent für diesen Benutzer außer Kraft."
   },
   "conversations": {
     "title": "Unterhaltungen",

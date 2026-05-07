@@ -180,7 +180,10 @@
     "registered": "已注册",
     "inheritGlobal": "全局限制",
     "quotaTooLarge": "配额必须为 2,000,000,000 或更少",
-    "quotaInvalid": "请输入有效的非负整数"
+    "quotaInvalid": "请输入有效的非负整数",
+    "quotaHintEmpty": "空：使用用户的套餐配额（Free / Pro / ...）。",
+    "quotaHintZero": "0：无限token——管理员VIP覆盖。",
+    "quotaHintPositive": "N：硬限制为N个token——覆盖此用户的套餐配额。"
   },
   "conversations": {
     "title": "对话",

@@ -800,6 +800,11 @@ export function AdminUsers() {
               <p className="text-xs text-muted-foreground">
                 {t("quotaHint")}
               </p>
+              <ul className="text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
+                <li>{t("quotaHintEmpty")}</li>
+                <li>{t("quotaHintZero")}</li>
+                <li>{t("quotaHintPositive")}</li>
+              </ul>
             </div>
           </div>
           <DialogFooter>

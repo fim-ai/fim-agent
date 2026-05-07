@@ -21,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Fixed
 
+- **Usage page no longer reports "Unlimited" when an admin has set a default token quota.** The user Usage card was reading `users.token_quota` directly, ignoring both the user's billing plan and the system-wide `default_token_quota`. It now resolves through the unified quota chain (per-user override > plan tier > system default), and admins who set `Default Monthly Token Quota` see that limit propagate to the Free plan automatically.
 - **Agent settings: bound resources no longer flicker as "(已删除)" on entry.** The KB / connector / MCP-server pickers used to derive the orphan badge synchronously from `selected − available`, so any agent whose inventory list fetch was slower than the agent fetch would briefly mark every linked resource as deleted before snapping back to the correct state — most noticeable for org agents with multiple connectors. The orphan badge now waits for each inventory fetch to settle before rendering.
 - **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
 - **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.

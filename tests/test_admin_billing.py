@@ -763,3 +763,70 @@ class TestSubscriptions:
             headers=_auth_headers(admin_user),
         )
         assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# default_token_quota → Free plan quota sync (Scheme A)
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultTokenQuotaSyncsFreePlan:
+    """``PATCH /api/admin/settings`` with ``default_token_quota`` must
+    keep the Free plan's ``monthly_token_quota`` in sync — Scheme A
+    treats the Free plan as the canonical "default" for unsubscribed
+    users, so a single admin write propagates to both knobs."""
+
+    @pytest.mark.asyncio
+    async def test_patch_default_quota_updates_free_plan_quota(
+        self,
+        client: AsyncClient,
+        admin_user: User,
+        free_plan: BillingPlan,
+        db_session: AsyncSession,
+    ) -> None:
+        from sqlalchemy import select
+
+        resp = await client.patch(
+            "/api/admin/settings",
+            headers=_auth_headers(admin_user),
+            json={"default_token_quota": 2_000_000},
+        )
+        assert resp.status_code == 200
+        # System setting reflects the new value.
+        assert resp.json()["default_token_quota"] == 2_000_000
+
+        # Free plan's quota was updated in the same request.
+        db_session.expire_all()
+        row = (
+            await db_session.execute(
+                select(BillingPlan).where(BillingPlan.slug == "free")
+            )
+        ).scalar_one()
+        assert row.monthly_token_quota == 2_000_000
+
+    @pytest.mark.asyncio
+    async def test_patch_other_setting_does_not_touch_free_plan(
+        self,
+        client: AsyncClient,
+        admin_user: User,
+        free_plan: BillingPlan,
+        db_session: AsyncSession,
+    ) -> None:
+        from sqlalchemy import select
+
+        original_quota = free_plan.monthly_token_quota
+
+        resp = await client.patch(
+            "/api/admin/settings",
+            headers=_auth_headers(admin_user),
+            json={"announcement_text": "hello"},
+        )
+        assert resp.status_code == 200
+
+        db_session.expire_all()
+        row = (
+            await db_session.execute(
+                select(BillingPlan).where(BillingPlan.slug == "free")
+            )
+        ).scalar_one()
+        assert row.monthly_token_quota == original_quota

@@ -180,7 +180,10 @@
     "registered": "登録済み",
     "inheritGlobal": "グローバル制限",
     "quotaTooLarge": "クォータは2,000,000,000以下である必要があります",
-    "quotaInvalid": "有効な非負の整数を入力してください"
+    "quotaInvalid": "有効な非負の整数を入力してください",
+    "quotaHintEmpty": "空: ユーザーのプラン割り当てを使用（Free / Pro / ...）。",
+    "quotaHintZero": "0: 無制限トークン — 管理者VIPオーバーライド。",
+    "quotaHintPositive": "N: N トークンでハードキャップ — このユーザーのプラン割り当てをオーバーライドします。"
   },
   "conversations": {
     "title": "会話",

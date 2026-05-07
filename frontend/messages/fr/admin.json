@@ -180,7 +180,10 @@
     "registered": "Enregistré",
     "inheritGlobal": "Limite globale",
     "quotaTooLarge": "Le quota doit être inférieur ou égal à 2 000 000 000",
-    "quotaInvalid": "Veuillez entrer un entier non négatif valide"
+    "quotaInvalid": "Veuillez entrer un entier non négatif valide",
+    "quotaHintEmpty": "Vide : utiliser le quota du plan de l'utilisateur (Free / Pro / ...).",
+    "quotaHintZero": "0 : tokens illimités — dérogation VIP administrateur.",
+    "quotaHintPositive": "N : limite stricte à N tokens — remplace le quota du plan pour cet utilisateur."
   },
   "conversations": {
     "title": "Conversations",

@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from fim_one.web.email import _smtp_configured
 from fim_one.web.exceptions import AppError
-from sqlalchemy import func, literal_column, or_, select, text
+from sqlalchemy import func, literal_column, or_, select, text, update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -881,6 +881,16 @@ async def update_system_settings(
         changed.append(f"registration_mode={body.registration_mode}")
     if body.default_token_quota is not None:
         await set_setting(db, SETTING_DEFAULT_TOKEN_QUOTA, str(body.default_token_quota))
+        # Scheme A: the Free plan IS the canonical "default" for
+        # unsubscribed users — keep its monthly_token_quota in sync so
+        # changing this knob propagates to the Free tier without a
+        # second round-trip through the billing-plans admin UI.
+        await db.execute(
+            sa_update(BillingPlan)
+            .where(BillingPlan.slug == "free")
+            .values(monthly_token_quota=int(body.default_token_quota))
+        )
+        await db.commit()
         changed.append(f"default_token_quota={body.default_token_quota}")
     if body.maintenance_mode is not None:
         await set_setting(db, SETTING_MAINTENANCE_MODE, "true" if body.maintenance_mode else "false")

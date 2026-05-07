@@ -180,7 +180,10 @@
     "registered": "등록됨",
     "inheritGlobal": "전역 제한",
     "quotaTooLarge": "할당량은 2,000,000,000 이하여야 합니다",
-    "quotaInvalid": "유효한 음이 아닌 정수를 입력하세요"
+    "quotaInvalid": "유효한 음이 아닌 정수를 입력하세요",
+    "quotaHintEmpty": "비어있음: 사용자의 요금제 할당량 사용 (Free / Pro / ...).",
+    "quotaHintZero": "0: 무제한 토큰 — 관리자 VIP 오버라이드.",
+    "quotaHintPositive": "N: N 토큰으로 하드 캡 설정 — 이 사용자의 요금제 할당량을 오버라이드합니다."
   },
   "conversations": {
     "title": "대화",
