@@ -12,9 +12,10 @@ description: "FIM One의 모든 주요 변경 사항."
 
 ### Added
 
-- **Stripe 청구 데이터 모델 + SDK 기초 작업.** `billing_plans` / `subscriptions` / `stripe_webhook_events` 테이블을 도입하고 Free + Pro 플랜을 시드합니다(Pro는 현재 Stripe **테스트 모드** 가격). 결제 UI는 아직 없습니다 — 체크아웃, Customer Portal, 웹훅 처리, `/settings/billing` 페이지는 후속 작업에서 제공됩니다.
-- **영어가 아닌 문서에 이제 전체 API Reference(OpenAPI 엔드포인트) 및 Channels 구성 페이지가 표시됩니다.** 이전에는 영어 사이트만 이 섹션을 렌더링했습니다 — `zh` / `ja` / `ko` / `de` / `fr` 네비게이션에 `Endpoints` 그룹과 `Configuration > Channels` 하위 그룹이 없어서 해당 언어의 사용자가 자동 생성된 API 플레이그라운드나 Feishu 채널 설정 가이드에 접근할 수 없었습니다. `docs/docs.json`을 단일 영어 소스(docs/nav.template.json` + `scripts/docs-nav-glossary.json`)로 마이그레이션한 부작용으로 수정되었으며, 이제 모든 6개 언어를 결정론적으로 재생성합니다. 새 문서 페이지를 추가할 때 언어별 수동 동기화가 더 이상 필요하지 않습니다.
-- **관리자 사용자: 사용자별 무제한 할당량 + Registered 열.** 할당량 필드를 비워두면 이제 전역 제한을 상속합니다. `0`으로 설정하면 사용자에게 무제한 사용을 부여합니다. 이전에는 둘 다 같은 상태로 축소되어 개별 사용자에게 무제한 액세스를 부여하려면 DB를 직접 편집해야 했습니다. users 테이블에는 온보딩 감사를 위한 Registered 열도 추가됩니다.
+- **Stripe 결제 데이터 모델 + SDK 기초 작업.** `billing_plans` / `subscriptions` / `stripe_webhook_events` 테이블을 도입하고 Free + Pro 플랜을 시드합니다(Pro는 현재 Stripe **테스트 모드** 가격). 결제 UI는 아직 없습니다 — 체크아웃, Customer Portal, 웹훅 처리, `/settings/billing` 페이지는 후속 작업에서 제공됩니다.
+- **Stripe Checkout을 통해 Pro 플랜 구독.** 새로운 결제 API는 플랜 목록, Checkout / Customer Portal 리디렉션, 구독을 자동으로 프로비저닝하고 갱신하는 Stripe 웹훅을 제공합니다. 할당량 적용은 이제 각 사용자의 결제 플랜을 존중하며, 취소된 구독은 유료 기간이 끝날 때까지 Pro로 유지됩니다. 프론트엔드 `/settings/billing` 페이지는 후속 작업에서 제공됩니다.
+- **영어가 아닌 문서에서 전체 API Reference(OpenAPI 엔드포인트) 및 Channels 구성 페이지를 표시합니다.** 이전에는 영어 사이트만 이 섹션을 렌더링했습니다 — `zh` / `ja` / `ko` / `de` / `fr` 네비게이션에서 `Endpoints` 그룹과 `Configuration > Channels` 하위 그룹이 누락되어 해당 언어의 사용자가 자동 생성된 API 플레이그라운드나 Feishu 채널 설정 가이드에 접근할 수 없었습니다. `docs/docs.json`을 단일 영어 소스(docs/nav.template.json` + `scripts/docs-nav-glossary.json`)로 마이그레이션하여 모든 6개 언어를 결정론적으로 재생성하는 과정의 부작용으로 수정되었습니다. 새로운 문서 페이지를 추가할 때 언어별 수동 동기화가 더 이상 필요하지 않습니다.
+- **관리자 사용자: 사용자별 무제한 할당량 + Registered 열.** 할당량 필드를 비워두면 이제 전역 제한을 상속합니다. `0`으로 설정하면 사용자에게 무제한 사용을 부여합니다. 이전에는 둘 다 같은 상태로 축소되어 개별 사용자에게 무제한 액세스를 부여하려면 DB를 직접 편집해야 했습니다. 사용자 테이블에는 온보딩 감사를 위한 Registered 열도 추가됩니다.
 
 ### 수정됨
 

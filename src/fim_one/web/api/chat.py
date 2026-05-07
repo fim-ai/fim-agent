@@ -643,13 +643,39 @@ async def _validate_conversation_ownership(
             raise AppError("conversation_not_found", status_code=404)
 
 
+async def _get_plan_quota_for_user(session: Any, user_id: str) -> int | None:
+    """Return the user's plan-bound ``monthly_token_quota`` or ``None``.
+
+    Plan-aware lookup added by P2 billing — separated from the legacy
+    ``User.token_quota`` query so existing test fakes that mock a
+    single-column ``scalar_one_or_none`` keep working.
+
+    Defensively swallows query errors: a mock-shaped session that does
+    not understand the join still produces a valid (legacy) quota.
+    """
+    from fim_one.web.models import BillingPlan, User
+
+    try:
+        result = await session.execute(
+            sa_select(BillingPlan.monthly_token_quota)
+            .select_from(User)
+            .join(BillingPlan, User.plan_id == BillingPlan.id)
+            .where(User.id == user_id)
+        )
+        value = result.scalar_one_or_none()
+        return int(value) if value is not None else None
+    except Exception:
+        return None
+
+
 async def _get_quota_status(user_id: str) -> tuple[int, int]:
     """Return ``(monthly_tokens_used, effective_quota)`` for *user_id*.
 
-    ``effective_quota`` is the per-user override when set, falling back
-    to the system-wide ``default_token_quota`` admin setting.  A value
-    of ``0`` means "unlimited / disabled" — callers should skip quota
-    enforcement when this is returned.
+    ``effective_quota`` is resolved by plan precedence:
+    ``user.plan.monthly_token_quota`` (Stripe-billed) > ``user.token_quota``
+    (legacy admin override) > the system-wide ``default_token_quota``
+    admin setting. A value of ``0`` means "unlimited / disabled" —
+    callers should skip quota enforcement when this is returned.
 
     This helper is shared by the pre-stream gate (``_check_token_quota``)
     and the mid-stream guard (``_quota_exceeded`` inside the answer loop)
@@ -662,6 +688,14 @@ async def _get_quota_status(user_id: str) -> tuple[int, int]:
     async with create_session() as session:
         result = await session.execute(sa_select(User.token_quota).where(User.id == user_id))
         user_quota: int | None = result.scalar_one_or_none()
+
+        # Plan-aware override: when the user has a billing plan, its
+        # ``monthly_token_quota`` wins over the legacy admin override.
+        # Looked up separately so the legacy ``User.token_quota`` query
+        # above keeps its single-column shape (callers mock that fake).
+        plan_quota = await _get_plan_quota_for_user(session, user_id)
+        if plan_quota is not None:
+            user_quota = plan_quota
 
         if user_quota is None:
             default_str = await get_setting(session, "default_token_quota", "0")

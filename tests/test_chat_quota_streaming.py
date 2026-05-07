@@ -40,11 +40,13 @@ class _FakeSession:
     """Minimal async-context-manager session whose ``execute`` returns a
     pre-baked sequence of scalar results.
 
-    ``_get_quota_status`` issues two queries in order:
+    ``_get_quota_status`` issues three queries in order:
       1. ``User.token_quota`` -> ``int | None``
-      2. ``coalesce(sum(Conversation.total_tokens), 0)`` -> ``int``
+      2. ``BillingPlan.monthly_token_quota`` (via plan_id join) -> ``int | None``
+      3. ``coalesce(sum(Conversation.total_tokens), 0)`` -> ``int``
 
-    The constructor takes that pair so each test can dial in any state.
+    The constructor takes the user_quota / monthly_tokens pair (with an
+    optional ``plan_quota`` override) so each test can dial in any state.
     """
 
     def __init__(
@@ -53,8 +55,9 @@ class _FakeSession:
         user_quota: int | None,
         monthly_tokens: int,
         default_setting: str = "0",
+        plan_quota: int | None = None,
     ) -> None:
-        self._scalar_results = [user_quota, monthly_tokens]
+        self._scalar_results = [user_quota, plan_quota, monthly_tokens]
         self._default_setting = default_setting
         self._scalar_idx = 0
 
@@ -139,6 +142,20 @@ class TestGetQuotaStatus:
         with _patch_create_session(session), _patch_get_setting("9999"):
             used, cap = await _get_quota_status("user-1")
         assert cap == 500
+        assert used == 120
+
+    @pytest.mark.asyncio
+    async def test_plan_quota_overrides_legacy_user_quota(self) -> None:
+        # Billing plan attaches a 5M quota; legacy admin override of 500
+        # must be ignored once the user is on a plan.
+        session = _FakeSession(
+            user_quota=500,
+            plan_quota=5_000_000,
+            monthly_tokens=120,
+        )
+        with _patch_create_session(session), _patch_get_setting("0"):
+            used, cap = await _get_quota_status("user-1")
+        assert cap == 5_000_000
         assert used == 120
 
 

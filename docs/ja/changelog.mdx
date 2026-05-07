@@ -12,9 +12,10 @@ description: "FIM Oneへの全ての注目すべき変更。"
 
 ### 追加
 
-- **Stripe 請求データモデル + SDK 基盤。** `billing_plans` / `subscriptions` / `stripe_webhook_events` テーブルを導入し、Free + Pro プランをシード（Pro は現在 Stripe **テストモード** 価格）。支払い UI はまだ — チェックアウト、Customer Portal、webhook 処理、および `/settings/billing` ページは後続の更新で提供されます。
-- **英語以外のドキュメントが完全な API リファレンス（OpenAPI エンドポイント）とチャネル設定ページを表示するようになりました。** 以前は英語サイトのみがこれらのセクションをレンダリングしていました — `zh` / `ja` / `ko` / `de` / `fr` ナビゲーションに `Endpoints` グループと `Configuration > Channels` サブグループがなかったため、これらのロケールのユーザーは自動生成された API プレイグラウンドや Feishu チャネルセットアップガイドにアクセスできませんでした。`docs/docs.json` を単一の英語ソース・オブ・トゥルース（`docs/nav.template.json` + `scripts/docs-nav-glossary.json`）に移行し、すべての 6 つのロケールを決定論的に再生成することの副作用として修正されました。新しいドキュメントページを追加する際に、ロケールごとの手動同期は不要になりました。
-- **管理者ユーザー：ユーザーごとの無制限クォータ + Registered 列。** クォータフィールドを空のままにすると、グローバルリミットを継承するようになりました。`0` に設定すると、ユーザーに無制限の使用を許可します。以前は両方が同じ状態に折りたたまれていたため、個別に無制限アクセスを付与するには DB を直接編集する必要がありました。users テーブルにはオンボーディング監査用の Registered 列も追加されました。
+- **Stripe 請求データモデル + SDK 基盤。** `billing_plans` / `subscriptions` / `stripe_webhook_events` テーブルを導入し、Free + Pro プランをシード（Pro は現在 Stripe **テストモード** 価格）。支払い UI はまだなし — チェックアウト、Customer Portal、webhook 処理、および `/settings/billing` ページは後続の更新で提供予定。
+- **Stripe Checkout 経由で Pro プランにサブスクライブ。** 新しい請求 API がプラン一覧、Checkout / Customer Portal リダイレクト、および自動的にサブスクリプションをプロビジョニングして更新する Stripe webhook を提供。クォータ強制は各ユーザーの請求プランを尊重するようになり、キャンセルされたサブスクリプションは有料期間が終了するまで Pro のままです。フロントエンド `/settings/billing` ページは後続の更新で提供予定。
+- **英語以外のドキュメントが完全な API リファレンス（OpenAPI エンドポイント）と Channels 設定ページを表示。** 以前は英語サイトのみがこれらのセクションをレンダリングしていました — `zh` / `ja` / `ko` / `de` / `fr` ナビゲーションに `Endpoints` グループと `Configuration > Channels` サブグループがなかったため、これらのロケールの読者は自動生成 API プレイグラウンドや Feishu チャネル設定ガイドにアクセスできませんでした。`docs/docs.json` を単一の英語ソース・オブ・トゥルース（`docs/nav.template.json` + `scripts/docs-nav-glossary.json`）に移行し、すべての 6 つのロケールを決定論的に再生成することで修正されました。新しいドキュメント ページを追加する際にロケール別の手動同期は不要になりました。
+- **管理者ユーザー：ユーザーごとの無制限クォータ + Registered 列。** クォータフィールドを空のままにすると、グローバル制限を継承するようになりました。`0` に設定すると、ユーザーに無制限の使用を許可します。以前は両方が同じ状態に折りたたまれていたため、個別に無制限アクセスを付与するには DB を直接編集する必要がありました。users テーブルにはオンボーディング監査用の Registered 列も追加されました。
 
 ### Fixed
 

@@ -60,6 +60,7 @@ from .api.admin_batch import router as admin_batch_router
 from .api.admin_market import router as admin_market_router
 from .api.agents import router as agents_router
 from .api.auth import router as auth_router
+from .api.billing import router as billing_router
 from .api.chat import router as chat_router
 from .api.oauth import router as oauth_router
 from .api.agent_ai import router as agent_ai_router
@@ -100,6 +101,7 @@ from .api.metrics import router as metrics_router
 from .api.notifications import router as notifications_router
 from .api.user_settings import router as user_settings_router
 from .api.version import router as version_router
+from .api.webhooks import router as webhooks_router
 
 logger = logging.getLogger(__name__)
 
@@ -158,9 +160,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
         confirmation_expirer.run_loop()
     )
 
+    # Start the billing-subscription lifecycle sweep. Demotes users with
+    # canceled subscriptions to Free at ``current_period_end`` so the
+    # webhook handler can keep a clean ledger without flipping plan_id
+    # the moment the user cancels.
+    from fim_one.web.services.subscription_lifecycle import (
+        start_lifecycle_loop,
+    )
+
+    subscription_lifecycle_task = start_lifecycle_loop()
+    logger.info("Subscription lifecycle background task created")
+
     yield
 
     # Graceful shutdown: stop sweepers, scheduler, then dispose the DB
+    subscription_lifecycle_task.cancel()
+    try:
+        await subscription_lifecycle_task
+    except asyncio.CancelledError:
+        pass
+
     confirmation_expirer_task.cancel()
     try:
         await confirmation_expirer_task
@@ -233,7 +252,13 @@ def create_app() -> FastAPI:
     # -- Maintenance mode middleware ----------------------------------------
     # Passes: OPTIONS (CORS preflight), /api/auth/* (login still works),
     #         /api/admin/* (admins can turn maintenance off), /api/system/*
-    _MAINTENANCE_PASS = ("/api/auth/", "/api/admin/", "/api/system/", "/api/version")
+    _MAINTENANCE_PASS = (
+        "/api/auth/",
+        "/api/admin/",
+        "/api/system/",
+        "/api/version",
+        "/api/webhooks/",
+    )
     _maintenance_cache: list[tuple[bool, float] | None] = [None]
     _MAINTENANCE_TTL = 5.0
 
@@ -401,6 +426,8 @@ def create_app() -> FastAPI:
     app.include_router(notifications_router)
     app.include_router(user_settings_router)
     app.include_router(version_router)
+    app.include_router(billing_router)
+    app.include_router(webhooks_router)
 
     # ---------------------------------------------------------------------------
     # OpenAPI: hide all routes, whitelist public API endpoints

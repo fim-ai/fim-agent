@@ -12,9 +12,10 @@ description: "FIM One 的所有重要更改。"
 
 ### 新增
 
-- **Stripe 计费数据模型 + SDK 基础工作。** 引入 `billing_plans` / `subscriptions` / `stripe_webhook_events` 表，并预设 Free 和 Pro 套餐（Pro 目前为 Stripe **测试模式**价格）。暂无支付 UI——结账、客户门户、webhook 处理和 `/settings/billing` 页面将在后续迭代中推出。
-- **非英文文档现在显示完整的 API 参考（OpenAPI 端点）和通道配置页面。** 之前仅英文站点渲染这些部分——`zh` / `ja` / `ko` / `de` / `fr` 导航缺少 `Endpoints` 组和 `Configuration > Channels` 子组，导致这些语言的读者无法访问自动生成的 API 演练场或 Feishu 通道设置指南。通过将 `docs/docs.json` 迁移到单一英文信息源（`docs/nav.template.json` + `scripts/docs-nav-glossary.json`）解决了这个问题，该源可确定性地重新生成所有六种语言的导航；添加新文档页面时不再需要手动按语言同步。
-- **管理员用户：按用户无限配额 + 已注册列表。** 将配额字段留空现在继承全局限制；将其设置为 `0` 可授予用户无限使用权。之前两种情况会折叠为同一状态，因此授予个人无限访问权限需要直接编辑数据库。用户表还新增了"已注册"列，用于入职审计。
+- **Stripe 账单数据模型 + SDK 基础设施。** 引入 `billing_plans` / `subscriptions` / `stripe_webhook_events` 表，并预置免费版和专业版计划（专业版目前为 Stripe **测试模式**价格）。尚无支付 UI——结账、客户门户、webhook 处理和 `/settings/billing` 页面将在后续迭代中推出。
+- **通过 Stripe Checkout 订阅专业版计划。** 新的账单 API 提供计划列表、Checkout / 客户门户重定向和 Stripe webhook，使订阅自动配置和续期。配额强制执行现在遵循每个用户的账单计划，已取消的订阅在付费期结束前保持专业版状态。前端 `/settings/billing` 页面将在后续迭代中推出。
+- **非英文文档现在显示完整的 API 参考（OpenAPI 端点）和通道配置页面。** 之前仅英文站点渲染这些部分——`zh` / `ja` / `ko` / `de` / `fr` 导航缺少 `Endpoints` 组和 `Configuration > Channels` 子组，导致这些语言的读者无法访问自动生成的 API 演练场或 Feishu 通道设置指南。通过将 `docs/docs.json` 迁移到单一英文源（`docs/nav.template.json` + `scripts/docs-nav-glossary.json`）解决，该源确定性地重新生成所有六种语言；添加新文档页面时不再需要手动按语言同步。
+- **管理员用户：按用户无限配额 + 已注册列表。** 将配额字段留空现在继承全局限制；设置为 `0` 授予用户无限使用。之前两者会折叠为同一状态，因此授予个人无限访问权限需要直接编辑数据库。用户表还新增了用于入职审计的已注册列。
 
 ### 已修复
 
