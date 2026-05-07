@@ -141,18 +141,131 @@ Admin → System Settings → Billing で **Enable Stripe Billing** スイッチ
 
 **データは保持されます**：既存の `subscriptions`、`billing_plans`、`users.plan_id` 行は変更されません。再度有効化すると、マイグレーションなしで同じ状態から再開されます。
 
-## クォータ解決
+## 計算リファレンス — クォータ & トークン計算
 
-特定のユーザーのトークンクォータは、以下のチェーン（上位が優先）を通じて解決されます：
+これは、ユーザーが消費できる内容、カウンターがリセットされるタイミング、および解決チェーンがどのように構成されるかを決定するすべての数値ルールの信頼できるリファレンスです。価格設定の変更、クォータの調整、使用状況ダッシュボードの構築、またはv2/v3作業の計画を行う前に、これをお読みください。まだ出荷されていない将来のルールは、予約されたスロットに記載されているため、貢献者は新しいロジックがどこに組み込まれるかを知ることができます。
 
-1. `users.token_quota` が **明示的に設定** されている（NULL ではない）：
-   - `0` → 無制限（管理者 VIP ギフト）
-   - `N > 0` → N でハードキャップ（プランをオーバーライド；サブスクリプションをキャンセルせずに悪用者をブロックするのに便利）
-2. `users.plan.monthly_token_quota`（課金が有効な場合）— ユーザーが支払う額
-3. `system_settings.default_token_quota` — 防御的なフォールバック。通常は参照されません。ステップ 2 がプランを持つすべてのユーザーをカバーするため
-4. `None`（無制限）— 最後の手段
+### 用語集
 
-課金が **無効** な場合、ステップ 2 はスキップされます — チェーンは `override → default → unlimited` のみです。これにより、レガシーインストールがプラン移行を必要とせずに管理者が設定したグローバルデフォルトを尊重します。
+| 変数 | ストレージ | セマンティクス | 範囲 |
+|---|---|---|---|
+| `users.token_quota` | ユーザーごと（オーバーライド） | 3状態オーバーライド。以下のセマンティクスを参照 | `NULL`、`0`、または正の整数 |
+| `users.tokens_used_this_period` | ユーザーごと（カウンター） | 最後のリセット以降の累積トークン | 非負の整数 |
+| `users.quota_reset_at` | ユーザーごと（アンカー） | 有料ユーザーの `Subscription.current_period_end` をミラーリング | タイムスタンプ |
+| `users.plan_id` | ユーザーごと（FK） | アクティブなプラン | FK `billing_plans.id` |
+| `billing_plans.monthly_token_quota` | プランごと | このプランのユーザーのハードキャップ | 非負の整数 |
+| `system_settings.default_token_quota` | シングルトン | プランが適用されない場合の防御的フォールバック | 非負の整数 |
+| `system_settings.default_plan_id` | シングルトン | 新規/未割り当てユーザーの無料プランポインター | FK または `NULL` |
+| `system_settings.billing_enabled` | シングルトン | マスタースイッチ——チェーンのステップ2をゲート | ブール値 |
+
+### トークンとしてカウントされるもの
+
+トークン消費はLLMコール層で記録され、すべての完了時にLiteLLMの`usage`オブジェクトから取得されます。
+
+- **カウント対象**: すべてのモデルコールにおけるプロンプトトークン + 完了トークン
+- **カウント対象**: マルチステップ/ツール使用エージェントフロー内のすべてのラウンドトリップ（各モデルコールは個別の請求）
+- **カウント対象**: 埋め込みリクエスト（KB取り込み、検索スコアリング）
+- **カウント対象外**: モデルに送信されないがステージングされた入力（ユーザーが破棄したアップロードファイルなど）
+- **カウント対象外**: プロバイダーに到達する前に失敗するリクエスト（認証エラー、レート制限事前チェック）
+- **キャッシュされた入力**: v1では全額でカウント（プロバイダーキャッシュ割引は表示されません）。v2ではキャッシュされたプロンプトトークンを別途クレジットする可能性があります。
+
+### Three-state override semantics
+
+`users.token_quota` はユーザーごとの管理者オーバーライドです。1つのカラムに3つの意味を持ちます：
+
+| Value | Meaning | Use case |
+|---|---|---|
+| `NULL` | 未設定 — プランまたはデフォルトに従う | すべての通常ユーザーのデフォルト状態 |
+| `0` | 無制限 | 管理者 / 内部アカウント；「VIP ギフト」 |
+| `N > 0` | `N` でハードキャップ | 不正使用者をブロック（有料サブスクリプションはキャンセルしない）；プリペイド型エンタープライズ割り当て |
+
+オーバーライドは常にプランとデフォルトより優先されます。管理者が Stripe に触れることなく、個別ユーザーをプラン階層の上下に固定できるよう存在します。
+
+### クォータ解決チェーン — v1（現在）
+
+認証されたリクエストの場合、上限は上から下へ計算されます——**最初にマッチしたものが優先されます**：
+
+```
+1. users.token_quota        ── NULL? skip. 0? unlimited. N>0? cap at N.
+2. users.plan.monthly_token_quota   ── only when billing_enabled = TRUE
+3. system_settings.default_token_quota  ── defensive fallback
+4. unlimited                ── last resort if everything above is NULL
+```
+
+ステップ3は、課金が有効な場合はめったに到達しません。これは、アクティベーションがすべてのユーザーの `users.plan_id` をバックフィルするためです。これは防御層として存在し、設定が誤ったプランがユーザーを静かに無制限にすることがないようにします。
+
+### 期間リセット
+
+- 有料ユーザーの場合、`quota_reset_at` は `Subscription.current_period_end` と同期します。`invoice.payment_succeeded` ウェブフック ハンドラーは、各更新成功時に `tokens_used_this_period = 0` を設定し、`quota_reset_at` を新しい期間終了日に進めます。
+- 無料ユーザー（Stripe サブスクリプションなし）の場合、時間単位の cron がプラン割り当て日を基準とした暦月の境界で `tokens_used_this_period` を 0 にリセットします。
+- 期間中のプラン変更はカウンターをリセット**しません**——更新時のみリセットされます。これにより、クォータ サイクリング エクスプロイト（「サブスクライブ → Pro クォータを使用 → キャンセル → 再度サブスクライブ」）を防ぎます。
+
+### ミッドストリーム強制
+
+- チャット呼び出しエントリでのプリフライトチェック：最も安価なパス、ユーザーが開始できない要求をブロックします。
+- ストリーミング中、実行中のトークンカウントはチャンクごとに再評価されます。上限を超えると、ネットワークエラーではなく**構造化ターミネータフレーム**でストリームを閉じます。
+- フロントエンドはターミネータを解釈し、`/settings?tab=billing`へのディープリンク付きで`<QuotaExceededDialog>`を表示します。
+- ストリーミング以外のレスポンスはHTTP `402`を返し、本文は`{ code: "QUOTA_EXCEEDED", reset_at, upgrade_url }`です。
+
+### 請求機能無効時のフォールバック
+
+`system_settings.billing_enabled = FALSE` の場合：
+
+- チェーンのステップ 2 がスキップされます — チェーンは `override → default → unlimited` に縮小されます。
+- `/api/billing/*` と `/api/webhooks/stripe` は `503` を返します。
+- `Plan & Billing` ユーザータブと Admin → Billing ナビゲーショングループは非表示になります。
+- すべての請求データ（サブスクリプション、プラン、`users.plan_id`）は保持されます — 再度有効にすると、マイグレーションなしで同じ状態から再開されます。
+
+### 予約済み: クォータチェーン v2 — Team シート
+
+<Note>まだリリースされていません。v2 作業の既知のランディングスポットとしてここに記載されています。</Note>
+
+Team プランがリリースされる場合：
+
+- `Subscription.quantity` はシート数を保持します（Stripe ネイティブ）。
+- ユーザーの有効なプランは、個人プランにフォールバックする前に Team メンバーシップを通じて解決されます：
+  ```
+  effective_plan = team.plan if team_member(user) else user.plan
+  ```
+- クォータは**シートごと**です（各 Team メンバーは完全な `monthly_token_quota` を取得します）。プール化されたバケットではありません。プール化されたバケットは先着順の枯渇を引き起こし、顧客にとって悪いものです。
+- オーバーライドセマンティクスは変わりません — Team 管理者は `users.token_quota = N` を使用して個別メンバーをハードキャップできます。これはチームプランチェーンの上に位置します。
+
+### 予約済み: クォータチェーン v3 — ネイティブ Org アロケーション (Stripe なし)
+
+<Note>まだリリースされていません。Stripe を通じてユーザーごとに支払うことなく、内部的にクォータを割り当てるオンプレミス / エンタープライズデプロイメント向けに予約されています。</Note>
+
+- 新しいテーブル `org_quota_allocations(user_id, monthly_token_quota, org_id)` は親予算をメンバー全体に配分します。
+- アロケーションは**共有プール ではなく、ユーザーごと** — すべてのメンバーが明確な個別 SLA を持ちます。
+- 更新されたチェーン:
+  ```
+  override → max(plan_quota, org_allocation) → default → unlimited
+  ```
+- `max()`、`sum()` ではありません。有料 Pro ユーザーは、Org 管理者が低いアロケーションを設定した場合でも、支払った額より少なくなることはありません。Stripe で支払われたクォータは神聖です。
+
+### 予約済み：従量課金クレジット残高（v3 別次元）
+
+<Note>未出荷。上記のチェーンとは別の軸——クレジットは1回限りのトップアップであり、サブスクリプション階層ではありません。</Note>
+
+- 新しいテーブル `user_credits(user_id, balance_cents, currency)` — Stripe Checkout `mode='payment'` 経由で資金提供。
+- 消費順序：**サブスクリプション割当量優先**、その後クレジット残高（サブスクリプションが枯渇した後のみクレジット減少が開始）。
+- クレジット残高は払い戻し不可（プリペイドの業界標準）。
+- UI は両方のバーを公開：`Subscription quota: 4.2M / 5M used` + `Credits: $7.40 remaining`。
+
+### デフォルト値
+
+出荷時のデフォルト — すべてインストール後に調整可能（記載されている場合を除く）。
+
+| 変数 | デフォルト | 調整方法 |
+|---|---|---|
+| `billing_plans.monthly_token_quota` (Free) | `1,000,000` | Admin → Billing → Plans → Free → Edit |
+| `billing_plans.monthly_token_quota` (Pro) | `5,000,000` | Admin → Billing → Plans → Pro → Edit |
+| `system_settings.default_token_quota` | `1,000,000`（アクティベーション時にFreeと同期） | Admin → System Settings → Quotas |
+| `system_settings.billing_enabled` | `FALSE` | Admin → System Settings → Billing |
+| Pro list price | `$20.00 USD / month` | Stripe Dashboard (price object) |
+| Stripe webhook events subscribed | 6 | Stripe Dashboard → Webhooks |
+| Stripe price cache TTL | `5 minutes` | `stripe_client.py`にハードコード |
+| Subscription lifecycle cron | 毎時間 | `web/main.py`のAPScheduler |
+| Free-tier reset cron | 毎時間（暦月の境界） | `web/main.py`のAPScheduler |
 
 ## 料金モデル
 

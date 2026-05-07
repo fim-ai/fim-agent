@@ -141,18 +141,133 @@ Lorsque désactivé :
 
 **Les données sont préservées** : les lignes `subscriptions`, `billing_plans` et `users.plan_id` existantes restent inchangées. La réactivation reprend à partir du même état sans migration.
 
-## Résolution des quotas de jetons
+## Référence de calcul — mathématiques des quotas et des jetons
 
-Le quota de jetons pour un utilisateur donné se résout selon cette chaîne (le premier applicable gagne) :
+Ceci est la référence faisant autorité pour chaque règle numérique qui décide ce qu'un utilisateur est autorisé à consommer, quand son compteur se réinitialise, et comment la chaîne de résolution se compose. Lisez ceci avant de modifier la tarification, d'ajuster les quotas, de créer des tableaux de bord d'utilisation, ou de planifier les travaux v2/v3. Les règles futures non encore déployées sont documentées dans leur emplacement réservé afin que les contributeurs sachent où s'intègre la nouvelle logique.
 
-1. `users.token_quota` est **explicitement défini** (non NULL) :
-   - `0` → illimité (cadeau VIP administrateur)
-   - `N > 0` → limite stricte à N (remplace le plan ; utile pour bloquer les abuseurs sans annuler leur abonnement)
-2. `users.plan.monthly_token_quota` (quand la facturation est activée) — ce que l'utilisateur paie
-3. `system_settings.default_token_quota` — secours défensif, normalement non consulté car l'étape 2 couvre tous les utilisateurs ayant un plan
-4. `None` (illimité) — dernier recours
+### Glossaire
 
-Quand la facturation est **désactivée**, l'étape 2 est ignorée — la chaîne devient simplement `override → default → unlimited`. Cela permet aux installations héritées de respecter la valeur par défaut globale définie par l'administrateur sans nécessiter une migration de plan.
+| Variable | Stockage | Sémantique | Plage |
+|---|---|---|---|
+| `users.token_quota` | par utilisateur (remplacement) | Remplacement à trois états ; voir la sémantique ci-dessous | `NULL`, `0`, ou entier positif |
+| `users.tokens_used_this_period` | par utilisateur (compteur) | Tokens cumulatifs depuis la dernière réinitialisation | entier non-négatif |
+| `users.quota_reset_at` | par utilisateur (ancre) | Reflète `Subscription.current_period_end` pour les utilisateurs payants | timestamp |
+| `users.plan_id` | par utilisateur (FK) | Plan actif | FK `billing_plans.id` |
+| `billing_plans.monthly_token_quota` | par plan | Limite maximale pour les utilisateurs de ce plan | entier non-négatif |
+| `system_settings.default_token_quota` | singleton | Secours défensif quand aucun plan ne s'applique | entier non-négatif |
+| `system_settings.default_plan_id` | singleton | Pointeur de plan gratuit pour les utilisateurs nouveaux/non assignés | FK ou `NULL` |
+| `system_settings.billing_enabled` | singleton | Commutateur maître — contrôle l'étape 2 de la chaîne | booléen |
+
+### Ce qui compte comme un token
+
+La consommation de tokens est comptabilisée au niveau de l'appel LLM, provenant de l'objet `usage` de LiteLLM sur chaque completion.
+
+- **Comptabilisé** : tokens de prompt + tokens de completion sur chaque appel de modèle
+- **Comptabilisé** : chaque aller-retour dans un flux d'agent multi-étapes / tool-use (chaque appel de modèle est son propre débit)
+- **Comptabilisé** : demandes d'embedding (ingestion KB, scoring de récupération)
+- **Non comptabilisé** : entrée préparée mais jamais envoyée à un modèle (par exemple, fichiers téléchargés que l'utilisateur abandonne)
+- **Non comptabilisé** : demandes qui échouent avant d'atteindre le fournisseur (erreur d'authentification, pré-vérification de limite de débit)
+- **Entrée en cache** : comptabilisée au prix complet en v1 (aucune remise de cache du fournisseur n'est affichée). v2 peut créditer les tokens de prompt en cache séparément.
+
+### Sémantique de remplacement à trois états
+
+`users.token_quota` est le remplacement administratif par utilisateur. Il porte trois significations dans une seule colonne :
+
+| Valeur | Signification | Cas d'usage |
+|---|---|---|
+| `NULL` | Non défini — déférer au plan / défaut | État par défaut pour tous les utilisateurs normaux |
+| `0` | Illimité | Comptes administrateur / internes ; « cadeau VIP » |
+| `N > 0` | Limite stricte à `N` | Bloquer un contrevenant sans annuler son abonnement payant ; allocation d'entreprise prépayée |
+
+Le remplacement l'emporte toujours sur le plan et le défaut. Il existe pour permettre aux administrateurs d'épingler des utilisateurs individuels au-dessus ou au-dessous de leur niveau de plan sans toucher à Stripe.
+
+### Chaîne de résolution des quotas — v1 (actuelle)
+
+Pour toute requête authentifiée, le plafond est calculé de haut en bas — **la première correspondance gagne** :
+
+```
+1. users.token_quota        ── NULL? skip. 0? unlimited. N>0? cap at N.
+2. users.plan.monthly_token_quota   ── only when billing_enabled = TRUE
+3. system_settings.default_token_quota  ── defensive fallback
+4. unlimited                ── last resort if everything above is NULL
+```
+
+L'étape 3 est rarement atteinte quand la facturation est activée, car l'activation remplit rétroactivement `users.plan_id` pour chaque utilisateur. Elle existe comme une défense en profondeur pour qu'un plan mal configuré ne lève jamais silencieusement le plafond d'un utilisateur.
+
+### Réinitialisation de la période
+
+- Pour les utilisateurs payants, `quota_reset_at` reflète `Subscription.current_period_end`. Le gestionnaire webhook `invoice.payment_succeeded` définit `tokens_used_this_period = 0` et avance `quota_reset_at` à la fin de la nouvelle période à chaque renouvellement réussi.
+- Pour les utilisateurs Free (sans abonnement Stripe), un cron horaire réinitialise `tokens_used_this_period` à 0 à la limite d'un mois calendaire ancrée à la date d'attribution du plan.
+- Les changements de plan en cours de période **ne** réinitialisent **pas** le compteur — seuls les renouvellements le font. Cela prévient les exploits de recyclage de quota (« s'abonner → utiliser le quota Pro → annuler → s'abonner à nouveau »).
+
+### Application de la limite en cours de flux
+
+- Vérification préalable à l'entrée de l'appel de chat : chemin le moins coûteux, bloque les demandes que l'utilisateur ne peut pas se permettre de démarrer.
+- Pendant le streaming, le nombre de tokens en cours est réévalué à chaque chunk. Le dépassement du plafond ferme le flux avec un **cadre terminateur structuré**, et non une erreur réseau.
+- Le frontend interprète le terminateur et affiche `<QuotaExceededDialog>` avec un lien profond vers `/settings?tab=billing`.
+- Les réponses non-streaming retournent HTTP `402` avec le corps `{ code: "QUOTA_EXCEEDED", reset_at, upgrade_url }`.
+
+### Fallback avec facturation désactivée
+
+Quand `system_settings.billing_enabled = FALSE` :
+
+- L'étape 2 de la chaîne est ignorée — la chaîne se réduit à `override → default → unlimited`.
+- `/api/billing/*` et `/api/webhooks/stripe` retournent `503`.
+- L'onglet utilisateur `Plan & Billing` et le groupe de navigation Admin → Billing sont masqués.
+- Toutes les données de facturation (abonnements, plans, `users.plan_id`) sont conservées — la réactivation reprend à partir du même état sans migration.
+
+### Réservé : chaîne de quota v2 — Sièges d'équipe
+
+<Note>Pas encore livré. Documenté ici pour que le travail v2 ait un point de destination connu.</Note>
+
+Quand le plan Team sera lancé :
+
+- `Subscription.quantity` porte le nombre de sièges (natif Stripe).
+- Le plan effectif d'un utilisateur se résout via l'appartenance à l'équipe avant de revenir à son plan personnel :
+  ```
+  effective_plan = team.plan if team_member(user) else user.plan
+  ```
+- Le quota est **par siège** (chaque membre de l'équipe obtient un `monthly_token_quota` complet), et non un pool partagé. Les pools partagés créent un épuisement au premier arrivé, premier servi et sont contraires aux intérêts des clients.
+- La sémantique des remplacements reste inchangée — les administrateurs d'équipe peuvent toujours plafonner fortement les membres individuels via `users.token_quota = N`, qui se situe au-dessus du plan d'équipe dans la chaîne.
+
+### Réservé : chaîne de quota v3 — allocation native Org (sans Stripe)
+
+<Note>Pas encore livré. Réservé pour les déploiements sur site / entreprise qui allouent le quota en interne sans payer Stripe par utilisateur.</Note>
+
+- Nouvelle table `org_quota_allocations(user_id, monthly_token_quota, org_id)` distribue un budget parent entre les membres.
+- Les allocations sont **par utilisateur, pas un pool partagé** — chaque membre a un SLA individuel clair.
+- Chaîne mise à jour :
+  ```
+  override → max(plan_quota, org_allocation) → default → unlimited
+  ```
+- `max()`, pas `sum()`. Un utilisateur Pro payant n'obtient jamais moins que ce qu'il a payé, même si son administrateur Org définit une allocation basse. Le quota payé via Stripe est sacrosaint.
+
+### Réservé : solde de crédits à l'usage (dimension v3 séparée)
+
+<Note>Pas encore livré. Un axe distinct de la chaîne ci-dessus — les crédits sont un rechargement unique, pas un niveau d'abonnement.</Note>
+
+- Nouvelle table `user_credits(user_id, balance_cents, currency)` — financée via Stripe Checkout `mode='payment'`.
+- Ordre de consommation : **quota d'abonnement en premier**, puis solde de crédits (la décrémentation des crédits ne commence qu'après l'épuisement de l'abonnement).
+- Le solde de crédits n'est pas remboursable (standard industriel pour les prépayés).
+- L'interface expose les deux barres : `Quota d'abonnement : 4,2M / 5M utilisés` + `Crédits : 7,40 $ restants`.
+
+---
+
+### Valeurs par défaut
+
+Valeurs par défaut au moment du déploiement — toutes ajustables après installation sauf indication contraire.
+
+| Variable | Défaut | Ajustable via |
+|---|---|---|
+| `billing_plans.monthly_token_quota` (Free) | `1,000,000` | Admin → Billing → Plans → Free → Edit |
+| `billing_plans.monthly_token_quota` (Pro) | `5,000,000` | Admin → Billing → Plans → Pro → Edit |
+| `system_settings.default_token_quota` | `1,000,000` (synchronisé avec Free à l'activation) | Admin → System Settings → Quotas |
+| `system_settings.billing_enabled` | `FALSE` | Admin → System Settings → Billing |
+| Prix catalogue Pro | `$20.00 USD / mois` | Stripe Dashboard (objet price) |
+| Événements webhook Stripe abonnés | 6 | Stripe Dashboard → Webhooks |
+| TTL cache prix Stripe | `5 minutes` | codé en dur dans `stripe_client.py` |
+| Cron cycle de vie abonnement | toutes les heures | APScheduler dans `web/main.py` |
+| Cron réinitialisation niveau gratuit | toutes les heures (limite calendaire mensuelle) | APScheduler dans `web/main.py` |
 
 ## Modèle de tarification
 

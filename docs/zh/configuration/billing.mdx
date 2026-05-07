@@ -141,18 +141,131 @@ WHERE slug = 'pro';
 
 **数据被保留**：现有的 `subscriptions`、`billing_plans` 和 `users.plan_id` 行保持不变。重新启用将从相同状态恢复，无需迁移。
 
-## 配额解析
+## 计算参考——配额和令牌数学
 
-给定用户的令牌配额通过以下链解析（优先级从高到低）：
+这是权威参考，用于决定用户被允许消费的内容、计数器何时重置以及解析链如何组合的每条数值规则。在更改定价、调整配额、构建使用情况仪表板或规划v2/v3工作之前，请阅读本文档。尚未发布的未来规则记录在其保留位置，以便贡献者知道新逻辑在何处插入。
 
-1. `users.token_quota` **显式设置**（非 NULL）：
-   - `0` → 无限制（管理员 VIP 礼物）
-   - `N > 0` → 硬上限为 N（覆盖套餐；用于在不取消订阅的情况下阻止滥用者）
-2. `users.plan.monthly_token_quota`（启用计费时）— 用户支付的额度
-3. `system_settings.default_token_quota` — 防御性后备，通常不会被查询，因为第 2 步涵盖了所有有套餐的用户
-4. `None`（无限制）— 最后手段
+### 词汇表
 
-禁用计费时，第 2 步被跳过——链仅为 `override → default → unlimited`。这使得旧版安装能够遵守管理员设置的全局默认值，而无需进行套餐迁移。
+| 变量 | 存储 | 语义 | 范围 |
+|---|---|---|---|
+| `users.token_quota` | 按用户（覆盖） | 三态覆盖；见下文语义 | `NULL`、`0` 或正整数 |
+| `users.tokens_used_this_period` | 按用户（计数器） | 自上次重置以来的累计令牌 | 非负整数 |
+| `users.quota_reset_at` | 按用户（锚点） | 镜像付费用户的 `Subscription.current_period_end` | 时间戳 |
+| `users.plan_id` | 按用户（FK） | 活跃计划 | FK `billing_plans.id` |
+| `billing_plans.monthly_token_quota` | 按计划 | 该计划用户的硬上限 | 非负整数 |
+| `system_settings.default_token_quota` | 单例 | 当无计划适用时的防御性回退 | 非负整数 |
+| `system_settings.default_plan_id` | 单例 | 新用户/未分配用户的免费计划指针 | FK 或 `NULL` |
+| `system_settings.billing_enabled` | 单例 | 主开关——控制链的第 2 步 | 布尔值 |
+
+### 什么算作一个令牌
+
+令牌消耗在LLM调用层进行计算，来自LiteLLM在每次完成时的`usage`对象。
+
+- **计算**：每次模型调用的提示令牌 + 完成令牌
+- **计算**：多步骤/工具使用智能体流中的每个往返（每次模型调用都是单独的扣费）
+- **计算**：嵌入请求（知识库摄取、检索评分）
+- **不计算**：输入已暂存但从未发送到模型的内容（例如用户丢弃的已上传文件）
+- **不计算**：在到达提供商之前失败的请求（身份验证错误、速率限制预检查）
+- **缓存输入**：在v1中按全价计算（不显示提供商缓存折扣）。v2可能会单独计入缓存提示令牌。
+
+### 三态覆盖语义
+
+`users.token_quota` 是按用户的管理覆盖。它在一列中承载三种含义：
+
+| 值 | 含义 | 用例 |
+|---|---|---|
+| `NULL` | 未设置——遵循套餐/默认值 | 所有普通用户的默认状态 |
+| `0` | 无限制 | 管理员/内部账户；"VIP礼赠" |
+| `N > 0` | 硬限制为 `N` | 在不取消付费订阅的情况下阻止滥用者；预付企业配额 |
+
+覆盖始终优先于套餐和默认值。它的存在使管理员能够将单个用户固定在其套餐层级之上或之下，而无需接触Stripe。
+
+### 配额解析链——v1（当前版本）
+
+对于任何已认证的请求，上限按自上而下的方式计算——**首次匹配获胜**：
+
+```
+1. users.token_quota        ── NULL? skip. 0? unlimited. N>0? cap at N.
+2. users.plan.monthly_token_quota   ── only when billing_enabled = TRUE
+3. system_settings.default_token_quota  ── defensive fallback
+4. unlimited                ── last resort if everything above is NULL
+```
+
+当启用计费时，第3步很少被执行，因为激活会为每个用户回填`users.plan_id`。它作为纵深防御存在，以确保配置错误的计划永远不会静默地为用户解除上限。
+
+### 周期重置
+
+- 对于付费用户，`quota_reset_at` 镜像 `Subscription.current_period_end`。`invoice.payment_succeeded` webhook 处理程序在每次成功续期时将 `tokens_used_this_period` 设置为 0，并将 `quota_reset_at` 推进到新周期结束。
+- 对于免费用户（无 Stripe 订阅），每小时 cron 任务在以计划分配日期为锚点的日历月边界处将 `tokens_used_this_period` 重置为 0。
+- 周期中途的计划变更**不会**重置计数器——仅续期会重置。这可防止配额循环利用漏洞（"订阅 → 使用专业版配额 → 取消 → 重新订阅"）。
+
+### 中流强制执行
+
+- 聊天调用入口的预检查：最便宜的路径，阻止用户无法承担的请求。
+- 流式传输期间，运行中的令牌计数在每个分块上重新评估。超过上限会关闭流，返回**结构化终止帧**，而不是网络错误。
+- 前端解释终止帧并显示 `<QuotaExceededDialog>`，其中包含指向 `/settings?tab=billing` 的深层链接。
+- 非流式响应返回 HTTP `402`，响应体为 `{ code: "QUOTA_EXCEEDED", reset_at, upgrade_url }`。
+
+### 账单禁用回退
+
+当 `system_settings.billing_enabled = FALSE` 时：
+
+- 跳过链的第 2 步——链折叠为 `override → default → unlimited`。
+- `/api/billing/*` 和 `/api/webhooks/stripe` 返回 `503`。
+- `Plan & Billing` 用户标签页和 Admin → Billing 导航组被隐藏。
+- 所有账单数据（订阅、套餐、`users.plan_id`）被保留——重新启用时从相同状态恢复，无需迁移。
+
+### 保留：配额链 v2 — 团队座位
+
+<Note>尚未发布。此处记录以便 v2 工作有已知的落地点。</Note>
+
+当团队计划发布时：
+
+- `Subscription.quantity` 携带座位数（Stripe 原生）。
+- 用户的有效计划通过团队成员身份解析，然后回退到其个人计划：
+  ```
+  effective_plan = team.plan if team_member(user) else user.plan
+  ```
+- 配额是**按座位**（每个团队成员获得完整的 `monthly_token_quota`），而不是共享池。共享池会导致先到先得的耗尽，对客户不利。
+- 覆盖语义保持不变——团队管理员仍然可以通过 `users.token_quota = N` 对单个成员进行硬限制，该限制在链中位于团队计划之上。
+
+### Reserved: quota chain v3 — native Org allocation (no Stripe)
+
+<Note>Not yet shipped. Reserved for on-prem / enterprise deployments that allocate quota internally without paying Stripe per user.</Note>
+
+- New table `org_quota_allocations(user_id, monthly_token_quota, org_id)` distributes a parent budget across members.
+- Allocations are **per user, not a shared pool** — every member has a clear individual SLA.
+- Updated chain:
+  ```
+  override → max(plan_quota, org_allocation) → default → unlimited
+  ```
+- `max()`，而非 `sum()`。付费Pro用户永远不会获得少于他们已支付的配额，即使他们的组织管理员设置了较低的分配。Stripe支付的配额是神圣的。
+
+### 预留：按使用量付费的信用额度余额（v3 独立维度）
+
+<Note>尚未发布。与上述链独立的轴——信用额度是一次性充值，而非订阅层级。</Note>
+
+- 新表 `user_credits(user_id, balance_cents, currency)` ——通过 Stripe Checkout `mode='payment'` 充值。
+- 消费顺序：**订阅配额优先**，然后是信用额度余额（仅在订阅耗尽后才开始扣除信用额度）。
+- 信用额度余额不可退款（预付款行业标准）。
+- UI 同时展示两个进度条：`订阅配额：已使用 4.2M / 5M` + `信用额度：剩余 $7.40`。
+
+### 默认值
+
+发货时的默认值——除特别说明外，所有值都可在安装后调整。
+
+| 变量 | 默认值 | 可通过以下方式调整 |
+|---|---|---|
+| `billing_plans.monthly_token_quota` (Free) | `1,000,000` | 管理员 → 计费 → 套餐 → Free → 编辑 |
+| `billing_plans.monthly_token_quota` (Pro) | `5,000,000` | 管理员 → 计费 → 套餐 → Pro → 编辑 |
+| `system_settings.default_token_quota` | `1,000,000`（激活时与 Free 同步） | 管理员 → 系统设置 → 配额 |
+| `system_settings.billing_enabled` | `FALSE` | 管理员 → 系统设置 → 计费 |
+| Pro 列表价格 | `$20.00 USD / month` | Stripe Dashboard（价格对象） |
+| Stripe webhook 事件订阅数 | 6 | Stripe Dashboard → Webhooks |
+| Stripe 价格缓存 TTL | `5 minutes` | `stripe_client.py` 中硬编码 |
+| 订阅生命周期 cron | 每小时 | `web/main.py` 中的 APScheduler |
+| 免费层重置 cron | 每小时（日历月边界） | `web/main.py` 中的 APScheduler |
 
 ## 定价模型
 

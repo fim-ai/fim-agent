@@ -149,18 +149,135 @@ When disabled:
 
 ---
 
-## Quota resolution
+## Calculation reference — quota & token math
 
-Token quota for a given user resolves through this chain (top wins):
+This is the authoritative reference for every numeric rule that decides what a user is allowed to consume, when their counter resets, and how the resolution chain composes. Read this before changing pricing, adjusting quotas, building usage dashboards, or planning v2/v3 work. Future-but-not-yet-shipped rules are documented in their reserved slot so contributors know where new logic plugs in.
 
-1. `users.token_quota` is **explicitly set** (not NULL):
-   - `0` → unlimited (admin VIP gift)
-   - `N > 0` → hard cap at N (overrides plan; useful for blocking abusers without canceling their subscription)
-2. `users.plan.monthly_token_quota` (when billing is enabled) — what the user pays for
-3. `system_settings.default_token_quota` — defensive fallback, normally not consulted because step 2 covers all users with a plan
-4. `None` (unlimited) — last resort
+### Glossary
 
-When billing is **disabled**, step 2 is skipped — chain is just `override → default → unlimited`. This keeps legacy installs honoring the admin-set global default without requiring plan migration.
+| Variable | Storage | Semantics | Range |
+|---|---|---|---|
+| `users.token_quota` | per-user (override) | Three-state override; see semantics below | `NULL`, `0`, or positive int |
+| `users.tokens_used_this_period` | per-user (counter) | Cumulative tokens since last reset | non-negative int |
+| `users.quota_reset_at` | per-user (anchor) | Mirrors `Subscription.current_period_end` for paid users | timestamp |
+| `users.plan_id` | per-user (FK) | Active plan | FK `billing_plans.id` |
+| `billing_plans.monthly_token_quota` | per-plan | Hard cap for users on this plan | non-negative int |
+| `system_settings.default_token_quota` | singleton | Defensive fallback when no plan applies | non-negative int |
+| `system_settings.default_plan_id` | singleton | Free-plan pointer for new/unassigned users | FK or `NULL` |
+| `system_settings.billing_enabled` | singleton | Master switch — gates step 2 of the chain | boolean |
+
+### What counts as a token
+
+Token consumption is accounted at the LLM call layer, sourced from LiteLLM's `usage` object on every completion.
+
+- **Counted**: prompt tokens + completion tokens on every model call
+- **Counted**: every round-trip in a multi-step / tool-use agent flow (each model call is its own debit)
+- **Counted**: embedding requests (KB ingestion, retrieval scoring)
+- **Not counted**: input staged but never sent to a model (e.g. uploaded files that the user discards)
+- **Not counted**: requests that fail before reaching the provider (auth error, rate-limit pre-check)
+- **Cached input**: counted at full price in v1 (no provider cache discount is surfaced). v2 may credit cached prompt tokens separately.
+
+### Three-state override semantics
+
+`users.token_quota` is the per-user administrative override. It carries three meanings in one column:
+
+| Value | Meaning | Use case |
+|---|---|---|
+| `NULL` | Not set — defer to plan / default | Default state for all normal users |
+| `0` | Unlimited | Admin / internal accounts; "VIP gift" |
+| `N > 0` | Hard cap at `N` | Block an abuser without canceling their paid subscription; pre-paid enterprise allocation |
+
+The override always wins over plan and default. It exists so admins can pin individual users above or below their plan tier without touching Stripe.
+
+### Quota resolution chain — v1 (current)
+
+For any authenticated request, the cap is computed top-down — **first match wins**:
+
+```
+1. users.token_quota        ── NULL? skip. 0? unlimited. N>0? cap at N.
+2. users.plan.monthly_token_quota   ── only when billing_enabled = TRUE
+3. system_settings.default_token_quota  ── defensive fallback
+4. unlimited                ── last resort if everything above is NULL
+```
+
+Step 3 is rarely reached when billing is on, because activation backfills `users.plan_id` for every user. It exists as a defense-in-depth so a misconfigured plan never silently uncaps a user.
+
+### Period reset
+
+- For paid users, `quota_reset_at` mirrors `Subscription.current_period_end`. The `invoice.payment_succeeded` webhook handler sets `tokens_used_this_period = 0` and advances `quota_reset_at` to the new period end on each successful renewal.
+- For Free users (no Stripe subscription), an hourly cron rolls `tokens_used_this_period` to 0 on a calendar-month boundary anchored to plan-assignment date.
+- Plan changes mid-period **do not** reset the counter — only renewals do. This prevents quota-cycling exploits ("subscribe → use Pro quota → cancel → subscribe again").
+
+### Mid-stream enforcement
+
+- Pre-flight check at chat-call entry: cheapest path, blocks requests the user can't afford to start.
+- During streaming, the running token count is re-evaluated on every chunk. Crossing the cap closes the stream with a **structured terminator frame**, not a network error.
+- The frontend interprets the terminator and surfaces `<QuotaExceededDialog>` with a deep link to `/settings?tab=billing`.
+- Non-streaming responses return HTTP `402` with body `{ code: "QUOTA_EXCEEDED", reset_at, upgrade_url }`.
+
+### Billing-disabled fallback
+
+When `system_settings.billing_enabled = FALSE`:
+
+- Step 2 of the chain is skipped — the chain collapses to `override → default → unlimited`.
+- `/api/billing/*` and `/api/webhooks/stripe` return `503`.
+- `Plan & Billing` user tab and Admin → Billing nav group are hidden.
+- All billing data (subscriptions, plans, `users.plan_id`) is preserved — re-enabling resumes from the same state with no migration.
+
+---
+
+### Reserved: quota chain v2 — Team seats
+
+<Note>Not yet shipped. Documented here so v2 work has a known landing spot.</Note>
+
+When the Team plan ships:
+
+- `Subscription.quantity` carries seat count (Stripe-native).
+- A user's effective plan resolves through Team membership before falling back to their personal plan:
+  ```
+  effective_plan = team.plan if team_member(user) else user.plan
+  ```
+- Quota is **per seat** (each Team member gets a full `monthly_token_quota`), not a pooled bucket. Pooled buckets create first-come-first-served exhaustion and are anti-customer.
+- Override semantics are unchanged — Team admins can still hard-cap individual members via `users.token_quota = N`, which sits above the team plan in the chain.
+
+### Reserved: quota chain v3 — native Org allocation (no Stripe)
+
+<Note>Not yet shipped. Reserved for on-prem / enterprise deployments that allocate quota internally without paying Stripe per user.</Note>
+
+- New table `org_quota_allocations(user_id, monthly_token_quota, org_id)` distributes a parent budget across members.
+- Allocations are **per user, not a shared pool** — every member has a clear individual SLA.
+- Updated chain:
+  ```
+  override → max(plan_quota, org_allocation) → default → unlimited
+  ```
+- `max()`, not `sum()`. A paid Pro user never gets less than they paid for, even if their Org admin sets a low allocation. Stripe-paid quota is sacrosanct.
+
+### Reserved: pay-per-use credit balance (v3 separate dimension)
+
+<Note>Not yet shipped. A separate axis from the chain above — credits are a one-time top-up, not a subscription tier.</Note>
+
+- New table `user_credits(user_id, balance_cents, currency)` — funded via Stripe Checkout `mode='payment'`.
+- Consumption order: **subscription quota first**, then credit balance (only after subscription is exhausted does the credit decrement begin).
+- Credit balance is non-refundable (industry standard for prepaid).
+- UI exposes both bars: `Subscription quota: 4.2M / 5M used` + `Credits: $7.40 remaining`.
+
+---
+
+### Default values
+
+Ship-time defaults — all tunable post-install except where noted.
+
+| Variable | Default | Tunable via |
+|---|---|---|
+| `billing_plans.monthly_token_quota` (Free) | `1,000,000` | Admin → Billing → Plans → Free → Edit |
+| `billing_plans.monthly_token_quota` (Pro) | `5,000,000` | Admin → Billing → Plans → Pro → Edit |
+| `system_settings.default_token_quota` | `1,000,000` (synced to Free at activation) | Admin → System Settings → Quotas |
+| `system_settings.billing_enabled` | `FALSE` | Admin → System Settings → Billing |
+| Pro list price | `$20.00 USD / month` | Stripe Dashboard (price object) |
+| Stripe webhook events subscribed | 6 | Stripe Dashboard → Webhooks |
+| Stripe price cache TTL | `5 minutes` | hardcoded in `stripe_client.py` |
+| Subscription lifecycle cron | hourly | APScheduler in `web/main.py` |
+| Free-tier reset cron | hourly (calendar-month boundary) | APScheduler in `web/main.py` |
 
 ---
 
