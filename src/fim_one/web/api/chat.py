@@ -7,6 +7,13 @@ Both endpoints stream Server-Sent Events with the following event names:
 - ``phase``          – Pipeline phase transitions (selecting_tools / planning / executing / analyzing).
 - ``compact``        – Context compaction occurred (original_messages, kept_messages).
 - ``answer``         – Streamed answer text (start / delta / done) emitted before ``done``.
+- ``error``          – Structured terminator (currently only ``code="QUOTA_EXCEEDED"``).
+  Emitted mid-stream when the user's monthly token quota runs out
+  during answer streaming.  Carries ``tokens_used``, ``quota``,
+  ``reset_at`` (ISO-8601), and ``plan_slug`` so the frontend can
+  render an upgrade dialog instead of misreading the early stream
+  termination as a generic network error.  Always followed by the
+  normal ``done`` / ``end`` events with the partial answer persisted.
 - ``done``           – Final result payload (answer complete, emitted immediately).
 - ``post_processing`` – Phase marker emitted between ``done`` and ``end`` while
   follow-up suggestions are being generated.  Only emitted when the agent has
@@ -636,33 +643,94 @@ async def _validate_conversation_ownership(
             raise AppError("conversation_not_found", status_code=404)
 
 
-async def _check_token_quota(user_id: str) -> None:
-    """Raise 429 if the user has exceeded their monthly token quota."""
+async def _get_quota_status(user_id: str) -> tuple[int, int]:
+    """Return ``(monthly_tokens_used, effective_quota)`` for *user_id*.
+
+    ``effective_quota`` is the per-user override when set, falling back
+    to the system-wide ``default_token_quota`` admin setting.  A value
+    of ``0`` means "unlimited / disabled" — callers should skip quota
+    enforcement when this is returned.
+
+    This helper is shared by the pre-stream gate (``_check_token_quota``)
+    and the mid-stream guard (``_quota_exceeded`` inside the answer loop)
+    so both paths see identical numbers and the same rounding rules.
+    """
     from fim_one.db import create_session
     from fim_one.web.api.admin_utils import get_setting
     from fim_one.web.models import Conversation, User
 
     async with create_session() as session:
         result = await session.execute(sa_select(User.token_quota).where(User.id == user_id))
-        user_quota = result.scalar_one_or_none()
+        user_quota: int | None = result.scalar_one_or_none()
 
         if user_quota is None:
             default_str = await get_setting(session, "default_token_quota", "0")
             user_quota = int(default_str) if default_str.isdigit() else 0
 
-        if user_quota and user_quota > 0:
-            from sqlalchemy import func as _func
+        if not user_quota or user_quota <= 0:
+            return (0, 0)
 
-            first_of_month = datetime(date.today().year, date.today().month, 1, tzinfo=UTC)
-            monthly_result = await session.execute(
-                sa_select(_func.coalesce(_func.sum(Conversation.total_tokens), 0)).where(
-                    Conversation.user_id == user_id,
-                    Conversation.created_at >= first_of_month,
-                )
+        from sqlalchemy import func as _func
+
+        first_of_month = datetime(date.today().year, date.today().month, 1, tzinfo=UTC)
+        monthly_result = await session.execute(
+            sa_select(_func.coalesce(_func.sum(Conversation.total_tokens), 0)).where(
+                Conversation.user_id == user_id,
+                Conversation.created_at >= first_of_month,
             )
-            monthly_tokens = monthly_result.scalar_one()
-            if monthly_tokens >= user_quota:
-                raise AppError("token_quota_exceeded", status_code=429)
+        )
+        monthly_tokens = int(monthly_result.scalar_one() or 0)
+        return (monthly_tokens, int(user_quota))
+
+
+def _next_month_reset_iso() -> str:
+    """Return the ISO-8601 timestamp of the next quota-reset boundary.
+
+    Quotas reset on the first day of each calendar month at 00:00 UTC.
+    Returned as an ISO string so the frontend can parse with ``new Date``.
+    """
+    today = date.today()
+    if today.month == 12:
+        next_reset = datetime(today.year + 1, 1, 1, tzinfo=UTC)
+    else:
+        next_reset = datetime(today.year, today.month + 1, 1, tzinfo=UTC)
+    return next_reset.isoformat()
+
+
+async def _check_token_quota(user_id: str) -> None:
+    """Raise 429 if the user has exceeded their monthly token quota."""
+    monthly_tokens, user_quota = await _get_quota_status(user_id)
+    if user_quota > 0 and monthly_tokens >= user_quota:
+        raise AppError("token_quota_exceeded", status_code=429)
+
+
+def _build_quota_terminator_payload(
+    *,
+    monthly_tokens: int,
+    user_quota: int,
+) -> dict[str, Any]:
+    """Construct the ``error`` event payload for mid-stream quota cutoff.
+
+    Schema (matches the structured terminator contract documented in
+    the chat module docstring):
+
+    - ``type``: always ``"error"`` — a sentinel for the frontend's
+      generic event router so it can branch on the same field other
+      events use (compare ``step.type``, ``answer.status``).
+    - ``code``: machine-readable reason; ``"QUOTA_EXCEEDED"`` here.
+    - ``tokens_used`` / ``quota``: live counters for the dialog.
+    - ``reset_at``: ISO-8601 of the next monthly reset.
+    - ``plan_slug``: reserved for the upcoming Stripe billing
+      integration; ``"free"`` for now since plan tiers don't exist yet.
+    """
+    return {
+        "type": "error",
+        "code": "QUOTA_EXCEEDED",
+        "tokens_used": monthly_tokens,
+        "quota": user_quota,
+        "reset_at": _next_month_reset_iso(),
+        "plan_slug": "free",
+    }
 
 
 async def _resolve_agent_config(
@@ -3048,6 +3116,16 @@ async def react_endpoint(
             # -- Stream answer to client (DAG-style) -----------------------
             yield _emit(sse_events, "answer", {"status": "start"})
             answer_chunks: list[str] = []
+            quota_exceeded_mid_stream = False
+            quota_terminator_payload: dict[str, Any] | None = None
+            # Tokens already accounted for from the planner/tool LLM calls
+            # (result.usage).  The streamed answer adds completion tokens on
+            # top — we estimate them from emitted chunk lengths since the
+            # streaming API does not surface per-delta usage.
+            _result_tokens_so_far = (
+                result.usage.total_tokens if result.usage is not None else 0
+            )
+            _streamed_chars_since_check = 0
             try:
                 async for _token in agent.stream_answer(
                     q,
@@ -3060,6 +3138,52 @@ async def react_endpoint(
                         "answer",
                         {"status": "delta", "content": _token},
                     )
+                    # -- Mid-stream quota guard --------------------------
+                    # Re-check the user's monthly quota at most once every
+                    # ~200 characters (~50 estimated tokens) to keep DB
+                    # load bounded while still cutting the stream within
+                    # a small overshoot of the quota.  When the quota is
+                    # exhausted we emit a structured terminator instead
+                    # of letting the connection drop into a generic
+                    # network error on the client.
+                    if current_user_id:
+                        _streamed_chars_since_check += len(_token)
+                        if _streamed_chars_since_check >= 200:
+                            _streamed_chars_since_check = 0
+                            _est_completion_tokens = (
+                                sum(len(c) for c in answer_chunks) // 4
+                            )
+                            _approx_total = (
+                                _result_tokens_so_far + _est_completion_tokens
+                            )
+                            (
+                                _monthly_used,
+                                _quota_cap,
+                            ) = await _get_quota_status(current_user_id)
+                            if (
+                                _quota_cap > 0
+                                and _monthly_used + _est_completion_tokens
+                                >= _quota_cap
+                            ):
+                                quota_exceeded_mid_stream = True
+                                quota_terminator_payload = (
+                                    _build_quota_terminator_payload(
+                                        monthly_tokens=(
+                                            _monthly_used + _est_completion_tokens
+                                        ),
+                                        user_quota=_quota_cap,
+                                    )
+                                )
+                                logger.info(
+                                    "Token quota exhausted mid-stream for user=%s "
+                                    "(used=%s, quota=%s, approx_total=%s) — emitting "
+                                    "structured terminator",
+                                    current_user_id,
+                                    _monthly_used + _est_completion_tokens,
+                                    _quota_cap,
+                                    _approx_total,
+                                )
+                                break
                 answer = "".join(answer_chunks)
             except Exception:
                 logger.warning(
@@ -3074,6 +3198,15 @@ async def react_endpoint(
                         {"status": "delta", "content": _ans_chunk},
                     )
             yield _emit(sse_events, "answer", {"status": "done"})
+
+            # -- Mid-stream quota terminator (clean close) ----------------
+            # Emit the structured ``error`` event BEFORE ``done`` so the
+            # frontend dialog reads the latest counters.  We still proceed
+            # through the normal done/end path so the partial answer and
+            # consumed tokens are persisted, mirroring how a successful
+            # turn terminates.
+            if quota_exceeded_mid_stream and quota_terminator_payload is not None:
+                yield _emit(sse_events, "error", quota_terminator_payload)
 
             # -- Classify deliverables from all artifacts --
             all_artifacts_with_context: list[dict[str, Any]] = []
@@ -4149,9 +4282,13 @@ async def dag_endpoint(
             # -- Stream answer to client immediately --------------------
             yield _emit(sse_events, "answer", {"status": "start"})
 
+            dag_quota_exceeded_mid_stream = False
+            dag_quota_terminator_payload: dict[str, Any] | None = None
+            _dag_streamed_chars_since_check = 0
+
             if analysis.achieved:
                 # Real streaming synthesis from LLM
-                answer_chunks: list[str] = []
+                answer_chunks = []
                 try:
                     async for _token in analyzer.stream_synthesize(
                         enriched_query,
@@ -4164,6 +4301,41 @@ async def dag_endpoint(
                             "answer",
                             {"status": "delta", "content": _token},
                         )
+                        # Mid-stream quota guard — see ReAct handler for
+                        # the rationale and the 200-char throttle.
+                        if current_user_id:
+                            _dag_streamed_chars_since_check += len(_token)
+                            if _dag_streamed_chars_since_check >= 200:
+                                _dag_streamed_chars_since_check = 0
+                                _dag_est_completion = (
+                                    sum(len(c) for c in answer_chunks) // 4
+                                )
+                                (
+                                    _dag_used,
+                                    _dag_cap,
+                                ) = await _get_quota_status(current_user_id)
+                                if (
+                                    _dag_cap > 0
+                                    and _dag_used + _dag_est_completion >= _dag_cap
+                                ):
+                                    dag_quota_exceeded_mid_stream = True
+                                    dag_quota_terminator_payload = (
+                                        _build_quota_terminator_payload(
+                                            monthly_tokens=(
+                                                _dag_used + _dag_est_completion
+                                            ),
+                                            user_quota=_dag_cap,
+                                        )
+                                    )
+                                    logger.info(
+                                        "Token quota exhausted mid-stream (DAG) for "
+                                        "user=%s (used=%s, quota=%s) — emitting "
+                                        "structured terminator",
+                                        current_user_id,
+                                        _dag_used + _dag_est_completion,
+                                        _dag_cap,
+                                    )
+                                    break
                     answer = "".join(answer_chunks)
                 except Exception:
                     logger.warning(
@@ -4192,6 +4364,15 @@ async def dag_endpoint(
                     )
 
             yield _emit(sse_events, "answer", {"status": "done"})
+
+            # Emit the structured ``error`` terminator BEFORE ``done`` when
+            # the quota was exhausted mid-stream so the frontend dialog
+            # picks up fresh counters.  See the ReAct handler for details.
+            if (
+                dag_quota_exceeded_mid_stream
+                and dag_quota_terminator_payload is not None
+            ):
+                yield _emit(sse_events, "error", dag_quota_terminator_payload)
 
             # -- Classify deliverables from all artifacts --
             dag_all_artifacts: list[dict[str, Any]] = []
