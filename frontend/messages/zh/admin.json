@@ -1171,7 +1171,7 @@
       "planUpdated": "套餐已更新",
       "planDeleted": "套餐已停用",
       "columns": {
-        "slug": "Slug",
+        "slug": "标识符",
         "name": "名称",
         "price": "价格",
         "quota": "配额",
@@ -1179,7 +1179,7 @@
         "subsCount": "活跃订阅"
       },
       "fields": {
-        "slug": "Slug",
+        "slug": "标识符",
         "slugHint": "小写字母、数字、破折号、下划线。创建后永久不变。",
         "name": "名称",
         "priceCents": "价格（美分）",
