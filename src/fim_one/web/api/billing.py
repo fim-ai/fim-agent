@@ -272,7 +272,10 @@ async def create_checkout(
         customer=user.stripe_customer_id,
         mode="subscription",
         line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-        success_url=f"{return_url}{sep}status=success",
+        # Include the plan slug so the success page can greet the user
+        # with the plan they just subscribed to without waiting for the
+        # webhook + /api/billing/subscription round-trip.
+        success_url=f"{return_url}{sep}status=success&plan={plan.slug}",
         cancel_url=f"{return_url}{sep}status=cancel",
         client_reference_id=str(user.id),
         metadata={"user_id": user.id, "plan_id": plan.id},

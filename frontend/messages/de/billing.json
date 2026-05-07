@@ -73,5 +73,11 @@
   },
   "sidebar": {
     "billing": "Plan & Abrechnung"
+  },
+  "success": {
+    "title": "Willkommen an Bord!",
+    "bodyWithPlan": "Ihr {plan}-Abonnement ist jetzt aktiv. Danke, dass Sie uns unterstützen — lassen Sie uns loslegen.",
+    "bodyGeneric": "Ihr Abonnement ist jetzt aktiv. Danke, dass Sie uns unterstützen — lassen Sie uns loslegen.",
+    "cta": "Verstanden"
   }
 }

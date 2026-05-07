@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import {
   AlertCircle,
@@ -24,10 +24,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ApiError, apiFetch } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 import { formatTokens } from "@/lib/format-tokens"
+import { fireCelebrationConfetti } from "@/lib/celebration-confetti"
 
 // ---------------------------------------------------------------------------
 // Backend response shapes (mirror src/fim_one/web/schemas/billing.py)
@@ -138,6 +147,7 @@ export function BillingPage() {
   const locale = useLocale()
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth()
+  const searchParams = useSearchParams()
 
   const [plans, setPlans] = useState<PlanInfo[] | null>(null)
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
@@ -145,6 +155,27 @@ export function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [billingDisabled, setBillingDisabled] = useState(false)
   const [actionPending, setActionPending] = useState<string | null>(null)
+  const [celebrationOpen, setCelebrationOpen] = useState(false)
+
+  // ----- Checkout success celebration --------------------------------------
+  // Stripe redirects back to `/settings?tab=billing&status=success&plan={slug}`
+  // after a successful checkout. We open a dismissible Dialog (with confetti)
+  // exactly once per page load — the URL is left untouched so the user can
+  // refresh / share it during testing.
+  const celebrationFiredRef = useRef(false)
+  const purchasedPlanSlug = searchParams.get("plan")
+  useEffect(() => {
+    if (celebrationFiredRef.current) return
+    if (searchParams.get("status") !== "success") return
+    celebrationFiredRef.current = true
+    setCelebrationOpen(true)
+    // Fire-and-forget — no cleanup. In React Strict Mode (dev), an
+    // effect cleanup would run between the simulated unmount/remount
+    // and cancel the only scheduled confetti before it ever fired,
+    // leaving the user with a silent dialog. The ref above already
+    // dedupes the second strict-mode run, so a stray timer is impossible.
+    setTimeout(() => fireCelebrationConfetti(), 150)
+  }, [searchParams])
 
   // ----- Auth guard (mirrors the rest of /settings/*) ----------------------
 
@@ -226,6 +257,15 @@ export function BillingPage() {
   const showCanceledBanner =
     subscription?.cancel_at_period_end === true && subscription.status !== "canceled"
   const showPastDueBanner = subscription?.status === "past_due"
+
+  // Plan name to greet with — best-effort: ?plan=<slug> populated by the
+  // backend's success_url. Falls back to the freshly-loaded subscription
+  // if the URL didn't carry it (older redirects).
+  const purchasedPlanName = useMemo<string | null>(() => {
+    const slug = purchasedPlanSlug ?? subscription?.plan_slug ?? null
+    if (!slug || !plans) return null
+    return plans.find((p) => p.slug === slug)?.name ?? null
+  }, [purchasedPlanSlug, subscription, plans])
 
   // ----- Actions ------------------------------------------------------------
 
@@ -363,7 +403,67 @@ export function BillingPage() {
           </>
         )}
       </div>
+
+      <CheckoutSuccessDialog
+        open={celebrationOpen}
+        onOpenChange={(next) => {
+          setCelebrationOpen(next)
+          // On dismiss, strip the one-shot redirect params so a refresh
+          // doesn't re-trigger the celebration. We only touch our own
+          // params and preserve everything else (notably ?tab=billing).
+          if (!next && searchParams.get("status") === "success") {
+            const cleaned = new URLSearchParams(searchParams.toString())
+            cleaned.delete("status")
+            cleaned.delete("plan")
+            cleaned.delete("session_id")
+            const qs = cleaned.toString()
+            router.replace(qs ? `/settings?${qs}` : "/settings?tab=billing")
+          }
+        }}
+        planName={purchasedPlanName}
+      />
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Checkout-success celebration dialog — opens once after Stripe redirects
+// the user back with `?status=success`. Confetti fires alongside the dialog
+// (handled by the parent effect) so the celebration reads as one moment.
+
+function CheckoutSuccessDialog({
+  open,
+  onOpenChange,
+  planName,
+}: {
+  open: boolean
+  onOpenChange: (next: boolean) => void
+  planName: string | null
+}) {
+  const t = useTranslations("billing")
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+          <DialogTitle className="text-center">
+            {t("success.title")}
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            {planName
+              ? t("success.bodyWithPlan", { plan: planName })
+              : t("success.bodyGeneric")}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-center">
+          <Button onClick={() => onOpenChange(false)} className="min-w-32">
+            {t("success.cta")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -770,13 +870,11 @@ function PlanCard({
           <Button
             onClick={() => onCheckout(plan)}
             disabled={isPending}
-            className="w-full"
+            className="w-full disabled:opacity-100"
+            aria-label={isPending ? t("action.checkoutLoading") : undefined}
           >
             {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("action.checkoutLoading")}
-              </>
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               t("action.switchPlan", { plan: plan.name })
             )}

@@ -73,5 +73,11 @@
   },
   "sidebar": {
     "billing": "套餐与账单"
+  },
+  "success": {
+    "title": "欢迎加入！",
+    "bodyWithPlan": "您的{plan}订阅已激活。感谢您的支持——让我们开始工作吧。",
+    "bodyGeneric": "您的订阅已激活。感谢您的支持——让我们开始工作吧。",
+    "cta": "明白了"
   }
 }

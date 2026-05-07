@@ -73,5 +73,11 @@
   },
   "sidebar": {
     "billing": "Plan et facturation"
+  },
+  "success": {
+    "title": "Bienvenue à bord !",
+    "bodyWithPlan": "Votre abonnement {plan} est maintenant actif. Merci de nous soutenir — au travail !",
+    "bodyGeneric": "Votre abonnement est maintenant actif. Merci de nous soutenir — au travail !",
+    "cta": "Compris"
   }
 }

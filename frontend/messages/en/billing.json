@@ -72,6 +72,13 @@
     "portalLoading": "Opening billing portal…"
   },
 
+  "success": {
+    "title": "Welcome aboard!",
+    "bodyWithPlan": "Your {plan} subscription is now active. Thanks for supporting us — let's get to work.",
+    "bodyGeneric": "Your subscription is now active. Thanks for supporting us — let's get to work.",
+    "cta": "Got it"
+  },
+
   "error": {
     "notConfiguredTitle": "Billing is not enabled",
     "notConfiguredBody": "This instance has not been configured with a Stripe account, so billing actions are unavailable. Contact your administrator if you believe this is unexpected.",

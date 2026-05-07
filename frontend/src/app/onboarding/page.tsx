@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
-import confetti from "canvas-confetti"
+import { fireCelebrationConfetti } from "@/lib/celebration-confetti"
 import { useAuth } from "@/contexts/auth-context"
 import { authApi } from "@/lib/api"
 import { getErrorMessage } from "@/lib/error-utils"
@@ -73,42 +73,6 @@ const STYLE_OPTIONS = [
   { key: "styleStepByStep", descKey: "styleStepByStepDesc", icon: ListChecks, value: "Break down problems step by step before answering." },
   { key: "styleChallenge", descKey: "styleChallengeDesc", icon: Swords, value: "Play devil's advocate and question assumptions." },
 ] as const
-
-// ── Celebration Confetti (canvas-confetti) ────────────────────────────────────
-// Fires a rich multi-burst sequence: two side cannons + a center star burst,
-// using real physics simulation via canvas-confetti.
-
-const CONFETTI_COLORS = [
-  "#f59e0b", "#fbbf24",   // amber
-  "#6366f1", "#8b5cf6",   // purple / indigo
-  "#ec4899", "#f472b6",   // pink
-  "#10b981", "#34d399",   // green
-  "#3b82f6", "#60a5fa",   // blue
-  "#f97316", "#fb923c",   // orange
-  "#ef4444",              // red
-]
-
-function fireCelebrationConfetti() {
-  const defaults = {
-    colors: CONFETTI_COLORS,
-    disableForReducedMotion: true,
-    zIndex: 9999,
-  }
-
-  // Wave 1: two side cannons (left + right), angled inward
-  confetti({ ...defaults, particleCount: 50, spread: 65, angle: 60,  origin: { x: 0, y: 0.65 }, startVelocity: 50 })
-  confetti({ ...defaults, particleCount: 50, spread: 65, angle: 120, origin: { x: 1, y: 0.65 }, startVelocity: 50 })
-
-  // Wave 2 (200ms later): center burst upward
-  setTimeout(() => {
-    confetti({ ...defaults, particleCount: 60, spread: 90, origin: { x: 0.5, y: 0.7 }, startVelocity: 45 })
-  }, 200)
-
-  // Wave 3 (800ms): gentle drifting pieces from center
-  setTimeout(() => {
-    confetti({ ...defaults, particleCount: 30, spread: 140, origin: { x: 0.5, y: 0.5 }, startVelocity: 25, gravity: 0.6, scalar: 1.2, ticks: 300 })
-  }, 800)
-}
 
 export default function OnboardingPage() {
   const t = useTranslations("onboarding")
