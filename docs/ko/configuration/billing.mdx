@@ -1,0 +1,196 @@
+---
+title: "Stripe 결제"
+icon: "credit-card"
+description: "토큰 할당량 및 셀프서비스 플랜 관리를 포함한 사용자별 Stripe 구독(Free + Pro) 활성화"
+---
+
+FIM One은 관리자가 제어하는 기능 플래그 뒤에 완전한 Stripe 결제 파이프라인을 제공합니다. 결제가 필요 없는 프라이빗 배포는 이를 비활성화하고 UI를 볼 수 없습니다. SaaS 운영자는 한 번의 토글로 호스팅된 Checkout, Customer Portal, 웹훅 기반 구독 생명주기 및 할당량 적용을 즉시 사용할 수 있습니다.
+
+<Note>
+결제는 **기본적으로 비활성화**되어 있습니다. 새로운 설치 및 기존 셀프호스트 모두 `system_settings.billing_enabled = FALSE`로 시작합니다. 관리자가 명시적으로 활성화할 때까지 결제 UI는 표시되지 않습니다.
+</Note>
+
+## 무엇을 얻을 수 있는가
+
+- **Free + Pro 티어** — 월간 토큰 할당량 포함 (기본값: Free 1M / Pro 5M; 활성화 후 조정 가능)
+- **Stripe 호스팅 Checkout** — 사용자가 업그레이드할 때 카드 데이터가 코드를 거치지 않음
+- **Customer Portal** — 사용자가 결제 방법 업데이트, 청구서 다운로드, 구독 취소 — 모두 Stripe UI에서 처리
+- **Webhook 기반 라이프사이클** — 구독 자동 프로비저닝 및 갱신; 취소된 구독은 기간 종료 시 Free로 강등
+- **할당량 적용** — 기간당 토큰 사용량 추적; 스트림 중 차단 및 구조화된 업그레이드 프롬프트
+- **관리자 페이지** — 요금제 CRUD 및 구독 모니터링
+
+## 전제 조건
+
+1. **Stripe 계정** (라이브 모드 활성화됨). 싱가포르 법인은 KYC 완료 필요(사업 UEN, 이사 신분증, 은행 계좌). 승인은 일반적으로 1-3일 소요됩니다.
+2. **Stripe 라이브 API 키** (제한된 유형 권장 — 표준 `sk_live_***`보다 해지하기 쉽고 권한 범위 지정 가능).
+3. **웹훅 엔드포인트** (`<your-domain>/api/webhooks/stripe`에서 공개적으로 접근 가능).
+4. **은행 계좌** (지급용). 다중 통화 결제(예: USD 계좌로 USD 지급)는 USD 기본값이 아닌 Stripe 계정의 경우 거래당 1.5-2% FX 손실을 피하기 위해 권장됩니다.
+
+## 설정
+
+### 1. Stripe 대시보드
+
+#### Pro 상품 만들기
+
+1. **Catalog → Products → + Add product**
+2. Name: `Pro`, description: `5M tokens / month, priority support`
+3. Pricing: Recurring, monthly, $20.00 USD (adjust to your pricing strategy)
+4. Save → copy the resulting `price_***` ID (you will UPDATE the local `billing_plans` table with this value after activation)
+
+#### 제한된 API 키 생성
+
+1. **Developers → API keys → + Create restricted key**
+2. Name: `fim-one production`
+3. Permissions (minimum):
+   - **Customers**: Write
+   - **Subscriptions**: Write
+   - **Checkout Sessions**: Write
+   - **Customer portal**: Write
+   - **Prices**: Read
+   - **Products**: Read
+4. Save → copy `rk_live_***`
+
+#### 웹훅 엔드포인트 등록
+
+1. **Developers → Webhooks → + Add endpoint**
+2. URL: `https://<your-domain>/api/webhooks/stripe`
+3. 수신할 이벤트:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. 저장 후 "Reveal signing secret" 클릭 → `whsec_***` 복사
+
+#### 다중 통화 결제 구성(권장)
+
+Stripe 계정의 기본 통화가 청구하는 가격 통화와 다른 경우(일반적인 경우: SGD 계정에서 USD 청구):
+
+1. **Settings → Bank accounts and currencies → Add a settlement currency**
+2. 가격 통화 선택(예: USD)
+3. 일치하는 은행 계좌 연결(예: Aspire USD 가상 계좌)
+4. 저장 — Stripe가 USD 청구를 USD 지급으로 직접 라우팅하므로 환율 변환 없음
+
+### 2. Backend `.env`
+
+프로덕션 `.env`에서 다음 세 개의 키를 설정하세요:
+
+```bash
+STRIPE_SECRET_KEY=rk_live_***
+STRIPE_WEBHOOK_SECRET=whsec_***
+STRIPE_BILLING_RETURN_URL=https://<your-domain>/settings?tab=billing
+```
+
+전체 참조는 [Environment Variables](/configuration/environment-variables)를 참조하세요.
+
+`.env`를 편집한 후 백엔드를 다시 시작하여 키가 적용되도록 하세요:
+
+```bash
+./deploy.sh   # or: docker compose restart fim-one
+```
+
+### 3. Admin에서 활성화
+
+1. 관리자로 로그인
+2. **Admin → System Settings → Billing**
+3. **Enable Stripe Billing** 토글을 ON으로 설정
+4. 백엔드가 `STRIPE_SECRET_KEY`와 `STRIPE_WEBHOOK_SECRET`이 모두 존재하는지 검증합니다 — 둘 중 하나라도 누락되면 400을 반환하고 토글은 OFF 상태로 유지됩니다
+5. 처음 활성화할 때만 백엔드가 **멱등성 설정**을 실행합니다:
+   - Free + Pro 플랜을 시드합니다 (이미 존재하면 건너뜀)
+   - `system_settings.default_plan_id`를 Free 플랜 id로 설정합니다
+   - 플랜이 없는 모든 사용자에 대해 `users.plan_id = free.id`를 역채우기합니다
+   - `default_token_quota` → Free 플랜 `monthly_token_quota`를 동기화하여 기존 관리자 제어 전역 할당량이 유지되도록 합니다
+6. 이후 토글 끄기/켜기는 **순수 플래그 전환**이며 데이터 부작용이 없습니다
+
+### 4. Pro 플랜을 라이브 가격으로 업데이트
+
+활성화 후, 시드된 Pro 플랜을 라이브 Stripe 가격으로 업데이트하세요:
+
+- **Admin → Billing → Plans → Pro → Edit**
+- 1단계에서 얻은 `price_1***`을 `Stripe Price ID`에 붙여넣기
+- 저장
+
+또는 SQL을 통해 (직접 DB 접근을 선호하는 경우):
+
+```sql
+UPDATE billing_plans
+SET stripe_price_id = 'price_1***'
+WHERE slug = 'pro';
+```
+
+### 5. Smoke test
+
+1. `/settings?tab=billing`을 일반 사용자로 열기
+2. **Switch to Pro** 클릭
+3. Stripe Checkout이 열림; 소액 실제 카드로 완료 (이후 환불)
+4. Webhook이 실행되어야 함 — Stripe Dashboard → Webhooks → 최근 이벤트에서 2xx 응답 확인
+5. `subscriptions` 테이블에 구독 행이 나타남; `users.plan_id`가 `pro`로 변경됨
+6. UI에 Pro 플랜 + "Manage subscription" 버튼 표시
+
+## 청구 비활성화
+
+Admin → System Settings → Billing에서 **Enable Stripe Billing** 스위치를 OFF로 전환합니다.
+
+비활성화되면:
+- 모든 `/api/billing/*` 엔드포인트가 503을 반환합니다
+- 웹훅 엔드포인트가 503을 반환합니다 (Stripe가 재시도한 후 Dashboard에 실패로 표시됩니다 — 청구가 영구적으로 비활성화된 경우 Stripe Dashboard에서 웹훅을 비활성화할 수 있습니다)
+- `Plan & Billing` 사용자 대면 탭이 사라집니다
+- Admin → Billing 네비게이션 그룹이 숨겨집니다
+- 할당량 체인이 요금제 계층을 건너뛰고 `default_token_quota`로 직접 폴백합니다
+
+**데이터는 보존됩니다**: 기존 `subscriptions`, `billing_plans`, `users.plan_id` 행은 변경되지 않습니다. 다시 활성화하면 마이그레이션 없이 동일한 상태에서 재개됩니다.
+
+## 할당량 해결
+
+주어진 사용자의 토큰 할당량은 다음 체인을 통해 해결됩니다(상위 항목이 우선):
+
+1. `users.token_quota`가 **명시적으로 설정됨** (NULL이 아님):
+   - `0` → 무제한 (관리자 VIP 선물)
+   - `N > 0` → N에서 하드 캡 (플랜 무시; 구독을 취소하지 않고 악용자를 차단하는 데 유용)
+2. `users.plan.monthly_token_quota` (청구가 활성화된 경우) — 사용자가 지불하는 항목
+3. `system_settings.default_token_quota` — 방어적 폴백, 일반적으로 단계 2가 모든 플랜 사용자를 포함하므로 참조되지 않음
+4. `None` (무제한) — 최후의 수단
+
+청구가 **비활성화**된 경우, 단계 2는 건너뜀 — 체인은 `override → default → unlimited`입니다. 이렇게 하면 레거시 설치가 플랜 마이그레이션 없이 관리자가 설정한 전역 기본값을 준수합니다.
+
+## 가격 책정 모델
+
+V1은 정액 구독입니다. Free + Pro, 월간 청구, USD만 지원합니다.
+
+**V1 범위 외** (의도적으로 로드맵으로 연기됨):
+- Team 플랜 (Stripe seats / `subscription.quantity`)
+- 연간 청구
+- 다중 통화 표시
+- 쿠폰 / 프로모션 코드
+- 세금 처리 (Stripe Tax 통합 — 별도 규정 검토 필요)
+- 사용량 기반 계량 / 초과 요금
+- 선불 크레딧 잔액 (일회성 충전)
+
+다음 계획된 사항은 [로드맵](/roadmap)을 참조하세요.
+
+## 문제 해결
+
+<Accordion title="토글이 활성화되지 않음 — 400 오류">
+활성화 엔드포인트에는 `STRIPE_SECRET_KEY`와 `STRIPE_WEBHOOK_SECRET`이 모두 설정되어야 합니다. `.env`에 존재하는지 확인하고 편집 후 백엔드가 다시 시작되었는지 확인하세요.
+</Accordion>
+
+<Accordion title="웹훅이 503을 반환함">
+청구가 비활성화되어 있거나(토글이 OFF) 요청 서명 검증에 실패했습니다(`STRIPE_WEBHOOK_SECRET` 불일치). Stripe 대시보드 → 웹훅 → 최근 이벤트에서 실제 오류 본문을 확인하세요.
+</Accordion>
+
+<Accordion title="사용자가 구독했지만 여전히 무료 요금제를 봄">
+`checkout.session.completed` 웹훅이 백엔드에 도달하지 않았습니다. Stripe 대시보드의 엔드포인트 URL이 `<your-domain>/api/webhooks/stripe`와 정확히 일치하는지(후행 경로 포함) 확인하세요. 웹훅 최근 전달 기록에서 실패를 확인하세요.
+</Accordion>
+
+<Accordion title="Pro 사용자가 테스트 모드 가격 ID를 봄">
+시드 마이그레이션이 테스트 모드 가격 ID를 작성합니다. 프로덕션 청구를 활성화한 후 관리자 → 청구 → 요금제 → Pro → 편집을 통해 Pro 요금제를 라이브 `price_1***`을 사용하도록 업데이트하거나 직접 SQL UPDATE를 실행하세요.
+</Accordion>
+
+<Accordion title="영수증이 Stripe 기본값으로 브랜딩됨">
+Stripe 대시보드 → 설정 → 브랜딩에서 비즈니스 브랜딩을 구성하세요. 로고, 비즈니스 이름(예: "FIM Labs Pte. Ltd."), 주소를 추가하세요. Stripe는 이를 모든 자동 생성 영수증 및 청구서에 적용합니다.
+</Accordion>
+
+<Accordion title="지급 시 환율 손실">
+Stripe 계정 기본 통화가 청구 통화와 다르면 Stripe는 매번 지급할 때 환전합니다(1.5-2% 스프레드). 설정 → 은행 계좌 및 통화에서 일치하는 결제 통화를 추가하고 동일 통화 은행 계좌를 연결하면 Stripe가 환전 없이 동일 통화 결제를 라우팅합니다.
+</Accordion>

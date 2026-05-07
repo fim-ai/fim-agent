@@ -1,0 +1,208 @@
+---
+title: "Stripe Billing"
+icon: "credit-card"
+description: "Enable per-user Stripe subscriptions (Free + Pro) with token quotas and self-service plan management."
+---
+
+FIM One ships a complete Stripe billing pipeline behind an admin-controlled feature flag. Private deployments without payment needs leave it off and never see the UI. SaaS operators flip one toggle and get hosted Checkout, Customer Portal, webhook-driven subscription lifecycle, and quota enforcement out of the box.
+
+<Note>
+Billing is **disabled by default**. Fresh installs and existing self-hosts both start with `system_settings.billing_enabled = FALSE`. No billing UI surfaces until an admin explicitly activates it.
+</Note>
+
+---
+
+## What you get
+
+- **Free + Pro tiers** with monthly token quotas (defaults: Free 1M / Pro 5M; both tunable post-activation)
+- **Stripe-hosted Checkout** — users upgrade without your code ever touching card data
+- **Customer Portal** — users update payment methods, download invoices, cancel — all on Stripe's UI
+- **Webhook-driven lifecycle** — subscriptions provision and renew automatically; canceled subs demote to Free at period end
+- **Quota enforcement** — token usage tracked per period; mid-stream cutoff with a structured upgrade prompt
+- **Admin pages** for plan CRUD and subscription monitoring
+
+## Prerequisites
+
+1. **Stripe account** with Live mode activated. Singapore-incorporated companies must complete KYC (business UEN, director ID, bank account). Approval typically takes 1-3 days.
+2. **Stripe Live API key** of type Restricted (recommended over Standard `sk_live_***` — easier to revoke, scoped permissions).
+3. **Webhook endpoint** publicly reachable at `<your-domain>/api/webhooks/stripe`.
+4. **Bank account** for payouts. Multi-currency settlement (e.g. USD payout to a USD account) is recommended for non-USD-default Stripe accounts to avoid 1.5-2% FX leakage per transaction.
+
+---
+
+## Setup
+
+### 1. Stripe Dashboard
+
+#### Create the Pro product
+
+1. **Catalog → Products → + Add product**
+2. Name: `Pro`, description: `5M tokens / month, priority support`
+3. Pricing: Recurring, monthly, $20.00 USD (adjust to your pricing strategy)
+4. Save → copy the resulting `price_***` ID (you will UPDATE the local `billing_plans` table with this value after activation)
+
+#### Create a Restricted API key
+
+1. **Developers → API keys → + Create restricted key**
+2. Name: `fim-one production`
+3. Permissions (minimum):
+   - **Customers**: Write
+   - **Subscriptions**: Write
+   - **Checkout Sessions**: Write
+   - **Customer portal**: Write
+   - **Prices**: Read
+   - **Products**: Read
+4. Save → copy `rk_live_***`
+
+#### Register the webhook endpoint
+
+1. **Developers → Webhooks → + Add endpoint**
+2. URL: `https://<your-domain>/api/webhooks/stripe`
+3. Events to receive:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. After save, click "Reveal signing secret" → copy `whsec_***`
+
+#### Configure multi-currency settlement (recommended)
+
+If your Stripe account default currency differs from the price currency you charge in (common case: SGD account charging USD):
+
+1. **Settings → Bank accounts and currencies → Add a settlement currency**
+2. Pick the price currency (e.g. USD)
+3. Attach the matching bank account (e.g. an Aspire USD virtual account)
+4. Save — Stripe routes USD charges directly to USD payouts, no FX conversion
+
+### 2. Backend `.env`
+
+Set these three keys in your production `.env`:
+
+```bash
+STRIPE_SECRET_KEY=rk_live_***
+STRIPE_WEBHOOK_SECRET=whsec_***
+STRIPE_BILLING_RETURN_URL=https://<your-domain>/settings?tab=billing
+```
+
+See [Environment Variables](/configuration/environment-variables) for full reference.
+
+Restart the backend after editing `.env` so the keys are picked up:
+
+```bash
+./deploy.sh   # or: docker compose restart fim-one
+```
+
+### 3. Activate in Admin
+
+1. Log in as an admin
+2. **Admin → System Settings → Billing**
+3. Toggle **Enable Stripe Billing** ON
+4. The backend validates that both `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are present — if either is missing it returns 400 and the toggle stays OFF
+5. On first activation only, the backend runs an **idempotent setup**:
+   - Seeds Free + Pro plans (skipped if already present)
+   - Sets `system_settings.default_plan_id` to the Free plan id
+   - Backfills `users.plan_id = free.id` for any user without a plan
+   - Syncs `default_token_quota` → Free plan `monthly_token_quota` so the existing admin-controlled global quota carries over
+6. Subsequent toggle off/on is a **pure flag flip** with no data side effects
+
+### 4. Update the Pro plan with your live price
+
+After activation, update the seeded Pro plan to point at your live Stripe price:
+
+- **Admin → Billing → Plans → Pro → Edit**
+- Paste your `price_1***` (from step 1) into `Stripe Price ID`
+- Save
+
+Or via SQL (if you prefer direct DB access):
+
+```sql
+UPDATE billing_plans
+SET stripe_price_id = 'price_1***'
+WHERE slug = 'pro';
+```
+
+### 5. Smoke test
+
+1. Open `/settings?tab=billing` as a regular user
+2. Click **Switch to Pro**
+3. Stripe Checkout opens; complete with a low-amount real card (refund afterwards)
+4. Webhook should fire — verify in Stripe Dashboard → Webhooks → recent events show 2xx responses
+5. Subscription row appears in `subscriptions` table; `users.plan_id` flips to `pro`
+6. UI now shows Pro plan + "Manage subscription" button
+
+---
+
+## Disabling billing
+
+Toggle the **Enable Stripe Billing** switch OFF in Admin → System Settings → Billing.
+
+When disabled:
+- All `/api/billing/*` endpoints return 503
+- The webhook endpoint returns 503 (Stripe will retry, then surface in Dashboard as failing — that's fine, you can disable the webhook in Stripe Dashboard instead if billing is permanently off)
+- The `Plan & Billing` user-facing tab disappears
+- The Admin → Billing nav group is hidden
+- The quota chain skips the plan tier and falls back to `default_token_quota` directly
+
+**Data is preserved**: existing `subscriptions`, `billing_plans`, and `users.plan_id` rows are untouched. Re-enabling resumes from the same state with no migration.
+
+---
+
+## Quota resolution
+
+Token quota for a given user resolves through this chain (top wins):
+
+1. `users.token_quota` is **explicitly set** (not NULL):
+   - `0` → unlimited (admin VIP gift)
+   - `N > 0` → hard cap at N (overrides plan; useful for blocking abusers without canceling their subscription)
+2. `users.plan.monthly_token_quota` (when billing is enabled) — what the user pays for
+3. `system_settings.default_token_quota` — defensive fallback, normally not consulted because step 2 covers all users with a plan
+4. `None` (unlimited) — last resort
+
+When billing is **disabled**, step 2 is skipped — chain is just `override → default → unlimited`. This keeps legacy installs honoring the admin-set global default without requiring plan migration.
+
+---
+
+## Pricing model
+
+V1 is a flat subscription. Free + Pro, monthly billing, USD-only.
+
+**Out of scope for v1** (intentional, deferred to roadmap):
+- Team plan (Stripe seats / `subscription.quantity`)
+- Annual billing
+- Multi-currency presentment
+- Coupons / promo codes
+- Tax handling (Stripe Tax integration — needs separate compliance review)
+- Usage-based metering / overage charges
+- Pay-per-use credit balance (one-time top-up)
+
+See the [roadmap](/roadmap) for what's planned next.
+
+---
+
+## Troubleshooting
+
+<Accordion title="Toggle won't activate — 400 error">
+The activation endpoint requires both `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` to be set. Confirm they're present in `.env` and that the backend was restarted after editing.
+</Accordion>
+
+<Accordion title="Webhook returns 503">
+Either billing is disabled (toggle is OFF), or the request signature failed verification (mismatched `STRIPE_WEBHOOK_SECRET`). Check Stripe Dashboard → Webhooks → recent events for the actual error body.
+</Accordion>
+
+<Accordion title="User subscribed but still sees Free plan">
+The `checkout.session.completed` webhook didn't reach your backend. Verify the endpoint URL in Stripe Dashboard matches `<your-domain>/api/webhooks/stripe` exactly, including the trailing path. Check Webhook recent deliveries for failures.
+</Accordion>
+
+<Accordion title="Pro user sees the test-mode price ID">
+The seed migration writes a test-mode price ID. After activating production billing, update the Pro plan to use your live `price_1***` via Admin → Billing → Plans → Pro → Edit, or via direct SQL UPDATE.
+</Accordion>
+
+<Accordion title="Receipts are branded with Stripe defaults">
+Configure your business branding in Stripe Dashboard → Settings → Branding. Add your logo, business name (e.g. "FIM Labs Pte. Ltd."), and address. Stripe applies these to all auto-generated receipts and invoices.
+</Accordion>
+
+<Accordion title="FX losses on payouts">
+If your Stripe account default currency differs from your charge currency, Stripe converts at every payout (1.5-2% spread). Add a matching settlement currency under Settings → Bank accounts and currencies, attach a same-currency bank account, and Stripe will route same-currency payments without conversion.
+</Accordion>

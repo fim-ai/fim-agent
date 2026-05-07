@@ -1,0 +1,196 @@
+---
+title: "Facturation Stripe"
+icon: "credit-card"
+description: "Activez les abonnements Stripe par utilisateur (Gratuit + Pro) avec quotas de jetons et gestion de plan en libre-service."
+---
+
+FIM One intègre un pipeline de facturation Stripe complet contrôlé par un drapeau de fonctionnalité administrateur. Les déploiements privés sans besoin de paiement le laissent désactivé et ne voient jamais l'interface utilisateur. Les opérateurs SaaS basculent un seul paramètre et obtiennent immédiatement la Checkout hébergée, le Portail Client, le cycle de vie des abonnements piloté par webhook et l'application des quotas.
+
+<Note>
+La facturation est **désactivée par défaut**. Les nouvelles installations et les déploiements autonomes existants commencent avec `system_settings.billing_enabled = FALSE`. Aucune interface de facturation n'apparaît tant qu'un administrateur ne l'active pas explicitement.
+</Note>
+
+## Ce que vous obtenez
+
+- **Niveaux Free + Pro** avec quotas de tokens mensuels (par défaut : Free 1M / Pro 5M ; tous deux ajustables après activation)
+- **Stripe Checkout hébergé** — les utilisateurs passent à la version payante sans que votre code ne touche jamais aux données de carte
+- **Portail client** — les utilisateurs mettent à jour les méthodes de paiement, téléchargent les factures, annulent — tout sur l'interface de Stripe
+- **Cycle de vie piloté par webhooks** — les abonnements se provisionnent et se renouvellent automatiquement ; les abonnements annulés rétrogradent à Free à la fin de la période
+- **Application des quotas** — utilisation des tokens suivie par période ; arrêt en cours de flux avec une invite de mise à niveau structurée
+- **Pages d'administration** pour la gestion des plans et la surveillance des abonnements
+
+## Prérequis
+
+1. **Compte Stripe** avec le mode Live activé. Les entreprises constituées à Singapour doivent compléter la vérification KYC (UEN commercial, ID du directeur, compte bancaire). L'approbation prend généralement 1 à 3 jours.
+2. **Clé API Stripe Live** de type Restricted (recommandée plutôt que Standard `sk_live_***` — plus facile à révoquer, permissions limitées).
+3. **Point de terminaison webhook** accessible publiquement à `<your-domain>/api/webhooks/stripe`.
+4. **Compte bancaire** pour les versements. Le règlement multi-devises (par ex. versement en USD vers un compte USD) est recommandé pour les comptes Stripe non-USD par défaut afin d'éviter une fuite de change de 1,5 à 2 % par transaction.
+
+## Configuration
+
+### 1. Tableau de bord Stripe
+
+#### Créer le produit Pro
+
+1. **Catalog → Products → + Add product**
+2. Name: `Pro`, description: `5M tokens / month, priority support`
+3. Pricing: Recurring, monthly, $20.00 USD (adjust to your pricing strategy)
+4. Save → copy the resulting `price_***` ID (you will UPDATE the local `billing_plans` table with this value after activation)
+
+#### Créer une clé API restreinte
+
+1. **Developers → API keys → + Create restricted key**
+2. Name: `fim-one production`
+3. Permissions (minimum):
+   - **Customers**: Write
+   - **Subscriptions**: Write
+   - **Checkout Sessions**: Write
+   - **Customer portal**: Write
+   - **Prices**: Read
+   - **Products**: Read
+4. Save → copy `rk_live_***`
+
+#### Enregistrer le point de terminaison du webhook
+
+1. **Developers → Webhooks → + Add endpoint**
+2. URL: `https://<your-domain>/api/webhooks/stripe`
+3. Événements à recevoir:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Après l'enregistrement, cliquez sur "Reveal signing secret" → copiez `whsec_***`
+
+#### Configurer le règlement multi-devises (recommandé)
+
+Si la devise par défaut de votre compte Stripe diffère de la devise de prix que vous facturez (cas courant : compte SGD facturant en USD) :
+
+1. **Paramètres → Comptes bancaires et devises → Ajouter une devise de règlement**
+2. Sélectionnez la devise de prix (par ex. USD)
+3. Attachez le compte bancaire correspondant (par ex. un compte virtuel Aspire USD)
+4. Enregistrez — Stripe achemine les frais USD directement vers les versements USD, sans conversion de change
+
+### 2. Backend `.env`
+
+Définissez ces trois clés dans votre `.env` de production :
+
+```bash
+STRIPE_SECRET_KEY=rk_live_***
+STRIPE_WEBHOOK_SECRET=whsec_***
+STRIPE_BILLING_RETURN_URL=https://<your-domain>/settings?tab=billing
+```
+
+Consultez [Variables d'environnement](/configuration/environment-variables) pour la référence complète.
+
+Redémarrez le backend après avoir modifié `.env` pour que les clés soient prises en compte :
+
+```bash
+./deploy.sh   # or: docker compose restart fim-one
+```
+
+### 3. Activate in Admin
+
+1. Log in as an admin
+2. **Admin → System Settings → Billing**
+3. Toggle **Enable Stripe Billing** ON
+4. The backend validates that both `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are present — if either is missing it returns 400 and the toggle stays OFF
+5. On first activation only, the backend runs an **idempotent setup**:
+   - Seeds Free + Pro plans (skipped if already present)
+   - Sets `system_settings.default_plan_id` to the Free plan id
+   - Backfills `users.plan_id = free.id` for any user without a plan
+   - Syncs `default_token_quota` → Free plan `monthly_token_quota` so the existing admin-controlled global quota carries over
+6. Subsequent toggle off/on is a **pure flag flip** with no data side effects
+
+### 4. Mettez à jour le plan Pro avec votre prix en direct
+
+Après l'activation, mettez à jour le plan Pro pré-configuré pour pointer vers votre prix Stripe en direct :
+
+- **Admin → Billing → Plans → Pro → Edit**
+- Collez votre `price_1***` (de l'étape 1) dans `Stripe Price ID`
+- Enregistrez
+
+Ou via SQL (si vous préférez un accès direct à la base de données) :
+
+```sql
+UPDATE billing_plans
+SET stripe_price_id = 'price_1***'
+WHERE slug = 'pro';
+```
+
+### 5. Test de fumée
+
+1. Ouvrez `/settings?tab=billing` en tant qu'utilisateur ordinaire
+2. Cliquez sur **Switch to Pro**
+3. Stripe Checkout s'ouvre ; complétez avec une vraie carte à faible montant (remboursement après)
+4. Le webhook doit se déclencher — vérifiez dans Stripe Dashboard → Webhooks → les événements récents affichent des réponses 2xx
+5. Une ligne d'abonnement apparaît dans la table `subscriptions` ; `users.plan_id` bascule à `pro`
+6. L'interface affiche maintenant le plan Pro + le bouton « Manage subscription »
+
+## Désactiver la facturation
+
+Basculez le commutateur **Enable Stripe Billing** sur OFF dans Admin → System Settings → Billing.
+
+Lorsque désactivé :
+- Tous les points de terminaison `/api/billing/*` retournent 503
+- Le point de terminaison webhook retourne 503 (Stripe réessaiera, puis s'affichera dans Dashboard comme défaillant — c'est normal, vous pouvez désactiver le webhook dans Stripe Dashboard à la place si la facturation est définitivement désactivée)
+- L'onglet **Plan & Billing** destiné aux utilisateurs disparaît
+- Le groupe de navigation Admin → Billing est masqué
+- La chaîne de quota ignore le niveau de plan et revient directement à `default_token_quota`
+
+**Les données sont préservées** : les lignes `subscriptions`, `billing_plans` et `users.plan_id` existantes restent inchangées. La réactivation reprend à partir du même état sans migration.
+
+## Résolution des quotas de jetons
+
+Le quota de jetons pour un utilisateur donné se résout selon cette chaîne (le premier applicable gagne) :
+
+1. `users.token_quota` est **explicitement défini** (non NULL) :
+   - `0` → illimité (cadeau VIP administrateur)
+   - `N > 0` → limite stricte à N (remplace le plan ; utile pour bloquer les abuseurs sans annuler leur abonnement)
+2. `users.plan.monthly_token_quota` (quand la facturation est activée) — ce que l'utilisateur paie
+3. `system_settings.default_token_quota` — secours défensif, normalement non consulté car l'étape 2 couvre tous les utilisateurs ayant un plan
+4. `None` (illimité) — dernier recours
+
+Quand la facturation est **désactivée**, l'étape 2 est ignorée — la chaîne devient simplement `override → default → unlimited`. Cela permet aux installations héritées de respecter la valeur par défaut globale définie par l'administrateur sans nécessiter une migration de plan.
+
+## Modèle de tarification
+
+V1 est un abonnement forfaitaire. Gratuit + Pro, facturation mensuelle, USD uniquement.
+
+**Hors du champ d'application pour v1** (intentionnel, reporté à la feuille de route) :
+- Plan d'équipe (sièges Stripe / `subscription.quantity`)
+- Facturation annuelle
+- Présentation multi-devises
+- Coupons / codes promotionnels
+- Gestion des taxes (intégration Stripe Tax — nécessite un examen de conformité distinct)
+- Mesure basée sur l'utilisation / frais de dépassement
+- Solde de crédit à l'usage (recharge unique)
+
+Consultez la [feuille de route](/roadmap) pour connaître les prochaines étapes prévues.
+
+## Dépannage
+
+<Accordion title="Le bouton bascule ne s'active pas — erreur 400">
+Le point de terminaison d'activation nécessite que `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` soient définis. Confirmez qu'ils sont présents dans `.env` et que le backend a été redémarré après la modification.
+</Accordion>
+
+<Accordion title="Le webhook retourne 503">
+Soit la facturation est désactivée (le bouton bascule est OFF), soit la vérification de la signature de la requête a échoué (clé `STRIPE_WEBHOOK_SECRET` non concordante). Consultez Stripe Dashboard → Webhooks → événements récents pour voir le corps d'erreur réel.
+</Accordion>
+
+<Accordion title="L'utilisateur s'est abonné mais voit toujours le plan gratuit">
+Le webhook `checkout.session.completed` n'a pas atteint votre backend. Vérifiez que l'URL du point de terminaison dans Stripe Dashboard correspond exactement à `<your-domain>/api/webhooks/stripe`, y compris le chemin de fin. Consultez les livraisons récentes du webhook pour les défaillances.
+</Accordion>
+
+<Accordion title="L'utilisateur Pro voit l'ID de prix en mode test">
+La migration de seed écrit un ID de prix en mode test. Après l'activation de la facturation en production, mettez à jour le plan Pro pour utiliser votre `price_1***` en direct via Admin → Billing → Plans → Pro → Edit, ou via une UPDATE SQL directe.
+</Accordion>
+
+<Accordion title="Les reçus sont marqués avec les paramètres par défaut de Stripe">
+Configurez votre image de marque commerciale dans Stripe Dashboard → Settings → Branding. Ajoutez votre logo, le nom de votre entreprise (par exemple « FIM Labs Pte. Ltd. ») et votre adresse. Stripe applique ces paramètres à tous les reçus et factures générés automatiquement.
+</Accordion>
+
+<Accordion title="Pertes de change sur les versements">
+Si la devise par défaut de votre compte Stripe diffère de votre devise de facturation, Stripe convertit à chaque versement (écart de 1,5-2 %). Ajoutez une devise de règlement correspondante sous Settings → Bank accounts and currencies, attachez un compte bancaire dans la même devise, et Stripe acheminera les paiements dans la même devise sans conversion.
+</Accordion>

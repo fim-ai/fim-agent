@@ -1,0 +1,196 @@
+---
+title: "Stripe 计费"
+icon: "credit-card"
+description: "启用按用户的 Stripe 订阅（免费版 + 专业版），包含令牌配额和自助式套餐管理。"
+---
+
+FIM One 在管理员控制的功能标志后面提供完整的 Stripe 计费管道。不需要支付功能的私有部署可以将其关闭，永远不会看到相关 UI。SaaS 运营商只需切换一个开关，即可获得托管结账、客户门户、由 webhook 驱动的订阅生命周期管理和配额强制执行。
+
+<Note>
+计费**默认禁用**。全新安装和现有自托管部署都以 `system_settings.billing_enabled = FALSE` 开始。在管理员明确激活之前，不会显示任何计费 UI。
+</Note>
+
+## 您将获得
+
+- **免费版和专业版** 配有月度令牌配额（默认值：免费版 1M / 专业版 5M；激活后可调整）
+- **Stripe 托管结账** — 用户无需您的代码接触卡数据即可升级
+- **客户门户** — 用户可更新支付方式、下载发票、取消订阅——全部在 Stripe 的界面上完成
+- **Webhook 驱动的生命周期** — 订阅自动配置和续期；已取消的订阅在周期结束时降级为免费版
+- **配额强制执行** — 按周期跟踪令牌使用情况；中途截断并显示结构化升级提示
+- **管理页面** 用于计划 CRUD 和订阅监控
+
+## 前置条件
+
+1. **Stripe账户**已启用实时模式。新加坡注册公司必须完成KYC（营业执照、董事身份证、银行账户）。审批通常需要1-3天。
+2. **Stripe实时API密钥**，类型为受限制（推荐使用，相比标准`sk_live_***`更易撤销、权限范围更小）。
+3. **Webhook端点**可公开访问，地址为`<your-domain>/api/webhooks/stripe`。
+4. **银行账户**用于支付。建议多币种结算（例如USD支付到USD账户），以避免非USD默认Stripe账户每笔交易产生1.5-2%的汇兑损失。
+
+## 设置
+
+### 1. Stripe 仪表板
+
+#### 创建Pro产品
+
+1. **Catalog → Products → + Add product**
+2. Name: `Pro`, description: `5M tokens / month, priority support`
+3. Pricing: Recurring, monthly, $20.00 USD (根据您的定价策略调整)
+4. Save → 复制生成的 `price_***` ID（激活后，您将使用此值更新本地 `billing_plans` 表）
+
+#### 创建受限API密钥
+
+1. **Developers → API keys → + Create restricted key**
+2. Name: `fim-one production`
+3. Permissions (minimum):
+   - **Customers**: Write
+   - **Subscriptions**: Write
+   - **Checkout Sessions**: Write
+   - **Customer portal**: Write
+   - **Prices**: Read
+   - **Products**: Read
+4. Save → copy `rk_live_***`
+
+#### 注册webhook端点
+
+1. **Developers → Webhooks → + Add endpoint**
+2. URL: `https://<your-domain>/api/webhooks/stripe`
+3. 要接收的事件：
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. 保存后，点击"Reveal signing secret"→ 复制 `whsec_***`
+
+#### 配置多币种结算（推荐）
+
+如果您的Stripe账户默认币种与您收费的价格币种不同（常见情况：SGD账户收取USD费用）：
+
+1. **Settings → Bank accounts and currencies → Add a settlement currency**
+2. 选择价格币种（例如USD）
+3. 关联匹配的银行账户（例如Aspire USD虚拟账户）
+4. 保存——Stripe将USD费用直接路由到USD支付，无需外汇转换
+
+### 2. 后端 `.env`
+
+在生产环境的 `.env` 中设置这三个密钥：
+
+```bash
+STRIPE_SECRET_KEY=rk_live_***
+STRIPE_WEBHOOK_SECRET=whsec_***
+STRIPE_BILLING_RETURN_URL=https://<your-domain>/settings?tab=billing
+```
+
+完整参考请见[环境变量](/configuration/environment-variables)。
+
+编辑 `.env` 后重启后端以使密钥生效：
+
+```bash
+./deploy.sh   # or: docker compose restart fim-one
+```
+
+### 3. 在管理员中激活
+
+1. 以管理员身份登录
+2. **管理员 → 系统设置 → 计费**
+3. 切换**启用 Stripe 计费**为 ON
+4. 后端验证 `STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET` 都存在——如果任一缺失，返回 400 并且切换保持 OFF
+5. 仅在首次激活时，后端运行**幂等设置**：
+   - 种子化免费版和专业版套餐（如果已存在则跳过）
+   - 设置 `system_settings.default_plan_id` 为免费版套餐 id
+   - 为任何没有套餐的用户回填 `users.plan_id = free.id`
+   - 同步 `default_token_quota` → 免费版套餐 `monthly_token_quota`，使现有的管理员控制的全局配额得以保留
+6. 后续的切换关闭/打开是**纯标志翻转**，无数据副作用
+
+### 4. 使用您的实时价格更新Pro套餐
+
+激活后，更新预设的Pro套餐以指向您的实时Stripe价格：
+
+- **Admin → Billing → Plans → Pro → Edit**
+- 将您的`price_1***`（来自第1步）粘贴到`Stripe Price ID`
+- 保存
+
+或通过SQL（如果您更喜欢直接数据库访问）：
+
+```sql
+UPDATE billing_plans
+SET stripe_price_id = 'price_1***'
+WHERE slug = 'pro';
+```
+
+### 5. 烟雾测试
+
+1. 以普通用户身份打开 `/settings?tab=billing`
+2. 点击**升级到 Pro**
+3. Stripe Checkout 打开；使用低额真实卡片完成支付（之后退款）
+4. Webhook 应该触发——在 Stripe Dashboard → Webhooks → 最近事件中验证显示 2xx 响应
+5. 订阅行出现在 `subscriptions` 表中；`users.plan_id` 切换为 `pro`
+6. UI 现在显示 Pro 计划 + "管理订阅"按钮
+
+## 禁用账单
+
+在管理员 → 系统设置 → 账单中，将**启用 Stripe 账单**开关切换为关闭。
+
+禁用后：
+- 所有 `/api/billing/*` 端点返回 503
+- Webhook 端点返回 503（Stripe 将重试，然后在仪表板中显示为失败——这是正常的，如果账单永久关闭，你可以改为在 Stripe 仪表板中禁用 Webhook）
+- `Plan & Billing` 用户界面标签页消失
+- 管理员 → 账单导航组被隐藏
+- 配额链跳过计划层级，直接回退到 `default_token_quota`
+
+**数据被保留**：现有的 `subscriptions`、`billing_plans` 和 `users.plan_id` 行保持不变。重新启用将从相同状态恢复，无需迁移。
+
+## 配额解析
+
+给定用户的令牌配额通过以下链解析（优先级从高到低）：
+
+1. `users.token_quota` **显式设置**（非 NULL）：
+   - `0` → 无限制（管理员 VIP 礼物）
+   - `N > 0` → 硬上限为 N（覆盖套餐；用于在不取消订阅的情况下阻止滥用者）
+2. `users.plan.monthly_token_quota`（启用计费时）— 用户支付的额度
+3. `system_settings.default_token_quota` — 防御性后备，通常不会被查询，因为第 2 步涵盖了所有有套餐的用户
+4. `None`（无限制）— 最后手段
+
+禁用计费时，第 2 步被跳过——链仅为 `override → default → unlimited`。这使得旧版安装能够遵守管理员设置的全局默认值，而无需进行套餐迁移。
+
+## 定价模型
+
+V1 是一个统一订阅。免费 + 专业版，按月计费，仅支持美元。
+
+**V1 范围外**（有意推迟至路线图）：
+- 团队计划（Stripe 座位 / `subscription.quantity`）
+- 年度计费
+- 多币种展示
+- 优惠券 / 促销代码
+- 税务处理（Stripe Tax 集成——需要单独的合规审查）
+- 基于使用量的计量 / 超额费用
+- 按次付费信用余额（一次性充值）
+
+查看[路线图](/roadmap)了解后续计划。
+
+## 故障排除
+
+<Accordion title="切换开关无法激活——400错误">
+激活端点需要同时设置 `STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。确认它们存在于 `.env` 中，并且编辑后后端已重启。
+</Accordion>
+
+<Accordion title="Webhook返回503">
+要么是账单被禁用（切换开关为OFF），要么是请求签名验证失败（`STRIPE_WEBHOOK_SECRET` 不匹配）。检查Stripe仪表板→Webhooks→最近事件以查看实际错误正文。
+</Accordion>
+
+<Accordion title="用户已订阅但仍显示免费计划">
+`checkout.session.completed` webhook未到达你的后端。验证Stripe仪表板中的端点URL与 `<your-domain>/api/webhooks/stripe` 完全匹配，包括末尾路径。检查Webhook最近交付记录中的失败。
+</Accordion>
+
+<Accordion title="Pro用户看到测试模式价格ID">
+种子迁移写入了测试模式价格ID。激活生产账单后，通过管理员→账单→套餐→Pro→编辑，或通过直接SQL UPDATE，将Pro计划更新为使用你的实时 `price_1***`。
+</Accordion>
+
+<Accordion title="收据使用Stripe默认品牌">
+在Stripe仪表板→设置→品牌中配置你的业务品牌。添加你的徽标、业务名称（例如"FIM Labs Pte. Ltd."）和地址。Stripe会将这些应用于所有自动生成的收据和发票。
+</Accordion>
+
+<Accordion title="支付中的汇兑损失">
+如果你的Stripe账户默认货币与收费货币不同，Stripe会在每次支付时进行转换（1.5-2%的差价）。在设置→银行账户和货币下添加匹配的结算货币，附加相同货币的银行账户，Stripe将路由相同货币的付款而无需转换。
+</Accordion>

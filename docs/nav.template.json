@@ -30,6 +30,7 @@
             "configuration/models",
             "configuration/model-management",
             "configuration/oauth-providers",
+            "configuration/billing",
             {
               "group": "Channels",
               "icon": "tower-broadcast",

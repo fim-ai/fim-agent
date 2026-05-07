@@ -1,0 +1,196 @@
+---
+title: "Stripe Billing"
+icon: "credit-card"
+description: "ユーザーごとのStripe サブスクリプション（Free + Pro）をトークンクォータと自動サービス プラン管理で有効にします。"
+---
+
+FIM One は、管理者が制御する機能フラグの背後に完全な Stripe 請求パイプラインを搭載しています。支払い機能が不要なプライベート デプロイメントはこれをオフのままにし、UI は表示されません。SaaS オペレーターは 1 つのトグルを切り替えるだけで、ホストされた Checkout、カスタマー ポータル、webhook 駆動のサブスクリプション ライフサイクル、およびクォータ強制が すぐに利用できます。
+
+<Note>
+請求は**デフォルトで無効**です。新規インストールと既存のセルフホスト デプロイメントの両方は、`system_settings.billing_enabled = FALSE` で開始されます。管理者が明示的に有効にするまで、請求 UI は表示されません。
+</Note>
+
+## 提供内容
+
+- **Free + Pro ティア**（月次トークンクォータ付き、デフォルト：Free 1M / Pro 5M、アクティベーション後にカスタマイズ可能）
+- **Stripe ホスト型チェックアウト** — ユーザーはアップグレード時にカード情報があなたのコードに触れることなく完了
+- **カスタマーポータル** — ユーザーが支払い方法の更新、請求書のダウンロード、キャンセルをすべて Stripe UI で実行
+- **Webhook 駆動ライフサイクル** — サブスクリプションは自動的にプロビジョニングおよび更新され、キャンセルされたサブスクリプションは期間終了時に Free に降格
+- **クォータ強制実行** — トークン使用量を期間ごとに追跡、ストリーム中のカットオフと構造化されたアップグレードプロンプト
+- **管理ページ** — プラン CRUD とサブスクリプション監視用
+
+## 前提条件
+
+1. **Stripe アカウント**（ライブモード有効化済み）。シンガポール法人の場合は KYC（事業 UEN、取締役 ID、銀行口座）の完了が必須です。承認には通常 1～3 日かかります。
+2. **Stripe ライブ API キー**（制限付きタイプ推奨。標準の `sk_live_***` より取り消しやすく、権限がスコープされています）。
+3. **Webhook エンドポイント**（`<your-domain>/api/webhooks/stripe` で公開アクセス可能）。
+4. **銀行口座**（支払い用）。USD 以外がデフォルトの Stripe アカウントの場合、マルチ通貨決済（例：USD 口座への USD 支払い）を推奨します。これにより、トランザクションあたり 1.5～2% の為替損失を回避できます。
+
+## セットアップ
+
+### 1. Stripe ダッシュボード
+
+#### Pro製品を作成する
+
+1. **Catalog → Products → + Add product**
+2. Name: `Pro`、description: `5M tokens / month, priority support`
+3. Pricing: Recurring、monthly、$20.00 USD（ご自身の価格戦略に合わせて調整してください）
+4. Save → 結果の `price_***` IDをコピーします（アクティベーション後、ローカルの `billing_plans` テーブルをこの値で更新します）
+
+#### 制限付きAPIキーを作成する
+
+1. **Developers → API keys → + Create restricted key**
+2. Name: `fim-one production`
+3. Permissions (minimum):
+   - **Customers**: Write
+   - **Subscriptions**: Write
+   - **Checkout Sessions**: Write
+   - **Customer portal**: Write
+   - **Prices**: Read
+   - **Products**: Read
+4. Save → copy `rk_live_***`
+
+#### Webhookエンドポイントを登録する
+
+1. **Developers → Webhooks → + Add endpoint**
+2. URL: `https://<your-domain>/api/webhooks/stripe`
+3. 受け取るイベント：
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. 保存後、「Reveal signing secret」をクリック → `whsec_***` をコピー
+
+#### 複数通貨決済の設定（推奨）
+
+Stripeアカウントのデフォルト通貨が、請求する価格通貨と異なる場合（一般的な例：SGDアカウントでUSD請求）：
+
+1. **Settings → Bank accounts and currencies → Add a settlement currency**
+2. 価格通貨を選択（例：USD）
+3. 対応する銀行口座を接続（例：Aspire USD仮想口座）
+4. 保存 — StripeはUSD請求をUSD支払いに直接ルーティングし、為替変換は行いません
+
+### 2. Backend `.env`
+
+本番環境の`.env`で以下の3つのキーを設定します：
+
+```bash
+STRIPE_SECRET_KEY=rk_live_***
+STRIPE_WEBHOOK_SECRET=whsec_***
+STRIPE_BILLING_RETURN_URL=https://<your-domain>/settings?tab=billing
+```
+
+詳細は[環境変数](/configuration/environment-variables)を参照してください。
+
+`.env`を編集した後、バックエンドを再起動してキーが読み込まれるようにします：
+
+```bash
+./deploy.sh   # or: docker compose restart fim-one
+```
+
+### 3. Admin で有効化
+
+1. 管理者としてログイン
+2. **Admin → System Settings → Billing**
+3. **Enable Stripe Billing** をONに切り替え
+4. バックエンドが `STRIPE_SECRET_KEY` と `STRIPE_WEBHOOK_SECRET` の両方が存在することを検証します — どちらかが欠落している場合は400を返し、トグルはOFFのままになります
+5. 初回有効化時のみ、バックエンドは**べき等なセットアップ**を実行します：
+   - Free + Pro プランをシード（既に存在する場合はスキップ）
+   - `system_settings.default_plan_id` を Free プランのIDに設定
+   - プランを持たないユーザーの `users.plan_id = free.id` をバックフィル
+   - `default_token_quota` → Free プランの `monthly_token_quota` を同期して、既存の管理者制御グローバルクォータを引き継ぎ
+6. その後のトグルオフ/オンは**純粋なフラグ反転**で、データ側の影響はありません
+
+### 4. Pro プランをライブ価格で更新する
+
+アクティベーション後、シードされた Pro プランをライブ Stripe 価格にポイントするように更新します：
+
+- **Admin → Billing → Plans → Pro → Edit**
+- ステップ 1 から取得した `price_1***` を `Stripe Price ID` に貼り付けます
+- 保存します
+
+または SQL 経由で（直接 DB アクセスを希望する場合）：
+
+```sql
+UPDATE billing_plans
+SET stripe_price_id = 'price_1***'
+WHERE slug = 'pro';
+```
+
+### 5. スモークテスト
+
+1. 通常ユーザーとして `/settings?tab=billing` を開く
+2. **Switch to Pro** をクリック
+3. Stripe Checkout が開く。少額の実カードで完了する（その後払い戻す）
+4. Webhook が発火する — Stripe Dashboard → Webhooks → 最近のイベントで 2xx レスポンスが表示されることを確認
+5. `subscriptions` テーブルにサブスクリプション行が表示される。`users.plan_id` が `pro` に切り替わる
+6. UI に Pro プランと「Manage subscription」ボタンが表示される
+
+## 請求の無効化
+
+Admin → System Settings → Billing で **Enable Stripe Billing** スイッチを OFF に切り替えます。
+
+無効化すると：
+- すべての `/api/billing/*` エンドポイントが 503 を返す
+- webhook エンドポイントが 503 を返す（Stripe は再試行し、Dashboard に失敗として表示されます — これは問題ありません。請求が永続的に無効な場合は、Stripe Dashboard で webhook を無効にすることもできます）
+- `Plan & Billing` ユーザー向けタブが消える
+- Admin → Billing ナビゲーショングループが非表示になる
+- クォータチェーンがプランティアをスキップし、`default_token_quota` に直接フォールバックする
+
+**データは保持されます**：既存の `subscriptions`、`billing_plans`、`users.plan_id` 行は変更されません。再度有効化すると、マイグレーションなしで同じ状態から再開されます。
+
+## クォータ解決
+
+特定のユーザーのトークンクォータは、以下のチェーン（上位が優先）を通じて解決されます：
+
+1. `users.token_quota` が **明示的に設定** されている（NULL ではない）：
+   - `0` → 無制限（管理者 VIP ギフト）
+   - `N > 0` → N でハードキャップ（プランをオーバーライド；サブスクリプションをキャンセルせずに悪用者をブロックするのに便利）
+2. `users.plan.monthly_token_quota`（課金が有効な場合）— ユーザーが支払う額
+3. `system_settings.default_token_quota` — 防御的なフォールバック。通常は参照されません。ステップ 2 がプランを持つすべてのユーザーをカバーするため
+4. `None`（無制限）— 最後の手段
+
+課金が **無効** な場合、ステップ 2 はスキップされます — チェーンは `override → default → unlimited` のみです。これにより、レガシーインストールがプラン移行を必要とせずに管理者が設定したグローバルデフォルトを尊重します。
+
+## 料金モデル
+
+V1はフラットサブスクリプションです。Free + Pro、月次請求、USD のみ。
+
+**V1 の対象外** (意図的に、ロードマップに延期):
+- Team プラン (Stripe seats / `subscription.quantity`)
+- 年間請求
+- 複数通貨の表示
+- クーポン / プロモコード
+- 税務処理 (Stripe Tax 統合 — 別途コンプライアンスレビューが必要)
+- 使用量ベースのメータリング / 超過料金
+- 従量課金クレジット残高 (ワンタイムトップアップ)
+
+次に予定されている内容については、[ロードマップ](/roadmap)を参照してください。
+
+## トラブルシューティング
+
+<Accordion title="トグルが有効化されない — 400 エラー">
+有効化エンドポイントには `STRIPE_SECRET_KEY` と `STRIPE_WEBHOOK_SECRET` の両方が設定されている必要があります。`.env` に存在することを確認し、編集後にバックエンドが再起動されていることを確認してください。
+</Accordion>
+
+<Accordion title="Webhook が 503 を返す">
+課金が無効化されているか（トグルが OFF）、またはリクエスト署名の検証に失敗しています（`STRIPE_WEBHOOK_SECRET` が一致していない）。Stripe ダッシュボード → Webhooks → 最近のイベントで実際のエラー本文を確認してください。
+</Accordion>
+
+<Accordion title="ユーザーがサブスクライブしたが、まだ Free プランが表示される">
+`checkout.session.completed` webhook がバックエンドに到達しませんでした。Stripe ダッシュボードのエンドポイント URL が `<your-domain>/api/webhooks/stripe` と完全に一致していることを確認してください（末尾のパスを含む）。Webhook の最近の配信でエラーを確認してください。
+</Accordion>
+
+<Accordion title="Pro ユーザーがテストモードの価格 ID を見ている">
+シード マイグレーションはテストモードの価格 ID を書き込みます。本番課金を有効化した後、Admin → Billing → Plans → Pro → Edit で Pro プランを更新して、本番環境の `price_1***` を使用するか、直接 SQL UPDATE で更新してください。
+</Accordion>
+
+<Accordion title="領収書が Stripe のデフォルト ブランディングで表示される">
+Stripe ダッシュボード → Settings → Branding でビジネス ブランディングを設定してください。ロゴ、ビジネス名（例：「FIM Labs Pte. Ltd.」）、住所を追加してください。Stripe はこれらを自動生成されたすべての領収書と請求書に適用します。
+</Accordion>
+
+<Accordion title="支払い時の為替損失">
+Stripe アカウントのデフォルト通貨が請求通貨と異なる場合、Stripe は支払いのたびに変換します（1.5～2% のスプレッド）。Settings → Bank accounts and currencies で一致する決済通貨を追加し、同じ通貨の銀行口座を接続すると、Stripe は変換なしで同じ通貨の支払いをルーティングします。
+</Accordion>
