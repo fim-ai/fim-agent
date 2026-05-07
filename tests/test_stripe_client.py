@@ -115,8 +115,10 @@ class TestSettingsStripeValidator:
         monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
         monkeypatch.delenv("STRIPE_BILLING_RETURN_URL", raising=False)
         s = Settings.from_env()
+        # Updated when ``/settings/billing`` was folded back into the
+        # main settings tab as ``/settings?tab=billing``.
         assert s.STRIPE_BILLING_RETURN_URL == (
-            "http://localhost:3000/settings/billing"
+            "http://localhost:3000/settings?tab=billing"
         )
 
     def test_custom_billing_return_url(

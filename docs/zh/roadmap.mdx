@@ -374,30 +374,34 @@ flowchart LR
 
 **影响**: 自信地大规模运行 FIM One。四大支柱：**追踪层**（查看发生了什么）、**钩子系统**（强制必须发生的事）、**智能体工作区**（持久文件管理 + 交接）、**IM 频道**（智能体存在于用户工作的地方）。预构建解决方案模板消除冷启动；仪表板增强显示运营健康状况。"智能体可能遵循的指令"和"系统强制执行的保证"之间的差距被消除 — 这是演示和生产企业工具之间的区别。
 
-### v1.0 — Hot-Plug + Embeddable
+### v1.0 — 热插拔 + 可嵌入
 
-**目标**：零重启连接器添加、套餐生态系统和嵌入式交付。
+**目标**：零重启连接器添加、包生态系统和嵌入式交付。
 
 - [ ] **连接器渐进式披露（第5阶段）**：**语义引导的工具选择**（从查询中提取实体 → 本体注册表查找 → 连接器集合缩减；50+连接器部署时可减少90%+令牌）；批处理/ETL连接器的规模模式；CLI风格的通用`connector <name> <action> <params>`接口
-- [ ] **跨连接器实体对齐（本体注册表）**：定义共享实体类型（客户、订单、资产），并在连接器间进行字段映射；DAGPlanner自动解析跨系统JOIN键；启用跨连接器查询（例如"Salesforce中在Shopify下单的客户"），无需硬编码字段名
+- [ ] **跨连接器实体对齐（本体注册表）**：定义共享实体类型（Customer、Order、Asset），并在连接器间映射字段；DAGPlanner自动解析跨系统JOIN键；启用跨连接器查询（例如"Salesforce中在Shopify下单的客户"），无需硬编码字段名
 - [ ] **热插拔连接器**：上传OpenAPI规范，AI生成配置，5分钟内上线（无需重启）
-- [x] ~~**市场重设计第1阶段——解决方案+组件**~~：两层市场模型（解决方案：智能体/技能/工作流；组件：连接器/MCP服务器）；范围选择器（全球市场/组织）；统一订阅模型（组织自动显示已移除）；知识库从市场范围移除；数据迁移为现有组织成员回填订阅
-- [ ] **市场套餐系统**：市场的可分发资源包——用统一打包层替换按类型的"市场"。`fim-package.yaml`清单声明：元数据（名称、版本、描述、作者、许可证、标签、`min_fim_version`）、入口点（主要技能或智能体）、资源列表（智能体、技能、连接器、知识库、MCP服务器、工作流）及配置引用、包间依赖（语义版本范围）、必需凭证（映射到连接器引用以供安装时收集）和用户可配置变量及默认值。**两种消费模式**：（1）**安装**——批量创建所有资源+通过ID替换自动连接内部引用；安装链接到源以获取版本更新通知；`POST /api/market/packages/{id}/install`；（2）**分叉**——克隆为用户拥有的可编辑副本，无更新链接（这就是模板模式）；`POST /api/market/packages/{id}/fork`。附加端点：发布（`POST /api/market/packages`含审查工作流）、卸载（`DELETE /packages/{id}/uninstall`含依赖检查+修改资源确认）、版本历史（`GET /packages/{id}/versions`）、升级（`POST /packages/{id}/upgrade`含按资源差异预览）。嵌套包需求的依赖解析器，具有冲突检测。`PackageInstallation`表跟踪每个用户的已安装包及资源ID映射以供卸载/升级。**与单个资源发布共存**——套餐是组合层，不是替代品；单个连接器仍可独立发布。示例依赖树：`套餐：合同审查` → `技能：合同审查`（入口点）→ `智能体：合同分析师` + `智能体：风险评分员` → `知识库：法律条款` + `连接器：docusign-api` + `MCP：pdf-extractor` + `工作流：合同审批流程`
-- [ ] **创作者计划**：市场变现层——创作者档案及作品集页面、按套餐分析（安装、分叉、活跃用户、评分/评论）、当套餐推动新订阅时的联盟佣金追踪。付费套餐层级，含定价、购买流程和审批工作流。创作者仪表板，含安装趋势、收入报告和用户反馈。用于程序化套餐发布的公共创作者API（套餐作者的CI/CD）。社区功能：套餐评论、问答、每个版本的更新日志
+- [x] ~~**市场重设计第1阶段 — 解决方案 + 组件**~~：两层市场模型（解决方案：Agent/Skill/Workflow；组件：Connector/MCP Server）；范围选择器（全球市场/组织）；统一订阅模型（移除组织自动出现）；从市场范围移除KB；数据迁移为现有组织成员回填订阅
+- [ ] **市场包系统**：市场的可分发资源包 — 用统一打包层替代按类型的"市场"。`fim-package.yaml`清单声明：元数据（名称、版本、描述、作者、许可证、标签、`min_fim_version`）、入口点（主要Skill或Agent）、资源列表（agents、skills、connectors、KBs、MCP servers、workflows）及配置引用、包间依赖（semver范围）、所需凭证（映射到连接器引用以供安装时收集）和用户可配置变量及默认值。**两种消费模式**：（1）**install** — 批量创建所有资源 + 通过ID替换自动连接内部引用；安装链接到源以获取版本更新通知；`POST /api/market/packages/{id}/install`；（2）**fork** — 克隆为用户拥有的可编辑副本，无更新链接（这就是模板模式）；`POST /api/market/packages/{id}/fork`。额外端点：发布（`POST /api/market/packages`，带审查工作流）、卸载（`DELETE /packages/{id}/uninstall`，带依赖检查 + 修改资源确认）、版本历史（`GET /packages/{id}/versions`）、升级（`POST /packages/{id}/upgrade`，带按资源差异预览）。嵌套包需求的依赖解析器，具有冲突检测。`PackageInstallation`表跟踪每个用户的已安装包，包含用于卸载/升级的资源ID映射。**与单个资源发布共存** — 包是组合层，不是替代品；单个Connector仍可独立发布。示例依赖树：`Package: contract-review` → `Skill: contract-review`（入口点）→ `Agent: contract-analyst` + `Agent: risk-scorer` → `KB: legal-clauses` + `Connector: docusign-api` + `MCP: pdf-extractor` + `Workflow: contract-approval-flow`
+- [ ] **创作者计划**：市场变现层 — 创作者档案及作品集页面、按包分析（安装数、fork数、活跃用户、评分/评论）、当包驱动新订阅时的联盟佣金追踪。付费包层级，包含定价、购买流程和审批工作流。创作者仪表板，显示安装趋势、收入报告和用户反馈。用于程序化包发布的公共创作者API（包作者的CI/CD）。社区功能：包评论、问答、每个版本的更新日志
 - [ ] **可嵌入小部件**：`<script src="fim-one.js">`注入到主机页面
 - [ ] **页面上下文注入**：小部件读取主机页面上下文（当前ID、URL、DOM选择器）
-- [ ] **高级触发器**：Webhook入站事件；计划任务增强（多时区、日历感知）
-- [ ] **批量执行**：通过DAG处理1000+项目
+- [ ] **高级触发器**：Webhook入站事件；计划作业增强（多时区、日历感知）
+- [ ] **批量执行**：通过DAG处理1000+项
 - [ ] **企业安全**：IP白名单、静态加密、SSO
-- [ ] **知识库高级编辑器**：为管理大型知识库的高级用户提供生成器模式智能体——批量URL摄取、重复检测、差距分析、文档生命周期管理；使用ReAct工具循环扩展现有知识库AI聊天
-- [ ] **Stripe计费（v1 MVP——Pro订阅）**：免费+Pro两层订阅，含月度令牌配额。Stripe Checkout（托管）+客户门户（自助服务）+webhook驱动的生命周期（`checkout.session.completed` / `customer.subscription.updated|deleted` / `invoice.payment_succeeded|failed`）。配额耗尽时软上限（HTTP 402+升级提示）——v1中无超额费用。仅按用户计费；组织/团队订阅延迟至v3。先决条件：
-  - [x] **数据模型+SDK基础工作**（P1）——`billing_plans` / `subscriptions` / `stripe_webhook_events`表、ORM模型、带固定API版本的Stripe SDK单例、部分配置和密钥前缀验证器。免费+Pro计划已植入（Pro stripe_price_id目前是测试模式价格；生产部署需要单独的实时price_id）。
-  - [x] **后端API+webhook处理器**（P2）——`/api/billing/{plans,subscription,checkout,portal}` + `/api/webhooks/stripe`，含签名验证+事件幂等性。计划感知配额执行和每小时生命周期扫描，在`current_period_end`时将已取消订阅降级为免费。
-  - [x] **前端`/settings/billing`页面+402升级对话框**（P3）——配额显示、升级CTA、`past_due`横幅；使用shadcn `<Dialog>`拦截聊天402（无原生确认）。
-  - [x] **管理员计划管理**（P4）——`admin/billing/plans`（通过`...`下拉菜单进行基于对话框的CRUD）+`admin/billing/subscriptions`（含状态/计划/电子邮件过滤器的只读）。
-  - [x] **管理员控制的计费功能标志**（P5）——`system_settings.billing_enabled`控制Stripe管道（面向用户的API、webhook、管理CRUD），以便没有Stripe凭证的私有部署永远不会意外显示非功能性支付UX。激活流植入计划+设置`default_plan_id`指针+精确一次回填`users.plan_id`；后续切换关闭/打开是纯标志翻转，无数据副作用。当标志关闭时配额链跳过计划层级，以便旧版安装继续遵守管理员设置的`default_token_quota`。`STRIPE_BILLING_RETURN_URL`默认更新为`/settings?tab=billing`，结账重定向遵守现有查询字符串。
+- [ ] **KB高级编辑器**：为管理大型知识库的高级用户提供的Builder模式agent — 批量URL摄取、重复检测、差距分析、文档生命周期管理；使用ReAct工具循环扩展现有KB AI聊天
+- [ ] **Stripe计费（v1 MVP — Pro订阅）**：免费 + Pro两层订阅，月度令牌配额。Stripe Checkout（托管）+ Customer Portal（自助）+ webhook驱动的生命周期（`checkout.session.completed` / `customer.subscription.updated|deleted` / `invoice.payment_succeeded|failed`）。在配额耗尽时软上限（HTTP 402 + 升级提示）— v1中无超额费用。仅按用户计费；Org/Team订阅推迟到v3。前置条件：
+  - [x] **数据模型 + SDK基础工作**（P1）— `billing_plans` / `subscriptions` / `stripe_webhook_events`表、ORM模型、带固定API版本的Stripe SDK单例、部分配置和密钥前缀验证器。免费 + Pro计划已种子化（Pro stripe_price_id当前是测试模式价格；生产部署需要单独的实时price_id）。
+  - [x] **后端API + webhook处理器**（P2）— `/api/billing/{plans,subscription,checkout,portal}` + `/api/webhooks/stripe`，带签名验证 + 事件幂等性。计划感知的配额强制和每小时生命周期扫描，在`current_period_end`时将已取消的订阅降级为免费。
+  - [x] **前端`/settings/billing`页面 + 402升级对话框**（P3）— 配额显示、升级CTA、`past_due`横幅；使用shadcn `<Dialog>`拦截聊天402（无原生确认）。
+  - [x] **管理员计划管理**（P4）— `admin/billing/plans`（通过`...` DropdownMenu基于对话框的CRUD）+ `admin/billing/subscriptions`（带状态/计划/电子邮件过滤器的只读）。
+  - [x] **管理员控制的计费功能标志**（P5）— `system_settings.billing_enabled`控制Stripe管道（面向用户的API、webhook、管理员CRUD），以便没有Stripe凭证的私有部署永远不会意外显示非功能性支付UX。激活流种子化计划 + 设置`default_plan_id`指针 + 恰好一次回填`users.plan_id`；后续关闭/打开是纯标志翻转，无数据副作用。当标志关闭时，配额链跳过计划层，以便旧版安装继续遵守管理员设置的`default_token_quota`。`STRIPE_BILLING_RETURN_URL`默认更新为`/settings?tab=billing`，结账重定向遵守现有查询字符串。
+  - [ ] **协调 + e2e + 上线**（P6）— 每晚`subscriptions` ↔ `stripe.Subscription.list()`协调脚本以恢复错过的webhook；全栈happy-path/期间取消/past-due回归测试；从测试模式`stripe_price_id`切换到实时`price_id`；在staging上使用真实卡进行烟雾测试。
 
-**影响**：企业在数天内从零部署FIM One到多系统编排。套餐系统创建创作者生态——解决方案作者发布复合包（技能+智能体+连接器+知识库+工作流），企业一键安装，创作者从采用中获利。安装/分叉二元性在单一机制中涵盖"按原样使用"和"从模板自定义"两种用例。
+- [ ] **团队计划（Stripe座位）** — 通过`stripe.Subscription.quantity`的按座位定价，与Organization成员集成。让公司订阅一个团队范围的计划，包含N个座位；配额和功能标志通过座位组而非个人用户解析。建立在v1.0 Stripe MVP和现有Organization模型之上。
+- [ ] **非计费部署的组级令牌配额** — 没有Stripe的企业/私有部署配置组织级令牌预算。配额链扩展到`override > group > plan > default`；组解析使用`max(user_quota, group_quota)`，以便个人VIP不受团队上限约束。与Team计划一起发布，以便相同的原语同时服务于计费和自托管拓扑。
+
+**影响**：企业在数天内从零部署FIM One到多系统编排。包系统创建创作者生态 — 解决方案作者发布复合包（Skill + Agents + Connectors + KBs + Workflows），企业一键安装，创作者从采用中获利。安装/fork二元性在单一机制中涵盖"按原样使用"和"从模板自定义"两种用例。
 
 ## 冻结功能（已发布，仅维护）
 

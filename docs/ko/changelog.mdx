@@ -12,13 +12,13 @@ description: "FIM One의 모든 주요 변경 사항."
 
 ### 추가됨
 
-- **관리자 제어 청구 기능 플래그.** Admin -> System Settings의 새로운 `Activate Billing` / 온/오프 토글이 전체 Stripe 파이프라인을 제어합니다 — 사용자 대면 `/api/billing/*` 엔드포인트, Stripe 웹훅, 관리자 요금제/구독 CRUD, 프론트엔드 `Plan & Billing` 탭 및 관리자 네비게이션 그룹이 모두 청구가 꺼져 있을 때 503을 반환하거나 완전히 숨겨집니다. 활성화는 일회성 멱등 절차로 Free + Pro 카탈로그를 시드하고, `default_plan_id` 포인터를 설정하며, 기존 사용자를 역채우기합니다. 이후 토글을 끄거나 켜는 것은 순수 플래그 전환이므로 데이터 부작용이 없어서, Stripe 자격증명이 없는 프라이빗 배포는 작동하지 않는 결제 UX를 절대 노출하지 않습니다. 청구가 꺼져 있을 때 할당량 체인이 사용자별 요금제 계층을 건너뛰므로, 레거시 설치는 계속 관리자가 설정한 `Default Monthly Token Quota`를 준수합니다. `STRIPE_BILLING_RETURN_URL` 기본값이 `/settings?tab=billing`으로 업데이트되었고, Checkout 리다이렉트가 이제 해당 URL의 기존 쿼리 문자열을 올바르게 보존합니다.
-- **Stripe 청구 데이터 모델 + SDK 기초 작업.** `billing_plans` / `subscriptions` / `stripe_webhook_events` 테이블을 도입하고 Free + Pro 요금제를 시드합니다(Pro는 현재 Stripe **테스트 모드** 가격입니다). 결제 UI는 아직 없습니다 — checkout, Customer Portal, 웹훅 처리, `/settings/billing` 페이지는 후속 작업에서 제공됩니다.
-- **Stripe Checkout을 통해 Pro 요금제 구독.** 새로운 청구 API는 요금제 목록, Checkout / Customer Portal 리다이렉트, 구독이 자동으로 프로비저닝되고 갱신되도록 하는 Stripe 웹훅을 제공합니다. 할당량 적용이 이제 각 사용자의 청구 요금제를 존중하며, 취소된 구독은 유료 기간이 끝날 때까지 Pro에 유지됩니다.
-- **Settings -> Billing 페이지.** 현재 요금제, 진행률 표시줄이 있는 월간 토큰 사용량, 기간 재설정 날짜, 구독 상태를 표시합니다. `Upgrade to Pro` 버튼은 Stripe Checkout으로 리다이렉트되고, 기존 유료 사용자는 Stripe Customer Portal을 여는 `Manage subscription` 버튼을 받습니다. 중간 할당량 대화상자가 이제 여기에 표시되며 404가 되지 않습니다.
-- **관리자 청구 관리.** 관리자는 이제 청구 요금제를 생성, 편집, 소프트 삭제, 검사할 수 있으며, 상태 / 요금제 / 이메일 필터로 모든 Stripe 구독을 탐색할 수 있습니다. 새 항목은 Admin Panel -> Billing 아래에 있습니다.
-- **영어가 아닌 문서가 이제 전체 API Reference(OpenAPI 엔드포인트) 및 Channels 구성 페이지를 표시합니다.** 이전에는 영어 사이트만 이 섹션을 렌더링했습니다 — `zh` / `ja` / `ko` / `de` / `fr` 네비게이션에 `Endpoints` 그룹과 `Configuration > Channels` 하위 그룹이 없어서, 해당 언어의 사용자는 자동 생성된 API 플레이그라운드 또는 Feishu 채널 설정 가이드에 도달할 수 없었습니다. `docs/docs.json`을 단일 영어 소스 오브 트루스(`docs/nav.template.json` + `scripts/docs-nav-glossary.json`)로 마이그레이션하여 모든 6개 언어를 결정론적으로 재생성하는 부작용으로 수정되었습니다. 새 문서 페이지를 추가할 때 더 이상 언어별 수동 동기화가 필요하지 않습니다.
-- **관리자 사용자: 사용자별 무제한 할당량 + Registered 열.** 할당량 필드를 비워두면 이제 전역 제한을 상속합니다. `0`으로 설정하면 사용자에게 무제한 사용을 부여합니다. 이전에는 둘 다 같은 상태로 축소되어서, 개인에게 무제한 액세스를 부여하려면 DB를 직접 편집해야 했습니다. 사용자 테이블은 또한 온보딩 감사를 위한 Registered 열을 얻습니다.
+- **관리자 제어 청구 기능 플래그.** Admin -> System Settings의 새로운 `Enable Stripe Billing` 토글이 전체 Stripe 파이프라인을 제어합니다 — 사용자 대면 `/api/billing/*` 엔드포인트, Stripe 웹훅, 관리자 플랜/구독 CRUD, 프론트엔드 `Plan & Billing` 탭 및 관리자 네비게이션 그룹이 모두 청구가 꺼져 있을 때 503을 반환하거나 완전히 숨겨집니다. 활성화는 일회성 멱등 절차로 Free + Pro 카탈로그를 시드하고, `default_plan_id` 포인터를 설정하며, 기존 사용자를 역채우기합니다. 이후 토글을 끄거나 켜는 것은 순수 플래그 전환으로 데이터 부작용이 없으므로, Stripe 자격증명이 없는 프라이빗 배포는 작동하지 않는 결제 UX를 절대 표시하지 않습니다. 할당량 체인은 청구가 꺼져 있을 때 사용자별 플랜 계층을 건너뛰므로, 레거시 설치는 관리자가 설정한 `Default Monthly Token Quota`를 계속 준수합니다. `STRIPE_BILLING_RETURN_URL` 기본값이 `/settings?tab=billing`으로 업데이트되었고, Checkout 리다이렉트는 이제 해당 URL의 기존 쿼리 문자열을 올바르게 보존합니다.
+- **Stripe 청구 데이터 모델 + SDK 기초 작업.** `billing_plans` / `subscriptions` / `stripe_webhook_events` 테이블을 도입하고 Free + Pro 플랜을 시드합니다(Pro는 현재 Stripe **테스트 모드** 가격입니다). 결제 UI는 아직 없습니다 — 체크아웃, Customer Portal, 웹훅 처리, `/settings/billing` 페이지는 후속 작업에서 제공됩니다.
+- **Stripe Checkout을 통해 Pro 플랜 구독.** 새로운 청구 API는 플랜 목록, Checkout / Customer Portal 리다이렉트, 구독을 자동으로 프로비저닝하고 갱신하는 Stripe 웹훅을 제공합니다. 할당량 적용은 이제 각 사용자의 청구 플랜을 존중하며, 취소된 구독은 유료 기간이 끝날 때까지 Pro로 유지됩니다.
+- **Settings -> Billing 페이지.** 현재 플랜, 진행률 표시줄이 있는 월간 토큰 사용량, 기간 재설정 날짜, 구독 상태를 표시합니다. `Upgrade to Pro` 버튼은 Stripe Checkout으로 리다이렉트되고, 기존 유료 사용자는 Stripe Customer Portal을 여는 `Manage subscription` 버튼을 받습니다. 중간 할당량 대화는 이제 여기로 이동하며 404가 되지 않습니다.
+- **관리자 청구 관리.** 관리자는 이제 청구 플랜을 생성, 편집, 소프트 삭제, 검사할 수 있으며, 상태/플랜/이메일 필터로 모든 Stripe 구독을 탐색할 수 있습니다. 새 항목은 Admin Panel -> Billing 아래에 있습니다.
+- **영어가 아닌 문서는 이제 전체 API Reference(OpenAPI 엔드포인트) 및 Channels 구성 페이지를 표시합니다.** 이전에는 영어 사이트만 이 섹션을 렌더링했습니다 — `zh` / `ja` / `ko` / `de` / `fr` 네비게이션에는 `Endpoints` 그룹과 `Configuration > Channels` 하위 그룹이 없어서, 해당 언어의 독자들은 자동 생성된 API 플레이그라운드나 Feishu 채널 설정 가이드에 도달할 수 없었습니다. `docs/docs.json`을 단일 영어 소스 오브 트루스(`docs/nav.template.json` + `scripts/docs-nav-glossary.json`)로 마이그레이션한 부작용으로 수정되었으며, 이는 모든 6개 언어를 결정론적으로 재생성합니다. 새 문서 페이지를 추가할 때 더 이상 언어별 수동 동기화가 필요하지 않습니다.
+- **관리자 사용자: 사용자별 무제한 할당량 + Registered 열.** 할당량 필드를 비워두면 이제 전역 제한을 상속합니다. `0`으로 설정하면 사용자에게 무제한 사용을 부여합니다. 이전에는 둘 다 동일한 상태로 축소되어, 개별 사용자에게 무제한 액세스를 부여하려면 DB를 직접 편집해야 했습니다. 사용자 테이블은 또한 온보딩 감사를 위한 Registered 열을 얻습니다.
 
 ### 수정됨
 
@@ -35,10 +35,15 @@ description: "FIM One의 모든 주요 변경 사항."
 - **ReAct 에이전트가 더 이상 운영자가 승인 요청을 거부한 후 의역된 도구 호출을 재시도하지 않습니다. 거부를 인정하고 중지합니다.**
 - **Playground "Suggested follow-ups"가 반환되고 이제 에이전트별로 선택 사항입니다.** 회귀로 인해 제안 생성이 파이어 앤 포겟 백그라운드 작업으로 이동했으므로 playground가 답변 아래에 칩 행을 표시하는 SSE 이벤트를 받지 못했습니다. 제안은 이제 새로운 "Follow-up Suggestions" 토글이 켜진 에이전트(기본값 끄기, 에이전트의 설정 시트 아래에 있음)에 대해 `done`과 `end` 사이에 인라인으로 스트리밍됩니다. 작업 스타일 에이전트는 조용히 유지되고 추가 빠른 모델 왕복을 건너뜁니다. 명시적으로 계속을 원하는 대화형 에이전트는 칩을 다시 받습니다.
 
-### 변경 사항
+### Changed
 
-- **번역 권한이 로케일 파일에서 용어집으로 이동**: 번역 규칙은 이제 [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md)에 있으며, 모든 LLM 번역 호출(JSON, MDX, README)에 로드되는 단일 정보 소스입니다. 사전 커밋 훅은 이제 생성된 로케일 파일의 수동 편집을 무조건 거부합니다(이전의 `ALLOW_LOCALE_EDIT=1` 재정의 제거). 산발적인 로케일별 편집이 조용히 변경되고 전체 재번역 시 덮어씌워지기 때문입니다. 번역 오류를 수정하려면 용어집(모든 5개 로케일에 적용되는 영구 규칙)을 편집하고 `--force`로 영향받는 파일을 재생성하세요. 세 개의 시스템 프롬프트에 이전에 포함된 인라인 용어집 규칙이 외부 용어집 파일로 통합되었습니다.
-- **라이선서 및 준거법 업데이트.** FIM One Source Available License는 이제 **FIM Labs Pte. Ltd.**(싱가포르)에서 부여되며, 준거법은 중국에서 싱가포르로 변경되고, 분쟁은 싱가포르의 SIAC 중재(중재인 1명, 영어)로 해결됩니다. 새로운 최상위 `NOTICE` 파일은 R&D 귀속, 상표 및 제3자 구성 요소 정책을 기록합니다. 허용된 사용 또는 제한 조건에는 변경 사항이 없습니다.
+- **Plan & Billing은 이제 독립 페이지가 아닌 Settings 탭입니다.** `/settings/billing`을 `/settings?tab=billing`로 통합하여 사용자가 사용량을 검토하고 요금제를 전환할 때 왼쪽 네비게이션이 표시되도록 했습니다 — GitHub, Linear, Notion의 청구 UX와 동일합니다. 기존 경로는 이제 리다이렉트되므로 이전 배포의 북마크와 Stripe Checkout 반환 URL이 계속 작동합니다. `Subscriptions` 탭은 새로운 요금제 구독과 구분하기 위해 `Marketplace`로 이름이 변경되었습니다.
+- **토큰 할당량은 이제 `5,000,000` 대신 `5M` / `100K`로 표시됩니다.** 새로운 `formatTokens` 헬퍼가 청구 페이지, 요금제 카드, 관리자 Plans 테이블 전체에서 간결한 레이블을 생성합니다 — 관리자 INPUT 필드는 여전히 원본 숫자를 허용합니다.
+- **Plan & Billing 사용량 카드는 더 이상 Usage 탭을 중복하지 않습니다.** 카드는 얇은 진행률 + 리셋 요약으로 유지되며, `View detailed usage history →` 링크가 에이전트별 및 일일 분석을 위한 전용 Usage 탭으로 딥링크됩니다.
+- **Free 요금제 할당량은 이제 관리자 Plans 페이지에서 읽기 전용입니다.** System Settings -> Default Monthly Token Quota에서 소싱되며, 해당 할당량 필드를 편집하면 Free 요금제에 자동으로 전파됩니다. 관리자 Plans 양식은 입력을 잠금(System Settings로 돌아가는 딥링크 포함)하고, 백엔드는 PATCH `/admin/billing/plans/{free.id}`에서 `monthly_token_quota`를 자동으로 무시하므로 curl 사용자는 오류 대신 친화적인 무작동을 얻습니다.
+
+- **번역 권한이 로케일 파일에서 용어집으로 이동했습니다**: 번역 규칙은 이제 [`scripts/translation-glossary.md`](https://github.com/fim-ai/fim-one/blob/master/scripts/translation-glossary.md)에 있습니다 — 모든 LLM 번역 호출(JSON, MDX, README)에 로드되는 단일 정보 출처입니다. 사전 커밋 훅은 이제 생성된 로케일 파일에 대한 수동 편집을 무조건 거부합니다(이전 `ALLOW_LOCALE_EDIT=1` 오버라이드 제거). 분산된 로케일별 편집이 자동으로 드리프트되고 전체 재번역 시 덮어써지기 때문입니다. 번역 오류를 수정하려면 용어집을 편집(모든 5개 로케일에 적용되는 영구 규칙)하고 `--force`로 영향받는 파일을 재생성하세요. 3개 시스템 프롬프트에 이전에 포함된 인라인 용어집 규칙이 외부 용어집 파일로 통합되었습니다.
+- **라이선서 및 준거법이 업데이트되었습니다.** FIM One Source Available License는 이제 **FIM Labs Pte. Ltd.**(싱가포르)에서 부여됩니다. 준거법은 중국에서 싱가포르로 변경되었으며, 분쟁은 싱가포르의 SIAC 중재(중재인 1명, 영어)로 해결됩니다. 새로운 최상위 `NOTICE` 파일은 R&D 귀속, 상표, 제3자 구성 요소 정책을 기록합니다. 허용 사용 또는 제한 조건에는 변경이 없습니다.
 
 ## [v0.8.5] - 2026-04-23
 
