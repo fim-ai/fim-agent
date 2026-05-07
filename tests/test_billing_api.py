@@ -432,5 +432,5 @@ async def test_portal_returns_url_when_customer_exists(
     assert resp.json()["url"] == "https://billing.stripe.com/p/test"
     portal_create.assert_called_once_with(
         customer="cus_alice",
-        return_url="http://localhost:3000/settings/billing",
+        return_url="http://localhost:3000/settings?tab=billing",
     )
