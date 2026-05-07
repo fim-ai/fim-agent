@@ -76,6 +76,19 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
         yield session
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _enable_billing_flag(db_session: AsyncSession) -> None:
+    """Set ``system_settings.billing_enabled='true'`` so the gate passes.
+
+    Every admin-billing endpoint is now wrapped in
+    :func:`require_billing_enabled`; without this row the routes 503.
+    """
+    from fim_one.web.models import SystemSetting
+
+    db_session.add(SystemSetting(key="billing_enabled", value="true"))
+    await db_session.commit()
+
+
 @pytest_asyncio.fixture()
 async def free_plan(db_session: AsyncSession) -> BillingPlan:
     plan = BillingPlan(
@@ -830,3 +843,70 @@ class TestDefaultTokenQuotaSyncsFreePlan:
             )
         ).scalar_one()
         assert row.monthly_token_quota == original_quota
+
+
+# ---------------------------------------------------------------------------
+# Free plan PATCH guard — quota field is read-only on slug='free'
+# ---------------------------------------------------------------------------
+
+
+class TestFreePlanQuotaLock:
+    """The Free plan's ``monthly_token_quota`` is sourced from
+    ``system_settings.default_token_quota`` (kept in sync from the
+    settings PATCH handler). A ``PATCH /admin/billing/plans/{free.id}``
+    with ``monthly_token_quota`` in the body must be a quiet no-op
+    rather than a 400, so curl users get forgiveness.
+    """
+
+    @pytest.mark.asyncio
+    async def test_patch_free_plan_ignores_quota_field(
+        self,
+        client: AsyncClient,
+        admin_user: User,
+        free_plan: BillingPlan,
+        db_session: AsyncSession,
+    ) -> None:
+        from sqlalchemy import select as _select
+
+        original_quota = free_plan.monthly_token_quota
+        resp = await client.patch(
+            f"/api/admin/billing/plans/{free_plan.id}",
+            headers=_auth_headers(admin_user),
+            json={
+                "monthly_token_quota": 99_999_999,
+                "name": "Free Tier (Renamed)",
+            },
+        )
+        # Other fields still apply, request returns 200.
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["monthly_token_quota"] == original_quota
+        assert body["name"] == "Free Tier (Renamed)"
+
+        # And the row really is unchanged in the database. Rebind to
+        # the same session via a fresh query so we read what the
+        # endpoint committed, not the in-memory instance.
+        row = (
+            await db_session.execute(
+                _select(BillingPlan).where(BillingPlan.id == free_plan.id)
+            )
+        ).scalar_one()
+        await db_session.refresh(row)
+        assert row.monthly_token_quota == original_quota
+
+    @pytest.mark.asyncio
+    async def test_patch_pro_plan_quota_still_works(
+        self,
+        client: AsyncClient,
+        admin_user: User,
+        pro_plan: BillingPlan,
+        db_session: AsyncSession,  # noqa: ARG002
+    ) -> None:
+        # The lock applies to slug='free' only; Pro is editable.
+        resp = await client.patch(
+            f"/api/admin/billing/plans/{pro_plan.id}",
+            headers=_auth_headers(admin_user),
+            json={"monthly_token_quota": 7_500_000},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["monthly_token_quota"] == 7_500_000

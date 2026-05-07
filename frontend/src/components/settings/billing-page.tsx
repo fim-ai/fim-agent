@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import {
   AlertCircle,
-  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   CreditCard,
   ExternalLink,
   Loader2,
-  Settings as SettingsIcon,
   Sparkles,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -28,6 +27,7 @@ import {
 import { ApiError, apiFetch } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
+import { formatTokens } from "@/lib/format-tokens"
 
 // ---------------------------------------------------------------------------
 // Backend response shapes (mirror src/fim_one/web/schemas/billing.py)
@@ -69,11 +69,6 @@ interface UsageData {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Format an integer with locale-aware thousands separators. */
-function formatTokens(n: number, locale: string): string {
-  return new Intl.NumberFormat(locale).format(n)
-}
 
 /** Format an ISO date string as a localized "Mon DD, YYYY" — gracefully
  *  falls back to the raw input when parsing fails. */
@@ -140,8 +135,6 @@ function statusBadgeProps(
  */
 export function BillingPage() {
   const t = useTranslations("billing")
-  const tSettings = useTranslations("settings")
-  const tCommon = useTranslations("common")
   const locale = useLocale()
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth()
@@ -292,36 +285,22 @@ export function BillingPage() {
   if (authLoading || !user) return null
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* Page header — mirrors the visual weight of /settings's own header
-          and gives the user a one-click route back to the rest of settings. */}
-      <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="sm" className="h-8 px-2">
-            <Link href="/settings" aria-label={tCommon("back")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <CreditCard className="h-5 w-5" />
+    // BillingPage now renders as a Settings tab body — the parent
+    // page (`/settings`) provides the chrome (left nav + header), so
+    // this component just supplies the tab content.
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-4xl space-y-6 p-6">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <CreditCard className="h-4 w-4" />
             {t("page.title")}
-          </h1>
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("page.description")}
+          </p>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/settings" className="text-muted-foreground">
-            <SettingsIcon className="mr-1 h-4 w-4" />
-            {tSettings("title")}
-          </Link>
-        </Button>
-      </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl space-y-6 p-6">
-          <div>
-            <p className="text-sm text-muted-foreground">{t("page.description")}</p>
-          </div>
-
-          {loading ? (
+        {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>

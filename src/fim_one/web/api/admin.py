@@ -48,6 +48,13 @@ from fim_one.web.schemas.model_config import ModelConfigResponse
 
 from fim_one.web.api.admin_utils import get_setting, set_setting, write_audit  # noqa: F811,E402
 from fim_one.web.api.files import _load_index, _user_dir
+from fim_one.web.services.billing_flag import (
+    SETTING_BILLING_ENABLED,
+    activate_billing,
+    deactivate_billing,
+    is_billing_enabled,
+    require_billing_enabled,
+)
 
 SETTING_REGISTRATION_ENABLED = "registration_enabled"
 
@@ -806,6 +813,14 @@ class SystemSettingsResponse(BaseModel):
     email_verification_enabled: bool
     smtp_configured: bool
     disabled_builtin_tools: list[str] = []
+    # Stripe billing pipeline feature flag — frontend reads this to
+    # decide whether to render the Plan & Billing tab and the admin
+    # billing nav group.
+    billing_enabled: bool = False
+    # ``True`` when Stripe credentials are present at runtime — admin
+    # UI uses this to enable / explain the toggle button in the System
+    # Settings page.
+    stripe_configured: bool = False
 
 
 class UpdateSystemSettingsRequest(BaseModel):
@@ -817,6 +832,21 @@ class UpdateSystemSettingsRequest(BaseModel):
     default_token_quota: int | None = None
     email_verification_enabled: bool | None = None
     disabled_builtin_tools: list[str] | None = None
+
+
+class BillingActivationResponse(BaseModel):
+    """Response payload for the billing activation endpoint."""
+
+    plans_seeded: int
+    users_backfilled: int
+    default_plan_id: int | None
+    billing_enabled: bool
+
+
+class BillingToggleRequest(BaseModel):
+    """Request body for the billing toggle endpoint."""
+
+    enabled: bool
 
 
 async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
@@ -837,6 +867,14 @@ async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
     # Derive registration_mode: prefer explicit setting, fall back to legacy boolean
     if not reg_mode:
         reg_mode = "open" if reg.lower() != "false" else "disabled"
+
+    # Billing flag + Stripe configuration. ``stripe_configured`` is
+    # surfaced so the admin UI can explain what the operator is missing
+    # before flipping the switch.
+    billing_flag = await is_billing_enabled(db)
+    from fim_one.web.services.billing_flag import _stripe_env_configured
+    stripe_ok, _ = _stripe_env_configured()
+
     return SystemSettingsResponse(
         registration_enabled=reg.lower() != "false",
         registration_mode=reg_mode,
@@ -847,6 +885,8 @@ async def _load_all_settings(db: AsyncSession) -> SystemSettingsResponse:
         email_verification_enabled=email_verif.lower() == "true",
         smtp_configured=_smtp_configured(),
         disabled_builtin_tools=disabled_tools,
+        billing_enabled=billing_flag,
+        stripe_configured=stripe_ok,
     )
 
 
@@ -912,6 +952,93 @@ async def update_system_settings(
     if changed:
         await write_audit(db, current_user, "settings.update", detail="; ".join(changed))
     return await _load_all_settings(db)
+
+
+# ---------------------------------------------------------------------------
+# Billing feature flag — activation / deactivation
+# ---------------------------------------------------------------------------
+#
+# Encodes the "front-loaded data, switch-only state" principle:
+#
+# - Activation (FALSE → TRUE) seeds plans, sets the default_plan_id
+#   pointer, and backfills users.plan_id. Every step is idempotent so
+#   re-activating an already-enabled install is a no-op.
+# - Deactivation (TRUE → FALSE) is a pure flag flip: no rows are
+#   deleted, no plan_ids cleared, no plans soft-deleted.
+#
+# The two are kept on separate endpoints (one POST per action) so the
+# audit log records the operator's intent unambiguously.
+
+
+@router.post(
+    "/system/billing/activate",
+    response_model=BillingActivationResponse,
+)
+async def activate_billing_endpoint(
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> BillingActivationResponse:
+    """Run the one-time billing activation procedure.
+
+    Verifies Stripe env vars exist (raises 400 with the missing key
+    name when not), seeds Free + Pro plans, sets the default_plan_id
+    pointer, backfills user plan bindings, syncs Free's quota from
+    ``default_token_quota`` if present, then flips the
+    ``billing_enabled`` flag on.
+
+    Idempotent: re-running on an already-activated install is a no-op
+    (returns ``plans_seeded=0`` and ``users_backfilled=0``).
+    """
+    summary = await activate_billing(db)
+    await write_audit(
+        db,
+        current_user,
+        "billing.activate",
+        detail=(
+            f"plans_seeded={summary['plans_seeded']} "
+            f"users_backfilled={summary['users_backfilled']}"
+        ),
+    )
+    return BillingActivationResponse(**summary)
+
+
+@router.post("/system/billing/toggle", response_model=BillingActivationResponse)
+async def toggle_billing_endpoint(
+    body: BillingToggleRequest,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> BillingActivationResponse:
+    """Switch billing on or off without re-seeding data.
+
+    - ``enabled=True``  → routes through :func:`activate_billing` so
+      first-time activation seeds the catalogue; subsequent calls are
+      no-ops.
+    - ``enabled=False`` → :func:`deactivate_billing`, a pure flag flip.
+
+    Returns the same envelope as :func:`activate_billing_endpoint` so
+    the frontend can update its local state in one round-trip; the
+    seed / backfill counts are zero on the deactivate path.
+    """
+    if body.enabled:
+        summary = await activate_billing(db)
+        action = "billing.enable"
+    else:
+        result = await deactivate_billing(db)
+        summary = {
+            "plans_seeded": 0,
+            "users_backfilled": 0,
+            "default_plan_id": None,
+            "billing_enabled": result["billing_enabled"],
+        }
+        action = "billing.disable"
+
+    await write_audit(
+        db,
+        current_user,
+        action,
+        detail=f"billing_enabled={summary['billing_enabled']}",
+    )
+    return BillingActivationResponse(**summary)
 
 
 # ---------------------------------------------------------------------------
@@ -3338,7 +3465,11 @@ async def _count_active_subs_for_plan(db: AsyncSession, plan_id: int) -> int:
     return int(result.scalar_one() or 0)
 
 
-@router.get("/billing/plans", response_model=list[AdminBillingPlanRead])
+@router.get(
+    "/billing/plans",
+    response_model=list[AdminBillingPlanRead],
+    dependencies=[Depends(require_billing_enabled)],
+)
 async def list_billing_plans(
     current_user: User = Depends(get_current_admin),  # noqa: B008,ARG001
     db: AsyncSession = Depends(get_session),  # noqa: B008
@@ -3363,6 +3494,7 @@ async def list_billing_plans(
     "/billing/plans",
     response_model=AdminBillingPlanRead,
     status_code=201,
+    dependencies=[Depends(require_billing_enabled)],
 )
 async def create_billing_plan(
     body: AdminBillingPlanCreate,
@@ -3418,6 +3550,7 @@ async def create_billing_plan(
 @router.get(
     "/billing/plans/{plan_id}",
     response_model=AdminBillingPlanRead,
+    dependencies=[Depends(require_billing_enabled)],
 )
 async def get_billing_plan(
     plan_id: int,
@@ -3437,6 +3570,7 @@ async def get_billing_plan(
 @router.patch(
     "/billing/plans/{plan_id}",
     response_model=AdminBillingPlanRead,
+    dependencies=[Depends(require_billing_enabled)],
 )
 async def update_billing_plan(
     plan_id: int,
@@ -3484,7 +3618,22 @@ async def update_billing_plan(
     if "name" in payload:
         plan.name = payload["name"]
     if "monthly_token_quota" in payload:
-        plan.monthly_token_quota = payload["monthly_token_quota"]
+        # Scheme A invariant: the Free plan's quota is the canonical
+        # "default" for unsubscribed users — its source of truth is
+        # ``system_settings.default_token_quota`` (kept in sync from
+        # the system-settings PATCH handler). We forgive instead of
+        # 400ing so a curl user gets a quiet no-op rather than a
+        # confusing failure; the admin UI surfaces the lock in the
+        # form itself with a "Edit there →" link.
+        if plan.slug == "free":
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                "Ignoring monthly_token_quota change on Free plan "
+                "(slug='free'); Free's quota is sourced from "
+                "system_settings.default_token_quota."
+            )
+        else:
+            plan.monthly_token_quota = payload["monthly_token_quota"]
     if "description" in payload:
         plan.description = payload["description"]
     if "sort_order" in payload and payload["sort_order"] is not None:
@@ -3519,6 +3668,7 @@ async def update_billing_plan(
 @router.delete(
     "/billing/plans/{plan_id}",
     response_model=AdminBillingPlanRead,
+    dependencies=[Depends(require_billing_enabled)],
 )
 async def delete_billing_plan(
     plan_id: int,
@@ -3590,6 +3740,7 @@ def _subscription_to_read(
 @router.get(
     "/billing/subscriptions",
     response_model=AdminSubscriptionListResponse,
+    dependencies=[Depends(require_billing_enabled)],
 )
 async def list_billing_subscriptions(
     status: str | None = Query(default=None, max_length=32),
@@ -3651,6 +3802,7 @@ async def list_billing_subscriptions(
 @router.get(
     "/billing/subscriptions/{sub_id}",
     response_model=AdminSubscriptionRead,
+    dependencies=[Depends(require_billing_enabled)],
 )
 async def get_billing_subscription(
     sub_id: int,

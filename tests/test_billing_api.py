@@ -88,6 +88,23 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
         yield session
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _enable_billing_flag(db_session: AsyncSession) -> None:
+    """Set ``system_settings.billing_enabled='true'`` so the gate passes.
+
+    The user-facing billing routes are wrapped in
+    :func:`require_billing_enabled`; without this row they all 503.
+    Tests that specifically exercise the disabled-Stripe path call
+    ``_disable_billing(monkeypatch)`` to drop the env vars (which
+    flips the in-handler ``billing_enabled()`` check); the flag
+    column stays on so we still reach the endpoint code path.
+    """
+    from fim_one.web.models import SystemSetting
+
+    db_session.add(SystemSetting(key="billing_enabled", value="true"))
+    await db_session.commit()
+
+
 @pytest_asyncio.fixture()
 async def free_plan(db_session: AsyncSession) -> BillingPlan:
     plan = BillingPlan(

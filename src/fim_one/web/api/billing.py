@@ -35,11 +35,21 @@ from fim_one.web.schemas.billing import (
     RedirectResponse,
     SubscriptionInfo,
 )
+from fim_one.web.services.billing_flag import require_billing_enabled
 from fim_one.web.services.stripe_client import billing_enabled, get_stripe
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/billing", tags=["billing"])
+# Every route in this module is gated by both the runtime Stripe
+# credential check (``billing_enabled()`` from ``stripe_client``) and
+# the admin-controlled feature flag (``require_billing_enabled``). The
+# router-level dependency makes the latter uniform — adding a new
+# endpoint to this prefix automatically gets the gate.
+router = APIRouter(
+    prefix="/api/billing",
+    tags=["billing"],
+    dependencies=[Depends(require_billing_enabled)],
+)
 
 # ---------------------------------------------------------------------------
 # Stripe Price cache (5 min TTL, in-process)
@@ -254,13 +264,16 @@ async def create_checkout(
         await db.commit()
         await db.refresh(user)
 
+    # ``STRIPE_BILLING_RETURN_URL`` may already carry a query string
+    # (e.g. ``…/settings?tab=billing``), so use the right separator.
     return_url = settings.STRIPE_BILLING_RETURN_URL
+    sep = "&" if "?" in return_url else "?"
     session = stripe.checkout.Session.create(
         customer=user.stripe_customer_id,
         mode="subscription",
         line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-        success_url=f"{return_url}?status=success",
-        cancel_url=f"{return_url}?status=cancel",
+        success_url=f"{return_url}{sep}status=success",
+        cancel_url=f"{return_url}{sep}status=cancel",
         client_reference_id=str(user.id),
         metadata={"user_id": user.id, "plan_id": plan.id},
     )

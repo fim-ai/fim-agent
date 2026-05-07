@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
@@ -30,6 +30,8 @@ import { UsageSettings } from "@/components/settings/usage-settings"
 import { NotificationsSettings } from "@/components/settings/notifications-settings"
 import { SubscriptionsSettings } from "@/components/settings/subscriptions-settings"
 import { ChannelsSettings } from "@/components/settings/channels-settings"
+import { BillingPage } from "@/components/settings/billing-page"
+import { fetchBillingEnabled } from "@/lib/billing-flag"
 
 const TAB_KEYS = [
   "general",
@@ -40,6 +42,7 @@ const TAB_KEYS = [
   "credentials",
   "channels",
   "usage",
+  "billing",
   "notifications",
   "subscriptions",
 ] as const
@@ -53,6 +56,7 @@ const TAB_ICONS = {
   credentials: ShieldCheck,
   channels: MessageSquare,
   usage: BarChart3,
+  billing: CreditCard,
   notifications: Bell,
   subscriptions: BookMarked,
 } as const
@@ -67,7 +71,31 @@ function SettingsContent() {
 
   const activeTab = (searchParams.get("tab") as TabKey) || "general"
 
-  const i18nTabKey = activeTab === "api-keys" ? "apiKeys" : activeTab
+  // Billing tab visibility is gated on the admin-controlled
+  // ``billing_enabled`` flag. We probe a cheap endpoint at mount and
+  // hide the entry from the sidebar entirely when off — so a private
+  // deployment never advertises a tab that 503s on click. Failure to
+  // fetch keeps it hidden (fail-closed; admin can still navigate via
+  // /admin once they enable billing).
+  const [billingEnabled, setBillingEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    fetchBillingEnabled()
+      .then((on) => {
+        if (!cancelled) setBillingEnabled(on)
+      })
+      .catch(() => {
+        if (!cancelled) setBillingEnabled(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const visibleTabs = TAB_KEYS.filter((k) => k !== "billing" || billingEnabled)
+
+  const i18nTabKey =
+    activeTab === "api-keys" ? "apiKeys" : activeTab
   usePageTitle(`${t("title")} · ${t(`tabs.${i18nTabKey}` as never)}`)
 
   // Auth guard
@@ -93,7 +121,7 @@ function SettingsContent() {
       <div className="flex flex-1 min-h-0">
         {/* Left nav */}
         <nav className="w-52 shrink-0 border-r border-border/40 p-4 space-y-1 overflow-y-auto">
-          {TAB_KEYS.map((key) => {
+          {visibleTabs.map((key) => {
             const Icon = TAB_ICONS[key]
             const tabLabelKey = key === "api-keys" ? "apiKeys" : key
             return (
@@ -112,39 +140,28 @@ function SettingsContent() {
               </Link>
             )
           })}
-          {/*
-            Billing lives at its own route (`/settings/billing`) rather
-            than a `?tab=` slug so the page can ship server-rendered
-            metadata via `generateMetadata`. We render the entry here
-            for navigability but never mark it active — visiting the
-            link unmounts this whole page anyway.
-          */}
-          <Link
-            href="/settings/billing"
-            className={cn(
-              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-              "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-            )}
-          >
-            <CreditCard className="h-4 w-4" />
-            <span>{t("sidebar.billing")}</span>
-          </Link>
         </nav>
 
         {/* Right content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div>
-            {activeTab === "general" && <GeneralSettings />}
-            {activeTab === "account" && <AccountSettings />}
-            {activeTab === "appearance" && <AppearanceSettings />}
-            {activeTab === "organizations" && <OrganizationSettings />}
-            {activeTab === "api-keys" && <ApiKeysSettings />}
-            {activeTab === "credentials" && <CredentialsSettings />}
-            {activeTab === "channels" && <ChannelsSettings />}
-            {activeTab === "usage" && <UsageSettings />}
-            {activeTab === "notifications" && <NotificationsSettings />}
-            {activeTab === "subscriptions" && <SubscriptionsSettings />}
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === "billing" ? (
+            // BillingPage owns its own header / scroll container so it
+            // renders at the same width as the rest of the tabs.
+            <BillingPage />
+          ) : (
+            <div className="p-6">
+              {activeTab === "general" && <GeneralSettings />}
+              {activeTab === "account" && <AccountSettings />}
+              {activeTab === "appearance" && <AppearanceSettings />}
+              {activeTab === "organizations" && <OrganizationSettings />}
+              {activeTab === "api-keys" && <ApiKeysSettings />}
+              {activeTab === "credentials" && <CredentialsSettings />}
+              {activeTab === "channels" && <ChannelsSettings />}
+              {activeTab === "usage" && <UsageSettings />}
+              {activeTab === "notifications" && <NotificationsSettings />}
+              {activeTab === "subscriptions" && <SubscriptionsSettings />}
+            </div>
+          )}
         </div>
       </div>
     </div>

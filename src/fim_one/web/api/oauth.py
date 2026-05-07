@@ -20,7 +20,7 @@ from fim_one.db import get_session
 from fim_one.web.exceptions import AppError
 from fim_one.web.api.admin import SETTING_REGISTRATION_ENABLED, SETTING_REGISTRATION_MODE
 from fim_one.web.api.admin_utils import get_setting
-from fim_one.web.services.default_plan import get_free_plan_id
+from fim_one.web.services.default_plan import get_default_plan_id
 from fim_one.web.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -331,9 +331,10 @@ async def _handle_login(
                 suffix += 1
                 username = f"{base_username}_{suffix}"
 
-            # Auto-bind to the Free plan so the quota resolver always
-            # finds a finite tier (matches email-signup parity).
-            free_plan_id = await get_free_plan_id(db)
+            # Auto-bind to the default plan (Free, by convention) so
+            # the quota resolver always finds a finite tier (matches
+            # email-signup parity).
+            default_plan_id = await get_default_plan_id(db)
             user = User(
                 username=username,
                 display_name=user_info.display_name,
@@ -341,7 +342,7 @@ async def _handle_login(
                 oauth_provider=user_info.provider,
                 oauth_id=user_info.id,
                 email=user_info.email,
-                plan_id=free_plan_id,
+                plan_id=default_plan_id,
             )
             db.add(user)
             await db.flush()

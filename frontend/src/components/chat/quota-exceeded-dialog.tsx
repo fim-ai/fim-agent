@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { fetchBillingEnabled } from "@/lib/billing-flag"
 
 /**
  * Payload schema for the structured `error` SSE terminator emitted by
@@ -87,6 +88,27 @@ export function QuotaExceededDialog({
     [onDismiss],
   )
 
+  // The "Upgrade now" CTA only makes sense when the operator has
+  // enabled the Stripe pipeline. On a private deployment with billing
+  // disabled the dialog still pops (quota exhaustion is real) but the
+  // user just sees a "wait for reset" message instead of a payment
+  // path that would 503 on click.
+  const [billingEnabled, setBillingEnabled] = React.useState(false)
+  React.useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    fetchBillingEnabled()
+      .then((on) => {
+        if (!cancelled) setBillingEnabled(on)
+      })
+      .catch(() => {
+        if (!cancelled) setBillingEnabled(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
   const formattedReset = React.useMemo(() => {
     if (!payload?.reset_at) return ""
     try {
@@ -154,11 +176,13 @@ export function QuotaExceededDialog({
           <Button variant="outline" onClick={onDismiss}>
             {t("quota.ctaWait")}
           </Button>
-          <Button asChild>
-            <Link href="/settings/billing" onClick={onDismiss}>
-              {t("quota.ctaUpgrade")}
-            </Link>
-          </Button>
+          {billingEnabled && (
+            <Button asChild>
+              <Link href="/settings?tab=billing" onClick={onDismiss}>
+                {t("quota.ctaUpgrade")}
+              </Link>
+            </Button>
+          )}
         </DialogFooter>
         {/* Surfacing tc("close") via screen-reader on Dialog.Close keeps
             tabbing parity with other dialogs in the app. */}

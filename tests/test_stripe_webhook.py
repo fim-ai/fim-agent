@@ -83,6 +83,15 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
         yield session
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _enable_billing_flag(db_session: AsyncSession) -> None:
+    """Persist ``billing_enabled='true'`` so the webhook gate passes."""
+    from fim_one.web.models import SystemSetting
+
+    db_session.add(SystemSetting(key="billing_enabled", value="true"))
+    await db_session.commit()
+
+
 @pytest_asyncio.fixture()
 async def free_plan(db_session: AsyncSession) -> BillingPlan:
     plan = BillingPlan(slug="free", name="Free", monthly_token_quota=100_000)

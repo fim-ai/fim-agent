@@ -65,7 +65,7 @@ class Settings(BaseModel):
     # ── Stripe billing (v1 MVP) ───────────────────────────────────────
     STRIPE_SECRET_KEY: SecretStr | None = None
     STRIPE_WEBHOOK_SECRET: SecretStr | None = None
-    STRIPE_BILLING_RETURN_URL: str = "http://localhost:3000/settings/billing"
+    STRIPE_BILLING_RETURN_URL: str = "http://localhost:3000/settings?tab=billing"
 
     @model_validator(mode="after")
     def _validate_stripe(self) -> Settings:
@@ -108,7 +108,7 @@ class Settings(BaseModel):
             "STRIPE_WEBHOOK_SECRET": _read_secret("STRIPE_WEBHOOK_SECRET"),
             "STRIPE_BILLING_RETURN_URL": _read_str(
                 "STRIPE_BILLING_RETURN_URL",
-                "http://localhost:3000/settings/billing",
+                "http://localhost:3000/settings?tab=billing",
             ),
         }
         return cls(**kwargs)

@@ -31,15 +31,23 @@ _SERVER_START_TIME = datetime.now(UTC).isoformat()
 
 
 @router.get("/version")
-async def get_version() -> dict[str, str]:
+async def get_version(
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> dict[str, str | bool]:
     """Return application version metadata.
 
-    This is a public endpoint — no authentication required.
+    This is a public endpoint — no authentication required. The
+    ``billing_enabled`` field is read from ``system_settings`` so the
+    frontend can decide whether to render the Plan & Billing tab + the
+    admin billing nav group on initial mount.
     """
+    from fim_one.web.services.billing_flag import is_billing_enabled
+
     return {
         "version": __version__,
         "build_time": _SERVER_START_TIME,
         "app_name": "FIM One",
+        "billing_enabled": await is_billing_enabled(db),
     }
 
 

@@ -35,10 +35,19 @@ from fim_one.web.models import (
     Subscription,
     User,
 )
+from fim_one.web.services.billing_flag import require_billing_enabled
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
+# The webhook endpoint is gated on the same admin flag as the
+# user-facing billing routes. Stripe will retry 503 responses for ~3
+# days, so flipping the flag back on later still recovers the events
+# without manual replay.
+router = APIRouter(
+    prefix="/api/webhooks",
+    tags=["webhooks"],
+    dependencies=[Depends(require_billing_enabled)],
+)
 
 
 # ---------------------------------------------------------------------------

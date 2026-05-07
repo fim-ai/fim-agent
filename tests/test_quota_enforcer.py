@@ -34,8 +34,32 @@ async def session() -> AsyncIterator[AsyncSession]:
         await conn.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as s:
+        # The plan tier of the quota chain is gated on
+        # ``system_settings.billing_enabled``. These tests pre-date the
+        # feature flag and assume the legacy behaviour where the plan
+        # tier is always honoured, so we seed the flag on by default
+        # at the start of every test. Tests that exercise the flag-off
+        # branch flip it back via :func:`_set_billing_enabled`.
+        s.add(SystemSetting(key="billing_enabled", value="true"))
+        await s.commit()
         yield s
     await engine.dispose()
+
+
+async def _set_billing_enabled(
+    session: AsyncSession, enabled: bool
+) -> None:
+    row = await session.get(SystemSetting, "billing_enabled")
+    if row is None:
+        session.add(
+            SystemSetting(
+                key="billing_enabled",
+                value="true" if enabled else "false",
+            )
+        )
+    else:
+        row.value = "true" if enabled else "false"
+    await session.commit()
 
 
 async def _make_user(

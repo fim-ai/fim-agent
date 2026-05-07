@@ -13,11 +13,13 @@ Resolution chain — top wins (Scheme A: override-first + 3-state):
    without revoking their plan).
 3. ``user.token_quota IS NULL`` → ``user.plan.monthly_token_quota`` (the
    Stripe-billed plan tier; canonical for normal users post-MVP).
+   **Skipped entirely when ``system_settings.billing_enabled`` is false** —
+   private deployments without Stripe rely on the legacy admin-set
+   defaults, never on plan rows that may be stale.
 4. *(defensive fallback)* the system-wide ``default_token_quota`` admin
-   setting. Should not normally fire if the backfill migration succeeded
-   — every user post-MVP is bound to at least the Free plan. Kept so a
-   broken-state user (somehow ``plan_id IS NULL``) still gets a finite
-   quota.
+   setting. Should not normally fire when billing is enabled since every
+   user post-MVP is bound to at least the Free plan; with billing
+   disabled it becomes the canonical second tier.
 5. ``None`` (unlimited) — last-resort when *everything* above is unset.
 
 The semantic 3-state for ``users.token_quota`` (preserve, do not change):
@@ -39,6 +41,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_one.web.models import BillingPlan, SystemSetting, User
+from fim_one.web.services.billing_flag import is_billing_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -105,15 +108,20 @@ async def get_user_quota(user: User, db: AsyncSession) -> int | None:
             return None
         return int(user.token_quota)
 
-    # Tier 3: follow the user's billing plan.
-    if user.plan_id is not None:
+    # Tier 3: follow the user's billing plan — only when the operator
+    # has flipped billing on. With billing disabled we deliberately
+    # skip this tier so private deployments rely on the legacy default
+    # rather than potentially-stale plan rows that the admin never
+    # opted into.
+    if await is_billing_enabled(db) and user.plan_id is not None:
         plan = await db.get(BillingPlan, user.plan_id)
         if plan is not None and plan.monthly_token_quota is not None:
             return int(plan.monthly_token_quota)
 
     # Tier 4: defensive fallback to the system-wide setting. Reaching
-    # this branch implies the user has no plan_id — post-MVP every
-    # registration auto-binds to Free, so this should be rare.
+    # this branch implies the user has no plan_id (or billing is off);
+    # post-MVP every registration auto-binds to Free, so this is mostly
+    # used by no-billing deployments.
     default = await _read_default_token_quota(db)
     if default is not None:
         return default
@@ -149,8 +157,12 @@ async def get_user_quota_by_id(user_id: str, db: AsyncSession) -> int | None:
             return None
         return int(legacy_quota)
 
-    # Tier 3: plan tier.
-    if plan_id is not None and plan_quota is not None:
+    # Tier 3: plan tier — gated on the billing feature flag.
+    if (
+        plan_id is not None
+        and plan_quota is not None
+        and await is_billing_enabled(db)
+    ):
         return int(plan_quota)
 
     # Tier 4: system default.
