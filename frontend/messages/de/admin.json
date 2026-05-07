@@ -622,7 +622,15 @@
     "codeRevoked": "Einladungscode widerrufen",
     "codeCopied": "Code in die Zwischenablage kopiert",
     "smtpRequired": "SMTP ist nicht konfiguriert. Aktivieren Sie SMTP, um diese Funktion zu nutzen.",
-    "smtpLostWhileEnabled": "SMTP ist nicht mehr verfügbar. E-Mail-Verifizierung wird automatisch umgangen. Deaktivieren Sie sie oder konfigurieren Sie SMTP."
+    "smtpLostWhileEnabled": "SMTP ist nicht mehr verfügbar. E-Mail-Verifizierung wird automatisch umgangen. Deaktivieren Sie sie oder konfigurieren Sie SMTP.",
+    "billingTitle": "Stripe Billing",
+    "billingDesc": "Schalten Sie die Stripe-Abrechnungs-Pipeline um. Die Aktivierung initialisiert den Plan-Katalog einmalig; nachfolgende Umschaltungen beeinflussen Ihre Daten nicht.",
+    "billingToggle": "Stripe-Abrechnung aktivieren",
+    "billingEnabled": "Stripe-Abrechnung aktiviert",
+    "billingDisabled": "Stripe-Abrechnung deaktiviert — Daten beibehalten",
+    "billingActivatedSeeded": "Stripe-Abrechnung aktiviert · {plans, plural, one {# Plan} other {# Pläne}} initialisiert · {users, plural, one {# Benutzer} other {# Benutzer}} rückwirkend gefüllt",
+    "billingToggleHelper": "When enabled, users see a Plan & Billing tab with subscription plans and Stripe Checkout integration. Disable to hide all billing UI without deleting any data.",
+    "billingStripeMissing": "Configure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in .env first."
   },
   "security": {
     "title": "Sicherheit",
@@ -1206,7 +1214,9 @@
       "freeTier": "Kostenlos",
       "tokensSuffix": "Token / Monat",
       "deleteConfirmDescription": "This soft-deletes the plan by toggling Active off. Existing subscriptions keep their plan history, but new users won't see it.",
-      "deleteBlocked": "{count} active subscriptions prevent deletion. Migrate or cancel them before disabling this plan."
+      "deleteBlocked": "{count} active subscriptions prevent deletion. Migrate or cancel them before disabling this plan.",
+      "freeQuotaSyncedHint": "Synchronisiert aus Systemeinstellungen → Standard-Monatsquota für Token.",
+      "freeQuotaEditLink": "Dort bearbeiten →"
     },
     "subscriptions": {
       "title": "Abonnements",

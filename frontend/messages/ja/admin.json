@@ -622,7 +622,15 @@
     "codeRevoked": "招待コードが失効しました",
     "codeCopied": "コードをクリップボードにコピーしました",
     "smtpRequired": "SMTPが設定されていません。この機能を使用するにはSMTPを有効にしてください。",
-    "smtpLostWhileEnabled": "SMTPが利用できなくなりました。メール認証は自動的にバイパスされます。無効にするか、SMTPを設定してください。"
+    "smtpLostWhileEnabled": "SMTPが利用できなくなりました。メール認証は自動的にバイパスされます。無効にするか、SMTPを設定してください。",
+    "billingTitle": "Stripe 請求",
+    "billingDesc": "Stripe課金パイプラインを切り替えます。有効化するとプランカタログが一度シードされ、その後の切り替えはデータに影響しません。",
+    "billingToggle": "Stripe課金を有効化",
+    "billingToggleHelper": "有効にすると、ユーザーはプランと課金タブにサブスクリプションプランとStripe Checkoutの統合が表示されます。無効にするとすべての課金UIが非表示になり、データは削除されません。",
+    "billingStripeMissing": "まず.envでSTRIPE_SECRET_KEYとSTRIPE_WEBHOOK_SECRETを設定してください。",
+    "billingEnabled": "Stripe課金が有効です",
+    "billingDisabled": "Stripe課金が無効です — データは保持されます",
+    "billingActivatedSeeded": "Stripe課金が有効です · {plans, plural, one {# プラン} other {# プラン}}をシード · {users, plural, one {# ユーザー} other {# ユーザー}}をバックフィル"
   },
   "security": {
     "title": "セキュリティ",
@@ -1206,7 +1214,9 @@
         "stripePriceTaken": "このStripe Price IDを使用しているプランは既に存在します。"
       },
       "freeTier": "無料",
-      "tokensSuffix": "トークン / 月"
+      "tokensSuffix": "トークン / 月",
+      "freeQuotaSyncedHint": "システム設定 → デフォルト月間トークンクォータから同期されています。",
+      "freeQuotaEditLink": "そこで編集 →"
     },
     "subscriptions": {
       "title": "サブスクリプション",

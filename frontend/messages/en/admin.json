@@ -594,6 +594,14 @@
     "announcementEnabled": "Announcement banner enabled",
     "announcementDisabled": "Announcement banner disabled",
     "announcementSaved": "Announcement text saved",
+    "billingTitle": "Stripe Billing",
+    "billingDesc": "Toggle the Stripe billing pipeline. Activation seeds the plan catalogue once; subsequent flips never touch your data.",
+    "billingToggle": "Enable Stripe Billing",
+    "billingToggleHelper": "When enabled, users see a Plan & Billing tab with subscription plans and Stripe Checkout integration. Disable to hide all billing UI without deleting any data.",
+    "billingStripeMissing": "Configure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in .env first.",
+    "billingEnabled": "Stripe billing enabled",
+    "billingDisabled": "Stripe billing disabled — data preserved",
+    "billingActivatedSeeded": "Stripe billing enabled · seeded {plans, plural, one {# plan} other {# plans}} · backfilled {users, plural, one {# user} other {# users}}",
     "maintenanceTitle": "Maintenance Mode",
     "maintenanceDesc": "Block all non-admin access. Admins can still log in and manage the system.",
     "maintenanceToggle": "Enable maintenance mode",
@@ -1188,6 +1196,8 @@
         "sortOrder": "Sort Order",
         "isActive": "Active"
       },
+      "freeQuotaSyncedHint": "Synced from System Settings → Default Monthly Token Quota.",
+      "freeQuotaEditLink": "Edit there →",
       "actions": {
         "view": "View Details",
         "edit": "Edit",

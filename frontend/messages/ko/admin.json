@@ -622,7 +622,15 @@
     "codeRevoked": "초대 코드가 취소됨",
     "codeCopied": "코드가 클립보드에 복사됨",
     "smtpRequired": "SMTP가 구성되지 않았습니다. 이 기능을 사용하려면 SMTP를 활성화하세요.",
-    "smtpLostWhileEnabled": "SMTP를 더 이상 사용할 수 없습니다. 이메일 인증이 자동으로 우회됩니다. 비활성화하거나 SMTP를 구성하세요."
+    "smtpLostWhileEnabled": "SMTP를 더 이상 사용할 수 없습니다. 이메일 인증이 자동으로 우회됩니다. 비활성화하거나 SMTP를 구성하세요.",
+    "billingTitle": "Stripe 결제",
+    "billingDesc": "Stripe 결제 파이프라인을 전환합니다. 활성화하면 요금제 카탈로그를 한 번 초기화하고, 이후 전환은 데이터를 변경하지 않습니다.",
+    "billingToggle": "Stripe 결제 활성화",
+    "billingToggleHelper": "활성화하면 사용자가 구독 요금제와 Stripe Checkout 통합이 포함된 요금제 및 결제 탭을 볼 수 있습니다. 비활성화하면 데이터를 삭제하지 않고 모든 결제 UI를 숨깁니다.",
+    "billingStripeMissing": ".env에서 먼저 STRIPE_SECRET_KEY와 STRIPE_WEBHOOK_SECRET을 구성하세요.",
+    "billingEnabled": "Stripe 결제 활성화됨",
+    "billingDisabled": "Stripe 결제 비활성화됨 — 데이터 보존됨",
+    "billingActivatedSeeded": "Stripe 결제 활성화됨 · {plans, plural, one {# 요금제} other {# 요금제}} 초기화됨 · {users, plural, one {# 사용자} other {# 사용자}} 역채움됨"
   },
   "security": {
     "title": "보안",
@@ -842,7 +850,7 @@
     "previous": "이전",
     "pageOf": "페이지 {page}/{pages}",
     "detailTitle": "스킬 상세",
-    "detailSubtitle": "\"{name}\" by {owner}"
+    "detailSubtitle": "\"{name}\" (작성자: {owner})"
   },
   "evaluations": {
     "title": "평가",
@@ -1206,7 +1214,9 @@
         "stripePriceTaken": "이 Stripe 가격 ID를 사용하는 요금제가 이미 있습니다."
       },
       "freeTier": "무료",
-      "tokensSuffix": "토큰 / 월"
+      "tokensSuffix": "토큰 / 월",
+      "freeQuotaSyncedHint": "시스템 설정 → 기본 월간 토큰 할당량에서 동기화됨.",
+      "freeQuotaEditLink": "여기서 편집 →"
     },
     "subscriptions": {
       "title": "구독",

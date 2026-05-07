@@ -622,7 +622,15 @@
     "codeRevoked": "Code d'invitation révoqué",
     "codeCopied": "Code copié dans le presse-papiers",
     "smtpRequired": "SMTP n'est pas configuré. Activez SMTP pour utiliser cette fonctionnalité.",
-    "smtpLostWhileEnabled": "SMTP n'est plus disponible. La vérification par e-mail est automatiquement contournée. Désactivez-la ou configurez SMTP."
+    "smtpLostWhileEnabled": "SMTP n'est plus disponible. La vérification par e-mail est automatiquement contournée. Désactivez-la ou configurez SMTP.",
+    "billingTitle": "Facturation Stripe",
+    "billingDesc": "Activez ou désactivez le pipeline de facturation Stripe. L'activation initialise le catalogue des plans une seule fois ; les basculements ultérieurs ne modifient jamais vos données.",
+    "billingToggle": "Activer la facturation Stripe",
+    "billingToggleHelper": "Lorsqu'elle est activée, les utilisateurs voient un onglet Plan & Facturation avec les plans d'abonnement et l'intégration Stripe Checkout. Désactivez pour masquer toute l'interface de facturation sans supprimer aucune donnée.",
+    "billingStripeMissing": "Configurez d'abord STRIPE_SECRET_KEY et STRIPE_WEBHOOK_SECRET dans .env.",
+    "billingEnabled": "Facturation Stripe activée",
+    "billingDisabled": "Facturation Stripe désactivée — données conservées",
+    "billingActivatedSeeded": "Facturation Stripe activée · {plans, plural, one {# plan} other {# plans}} initialisé(s) · {users, plural, one {# utilisateur} other {# utilisateurs}} rétroactivement rempli(s)"
   },
   "security": {
     "title": "Sécurité",
@@ -1206,7 +1214,9 @@
         "stripePriceTaken": "Un plan utilise déjà cet ID de prix Stripe."
       },
       "freeTier": "Gratuit",
-      "tokensSuffix": "tokens / mois"
+      "tokensSuffix": "tokens / mois",
+      "freeQuotaSyncedHint": "Synchronisé depuis Paramètres système → Quota de jetons mensuel par défaut.",
+      "freeQuotaEditLink": "Modifier là →"
     },
     "subscriptions": {
       "title": "Abonnements",

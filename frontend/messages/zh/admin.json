@@ -622,7 +622,15 @@
     "codeRevoked": "邀请码已撤销",
     "codeCopied": "代码已复制到剪贴板",
     "smtpRequired": "未配置SMTP。启用SMTP以使用此功能。",
-    "smtpLostWhileEnabled": "SMTP不再可用。电子邮件验证自动绕过。请关闭它或配置SMTP。"
+    "smtpLostWhileEnabled": "SMTP不再可用。电子邮件验证自动绕过。请关闭它或配置SMTP。",
+    "billingTitle": "Stripe 计费",
+    "billingDesc": "切换 Stripe 计费管道。激活后会一次性初始化套餐目录；之后的切换不会触及您的数据。",
+    "billingToggle": "启用 Stripe 计费",
+    "billingToggleHelper": "启用后，用户将看到「套餐与计费」标签页，包含订阅套餐和 Stripe Checkout 集成。禁用后隐藏所有计费界面，但不删除任何数据。",
+    "billingStripeMissing": "请先在 .env 中配置 STRIPE_SECRET_KEY 和 STRIPE_WEBHOOK_SECRET。",
+    "billingEnabled": "Stripe 计费已启用",
+    "billingDisabled": "Stripe 计费已禁用——数据已保留",
+    "billingActivatedSeeded": "Stripe 计费已启用·已初始化 {plans, plural, one {# 个套餐} other {# 个套餐}}·已回填 {users, plural, one {# 个用户} other {# 个用户}}"
   },
   "security": {
     "title": "安全",
@@ -1204,9 +1212,11 @@
       },
       "freeTier": "免费",
       "tokensSuffix": "tokens / 月",
-      "noPlansFound": "No plans yet. Click \"Create Plan\" to add the first one.",
-      "deleteConfirmTitle": "Deactivate plan \"{slug}\"?",
-      "deleteConfirmDescription": "This soft-deletes the plan by toggling Active off. Existing subscriptions keep their plan history, but new users won't see it."
+      "noPlansFound": "暂无套餐。点击「创建套餐」添加第一个。",
+      "deleteConfirmTitle": "停用套餐「{slug}」？",
+      "deleteConfirmDescription": "这将通过关闭「活跃」状态来软删除套餐。现有订阅将保留其套餐历史，但新用户将看不到它。",
+      "freeQuotaSyncedHint": "从「系统设置」→「默认月度 Token 配额」同步。",
+      "freeQuotaEditLink": "在那里编辑 →"
     },
     "subscriptions": {
       "title": "订阅",
