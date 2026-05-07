@@ -11,7 +11,12 @@
     "channels": "Channels",
     "usage": "Usage",
     "notifications": "Notifications",
-    "subscriptions": "Subscriptions"
+    "subscriptions": "Subscriptions",
+    "billing": "Billing"
+  },
+
+  "sidebar": {
+    "billing": "Billing"
   },
 
   "general": {

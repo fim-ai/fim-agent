@@ -1,0 +1,85 @@
+{
+  "page": {
+    "title": "Billing",
+    "description": "Manage your subscription, monitor usage, and upgrade your plan."
+  },
+
+  "currentPlan": {
+    "title": "Current Plan",
+    "description": "Your active plan and monthly token allowance.",
+    "freeFallback": "Free",
+    "noPlan": "No active plan",
+    "monthlyQuota": "Monthly token quota",
+    "unlimited": "Unlimited",
+    "currentBadge": "Current"
+  },
+
+  "usage": {
+    "title": "Usage This Period",
+    "description": "Tokens consumed in the current billing period.",
+    "tokensUsed": "Tokens used",
+    "ofQuota": "of {quota}",
+    "percentLabel": "{percent}% used",
+    "resetOn": "Resets on {date}",
+    "periodEndsOn": "Period ends on {date}",
+    "unlimited": "Unlimited — no quota cap on this plan.",
+    "noPeriod": "No active billing period.",
+    "loadFailed": "Failed to load usage data."
+  },
+
+  "subscription": {
+    "title": "Subscription Status",
+    "description": "Your current subscription state and next renewal.",
+    "currentPeriodEnd": "Current period ends",
+    "noSubscription": "You are on the free tier — no paid subscription.",
+    "loadFailed": "Failed to load subscription details."
+  },
+
+  "status": {
+    "active": "Active",
+    "pastDue": "Past Due",
+    "canceled": "Canceled",
+    "incomplete": "Incomplete",
+    "trialing": "Trialing",
+    "unpaid": "Unpaid",
+    "unknown": "Unknown"
+  },
+
+  "banner": {
+    "pastDueTitle": "Payment past due",
+    "pastDueBody": "Your last payment failed. Update your payment method in the billing portal to keep your subscription active.",
+    "canceledTitle": "Subscription ending soon",
+    "canceledBody": "Your subscription is set to cancel on {date}. You'll keep access until then."
+  },
+
+  "plans": {
+    "title": "Available Plans",
+    "description": "Choose the plan that fits your usage.",
+    "loadFailed": "Failed to load plans.",
+    "empty": "No plans are available right now.",
+    "monthlyQuotaLabel": "{quota} tokens / month",
+    "featuresLabel": "What's included",
+    "currentBadge": "Current plan"
+  },
+
+  "action": {
+    "upgrade": "Upgrade to {plan}",
+    "subscribe": "Subscribe",
+    "switchPlan": "Switch to {plan}",
+    "manage": "Manage subscription",
+    "checkoutLoading": "Redirecting to checkout…",
+    "portalLoading": "Opening billing portal…"
+  },
+
+  "error": {
+    "notConfiguredTitle": "Billing is not enabled",
+    "notConfiguredBody": "This instance has not been configured with a Stripe account, so billing actions are unavailable. Contact your administrator if you believe this is unexpected.",
+    "checkoutFailed": "Failed to start checkout. Please try again.",
+    "portalFailed": "Failed to open the billing portal. Please try again.",
+    "noStripeCustomer": "Subscribe to a paid plan first to manage billing details."
+  },
+
+  "sidebar": {
+    "billing": "Billing"
+  }
+}

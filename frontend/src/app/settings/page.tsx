@@ -14,6 +14,7 @@ import {
   Bell,
   BookMarked,
   MessageSquare,
+  CreditCard,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -107,6 +108,23 @@ function SettingsContent() {
               </Link>
             )
           })}
+          {/*
+            Billing lives at its own route (`/settings/billing`) rather
+            than a `?tab=` slug so the page can ship server-rendered
+            metadata via `generateMetadata`. We render the entry here
+            for navigability but never mark it active — visiting the
+            link unmounts this whole page anyway.
+          */}
+          <Link
+            href="/settings/billing"
+            className={cn(
+              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+              "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+            )}
+          >
+            <CreditCard className="h-4 w-4" />
+            <span>{t("sidebar.billing")}</span>
+          </Link>
         </nav>
 
         {/* Right content */}

@@ -10,7 +10,8 @@
     "usage": "使用状況",
     "notifications": "通知",
     "subscriptions": "サブスクリプション",
-    "channels": "チャネル"
+    "channels": "チャネル",
+    "billing": "請求"
   },
   "general": {
     "profileTitle": "プロフィール",
@@ -69,7 +70,7 @@
     "executionModeLabel": "実行モード",
     "executionModeAuto": "自動",
     "executionModeReact": "ReAct",
-    "executionModeDag": "DAG Planner",
+    "executionModeDag": "DAG プランナー",
     "executionModeSaved": "実行モードが保存されました",
     "executionModeSaveFailed": "実行モードの保存に失敗しました",
     "extendedThinkingLabel": "拡張思考",
@@ -407,5 +408,8 @@
     "noSubscriptions": "まだ購読がありません。マーケットを参照して共有リソースを発見してください。",
     "browseMarket": "マーケットを参照",
     "loadFailed": "購読の読み込みに失敗しました"
+  },
+  "sidebar": {
+    "billing": "請求"
   }
 }

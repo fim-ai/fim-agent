@@ -1,0 +1,76 @@
+{
+  "page": {
+    "title": "Abrechnung",
+    "description": "Verwalten Sie Ihr Abonnement, überwachen Sie die Nutzung und upgraden Sie Ihren Plan."
+  },
+  "currentPlan": {
+    "title": "Aktueller Plan",
+    "description": "Ihr aktiver Plan und monatliches Token-Kontingent.",
+    "freeFallback": "Kostenlos",
+    "noPlan": "Kein aktiver Plan",
+    "monthlyQuota": "Monatliches Token-Kontingent",
+    "unlimited": "Unbegrenzt",
+    "currentBadge": "Aktuell"
+  },
+  "usage": {
+    "title": "Nutzung in diesem Zeitraum",
+    "description": "Tokens verbraucht in der aktuellen Abrechnungsperiode.",
+    "tokensUsed": "Tokens verwendet",
+    "ofQuota": "von {quota}",
+    "percentLabel": "{percent}% verwendet",
+    "resetOn": "Setzt sich zurück am {date}",
+    "periodEndsOn": "Zeitraum endet am {date}",
+    "unlimited": "Unbegrenzt — kein Kontingent-Limit bei diesem Plan.",
+    "noPeriod": "Keine aktive Abrechnungsperiode.",
+    "loadFailed": "Nutzungsdaten konnten nicht geladen werden."
+  },
+  "subscription": {
+    "title": "Abonnementstatus",
+    "description": "Ihr aktueller Abonnementstatus und nächste Verlängerung.",
+    "currentPeriodEnd": "Aktueller Zeitraum endet",
+    "noSubscription": "Sie nutzen die kostenlose Version — kein bezahltes Abonnement.",
+    "loadFailed": "Abonnementdetails konnten nicht geladen werden."
+  },
+  "status": {
+    "active": "Aktiv",
+    "pastDue": "Überfällig",
+    "canceled": "Storniert",
+    "incomplete": "Unvollständig",
+    "trialing": "Testphase",
+    "unpaid": "Unbezahlt",
+    "unknown": "Unbekannt"
+  },
+  "banner": {
+    "pastDueTitle": "Zahlung überfällig",
+    "pastDueBody": "Ihre letzte Zahlung ist fehlgeschlagen. Aktualisieren Sie Ihre Zahlungsmethode im Abrechnungsportal, um Ihr Abonnement aktiv zu halten.",
+    "canceledTitle": "Abonnement endet bald",
+    "canceledBody": "Ihr Abonnement wird am {date} storniert. Sie haben bis dahin Zugriff."
+  },
+  "plans": {
+    "title": "Verfügbare Pläne",
+    "description": "Wählen Sie den Plan, der zu Ihrer Nutzung passt.",
+    "loadFailed": "Pläne konnten nicht geladen werden.",
+    "empty": "Derzeit sind keine Pläne verfügbar.",
+    "monthlyQuotaLabel": "{quota} Tokens / Monat",
+    "featuresLabel": "Was enthalten ist",
+    "currentBadge": "Aktueller Plan"
+  },
+  "action": {
+    "upgrade": "Upgrade auf {plan}",
+    "subscribe": "Abonnieren",
+    "switchPlan": "Wechsel zu {plan}",
+    "manage": "Abonnement verwalten",
+    "checkoutLoading": "Weiterleitung zum Checkout…",
+    "portalLoading": "Abrechnungsportal wird geöffnet…"
+  },
+  "error": {
+    "notConfiguredTitle": "Abrechnung ist nicht aktiviert",
+    "notConfiguredBody": "Diese Instanz wurde nicht mit einem Stripe-Konto konfiguriert, daher sind Abrechnungsaktionen nicht verfügbar. Kontaktieren Sie Ihren Administrator, wenn Sie glauben, dass dies unerwartet ist.",
+    "checkoutFailed": "Checkout konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+    "portalFailed": "Das Abrechnungsportal konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.",
+    "noStripeCustomer": "Abonnieren Sie zunächst einen bezahlten Plan, um Abrechnungsdetails zu verwalten."
+  },
+  "sidebar": {
+    "billing": "Abrechnung"
+  }
+}

@@ -10,7 +10,8 @@
     "usage": "Utilisation",
     "notifications": "Notifications",
     "subscriptions": "Abonnements",
-    "channels": "Canaux"
+    "channels": "Canaux",
+    "billing": "Facturation"
   },
   "general": {
     "profileTitle": "Profil",
@@ -407,5 +408,8 @@
     "noSubscriptions": "Aucun abonnement pour le moment. Parcourez le Marché pour découvrir les ressources partagées.",
     "browseMarket": "Parcourir le Marché",
     "loadFailed": "Échec du chargement des abonnements"
+  },
+  "sidebar": {
+    "billing": "Facturation"
   }
 }

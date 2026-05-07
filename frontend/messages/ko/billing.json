@@ -1,0 +1,76 @@
+{
+  "page": {
+    "title": "결제",
+    "description": "구독을 관리하고, 사용량을 모니터링하며, 플랜을 업그레이드하세요."
+  },
+  "currentPlan": {
+    "title": "현재 플랜",
+    "description": "활성 플랜 및 월간 토큰 할당량입니다.",
+    "freeFallback": "무료",
+    "noPlan": "활성 플랜 없음",
+    "monthlyQuota": "월간 토큰 할당량",
+    "unlimited": "무제한",
+    "currentBadge": "현재"
+  },
+  "usage": {
+    "title": "이 기간의 사용량",
+    "description": "현재 결제 기간에 소비된 토큰입니다.",
+    "tokensUsed": "사용된 토큰",
+    "ofQuota": "{quota}개 중",
+    "percentLabel": "{percent}% 사용됨",
+    "resetOn": "{date}에 초기화됨",
+    "periodEndsOn": "기간 종료: {date}",
+    "unlimited": "무제한 — 이 플랜에는 할당량 상한이 없습니다.",
+    "noPeriod": "활성 결제 기간이 없습니다.",
+    "loadFailed": "사용량 데이터를 로드하지 못했습니다."
+  },
+  "subscription": {
+    "title": "구독 상태",
+    "description": "현재 구독 상태 및 다음 갱신 날짜입니다.",
+    "currentPeriodEnd": "현재 기간 종료",
+    "noSubscription": "무료 티어를 사용 중입니다 — 유료 구독이 없습니다.",
+    "loadFailed": "구독 세부 정보를 로드하지 못했습니다."
+  },
+  "status": {
+    "active": "활성",
+    "pastDue": "연체",
+    "canceled": "취소됨",
+    "incomplete": "미완료",
+    "trialing": "체험 중",
+    "unpaid": "미결제",
+    "unknown": "알 수 없음"
+  },
+  "banner": {
+    "pastDueTitle": "결제 연체",
+    "pastDueBody": "마지막 결제가 실패했습니다. 구독을 유지하려면 결제 수단을 업데이트하세요.",
+    "canceledTitle": "구독 곧 종료",
+    "canceledBody": "구독이 {date}에 취소될 예정입니다. 그때까지 액세스 권한이 유지됩니다."
+  },
+  "plans": {
+    "title": "사용 가능한 플랜",
+    "description": "사용량에 맞는 플랜을 선택하세요.",
+    "loadFailed": "플랜을 로드하지 못했습니다.",
+    "empty": "현재 사용 가능한 플랜이 없습니다.",
+    "monthlyQuotaLabel": "월 {quota}개 토큰",
+    "featuresLabel": "포함 내용",
+    "currentBadge": "현재 플랜"
+  },
+  "action": {
+    "upgrade": "{plan}으로 업그레이드",
+    "subscribe": "구독",
+    "switchPlan": "{plan}으로 변경",
+    "manage": "구독 관리",
+    "checkoutLoading": "결제 페이지로 이동 중…",
+    "portalLoading": "결제 포털 열기 중…"
+  },
+  "error": {
+    "notConfiguredTitle": "결제가 활성화되지 않음",
+    "notConfiguredBody": "이 인스턴스가 Stripe 계정으로 구성되지 않아 결제 작업을 사용할 수 없습니다. 예상치 못한 경우 관리자에게 문의하세요.",
+    "checkoutFailed": "결제를 시작하지 못했습니다. 다시 시도하세요.",
+    "portalFailed": "결제 포털을 열지 못했습니다. 다시 시도하세요.",
+    "noStripeCustomer": "먼저 유료 플랜을 구독하여 결제 세부 정보를 관리하세요."
+  },
+  "sidebar": {
+    "billing": "결제"
+  }
+}

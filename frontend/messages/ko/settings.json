@@ -10,7 +10,8 @@
     "usage": "사용량",
     "notifications": "알림",
     "subscriptions": "구독",
-    "channels": "채널"
+    "channels": "채널",
+    "billing": "결제"
   },
   "general": {
     "profileTitle": "프로필",
@@ -407,5 +408,8 @@
     "noSubscriptions": "아직 구독이 없습니다. 마켓을 둘러보고 공유 리소스를 발견하세요.",
     "browseMarket": "마켓 둘러보기",
     "loadFailed": "구독을 로드하지 못했습니다"
+  },
+  "sidebar": {
+    "billing": "결제"
   }
 }

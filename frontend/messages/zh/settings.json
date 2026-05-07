@@ -10,7 +10,8 @@
     "usage": "使用情况",
     "notifications": "通知",
     "subscriptions": "订阅",
-    "channels": "频道"
+    "channels": "通道",
+    "billing": "账单"
   },
   "general": {
     "profileTitle": "个人资料",
@@ -365,7 +366,7 @@
     "loadFailed": "加载使用数据失败",
     "monthlyUsage": "月度使用量",
     "currentUsage": "当前使用量",
-    "tokens": "tokens",
+    "tokens": "令牌",
     "noQuota": "未设置配额限制"
   },
   "notifications": {
@@ -407,5 +408,8 @@
     "noSubscriptions": "暂无订阅。浏览市场以发现共享资源。",
     "browseMarket": "浏览市场",
     "loadFailed": "加载订阅失败"
+  },
+  "sidebar": {
+    "billing": "账单"
   }
 }

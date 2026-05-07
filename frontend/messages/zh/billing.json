@@ -1,0 +1,76 @@
+{
+  "page": {
+    "title": "账单",
+    "description": "管理您的订阅、监控使用情况并升级您的套餐。"
+  },
+  "currentPlan": {
+    "title": "当前套餐",
+    "description": "您的活跃套餐和每月token额度。",
+    "freeFallback": "免费",
+    "noPlan": "无活跃套餐",
+    "monthlyQuota": "每月token配额",
+    "unlimited": "无限制",
+    "currentBadge": "当前"
+  },
+  "usage": {
+    "title": "本期使用情况",
+    "description": "当前计费周期内消耗的token。",
+    "tokensUsed": "已使用token",
+    "ofQuota": "共{quota}",
+    "percentLabel": "已使用{percent}%",
+    "resetOn": "将在{date}重置",
+    "periodEndsOn": "周期结束于{date}",
+    "unlimited": "无限制——此套餐无配额上限。",
+    "noPeriod": "无活跃计费周期。",
+    "loadFailed": "加载使用数据失败。"
+  },
+  "subscription": {
+    "title": "订阅状态",
+    "description": "您的当前订阅状态和下次续期时间。",
+    "currentPeriodEnd": "当前周期结束",
+    "noSubscription": "您使用的是免费版——无付费订阅。",
+    "loadFailed": "加载订阅详情失败。"
+  },
+  "status": {
+    "active": "活跃",
+    "pastDue": "逾期",
+    "canceled": "已取消",
+    "incomplete": "未完成",
+    "trialing": "试用中",
+    "unpaid": "未支付",
+    "unknown": "未知"
+  },
+  "banner": {
+    "pastDueTitle": "付款逾期",
+    "pastDueBody": "您的上次付款失败。请在账单门户中更新您的付款方式以保持订阅活跃。",
+    "canceledTitle": "订阅即将结束",
+    "canceledBody": "您的订阅将于{date}取消。在此之前您仍可继续使用。"
+  },
+  "plans": {
+    "title": "可用套餐",
+    "description": "选择适合您使用情况的套餐。",
+    "loadFailed": "加载套餐失败。",
+    "empty": "目前没有可用的套餐。",
+    "monthlyQuotaLabel": "{quota} tokens / 月",
+    "featuresLabel": "包含内容",
+    "currentBadge": "当前套餐"
+  },
+  "action": {
+    "upgrade": "升级到{plan}",
+    "subscribe": "订阅",
+    "switchPlan": "切换到{plan}",
+    "manage": "管理订阅",
+    "checkoutLoading": "正在跳转到结账页面…",
+    "portalLoading": "正在打开账单门户…"
+  },
+  "error": {
+    "notConfiguredTitle": "账单功能未启用",
+    "notConfiguredBody": "此实例尚未配置Stripe账户，因此账单操作不可用。如果您认为这是意外的，请联系您的管理员。",
+    "checkoutFailed": "启动结账失败。请重试。",
+    "portalFailed": "打开账单门户失败。请重试。",
+    "noStripeCustomer": "请先订阅付费套餐以管理账单详情。"
+  },
+  "sidebar": {
+    "billing": "账单"
+  }
+}

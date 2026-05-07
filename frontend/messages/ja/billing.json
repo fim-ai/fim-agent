@@ -1,0 +1,76 @@
+{
+  "page": {
+    "title": "請求",
+    "description": "サブスクリプション、使用状況の監視、プランのアップグレードを管理します。"
+  },
+  "currentPlan": {
+    "title": "現在のプラン",
+    "description": "アクティブなプランと月間トークン割り当て。",
+    "freeFallback": "無料",
+    "noPlan": "アクティブなプランなし",
+    "monthlyQuota": "月間トークンクォータ",
+    "unlimited": "無制限",
+    "currentBadge": "現在"
+  },
+  "usage": {
+    "title": "今期の使用状況",
+    "description": "現在の請求期間で消費されたトークン。",
+    "tokensUsed": "使用されたトークン",
+    "ofQuota": "{quota}のうち",
+    "percentLabel": "{percent}%使用済み",
+    "resetOn": "{date}にリセット",
+    "periodEndsOn": "期間は{date}に終了",
+    "unlimited": "無制限 — このプランではクォータ上限なし。",
+    "noPeriod": "アクティブな請求期間なし。",
+    "loadFailed": "使用状況データの読み込みに失敗しました。"
+  },
+  "subscription": {
+    "title": "サブスクリプションステータス",
+    "description": "現在のサブスクリプション状態と次回更新日。",
+    "currentPeriodEnd": "現在の期間は終了",
+    "noSubscription": "無料プランをご利用中です — 有料サブスクリプションはありません。",
+    "loadFailed": "サブスクリプション詳細の読み込みに失敗しました。"
+  },
+  "status": {
+    "active": "アクティブ",
+    "pastDue": "期限超過",
+    "canceled": "キャンセル済み",
+    "incomplete": "不完全",
+    "trialing": "トライアル中",
+    "unpaid": "未払い",
+    "unknown": "不明"
+  },
+  "banner": {
+    "pastDueTitle": "支払い期限超過",
+    "pastDueBody": "前回の支払いが失敗しました。請求ポータルで支払い方法を更新して、サブスクリプションをアクティブに保ってください。",
+    "canceledTitle": "サブスクリプション終了予定",
+    "canceledBody": "サブスクリプションは{date}にキャンセルされる予定です。その時まではアクセスを保持できます。"
+  },
+  "plans": {
+    "title": "利用可能なプラン",
+    "description": "使用状況に合わせてプランを選択してください。",
+    "loadFailed": "プランの読み込みに失敗しました。",
+    "empty": "現在利用可能なプランはありません。",
+    "monthlyQuotaLabel": "{quota}トークン/月",
+    "featuresLabel": "含まれるもの",
+    "currentBadge": "現在のプラン"
+  },
+  "action": {
+    "upgrade": "{plan}にアップグレード",
+    "subscribe": "購読",
+    "switchPlan": "{plan}に切り替え",
+    "manage": "サブスクリプションを管理",
+    "checkoutLoading": "チェックアウトにリダイレクト中…",
+    "portalLoading": "請求ポータルを開いています…"
+  },
+  "error": {
+    "notConfiguredTitle": "請求が有効になっていません",
+    "notConfiguredBody": "このインスタンスはStripeアカウントで構成されていないため、請求アクションは利用できません。これが予期しないと思われる場合は、管理者に連絡してください。",
+    "checkoutFailed": "チェックアウトの開始に失敗しました。もう一度お試しください。",
+    "portalFailed": "請求ポータルを開くことができませんでした。もう一度お試しください。",
+    "noStripeCustomer": "請求詳細を管理するには、まず有料プランに登録してください。"
+  },
+  "sidebar": {
+    "billing": "請求"
+  }
+}

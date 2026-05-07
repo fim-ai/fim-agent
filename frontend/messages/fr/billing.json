@@ -1,0 +1,76 @@
+{
+  "page": {
+    "title": "Facturation",
+    "description": "Gérez votre abonnement, surveillez votre utilisation et mettez à niveau votre plan."
+  },
+  "currentPlan": {
+    "title": "Plan actuel",
+    "description": "Votre plan actif et votre allocation mensuelle de tokens.",
+    "freeFallback": "Gratuit",
+    "noPlan": "Aucun plan actif",
+    "monthlyQuota": "Quota mensuel de tokens",
+    "unlimited": "Illimité",
+    "currentBadge": "Actuel"
+  },
+  "usage": {
+    "title": "Utilisation cette période",
+    "description": "Tokens consommés au cours de la période de facturation actuelle.",
+    "tokensUsed": "Tokens utilisés",
+    "ofQuota": "sur {quota}",
+    "percentLabel": "{percent}% utilisés",
+    "resetOn": "Réinitialisation le {date}",
+    "periodEndsOn": "La période se termine le {date}",
+    "unlimited": "Illimité — aucune limite de quota sur ce plan.",
+    "noPeriod": "Aucune période de facturation active.",
+    "loadFailed": "Échec du chargement des données d'utilisation."
+  },
+  "subscription": {
+    "title": "Statut de l'abonnement",
+    "description": "Votre état d'abonnement actuel et votre prochain renouvellement.",
+    "currentPeriodEnd": "La période actuelle se termine",
+    "noSubscription": "Vous êtes sur le plan gratuit — pas d'abonnement payant.",
+    "loadFailed": "Échec du chargement des détails de l'abonnement."
+  },
+  "status": {
+    "active": "Actif",
+    "pastDue": "En retard",
+    "canceled": "Annulé",
+    "incomplete": "Incomplet",
+    "trialing": "En période d'essai",
+    "unpaid": "Non payé",
+    "unknown": "Inconnu"
+  },
+  "banner": {
+    "pastDueTitle": "Paiement en retard",
+    "pastDueBody": "Votre dernier paiement a échoué. Mettez à jour votre mode de paiement dans le portail de facturation pour maintenir votre abonnement actif.",
+    "canceledTitle": "Abonnement se terminant bientôt",
+    "canceledBody": "Votre abonnement est configuré pour s'annuler le {date}. Vous conserverez l'accès jusqu'à cette date."
+  },
+  "plans": {
+    "title": "Plans disponibles",
+    "description": "Choisissez le plan qui correspond à votre utilisation.",
+    "loadFailed": "Échec du chargement des plans.",
+    "empty": "Aucun plan n'est disponible pour le moment.",
+    "monthlyQuotaLabel": "{quota} tokens / mois",
+    "featuresLabel": "Ce qui est inclus",
+    "currentBadge": "Plan actuel"
+  },
+  "action": {
+    "upgrade": "Passer à {plan}",
+    "subscribe": "S'abonner",
+    "switchPlan": "Passer à {plan}",
+    "manage": "Gérer l'abonnement",
+    "checkoutLoading": "Redirection vers le paiement…",
+    "portalLoading": "Ouverture du portail de facturation…"
+  },
+  "error": {
+    "notConfiguredTitle": "La facturation n'est pas activée",
+    "notConfiguredBody": "Cette instance n'a pas été configurée avec un compte Stripe, les actions de facturation ne sont donc pas disponibles. Contactez votre administrateur si vous pensez que c'est inattendu.",
+    "checkoutFailed": "Échec du démarrage du paiement. Veuillez réessayer.",
+    "portalFailed": "Échec de l'ouverture du portail de facturation. Veuillez réessayer.",
+    "noStripeCustomer": "Abonnez-vous d'abord à un plan payant pour gérer les détails de facturation."
+  },
+  "sidebar": {
+    "billing": "Facturation"
+  }
+}

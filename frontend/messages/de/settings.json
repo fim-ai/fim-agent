@@ -10,7 +10,8 @@
     "usage": "Nutzung",
     "notifications": "Benachrichtigungen",
     "subscriptions": "Abonnements",
-    "channels": "Kanäle"
+    "channels": "Kanäle",
+    "billing": "Abrechnung"
   },
   "general": {
     "profileTitle": "Profil",
@@ -407,5 +408,8 @@
     "noSubscriptions": "Noch keine Abos. Durchsuchen Sie den Marktplatz, um freigegebene Ressourcen zu entdecken.",
     "browseMarket": "Marktplatz durchsuchen",
     "loadFailed": "Abos konnten nicht geladen werden"
+  },
+  "sidebar": {
+    "billing": "Abrechnung"
   }
 }
