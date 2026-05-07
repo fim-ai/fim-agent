@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Activity, Plug, Settings, Shield, Users, MessageSquare,
   HardDrive, Cpu, Lock, Key, Bot, BookOpen, FileText, BarChart3, Wrench,
   Building2, GitBranch, Sparkles, FlaskConical, KeyRound, ClipboardCheck,
-  Calendar, Bell, Scan, Webhook, Package, Store,
+  Calendar, Bell, Scan, Webhook, Package, Store, Receipt, CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -40,6 +40,8 @@ import { AdminTraces } from "@/components/admin/admin-traces"
 import { AdminHooks } from "@/components/admin/admin-hooks"
 import { AdminPackages } from "@/components/admin/admin-packages"
 import { AdminMarket } from "@/components/admin/admin-market"
+import { AdminBillingPlans } from "@/components/admin/admin-billing-plans"
+import { AdminBillingSubscriptions } from "@/components/admin/admin-billing-subscriptions"
 
 // ---------------------------------------------------------------------------
 // Tab definitions grouped logically
@@ -104,6 +106,13 @@ const NAV_GROUPS: NavGroup[] = [
       { key: "notifications", icon: Bell },
       { key: "audit", icon: Shield },
       { key: "storage", icon: HardDrive },
+    ],
+  },
+  {
+    label: "billing",
+    items: [
+      { key: "billingPlans", icon: Receipt },
+      { key: "billingSubscriptions", icon: CreditCard },
     ],
   },
   {
@@ -225,6 +234,8 @@ function AdminPanelContent() {
           {activeTab === "hooks" && <AdminHooks />}
           {activeTab === "packages" && <AdminPackages />}
           {activeTab === "market" && <AdminMarket />}
+          {activeTab === "billingPlans" && <AdminBillingPlans />}
+          {activeTab === "billingSubscriptions" && <AdminBillingSubscriptions />}
         </div>
       </div>
     </div>

@@ -28,7 +28,9 @@
     "packages": "Packages",
     "agents": "Agents",
     "knowledgeBases": "Bases de connaissances",
-    "market": "Marché"
+    "market": "Marché",
+    "billingPlans": "Plans",
+    "billingSubscriptions": "Abonnements"
   },
   "overview": {
     "title": "Aperçu",
@@ -1063,7 +1065,8 @@
     "security": "Sécurité",
     "operations": "Opérations",
     "system": "Système",
-    "comingSoon": "À venir"
+    "comingSoon": "À venir",
+    "billing": "Facturation"
   },
   "agents": {
     "title": "Agents",
@@ -1138,5 +1141,110 @@
     "typeKnowledgeBase": "Base de Connaissances",
     "takeDown": "Retirer",
     "takeDownSuccess": "Ressource retirée de la marketplace"
+  },
+  "billing": {
+    "plans": {
+      "title": "Plans de facturation",
+      "subtitle": "Catalogue des plans achetables synchronisés avec les prix Stripe.",
+      "createPlan": "Créer un plan",
+      "createTitle": "Créer un plan",
+      "createDescription": "Ajouter un nouveau plan de facturation. Le slug est permanent — choisissez avec soin.",
+      "editTitle": "Modifier le plan",
+      "editDescription": "Mettre à jour les informations d'affichage du plan, le quota et la liaison au prix Stripe. Le slug ne peut pas changer.",
+      "viewTitle": "Détails du plan",
+      "viewDescription": "Vue en lecture seule des métadonnées du plan et du nombre d'abonnements actifs.",
+      "noPlansFound": "Aucun plan pour le moment. Cliquez sur « Créer un plan » pour en ajouter un.",
+      "loadFailed": "Échec du chargement des plans",
+      "saveFailed": "Échec de l'enregistrement du plan",
+      "deleteFailed": "Échec de la suppression du plan",
+      "planCreated": "Plan créé",
+      "planUpdated": "Plan mis à jour",
+      "planDeleted": "Plan désactivé",
+      "columns": {
+        "slug": "Slug",
+        "name": "Nom",
+        "price": "Prix",
+        "quota": "Quota",
+        "status": "Statut",
+        "subsCount": "Abonnements actifs"
+      },
+      "fields": {
+        "slug": "Slug",
+        "slugHint": "Lettres minuscules, chiffres, tirets, traits de soulignement. Permanent après la création.",
+        "name": "Nom",
+        "priceCents": "Prix (centimes)",
+        "priceCentsHint": "Remplacement d'affichage optionnel ; le prix Stripe reste la source de vérité.",
+        "monthlyTokenQuota": "Quota mensuel de tokens",
+        "monthlyTokenQuotaHint": "Tokens inclus par cycle de facturation. 0 désactive le compteur.",
+        "stripePriceId": "ID de prix Stripe",
+        "stripePriceIdHint": "Tableau de bord Stripe → Produits → ID de prix (par ex. price_1Abc...).",
+        "description": "Description",
+        "features": "Fonctionnalités",
+        "featuresHint": "Une fonctionnalité par ligne — affichée sous forme de puces sur la carte de plan client.",
+        "sortOrder": "Ordre de tri",
+        "isActive": "Actif"
+      },
+      "actions": {
+        "view": "Voir les détails",
+        "edit": "Modifier",
+        "enable": "Activer",
+        "disable": "Désactiver",
+        "delete": "Supprimer"
+      },
+      "deleteConfirmTitle": "Désactiver le plan « {slug} » ?",
+      "deleteConfirmDescription": "Cela désactive le plan en basculant Actif. Les abonnements existants conservent leur historique de plan, mais les nouveaux utilisateurs ne le verront pas.",
+      "deleteBlocked": "{count} abonnements actifs empêchent la suppression. Migrez ou annulez-les avant de désactiver ce plan.",
+      "errors": {
+        "slugRequired": "Le slug est obligatoire.",
+        "slugInvalid": "Le slug doit contenir des lettres minuscules, des chiffres, des tirets ou des traits de soulignement.",
+        "slugTaken": "Un plan avec ce slug existe déjà.",
+        "nameRequired": "Le nom est obligatoire.",
+        "quotaInvalid": "Le quota doit être un entier non négatif.",
+        "stripePriceTaken": "Un plan utilise déjà cet ID de prix Stripe."
+      },
+      "freeTier": "Gratuit",
+      "tokensSuffix": "tokens / mois"
+    },
+    "subscriptions": {
+      "title": "Abonnements",
+      "subtitle": "Abonnements Stripe reflétés à partir des webhooks. Lecture seule.",
+      "noSubsFound": "Aucun abonnement ne correspond aux filtres actuels.",
+      "loadFailed": "Échec du chargement des abonnements",
+      "filters": {
+        "status": "Statut",
+        "plan": "Plan",
+        "search": "Rechercher par email…",
+        "allStatuses": "Tous les statuts",
+        "allPlans": "Tous les plans"
+      },
+      "columns": {
+        "userEmail": "Utilisateur",
+        "plan": "Plan",
+        "status": "Statut",
+        "periodEnd": "Fin de période",
+        "stripeSubId": "ID d'abonnement Stripe"
+      },
+      "actions": {
+        "view": "Voir les détails"
+      },
+      "details": {
+        "title": "Détails de l'abonnement",
+        "user": "Utilisateur",
+        "plan": "Plan",
+        "status": "Statut",
+        "stripeSubscriptionId": "ID d'abonnement Stripe",
+        "stripePriceId": "ID de prix Stripe",
+        "currentPeriodStart": "Début de la période actuelle",
+        "currentPeriodEnd": "Fin de la période actuelle",
+        "cancelAtPeriodEnd": "Annuler à la fin de la période",
+        "canceledAt": "Annulé le",
+        "createdAt": "Créé",
+        "updatedAt": "Mis à jour",
+        "yes": "Oui",
+        "no": "Non",
+        "notCanceled": "Non annulé"
+      },
+      "totalCount": "{count, plural, one {# abonnement} other {# abonnements}}"
+    }
   }
 }

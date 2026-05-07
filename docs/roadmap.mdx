@@ -401,7 +401,7 @@ Bulk of the Agent Core integration blueprint (Phase 0–3, I.1–I.16) shipped a
   - [x] **Data model + SDK groundwork** (P1) — `billing_plans` / `subscriptions` / `stripe_webhook_events` tables, ORM models, Stripe SDK singleton with pinned API version, partial-config and key-prefix validators. Free + Pro plans seeded (Pro stripe_price_id is currently a test-mode price; production deploy needs a separate live price_id).
   - [x] **Backend API + webhook handler** (P2) — `/api/billing/{plans,subscription,checkout,portal}` + `/api/webhooks/stripe` with signature verification + event idempotency. Plan-aware quota enforcement and an hourly lifecycle sweep that demotes canceled subscriptions to Free at `current_period_end`.
   - [ ] **Frontend `/settings/billing` page + 402 upgrade dialog** (P3) — quota display, upgrade CTA, `past_due` banner; intercept chat 402 with shadcn `<Dialog>` (no native confirm).
-  - [ ] **Admin plan management** (P4) — `admin/billing/plans` (Sheet-based CRUD via `...` DropdownMenu) + `admin/billing/subscriptions` (read-only).
+  - [x] **Admin plan management** (P4) — `admin/billing/plans` (Dialog-based CRUD via `...` DropdownMenu) + `admin/billing/subscriptions` (read-only with status / plan / email filters).
 
 **Impact**: Enterprises deploy FIM One from zero to multi-system orchestration in days. Package system creates a creator ecosystem — solution authors publish composite bundles (Skill + Agents + Connectors + KBs + Workflows), enterprises install with one click, creators earn from adoption. Install/fork duality covers both "use as-is" and "customize from template" use cases in a single mechanism.
 

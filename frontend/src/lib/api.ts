@@ -48,7 +48,7 @@ import type {
   MyCredentialStatus,
   ConnectorTemplate,
 } from "@/types/connector"
-import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem } from "@/types/admin"
+import type { AdminUser, AdminConversation, AdminMessage, StorageStats, InviteCode, IntegrationHealth, AdminModelsResponse, AdminModelCreate, AdminModelUpdate, AdminUserFile, AdminOrganization, OrgMember as AdminOrgMember, ReviewLogItem, AdminBillingPlan, AdminBillingPlanCreate, AdminBillingPlanUpdate, AdminBillingSubscription, AdminBillingSubscriptionListResponse } from "@/types/admin"
 import type { MCPServerResponse, MCPServerCreate, MCPServerUpdate, MCPMyCredentialStatus } from "@/types/mcp-server"
 import type { ModelConfigResponse, ModelConfigCreate, ModelConfigUpdate } from "@/types/model_config"
 import type {
@@ -1995,6 +1995,53 @@ export const adminApi = {
     apiFetch(`/api/admin/market/resources/${resourceType}/${resourceId}/unpublish`, {
       method: 'PATCH',
     }),
+
+  // --- Billing — plans CRUD ---
+  listBillingPlans: () =>
+    apiFetch<AdminBillingPlan[]>('/api/admin/billing/plans'),
+
+  getBillingPlan: (planId: number) =>
+    apiFetch<AdminBillingPlan>(`/api/admin/billing/plans/${planId}`),
+
+  createBillingPlan: (body: AdminBillingPlanCreate) =>
+    apiFetch<AdminBillingPlan>('/api/admin/billing/plans', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateBillingPlan: (planId: number, body: AdminBillingPlanUpdate) =>
+    apiFetch<AdminBillingPlan>(`/api/admin/billing/plans/${planId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  deleteBillingPlan: (planId: number) =>
+    apiFetch<AdminBillingPlan>(`/api/admin/billing/plans/${planId}`, {
+      method: 'DELETE',
+    }),
+
+  // --- Billing — subscriptions read-only ---
+  listBillingSubscriptions: (params?: {
+    status?: string
+    plan_slug?: string
+    search?: string
+    limit?: number
+    offset?: number
+  }) => {
+    const sp = new URLSearchParams()
+    if (params?.status) sp.set('status', params.status)
+    if (params?.plan_slug) sp.set('plan_slug', params.plan_slug)
+    if (params?.search) sp.set('search', params.search)
+    if (params?.limit !== undefined) sp.set('limit', String(params.limit))
+    if (params?.offset !== undefined) sp.set('offset', String(params.offset))
+    const qs = sp.toString()
+    return apiFetch<AdminBillingSubscriptionListResponse>(
+      `/api/admin/billing/subscriptions${qs ? `?${qs}` : ''}`,
+    )
+  },
+
+  getBillingSubscription: (subId: number) =>
+    apiFetch<AdminBillingSubscription>(`/api/admin/billing/subscriptions/${subId}`),
 }
 
 // --- MCP Server API ---

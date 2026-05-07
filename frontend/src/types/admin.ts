@@ -167,3 +167,71 @@ export interface ReviewLogItem {
   actor_id: string | null
   actor_name: string | null
 }
+
+// ---------------------------------------------------------------------------
+// Billing — admin-side (mirrors src/fim_one/web/schemas/billing.py)
+// ---------------------------------------------------------------------------
+
+export interface AdminBillingPlan {
+  id: number
+  slug: string
+  name: string
+  monthly_token_quota: number
+  stripe_price_id: string | null
+  price_cents: number | null
+  description: string | null
+  features: string[]
+  features_json: Record<string, unknown>
+  sort_order: number
+  is_active: boolean
+  active_subscription_count: number
+  created_at: string | null
+}
+
+export interface AdminBillingPlanCreate {
+  slug: string
+  name: string
+  monthly_token_quota: number
+  stripe_price_id?: string | null
+  description?: string | null
+  features?: string[]
+  sort_order?: number
+  is_active?: boolean
+}
+
+export interface AdminBillingPlanUpdate {
+  name?: string
+  price_cents?: number | null
+  monthly_token_quota?: number
+  stripe_price_id?: string | null
+  description?: string | null
+  features?: string[]
+  sort_order?: number
+  is_active?: boolean
+}
+
+export interface AdminBillingSubscription {
+  id: number
+  user_id: string
+  user_email: string | null
+  user_username: string | null
+  plan_id: number
+  plan_slug: string
+  plan_name: string
+  stripe_subscription_id: string
+  stripe_price_id: string
+  status: string
+  current_period_start: string
+  current_period_end: string
+  cancel_at_period_end: boolean
+  canceled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminBillingSubscriptionListResponse {
+  items: AdminBillingSubscription[]
+  total: number
+  limit: number
+  offset: number
+}

@@ -30,7 +30,15 @@ from sqlalchemy.orm import selectinload
 from fim_one.db import get_session
 from fim_one.web.auth import get_current_admin, hash_password, hash_password_async
 from fim_one.web.models import Agent, AuditLog, Connector, ConnectorCallLog, Conversation, InviteCode, KnowledgeBase, MCPServer as MCPServerModel, Message, ModelConfig, Organization, SystemSetting, User
+from fim_one.web.models.billing import BillingPlan, Subscription
 from fim_one.web.models.review_log import ReviewLog
+from fim_one.web.schemas.billing import (
+    AdminBillingPlanCreate,
+    AdminBillingPlanRead,
+    AdminBillingPlanUpdate,
+    AdminSubscriptionListResponse,
+    AdminSubscriptionRead,
+)
 from fim_one.web.schemas.common import ApiResponse, PaginatedResponse
 from fim_one.web.schemas.model_config import ModelConfigResponse
 
@@ -3255,3 +3263,399 @@ def _invalidate_model_group_cache() -> None:
 def get_model_group_version() -> int:
     """Return the current model group version (used by deps.py)."""
     return _model_group_version
+
+
+# ---------------------------------------------------------------------------
+# Billing — plans CRUD
+# ---------------------------------------------------------------------------
+#
+# Plan rows are the catalogue: ``stripe_price_id`` links to the Stripe Price
+# (price source-of-truth), ``slug`` keys customer-facing references and is
+# IMMUTABLE post-creation. ``is_active=False`` is a soft-delete; we never
+# hard-delete rows that have ever had a subscription, because canceled subs
+# still need their plan name to render in user history.
+
+# Stripe lifecycle states that count as "actively consuming" a plan. Anything
+# outside this set (canceled / unpaid / incomplete_expired) means the user
+# is no longer billed against the plan and the row is safe to retire.
+_ACTIVE_SUB_STATUSES = ("active", "trialing", "past_due")
+
+
+def _plan_to_read(plan: BillingPlan, active_count: int = 0) -> AdminBillingPlanRead:
+    """Project a :class:`BillingPlan` ORM row into :class:`AdminBillingPlanRead`.
+
+    ``features_json`` is a free-form blob for forward-compat (we may
+    surface arbitrary plan metadata later). For the MVP the admin UI
+    cares about two well-known keys:
+
+    - ``features``: ``list[str]`` of bullet-point feature labels.
+    - ``price_cents``: integer override for display. Stripe Price stays
+      the source of truth for actual charging.
+    """
+    features_json: dict[str, Any] = plan.features_json or {}
+    raw_features = features_json.get("features", [])
+    features: list[str] = [str(f) for f in raw_features] if isinstance(raw_features, list) else []
+    price_cents_raw = features_json.get("price_cents")
+    price_cents: int | None = int(price_cents_raw) if isinstance(price_cents_raw, int) else None
+    return AdminBillingPlanRead(
+        id=plan.id,
+        slug=plan.slug,
+        name=plan.name,
+        monthly_token_quota=plan.monthly_token_quota,
+        stripe_price_id=plan.stripe_price_id,
+        price_cents=price_cents,
+        description=plan.description,
+        features=features,
+        features_json=features_json,
+        sort_order=plan.sort_order,
+        is_active=plan.is_active,
+        active_subscription_count=active_count,
+        created_at=plan.created_at,
+    )
+
+
+async def _count_active_subs_for_plan(db: AsyncSession, plan_id: int) -> int:
+    """Count subscriptions in any active billing state for a given plan."""
+    stmt = (
+        select(func.count())
+        .select_from(Subscription)
+        .where(
+            Subscription.plan_id == plan_id,
+            Subscription.status.in_(_ACTIVE_SUB_STATUSES),
+        )
+    )
+    result = await db.execute(stmt)
+    return int(result.scalar_one() or 0)
+
+
+@router.get("/billing/plans", response_model=list[AdminBillingPlanRead])
+async def list_billing_plans(
+    current_user: User = Depends(get_current_admin),  # noqa: B008,ARG001
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> list[AdminBillingPlanRead]:
+    """List every plan (active or soft-deleted) with active sub counts."""
+    plans_result = await db.execute(
+        select(BillingPlan).order_by(BillingPlan.sort_order.asc(), BillingPlan.id.asc())
+    )
+    plans = list(plans_result.scalars().all())
+
+    counts_result = await db.execute(
+        select(Subscription.plan_id, func.count(Subscription.id))
+        .where(Subscription.status.in_(_ACTIVE_SUB_STATUSES))
+        .group_by(Subscription.plan_id)
+    )
+    counts: dict[int, int] = {row[0]: int(row[1]) for row in counts_result.all()}
+
+    return [_plan_to_read(p, counts.get(p.id, 0)) for p in plans]
+
+
+@router.post(
+    "/billing/plans",
+    response_model=AdminBillingPlanRead,
+    status_code=201,
+)
+async def create_billing_plan(
+    body: AdminBillingPlanCreate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminBillingPlanRead:
+    """Create a new billing plan.
+
+    ``slug`` must be unique — duplicates return 409. ``features`` and
+    ``price_cents`` are merged into ``features_json`` for forward-compat.
+    """
+    existing = await db.execute(
+        select(BillingPlan).where(BillingPlan.slug == body.slug)
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise AppError("billing_plan_slug_taken", status_code=409)
+
+    if body.stripe_price_id:
+        existing_price = await db.execute(
+            select(BillingPlan).where(
+                BillingPlan.stripe_price_id == body.stripe_price_id
+            )
+        )
+        if existing_price.scalar_one_or_none() is not None:
+            raise AppError("billing_plan_stripe_price_taken", status_code=409)
+
+    features_json: dict[str, Any] = {"features": list(body.features)}
+    plan = BillingPlan(
+        slug=body.slug,
+        name=body.name,
+        monthly_token_quota=body.monthly_token_quota,
+        stripe_price_id=body.stripe_price_id,
+        description=body.description,
+        features_json=features_json,
+        sort_order=body.sort_order,
+        is_active=body.is_active,
+    )
+    db.add(plan)
+    await db.commit()
+    await db.refresh(plan)
+
+    await write_audit(
+        db,
+        current_user,
+        "billing_plan.create",
+        target_type="billing_plan",
+        target_id=str(plan.id),
+        target_label=plan.slug,
+    )
+    return _plan_to_read(plan, active_count=0)
+
+
+@router.get(
+    "/billing/plans/{plan_id}",
+    response_model=AdminBillingPlanRead,
+)
+async def get_billing_plan(
+    plan_id: int,
+    current_user: User = Depends(get_current_admin),  # noqa: B008,ARG001
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminBillingPlanRead:
+    """Return a single plan row + active subscription count."""
+    result = await db.execute(select(BillingPlan).where(BillingPlan.id == plan_id))
+    plan = result.scalar_one_or_none()
+    if plan is None:
+        raise AppError("billing_plan_not_found", status_code=404)
+
+    count = await _count_active_subs_for_plan(db, plan_id)
+    return _plan_to_read(plan, active_count=count)
+
+
+@router.patch(
+    "/billing/plans/{plan_id}",
+    response_model=AdminBillingPlanRead,
+)
+async def update_billing_plan(
+    plan_id: int,
+    body: AdminBillingPlanUpdate,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminBillingPlanRead:
+    """Update mutable fields on a plan.
+
+    Slug is intentionally not part of :class:`AdminBillingPlanUpdate`. If a
+    request still tries (via ``model_extra`` etc.), the schema's
+    ``extra='ignore'`` default silently drops it — but to avoid silent
+    drift we additionally reject any incoming dict-flavoured ``slug`` key
+    by inspecting the raw request earlier in the chain. Pydantic v2 ignores
+    unknown fields by default, so the explicit absence of slug here is the
+    enforcement.
+    """
+    result = await db.execute(select(BillingPlan).where(BillingPlan.id == plan_id))
+    plan = result.scalar_one_or_none()
+    if plan is None:
+        raise AppError("billing_plan_not_found", status_code=404)
+
+    payload = body.model_dump(exclude_unset=True)
+
+    # Defence-in-depth: if a malformed client tries to smuggle slug via
+    # the JSON body, pydantic will already have dropped it because
+    # AdminBillingPlanUpdate has no slug field. We assert here anyway so
+    # this contract is impossible to silently regress later.
+    if "slug" in payload:
+        raise AppError("billing_plan_slug_immutable", status_code=400)
+
+    if "stripe_price_id" in payload:
+        new_price_id = payload["stripe_price_id"]
+        if new_price_id and new_price_id != plan.stripe_price_id:
+            existing_price = await db.execute(
+                select(BillingPlan).where(
+                    BillingPlan.stripe_price_id == new_price_id,
+                    BillingPlan.id != plan_id,
+                )
+            )
+            if existing_price.scalar_one_or_none() is not None:
+                raise AppError("billing_plan_stripe_price_taken", status_code=409)
+        plan.stripe_price_id = new_price_id
+
+    if "name" in payload:
+        plan.name = payload["name"]
+    if "monthly_token_quota" in payload:
+        plan.monthly_token_quota = payload["monthly_token_quota"]
+    if "description" in payload:
+        plan.description = payload["description"]
+    if "sort_order" in payload and payload["sort_order"] is not None:
+        plan.sort_order = payload["sort_order"]
+    if "is_active" in payload and payload["is_active"] is not None:
+        plan.is_active = payload["is_active"]
+
+    # features_json patch: features list + price_cents are stored under
+    # well-known keys; everything else carried forward verbatim.
+    features_json: dict[str, Any] = dict(plan.features_json or {})
+    if "features" in payload and payload["features"] is not None:
+        features_json["features"] = list(payload["features"])
+    if "price_cents" in payload and payload["price_cents"] is not None:
+        features_json["price_cents"] = int(payload["price_cents"])
+    plan.features_json = features_json
+
+    await db.commit()
+    await db.refresh(plan)
+
+    await write_audit(
+        db,
+        current_user,
+        "billing_plan.update",
+        target_type="billing_plan",
+        target_id=str(plan.id),
+        target_label=plan.slug,
+    )
+    count = await _count_active_subs_for_plan(db, plan_id)
+    return _plan_to_read(plan, active_count=count)
+
+
+@router.delete(
+    "/billing/plans/{plan_id}",
+    response_model=AdminBillingPlanRead,
+)
+async def delete_billing_plan(
+    plan_id: int,
+    current_user: User = Depends(get_current_admin),  # noqa: B008
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminBillingPlanRead:
+    """Soft-delete a plan by flipping ``is_active`` to false.
+
+    Refuses with 409 if any subscription is still in an active billing
+    state — admins must migrate users off the plan first, otherwise the
+    row vanishes from listings and breaks already-paid customers.
+    """
+    result = await db.execute(select(BillingPlan).where(BillingPlan.id == plan_id))
+    plan = result.scalar_one_or_none()
+    if plan is None:
+        raise AppError("billing_plan_not_found", status_code=404)
+
+    active_count = await _count_active_subs_for_plan(db, plan_id)
+    if active_count > 0:
+        raise AppError(
+            "billing_plan_has_active_subscriptions",
+            status_code=409,
+            detail_args={"count": active_count},
+        )
+
+    plan.is_active = False
+    await db.commit()
+    await db.refresh(plan)
+
+    await write_audit(
+        db,
+        current_user,
+        "billing_plan.delete",
+        target_type="billing_plan",
+        target_id=str(plan.id),
+        target_label=plan.slug,
+    )
+    return _plan_to_read(plan, active_count=0)
+
+
+# ---------------------------------------------------------------------------
+# Billing — subscriptions list / detail (read-only)
+# ---------------------------------------------------------------------------
+
+
+def _subscription_to_read(
+    sub: Subscription, plan: BillingPlan, user: User
+) -> AdminSubscriptionRead:
+    return AdminSubscriptionRead(
+        id=sub.id,
+        user_id=sub.user_id,
+        user_email=user.email,
+        user_username=user.username,
+        plan_id=sub.plan_id,
+        plan_slug=plan.slug,
+        plan_name=plan.name,
+        stripe_subscription_id=sub.stripe_subscription_id,
+        stripe_price_id=sub.stripe_price_id,
+        status=sub.status,
+        current_period_start=sub.current_period_start,
+        current_period_end=sub.current_period_end,
+        cancel_at_period_end=sub.cancel_at_period_end,
+        canceled_at=sub.canceled_at,
+        created_at=sub.created_at,
+        updated_at=sub.updated_at,
+    )
+
+
+@router.get(
+    "/billing/subscriptions",
+    response_model=AdminSubscriptionListResponse,
+)
+async def list_billing_subscriptions(
+    status: str | None = Query(default=None, max_length=32),
+    plan_slug: str | None = Query(default=None, max_length=32),
+    search: str | None = Query(default=None, max_length=128),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: User = Depends(get_current_admin),  # noqa: B008,ARG001
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminSubscriptionListResponse:
+    """List subscriptions joined to plan + user.
+
+    Filter knobs (all optional):
+
+    - ``status``: Stripe subscription status (``active``, ``canceled`` ...).
+    - ``plan_slug``: limit to a specific plan.
+    - ``search``: substring match against ``user.email``.
+    - ``limit`` / ``offset``: pagination.
+    """
+    base_stmt = (
+        select(Subscription, BillingPlan, User)
+        .join(BillingPlan, Subscription.plan_id == BillingPlan.id)
+        .join(User, Subscription.user_id == User.id)
+    )
+    count_stmt = (
+        select(func.count())
+        .select_from(Subscription)
+        .join(BillingPlan, Subscription.plan_id == BillingPlan.id)
+        .join(User, Subscription.user_id == User.id)
+    )
+
+    if status:
+        base_stmt = base_stmt.where(Subscription.status == status)
+        count_stmt = count_stmt.where(Subscription.status == status)
+    if plan_slug:
+        base_stmt = base_stmt.where(BillingPlan.slug == plan_slug)
+        count_stmt = count_stmt.where(BillingPlan.slug == plan_slug)
+    if search:
+        pattern = f"%{search}%"
+        base_stmt = base_stmt.where(User.email.ilike(pattern))
+        count_stmt = count_stmt.where(User.email.ilike(pattern))
+
+    total_result = await db.execute(count_stmt)
+    total = int(total_result.scalar_one() or 0)
+
+    base_stmt = (
+        base_stmt.order_by(Subscription.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = (await db.execute(base_stmt)).all()
+    items = [_subscription_to_read(sub, plan, user) for sub, plan, user in rows]
+
+    return AdminSubscriptionListResponse(
+        items=items, total=total, limit=limit, offset=offset
+    )
+
+
+@router.get(
+    "/billing/subscriptions/{sub_id}",
+    response_model=AdminSubscriptionRead,
+)
+async def get_billing_subscription(
+    sub_id: int,
+    current_user: User = Depends(get_current_admin),  # noqa: B008,ARG001
+    db: AsyncSession = Depends(get_session),  # noqa: B008
+) -> AdminSubscriptionRead:
+    """Return full detail of a single subscription, joined to plan + user."""
+    stmt = (
+        select(Subscription, BillingPlan, User)
+        .join(BillingPlan, Subscription.plan_id == BillingPlan.id)
+        .join(User, Subscription.user_id == User.id)
+        .where(Subscription.id == sub_id)
+    )
+    row = (await db.execute(stmt)).one_or_none()
+    if row is None:
+        raise AppError("subscription_not_found", status_code=404)
+    sub, plan, user = row
+    return _subscription_to_read(sub, plan, user)

@@ -6,6 +6,7 @@
     "resources": "Resources",
     "security": "Security",
     "operations": "Operations",
+    "billing": "Billing",
     "system": "System",
     "comingSoon": "Coming Soon"
   },
@@ -37,7 +38,9 @@
     "traces": "Traces",
     "hooks": "Hooks",
     "packages": "Packages",
-    "market": "Market"
+    "market": "Market",
+    "billingPlans": "Plans",
+    "billingSubscriptions": "Subscriptions"
   },
   "overview": {
     "title": "Overview",
@@ -1139,5 +1142,110 @@
     "typeKnowledgeBase": "Knowledge Base",
     "takeDown": "Take Down",
     "takeDownSuccess": "Resource taken down from marketplace"
+  },
+  "billing": {
+    "plans": {
+      "title": "Billing Plans",
+      "subtitle": "Catalogue of purchasable plans synchronised with Stripe Prices.",
+      "createPlan": "Create Plan",
+      "createTitle": "Create Plan",
+      "createDescription": "Add a new billing plan. Slug is permanent — choose carefully.",
+      "editTitle": "Edit Plan",
+      "editDescription": "Update the plan's display info, quota, and Stripe price binding. Slug cannot change.",
+      "viewTitle": "Plan Details",
+      "viewDescription": "Read-only view of this plan's metadata and active subscription count.",
+      "noPlansFound": "No plans yet. Click \"Create Plan\" to add the first one.",
+      "loadFailed": "Failed to load plans",
+      "saveFailed": "Failed to save plan",
+      "deleteFailed": "Failed to delete plan",
+      "planCreated": "Plan created",
+      "planUpdated": "Plan updated",
+      "planDeleted": "Plan deactivated",
+      "columns": {
+        "slug": "Slug",
+        "name": "Name",
+        "price": "Price",
+        "quota": "Quota",
+        "status": "Status",
+        "subsCount": "Active Subs"
+      },
+      "fields": {
+        "slug": "Slug",
+        "slugHint": "Lowercase letters, digits, dashes, underscores. Permanent after creation.",
+        "name": "Name",
+        "priceCents": "Price (cents)",
+        "priceCentsHint": "Optional display override; Stripe Price remains the source of truth.",
+        "monthlyTokenQuota": "Monthly Token Quota",
+        "monthlyTokenQuotaHint": "Tokens included per billing cycle. 0 disables the meter.",
+        "stripePriceId": "Stripe Price ID",
+        "stripePriceIdHint": "Stripe Dashboard → Products → Price ID (e.g. price_1Abc...).",
+        "description": "Description",
+        "features": "Features",
+        "featuresHint": "One feature per line — rendered as bullet points on the customer plan card.",
+        "sortOrder": "Sort Order",
+        "isActive": "Active"
+      },
+      "actions": {
+        "view": "View Details",
+        "edit": "Edit",
+        "enable": "Enable",
+        "disable": "Disable",
+        "delete": "Delete"
+      },
+      "deleteConfirmTitle": "Deactivate plan \"{slug}\"?",
+      "deleteConfirmDescription": "This soft-deletes the plan by toggling Active off. Existing subscriptions keep their plan history, but new users won't see it.",
+      "deleteBlocked": "{count} active subscriptions prevent deletion. Migrate or cancel them before disabling this plan.",
+      "errors": {
+        "slugRequired": "Slug is required.",
+        "slugInvalid": "Slug must be lowercase letters, digits, dashes or underscores.",
+        "slugTaken": "A plan with this slug already exists.",
+        "nameRequired": "Name is required.",
+        "quotaInvalid": "Quota must be a non-negative integer.",
+        "stripePriceTaken": "A plan is already using this Stripe Price ID."
+      },
+      "freeTier": "Free",
+      "tokensSuffix": "tokens / month"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "subtitle": "Stripe subscriptions mirrored from webhooks. Read-only.",
+      "noSubsFound": "No subscriptions match the current filters.",
+      "loadFailed": "Failed to load subscriptions",
+      "filters": {
+        "status": "Status",
+        "plan": "Plan",
+        "search": "Search by email…",
+        "allStatuses": "All statuses",
+        "allPlans": "All plans"
+      },
+      "columns": {
+        "userEmail": "User",
+        "plan": "Plan",
+        "status": "Status",
+        "periodEnd": "Period End",
+        "stripeSubId": "Stripe Sub ID"
+      },
+      "actions": {
+        "view": "View Details"
+      },
+      "details": {
+        "title": "Subscription Details",
+        "user": "User",
+        "plan": "Plan",
+        "status": "Status",
+        "stripeSubscriptionId": "Stripe Subscription ID",
+        "stripePriceId": "Stripe Price ID",
+        "currentPeriodStart": "Current Period Start",
+        "currentPeriodEnd": "Current Period End",
+        "cancelAtPeriodEnd": "Cancel at Period End",
+        "canceledAt": "Canceled At",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "yes": "Yes",
+        "no": "No",
+        "notCanceled": "Not canceled"
+      },
+      "totalCount": "{count, plural, one {# subscription} other {# subscriptions}}"
+    }
   }
 }

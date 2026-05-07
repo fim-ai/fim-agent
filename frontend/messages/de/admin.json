@@ -28,7 +28,9 @@
     "packages": "Pakete",
     "agents": "Agenten",
     "knowledgeBases": "Wissensdatenbanken",
-    "market": "Marktplatz"
+    "market": "Marktplatz",
+    "billingPlans": "Pläne",
+    "billingSubscriptions": "Abonnements"
   },
   "overview": {
     "title": "Übersicht",
@@ -1063,7 +1065,8 @@
     "security": "Sicherheit",
     "operations": "Operationen",
     "system": "System",
-    "comingSoon": "Demnächst verfügbar"
+    "comingSoon": "Demnächst verfügbar",
+    "billing": "Abrechnung"
   },
   "agents": {
     "title": "Agenten",
@@ -1138,5 +1141,110 @@
     "typeKnowledgeBase": "Wissensdatenbank",
     "takeDown": "Entfernen",
     "takeDownSuccess": "Ressource aus dem Marktplatz entfernt"
+  },
+  "billing": {
+    "plans": {
+      "title": "Abrechnungspläne",
+      "subtitle": "Katalog der mit Stripe-Preisen synchronisierten Kaufpläne.",
+      "createPlan": "Plan erstellen",
+      "createTitle": "Plan erstellen",
+      "createDescription": "Fügen Sie einen neuen Abrechnungsplan hinzu. Der Slug ist dauerhaft — wählen Sie sorgfältig.",
+      "editTitle": "Plan bearbeiten",
+      "editDescription": "Aktualisieren Sie die Anzeigeinformationen, das Kontingent und die Stripe-Preisbindung des Plans. Der Slug kann nicht geändert werden.",
+      "viewTitle": "Plan-Details",
+      "viewDescription": "Schreibgeschützte Ansicht der Metadaten dieses Plans und der Anzahl aktiver Abonnements.",
+      "noPlansFound": "Noch keine Pläne vorhanden. Klicken Sie auf \"Plan erstellen\", um den ersten hinzuzufügen.",
+      "loadFailed": "Pläne konnten nicht geladen werden",
+      "saveFailed": "Plan konnte nicht gespeichert werden",
+      "deleteFailed": "Plan konnte nicht gelöscht werden",
+      "planCreated": "Plan erstellt",
+      "planUpdated": "Plan aktualisiert",
+      "planDeleted": "Plan deaktiviert",
+      "columns": {
+        "slug": "Slug",
+        "name": "Name",
+        "price": "Preis",
+        "quota": "Kontingent",
+        "status": "Status",
+        "subsCount": "Aktive Abos"
+      },
+      "fields": {
+        "slug": "Slug",
+        "slugHint": "Kleinbuchstaben, Ziffern, Bindestriche, Unterstriche. Nach der Erstellung dauerhaft.",
+        "name": "Name",
+        "priceCents": "Preis (Cent)",
+        "priceCentsHint": "Optionale Anzeige-Überschreibung; Stripe Price bleibt die Quelle der Wahrheit.",
+        "monthlyTokenQuota": "Monatliches Token-Kontingent",
+        "monthlyTokenQuotaHint": "Token pro Abrechnungszyklus. 0 deaktiviert die Messung.",
+        "stripePriceId": "Stripe-Preis-ID",
+        "stripePriceIdHint": "Stripe Dashboard → Products → Price ID (z. B. price_1Abc...).",
+        "description": "Beschreibung",
+        "features": "Funktionen",
+        "featuresHint": "Eine Funktion pro Zeile — wird als Aufzählungspunkte auf der Kundentarif-Karte angezeigt.",
+        "sortOrder": "Sortierreihenfolge",
+        "isActive": "Aktiv"
+      },
+      "actions": {
+        "view": "Details anzeigen",
+        "edit": "Bearbeiten",
+        "enable": "Aktivieren",
+        "disable": "Deaktivieren",
+        "delete": "Löschen"
+      },
+      "deleteConfirmTitle": "Tarif \"{slug}\" deaktivieren?",
+      "errors": {
+        "slugRequired": "Slug ist erforderlich.",
+        "slugInvalid": "Slug darf nur Kleinbuchstaben, Ziffern, Bindestriche oder Unterstriche enthalten.",
+        "slugTaken": "Ein Plan mit diesem Slug existiert bereits.",
+        "nameRequired": "Name ist erforderlich.",
+        "quotaInvalid": "Quota muss eine nicht-negative ganze Zahl sein.",
+        "stripePriceTaken": "Ein Plan verwendet bereits diese Stripe Price ID."
+      },
+      "freeTier": "Kostenlos",
+      "tokensSuffix": "Token / Monat",
+      "deleteConfirmDescription": "This soft-deletes the plan by toggling Active off. Existing subscriptions keep their plan history, but new users won't see it.",
+      "deleteBlocked": "{count} active subscriptions prevent deletion. Migrate or cancel them before disabling this plan."
+    },
+    "subscriptions": {
+      "title": "Abonnements",
+      "subtitle": "Stripe-Abonnements, die von Webhooks gespiegelt werden. Schreibgeschützt.",
+      "noSubsFound": "Keine Abonnements entsprechen den aktuellen Filtern.",
+      "loadFailed": "Abonnements konnten nicht geladen werden",
+      "filters": {
+        "status": "Status",
+        "plan": "Plan",
+        "search": "Nach E-Mail suchen…",
+        "allStatuses": "Alle Status",
+        "allPlans": "Alle Pläne"
+      },
+      "columns": {
+        "userEmail": "Benutzer",
+        "plan": "Plan",
+        "status": "Status",
+        "periodEnd": "Zeitraum endet",
+        "stripeSubId": "Stripe Sub ID"
+      },
+      "actions": {
+        "view": "Details anzeigen"
+      },
+      "details": {
+        "title": "Abonnementdetails",
+        "user": "Benutzer",
+        "plan": "Plan",
+        "status": "Status",
+        "stripeSubscriptionId": "Stripe Subscription ID",
+        "stripePriceId": "Stripe Price ID",
+        "currentPeriodStart": "Aktueller Zeitraum beginnt",
+        "currentPeriodEnd": "Aktueller Zeitraum endet",
+        "cancelAtPeriodEnd": "Am Ende des Zeitraums kündigen",
+        "canceledAt": "Gekündigt am",
+        "createdAt": "Erstellt",
+        "updatedAt": "Aktualisiert",
+        "yes": "Ja",
+        "no": "Nein",
+        "notCanceled": "Nicht gekündigt"
+      },
+      "totalCount": "{count, plural, one {# Abonnement} other {# Abonnements}}"
+    }
   }
 }

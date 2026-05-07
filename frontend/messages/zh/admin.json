@@ -28,7 +28,9 @@
     "packages": "包",
     "agents": "智能体",
     "knowledgeBases": "知识库",
-    "market": "市场"
+    "market": "市场",
+    "billingPlans": "套餐",
+    "billingSubscriptions": "订阅"
   },
   "overview": {
     "title": "概览",
@@ -202,7 +204,7 @@
     "conversationDeleted": "对话已删除",
     "view": "查看",
     "viewTitle": "对话消息",
-    "viewSubtitle": "{title} —— {username}",
+    "viewSubtitle": "{title} -- {username}",
     "messageRole": {
       "user": "用户",
       "assistant": "助手",
@@ -1063,7 +1065,8 @@
     "security": "安全",
     "operations": "运维",
     "system": "系统",
-    "comingSoon": "即将推出"
+    "comingSoon": "即将推出",
+    "billing": "账单"
   },
   "agents": {
     "title": "智能体",
@@ -1138,5 +1141,110 @@
     "typeKnowledgeBase": "知识库",
     "takeDown": "下架",
     "takeDownSuccess": "资源已从市场下架"
+  },
+  "billing": {
+    "plans": {
+      "title": "账单套餐",
+      "subtitle": "与Stripe价格同步的可购买套餐目录。",
+      "createPlan": "创建套餐",
+      "createTitle": "创建套餐",
+      "createDescription": "添加新的账单套餐。Slug是永久的——请谨慎选择。",
+      "editTitle": "编辑套餐",
+      "editDescription": "更新套餐的显示信息、配额和Stripe价格绑定。Slug无法更改。",
+      "viewTitle": "套餐详情",
+      "viewDescription": "此套餐的元数据和活跃订阅数的只读视图。",
+      "loadFailed": "加载套餐失败",
+      "saveFailed": "保存套餐失败",
+      "deleteFailed": "删除套餐失败",
+      "planCreated": "套餐已创建",
+      "planUpdated": "套餐已更新",
+      "planDeleted": "套餐已停用",
+      "columns": {
+        "slug": "Slug",
+        "name": "名称",
+        "price": "价格",
+        "quota": "配额",
+        "status": "状态",
+        "subsCount": "活跃订阅"
+      },
+      "fields": {
+        "slug": "Slug",
+        "slugHint": "小写字母、数字、破折号、下划线。创建后永久不变。",
+        "name": "名称",
+        "priceCents": "价格（美分）",
+        "priceCentsHint": "可选的显示覆盖；Stripe 价格仍为真实来源。",
+        "monthlyTokenQuota": "月度 Token 配额",
+        "monthlyTokenQuotaHint": "每个计费周期包含的 Token 数。0 表示禁用计量。",
+        "stripePriceId": "Stripe 价格 ID",
+        "stripePriceIdHint": "Stripe 仪表板 → 产品 → 价格 ID（例如 price_1Abc...）。",
+        "description": "描述",
+        "features": "功能",
+        "featuresHint": "每行一个功能——在客户套餐卡上呈现为项目符号。",
+        "sortOrder": "排序顺序",
+        "isActive": "活跃"
+      },
+      "actions": {
+        "view": "查看详情",
+        "edit": "编辑",
+        "enable": "启用",
+        "disable": "禁用",
+        "delete": "删除"
+      },
+      "deleteBlocked": "{count}个活跃订阅阻止了删除。请在禁用此套餐前迁移或取消它们。",
+      "errors": {
+        "slugRequired": "Slug是必需的。",
+        "slugInvalid": "Slug必须为小写字母、数字、破折号或下划线。",
+        "slugTaken": "已存在使用此Slug的套餐。",
+        "nameRequired": "名称为必填项。",
+        "quotaInvalid": "配额必须是非负整数。",
+        "stripePriceTaken": "已有套餐使用此Stripe价格ID。"
+      },
+      "freeTier": "免费",
+      "tokensSuffix": "tokens / 月",
+      "noPlansFound": "No plans yet. Click \"Create Plan\" to add the first one.",
+      "deleteConfirmTitle": "Deactivate plan \"{slug}\"?",
+      "deleteConfirmDescription": "This soft-deletes the plan by toggling Active off. Existing subscriptions keep their plan history, but new users won't see it."
+    },
+    "subscriptions": {
+      "title": "订阅",
+      "subtitle": "从webhook镜像的Stripe订阅。只读。",
+      "noSubsFound": "没有订阅与当前筛选条件匹配。",
+      "loadFailed": "加载订阅失败",
+      "filters": {
+        "status": "状态",
+        "plan": "套餐",
+        "search": "按邮箱搜索…",
+        "allStatuses": "所有状态",
+        "allPlans": "所有套餐"
+      },
+      "columns": {
+        "userEmail": "用户",
+        "plan": "套餐",
+        "status": "状态",
+        "periodEnd": "周期结束",
+        "stripeSubId": "Stripe 订阅 ID"
+      },
+      "actions": {
+        "view": "查看详情"
+      },
+      "details": {
+        "title": "订阅详情",
+        "user": "用户",
+        "plan": "套餐",
+        "status": "状态",
+        "stripeSubscriptionId": "Stripe 订阅 ID",
+        "stripePriceId": "Stripe 价格 ID",
+        "currentPeriodStart": "当前周期开始",
+        "currentPeriodEnd": "当前周期结束",
+        "cancelAtPeriodEnd": "在周期结束时取消",
+        "canceledAt": "取消时间",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间",
+        "yes": "是",
+        "no": "否",
+        "notCanceled": "未取消"
+      },
+      "totalCount": "{count, plural, one {# 个订阅} other {# 个订阅}}"
+    }
   }
 }

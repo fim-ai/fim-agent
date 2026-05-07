@@ -28,7 +28,9 @@
     "packages": "パッケージ",
     "agents": "エージェント",
     "knowledgeBases": "ナレッジベース",
-    "market": "マーケット"
+    "market": "マーケット",
+    "billingPlans": "プラン",
+    "billingSubscriptions": "サブスクリプション"
   },
   "overview": {
     "title": "概要",
@@ -1063,7 +1065,8 @@
     "security": "セキュリティ",
     "operations": "オペレーション",
     "system": "システム",
-    "comingSoon": "近日公開"
+    "comingSoon": "近日公開",
+    "billing": "請求"
   },
   "agents": {
     "title": "エージェント",
@@ -1138,5 +1141,110 @@
     "typeKnowledgeBase": "ナレッジベース",
     "takeDown": "削除",
     "takeDownSuccess": "リソースがマーケットプレイスから削除されました"
+  },
+  "billing": {
+    "plans": {
+      "title": "請求プラン",
+      "subtitle": "Stripe Pricesと同期された購入可能なプランのカタログ。",
+      "createPlan": "プランを作成",
+      "createTitle": "プランを作成",
+      "createDescription": "新しい請求プランを追加します。Slugは永続的です — 慎重に選択してください。",
+      "editTitle": "プランを編集",
+      "editDescription": "プランの表示情報、クォータ、およびStripe価格バインディングを更新します。Slugは変更できません。",
+      "viewTitle": "プラン詳細",
+      "viewDescription": "このプランのメタデータとアクティブなサブスクリプション数の読み取り専用ビュー。",
+      "noPlansFound": "プランがまだありません。「プランを作成」をクリックして最初のプランを追加してください。",
+      "loadFailed": "プランの読み込みに失敗しました",
+      "saveFailed": "プランの保存に失敗しました",
+      "deleteFailed": "プランの削除に失敗しました",
+      "planCreated": "プランが作成されました",
+      "planUpdated": "プランが更新されました",
+      "planDeleted": "プランが無効化されました",
+      "columns": {
+        "slug": "スラッグ",
+        "name": "名前",
+        "price": "価格",
+        "quota": "クォータ",
+        "status": "ステータス",
+        "subsCount": "アクティブなサブ"
+      },
+      "fields": {
+        "slug": "スラッグ",
+        "slugHint": "小文字、数字、ダッシュ、アンダースコア。作成後は永続的です。",
+        "name": "名前",
+        "priceCents": "価格（セント）",
+        "priceCentsHint": "オプションの表示上書き。Stripe Priceが信頼できる情報源です。",
+        "monthlyTokenQuota": "月間トークンクォータ",
+        "monthlyTokenQuotaHint": "請求サイクルごとに含まれるトークン。0でメーターを無効化します。",
+        "stripePriceId": "Stripe価格ID",
+        "stripePriceIdHint": "Stripe Dashboard → Products → Price ID（例：price_1Abc...）。",
+        "description": "説明",
+        "features": "機能",
+        "featuresHint": "1行に1つの機能 — 顧客プランカードに箇条書きとして表示されます。",
+        "sortOrder": "ソート順序",
+        "isActive": "アクティブ"
+      },
+      "actions": {
+        "view": "詳細を表示",
+        "edit": "編集",
+        "enable": "有効化",
+        "disable": "無効化",
+        "delete": "削除"
+      },
+      "deleteConfirmTitle": "プラン「{slug}」を無効化しますか？",
+      "deleteConfirmDescription": "Activeをオフにしてプランをソフト削除します。既存のサブスクリプションはプラン履歴を保持しますが、新しいユーザーには表示されません。",
+      "deleteBlocked": "{count}個のアクティブなサブスクリプションが削除を防止しています。このプランを無効化する前に、それらを移行またはキャンセルしてください。",
+      "errors": {
+        "slugRequired": "Slugは必須です。",
+        "slugInvalid": "Slugは小文字、数字、ダッシュ、またはアンダースコアである必要があります。",
+        "slugTaken": "このslugを持つプランは既に存在します。",
+        "nameRequired": "名前は必須です。",
+        "quotaInvalid": "クォータは非負の整数である必要があります。",
+        "stripePriceTaken": "このStripe Price IDを使用しているプランは既に存在します。"
+      },
+      "freeTier": "無料",
+      "tokensSuffix": "トークン / 月"
+    },
+    "subscriptions": {
+      "title": "サブスクリプション",
+      "subtitle": "Webhookから反映されたStripeサブスクリプション。読み取り専用。",
+      "noSubsFound": "現在のフィルターに一致するサブスクリプションがありません。",
+      "loadFailed": "サブスクリプションの読み込みに失敗しました",
+      "filters": {
+        "status": "ステータス",
+        "plan": "プラン",
+        "search": "メールで検索…",
+        "allStatuses": "すべてのステータス",
+        "allPlans": "すべてのプラン"
+      },
+      "columns": {
+        "userEmail": "ユーザー",
+        "plan": "プラン",
+        "status": "ステータス",
+        "periodEnd": "期間終了",
+        "stripeSubId": "Stripe購読ID"
+      },
+      "actions": {
+        "view": "詳細を表示"
+      },
+      "details": {
+        "title": "サブスクリプション詳細",
+        "user": "ユーザー",
+        "plan": "プラン",
+        "status": "ステータス",
+        "stripeSubscriptionId": "Stripe購読ID",
+        "stripePriceId": "Stripe価格ID",
+        "currentPeriodStart": "現在の期間開始",
+        "currentPeriodEnd": "現在の期間終了",
+        "cancelAtPeriodEnd": "期間終了時にキャンセル",
+        "canceledAt": "キャンセル日時",
+        "createdAt": "作成日",
+        "updatedAt": "更新日",
+        "yes": "はい",
+        "no": "いいえ",
+        "notCanceled": "キャンセルされていません"
+      },
+      "totalCount": "{count, plural, one {# サブスクリプション} other {# サブスクリプション}}"
+    }
   }
 }
