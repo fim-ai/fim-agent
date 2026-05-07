@@ -486,4 +486,4 @@ Stripe powers Pro subscriptions. Leave all three variables blank to disable bill
 |---|---|---|---|
 | `STRIPE_SECRET_KEY` | No | — | Stripe API secret key. Must start with `sk_test_` / `sk_live_` (full access) or `rk_test_` / `rk_live_` (restricted key). Get yours from the Stripe Dashboard → Developers → API keys. Never commit a `sk_live_*` key to source. |
 | `STRIPE_WEBHOOK_SECRET` | No | — | Stripe webhook signing secret (`whsec_*`). Created when you register the webhook endpoint in Stripe Dashboard → Developers → Webhooks → Add endpoint. Required to verify inbound webhook payloads. |
-| `STRIPE_BILLING_RETURN_URL` | No | `http://localhost:3000/settings/billing` | URL Stripe redirects users to after Checkout / Customer Portal sessions. Set this to your production billing settings page (e.g. `https://your-domain.com/settings/billing`). |
+| `STRIPE_BILLING_RETURN_URL` | No | `http://localhost:3000/settings?tab=billing` | URL Stripe redirects users to after Checkout / Customer Portal sessions. Set this to your production billing settings page (e.g. `https://your-domain.com/settings?tab=billing`). |

@@ -468,12 +468,12 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 
 > 所有 `NEXT_PUBLIC_*` 分析变量都是**构建时**的——更改需要前端重新构建才能生效。
 
-## Stripe Billing（可选）
+## Stripe 计费（可选）
 
 Stripe 为 Pro 订阅提供支持。将所有三个变量留空可禁用计费——FIM One 的其余部分保持不变。**必须**同时设置 `STRIPE_SECRET_KEY` **和** `STRIPE_WEBHOOK_SECRET`；部分配置会在首次使用时引发错误。
 
 | 变量 | 必需 | 默认值 | 描述 |
 |---|---|---|---|
-| `STRIPE_SECRET_KEY` | 否 | — | Stripe API 密钥。必须以 `sk_test_` / `sk_live_`（完全访问）或 `rk_test_` / `rk_live_`（受限密钥）开头。从 Stripe Dashboard → Developers → API keys 获取。切勿将 `sk_live_*` 密钥提交到源代码。 |
-| `STRIPE_WEBHOOK_SECRET` | 否 | — | Stripe webhook 签名密钥（`whsec_*`）。在 Stripe Dashboard → Developers → Webhooks → Add endpoint 中注册 webhook 端点时创建。验证入站 webhook 有效负载时需要。 |
-| `STRIPE_BILLING_RETURN_URL` | 否 | `http://localhost:3000/settings/billing` | Stripe 在 Checkout / Customer Portal 会话后将用户重定向到的 URL。将其设置为你的生产环境计费设置页面（例如 `https://your-domain.com/settings/billing`）。 |
+| `STRIPE_SECRET_KEY` | 否 | — | Stripe API 密钥。必须以 `sk_test_` / `sk_live_`（完全访问权限）或 `rk_test_` / `rk_live_`（受限密钥）开头。从 Stripe Dashboard → Developers → API keys 获取。切勿将 `sk_live_*` 密钥提交到源代码。 |
+| `STRIPE_WEBHOOK_SECRET` | 否 | — | Stripe webhook 签名密钥（`whsec_*`）。在 Stripe Dashboard → Developers → Webhooks → Add endpoint 中注册 webhook 端点时创建。验证入站 webhook 负载所需。 |
+| `STRIPE_BILLING_RETURN_URL` | 否 | `http://localhost:3000/settings?tab=billing` | Stripe 在 Checkout / Customer Portal 会话后重定向用户的 URL。将其设置为生产环境计费设置页面（例如 `https://your-domain.com/settings?tab=billing`）。 |
