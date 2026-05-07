@@ -1,0 +1,12 @@
+{
+  "quota": {
+    "title": "达到每月token配额",
+    "body": "您已用完当前计划包含的所有token，我们已暂停此响应。您的对话已保存——配额重置后可继续，或立即升级以获得更多额度。",
+    "usageLabel": "已使用token",
+    "quotaLabel": "每月配额",
+    "resetLabel": "重置时间",
+    "planLabel": "当前计划",
+    "ctaUpgrade": "立即升级",
+    "ctaWait": "等待重置"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "quota": {
+    "title": "Monatliches Token-Kontingent erreicht",
+    "body": "Sie haben alle in Ihrem aktuellen Plan enthaltenen Token aufgebraucht, daher haben wir diese Antwort unterbrochen. Ihr Gespräch wurde gespeichert — Sie können fortfahren, sobald Ihr Kontingent zurückgesetzt wird, oder upgraden Sie jetzt für mehr Spielraum.",
+    "usageLabel": "Verwendete Token",
+    "quotaLabel": "Monatliches Kontingent",
+    "resetLabel": "Setzt sich zurück am",
+    "planLabel": "Aktueller Plan",
+    "ctaUpgrade": "Jetzt upgraden",
+    "ctaWait": "Auf Zurücksetzen warten"
+  }
+}

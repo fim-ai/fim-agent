@@ -61,6 +61,11 @@ import { Examples } from "@/components/playground/examples"
 import { RightSidebar } from "@/components/playground/right-sidebar"
 import { DagFlowGraph } from "@/components/dag/dag-flow-graph"
 import { HistoryMessages } from "@/components/playground/history-messages"
+import {
+  QuotaExceededDialog,
+  isQuotaExceededPayload,
+  type QuotaExceededPayload,
+} from "@/components/chat/quota-exceeded-dialog"
 import { reconstructSSEMessages, detectTurnMode } from "@/lib/sse-utils"
 import type { SSEMessage } from "@/hooks/use-sse"
 import type { MessageResponse } from "@/types/conversation"
@@ -158,6 +163,36 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
     }
     return postProcessing
   }, [messages])
+
+  // Mid-stream quota terminator — surface the structured `error` event
+  // emitted by chat.py (`_build_quota_terminator_payload`) as a Dialog.
+  // Without this, the early stream cutoff is misread by the SSE hook as
+  // a generic network failure and the user sees "网络错误" instead of
+  // a clear "you ran out of tokens" message + upgrade path.
+  const [quotaPayload, setQuotaPayload] = useState<QuotaExceededPayload | null>(null)
+  // Track which message indices we've already surfaced so that
+  // dismissing the dialog doesn't immediately re-arm itself on the
+  // next render (messages array is append-only, so we just remember
+  // the highest index we've inspected).
+  const lastQuotaCheckIdxRef = useRef(0)
+  useEffect(() => {
+    if (messages.length <= lastQuotaCheckIdxRef.current) return
+    for (let i = lastQuotaCheckIdxRef.current; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg.event === "error" && isQuotaExceededPayload(msg.data)) {
+        setQuotaPayload(msg.data)
+        break
+      }
+    }
+    lastQuotaCheckIdxRef.current = messages.length
+  }, [messages])
+  // When the SSE stream resets (new chat, conversation switch), reset
+  // the cursor so the same `error` index can re-fire on a fresh stream.
+  useEffect(() => {
+    if (messages.length === 0) {
+      lastQuotaCheckIdxRef.current = 0
+    }
+  }, [messages.length])
 
   // Read agent param from URL for quick chat link
   const agentParam = isNewChat ? searchParams.get("agent") : null
@@ -461,6 +496,12 @@ export function PlaygroundPage({ isNewChat, embedded, initialAgentId, onTurnComp
         resumeAttempt={resumeAttempt}
       />
 
+      {/* Mid-stream quota terminator dialog — see `chat.py`'s
+          structured `error` event with `code === "QUOTA_EXCEEDED"`. */}
+      <QuotaExceededDialog
+        payload={quotaPayload}
+        onDismiss={() => setQuotaPayload(null)}
+      />
     </div>
   )
 }

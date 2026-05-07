@@ -1,0 +1,12 @@
+{
+  "quota": {
+    "title": "Quota mensuelle de tokens atteinte",
+    "body": "Vous avez utilisé tous les tokens inclus dans votre plan actuel, nous avons donc interrompu cette réponse en cours de route. Votre conversation a été enregistrée — vous pouvez continuer une fois que votre quota sera réinitialisé ou effectuer une mise à niveau dès maintenant pour plus de capacité.",
+    "usageLabel": "Tokens utilisés",
+    "quotaLabel": "Quota mensuel",
+    "resetLabel": "Réinitialisation le",
+    "planLabel": "Plan actuel",
+    "ctaUpgrade": "Mettre à niveau maintenant",
+    "ctaWait": "Attendre la réinitialisation"
+  }
+}

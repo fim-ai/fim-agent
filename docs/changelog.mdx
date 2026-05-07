@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ### Fixed
 
+- **Chat no longer reports "网络错误" when you run out of monthly tokens mid-answer.** The streaming endpoints used to drop the connection when the per-user token quota was exhausted partway through a response, and the frontend interpreted the abrupt cutoff as a network failure — leaving you with no way to know upgrading was the actual fix. The stream now emits a structured `QUOTA_EXCEEDED` terminator with current usage, monthly cap, next reset date, and plan, and the playground surfaces a dialog with an "Upgrade now" deep-link to your billing settings instead of a generic toast.
 - **Agent settings: bound resources no longer flicker as "(已删除)" on entry.** The KB / connector / MCP-server pickers used to derive the orphan badge synchronously from `selected − available`, so any agent whose inventory list fetch was slower than the agent fetch would briefly mark every linked resource as deleted before snapping back to the correct state — most noticeable for org agents with multiple connectors. The orphan badge now waits for each inventory fetch to settle before rendering.
 - **Toasts now follow the light/dark theme.** The root toaster was hardcoded to dark regardless of user preference.
 - **Usage by-agent breakdown no longer duplicates "Direct Chat" rows.** Conversations tied to deleted agents used to produce one row per orphaned `agent_id`; they now collapse into a single row.

@@ -1,0 +1,12 @@
+{
+  "quota": {
+    "title": "Monthly token quota reached",
+    "body": "You've used all the tokens included in your current plan, so we paused this response partway through. Your conversation has been saved — you can continue once your quota resets or upgrade for more headroom now.",
+    "usageLabel": "Tokens used",
+    "quotaLabel": "Monthly quota",
+    "resetLabel": "Resets on",
+    "planLabel": "Current plan",
+    "ctaUpgrade": "Upgrade now",
+    "ctaWait": "Wait for reset"
+  }
+}
