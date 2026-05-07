@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { usePageTitle } from "@/hooks/use-page-title"
 import { AdminOverview } from "@/components/admin/admin-overview"
 import { AdminSettings } from "@/components/admin/admin-settings"
 import { AdminUsers } from "@/components/admin/admin-users"
@@ -143,6 +144,8 @@ function AdminPanelContent() {
   const t = useTranslations("admin")
 
   const activeTab = (searchParams.get("tab") as TabKey) || "overview"
+
+  usePageTitle(`${t("panelTitle")} · ${t(`tabs.${activeTab}` as never)}`)
 
   // Auth guard: admin only
   useEffect(() => {

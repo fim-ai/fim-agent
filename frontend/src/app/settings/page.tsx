@@ -19,6 +19,7 @@ import {
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { usePageTitle } from "@/hooks/use-page-title"
 import { GeneralSettings } from "@/components/settings/general-settings"
 import { AccountSettings } from "@/components/settings/account-settings"
 import { AppearanceSettings } from "@/components/settings/appearance-settings"
@@ -65,6 +66,9 @@ function SettingsContent() {
   const t = useTranslations("settings")
 
   const activeTab = (searchParams.get("tab") as TabKey) || "general"
+
+  const i18nTabKey = activeTab === "api-keys" ? "apiKeys" : activeTab
+  usePageTitle(`${t("title")} · ${t(`tabs.${i18nTabKey}` as never)}`)
 
   // Auth guard
   useEffect(() => {
