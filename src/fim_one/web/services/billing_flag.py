@@ -127,7 +127,11 @@ _SEED_PLANS: tuple[dict[str, Any], ...] = (
         "name": "Free",
         "stripe_price_id": None,
         "monthly_token_quota": _FREE_FALLBACK_QUOTA,
-        "description": "100K tokens / month, basic features",
+        # Description deliberately omits the token count — that number
+        # is rendered separately by the UI (sourced from
+        # ``monthly_token_quota``) and would drift here as soon as an
+        # admin edited ``default_token_quota``.
+        "description": "Basic features",
         "sort_order": 0,
         "is_active": True,
     },
@@ -136,7 +140,7 @@ _SEED_PLANS: tuple[dict[str, Any], ...] = (
         "name": "Pro",
         "stripe_price_id": "price_1TULYLPQaxUGYm0zj6R3Mpne",
         "monthly_token_quota": 5_000_000,
-        "description": "5M tokens / month, priority support",
+        "description": "Priority support",
         "sort_order": 1,
         "is_active": True,
     },

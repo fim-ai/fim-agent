@@ -4,7 +4,11 @@ import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { fetchBillingEnabled } from "@/lib/billing-flag"
+import {
+  BILLING_FLAG_CHANGED_EVENT,
+  fetchBillingEnabled,
+  type BillingFlagChangedDetail,
+} from "@/lib/billing-flag"
 import {
   LayoutDashboard, Activity, Plug, Settings, Shield, Users, MessageSquare,
   HardDrive, Cpu, Lock, Key, Bot, BookOpen, FileText, BarChart3, Wrench,
@@ -150,14 +154,28 @@ function AdminPanelContent() {
   // ``billing_enabled`` flag — hidden by default so private deployments
   // don't expose Stripe-specific UI they haven't opted into. Admins
   // flip it on from System Settings.
+  //
+  // We seed once from ``/api/version`` on mount, then live-update when
+  // the toggle in System Settings dispatches
+  // :data:`BILLING_FLAG_CHANGED_EVENT` so the sidebar reflects the
+  // change without a hard reload.
   const [billingEnabled, setBillingEnabled] = useState(false)
   useEffect(() => {
     let cancelled = false
     fetchBillingEnabled().then((on) => {
       if (!cancelled) setBillingEnabled(on)
     })
+
+    const handle = (e: Event) => {
+      const detail = (e as CustomEvent<BillingFlagChangedDetail>).detail
+      if (detail && typeof detail.enabled === "boolean") {
+        setBillingEnabled(detail.enabled)
+      }
+    }
+    window.addEventListener(BILLING_FLAG_CHANGED_EVENT, handle)
     return () => {
       cancelled = true
+      window.removeEventListener(BILLING_FLAG_CHANGED_EVENT, handle)
     }
   }, [])
 

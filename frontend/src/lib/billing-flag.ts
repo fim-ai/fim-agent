@@ -39,12 +39,27 @@ export async function fetchBillingEnabled(): Promise<boolean> {
 }
 
 /**
+ * Window event broadcast right after a successful billing toggle so
+ * sibling subtrees (admin sidebar, user nav) can refresh without each
+ * polling ``/api/version`` on its own timer.
+ */
+export const BILLING_FLAG_CHANGED_EVENT = "billing-flag-changed"
+
+export interface BillingFlagChangedDetail {
+  enabled: boolean
+}
+
+/**
  * Admin-only: switch the flag.
  *
  * - ``setBillingEnabled(true)`` invokes the activation endpoint, which
  *   seeds plans + backfills user plan bindings the first time it
  *   runs and is a no-op on subsequent calls.
  * - ``setBillingEnabled(false)`` is a pure flag flip.
+ *
+ * On success we dispatch :data:`BILLING_FLAG_CHANGED_EVENT` so the
+ * admin sidebar (which gates the Billing nav group on this flag)
+ * re-renders without a hard reload.
  */
 export async function setBillingEnabled(
   enabled: boolean,
@@ -54,7 +69,7 @@ export async function setBillingEnabled(
   default_plan_id: number | null
   billing_enabled: boolean
 }> {
-  return apiFetch<{
+  const result = await apiFetch<{
     plans_seeded: number
     users_backfilled: number
     default_plan_id: number | null
@@ -63,4 +78,13 @@ export async function setBillingEnabled(
     method: "POST",
     body: JSON.stringify({ enabled }),
   })
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<BillingFlagChangedDetail>(
+        BILLING_FLAG_CHANGED_EVENT,
+        { detail: { enabled: result.billing_enabled } },
+      ),
+    )
+  }
+  return result
 }

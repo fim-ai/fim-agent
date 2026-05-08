@@ -217,7 +217,11 @@ def upgrade() -> None:
                     "name": "Free",
                     "stripe_price_id": None,
                     "monthly_token_quota": 100_000,
-                    "description": "100K tokens / month, basic features",
+                    # Token count intentionally omitted — the UI reads
+                    # it from ``monthly_token_quota`` and any literal
+                    # here would drift the moment an admin edited
+                    # ``default_token_quota``.
+                    "description": "Basic features",
                     "sort_order": 0,
                     "is_active": True,
                 },
@@ -226,7 +230,7 @@ def upgrade() -> None:
                     "name": "Pro",
                     "stripe_price_id": "price_1TULYLPQaxUGYm0zj6R3Mpne",
                     "monthly_token_quota": 5_000_000,
-                    "description": "5M tokens / month, priority support",
+                    "description": "Priority support",
                     "sort_order": 1,
                     "is_active": True,
                 },

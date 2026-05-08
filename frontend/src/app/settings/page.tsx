@@ -31,7 +31,11 @@ import { NotificationsSettings } from "@/components/settings/notifications-setti
 import { SubscriptionsSettings } from "@/components/settings/subscriptions-settings"
 import { ChannelsSettings } from "@/components/settings/channels-settings"
 import { BillingPage } from "@/components/settings/billing-page"
-import { fetchBillingEnabled } from "@/lib/billing-flag"
+import {
+  BILLING_FLAG_CHANGED_EVENT,
+  fetchBillingEnabled,
+  type BillingFlagChangedDetail,
+} from "@/lib/billing-flag"
 
 const TAB_KEYS = [
   "general",
@@ -87,8 +91,19 @@ function SettingsContent() {
       .catch(() => {
         if (!cancelled) setBillingEnabled(false)
       })
+
+    // Live-update when an admin flips the flag in another tab — same
+    // window event the admin sidebar listens on.
+    const handle = (e: Event) => {
+      const detail = (e as CustomEvent<BillingFlagChangedDetail>).detail
+      if (detail && typeof detail.enabled === "boolean") {
+        setBillingEnabled(detail.enabled)
+      }
+    }
+    window.addEventListener(BILLING_FLAG_CHANGED_EVENT, handle)
     return () => {
       cancelled = true
+      window.removeEventListener(BILLING_FLAG_CHANGED_EVENT, handle)
     }
   }, [])
 
