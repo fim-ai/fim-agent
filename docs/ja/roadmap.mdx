@@ -262,109 +262,107 @@ flowchart LR
 
 ### v0.9 — 可観測性 + 本番環境対応
 
-**目標**: 本番環境グレードの運用、デバッグ、モニタリング。**Hook System** を導入 — 智能体の指示の下に位置する決定論的な強制レイヤーで、LLMによってオーバーライドできません。
+**目標**: 本番環境グレードの運用 + 4つの柱で「エージェントが従うかもしれない指示」と「システムが強制する保証」のギャップを埋める — トレースレイヤー（何が起きたかを確認） · フックシステム（必ず実行されるべきことを強制） · エージェントワークスペース（永続ファイル + ハンドオフ） · IMチャネル（エージェントがユーザーの作業場に存在）。
 
-- [ ] **Connector段階的情報開示 (Phase 3-4)**: 統一された `ConnectorExecutor` インターフェース (API/DB/MCPを1つの抽象化の背後に); `jsonschema` によるアクション パラメータ検証; プロトコル非依存の検出/実行
-- [ ] **YAML/JSON connector設定**: プラットフォームが自動的にMCPサーバーを生成
-- [ ] **Database connectors Phase 4**: エンタープライズドライバー — Oracle (`oracledb`)、SQL Server (`aioodbc`)、[x] 達梦 DM8 (ネイティブ `dmPython`)、[x] 人大金仓 KingbaseES + 瀚高 HighGo (PG互換、`asyncpg` を再利用)、南大通用 GBase (`aioodbc` + GBase ODBC)
-- [ ] **IM Channel統合 (双方向)**: **Phase 1 — アウトバウンドプッシュ**: Lark、WeCom、Slack、Email、Teams通知アクション (智能体/Workflowの結果から)。**Phase 2 — インバウンドトリガー**: ユーザーがIM グループチャットで智能体に@メンションしてPortalを開かずにタスクをトリガー; チャネルごとのwebhookレシーバー; 各IMチャネルは双方向アクション (送信 + 受信) を持つConnectorとしてモデル化。Hub modeキラー機能
-  - [x] **Feishuチャネル (Phase 1サブセット)** — 組織スコープの `Channel` リソース (Fernet暗号化認証情報付き); インタラクティブカード送信 + コールバック (署名検証 + URLチャレンジ) をサポートする `FeishuChannel` 実装; 確認ゲートと統合して書き込み操作の承認が設定されたFeishuグループチャットにApprove/Rejectカードとして到着; Settings → Channels管理UI。2026-04-24ロードショー向けに早期出荷。残り: WeCom、Slack、Email、Teams アウトバウンド + Phase 2 インバウンドトリガー。
-  - [ ] **アウトバウンド通知パターン (汎用、チャネルタイプ間で再利用可能)**: 同じ `BaseChannel` 抽象化は承認ゲート以上のアウトバウンドユースケースのカタログをサポート。各パターンは `BaseChannel` に対して1回実装され、すべての具体的なチャネル (今日はFeishu; Slack/WeCom/Teams/Emailが到着時) で自動的に機能します。
-    - [x] **タスク完了通知**: 長時間実行DAG / Workflow / スケジュール智能体が完了したら、結果スニペット + アーティファクトリンク付きのサマリーカードを組織チャネル (またはユーザーが選択したチャネル) に投稿。最小限の実行可能な「Channelアウトバウンド」製品 — `FeishuGateHook` の後の最初のコンシューマー
-    - [ ] **例外 / 失敗アラート**: 智能体推論失敗、LLMプロバイダーエラー、connectorが5xxを発生、DAGプランが再計画予算を枯渇 → 診断カードをopsチャネルにプッシュ (trace IDと再試行オプション付き)
-    - [ ] **コスト / 予算警告**: ユーザーごと、または智能体ごとのtoken/リクエスト予算が80% / 100%閾値に達する → 管理チャネル (または智能体所有者に@メンション) に現在の使用量 vs. キャップ付きでプッシュ
-    - [ ] **スケジュール済みダイジェスト**: 智能体またはworkflowが定期的な (日次 / 週次) サマリーカードを発行 — KPIロールアップ、未解決チケットトリアージ、契約更新リスト — ユーザーがPortalを開く必要なくチャネルに直接投稿
-    - [ ] **スタック智能体でのエスカレーション**: 智能体がN連続反復で観測可能な進捗を示さない (サイクル検出、または `max_iterations` 超過) → 人間のオペレーターに引き継ぎを求めるカード、現在のコンテキストと「あなたのメモで再開」アクション付きで投稿
-    - [ ] **機密ツール呼び出しの監査レシート**: 承認ゲートとは独立して — `audit=true` でタグ付けされたツールへのすべての呼び出しは、読み取り専用レシートカードをコンプライアンスチャネルに発行 (誰が / 何を / いつ / 引数)、データベース外の耐久性のある監査証跡を提供
-    - [ ] **承認エスカレーション**: `feishu_gate` 承認カードがN分以内に応答を受け取らない場合、自動的にグループ所有者に@メンションするか、カードをより高いレベルのチャネルに転送; ツール/connector ごとに設定可能
+#### コネクタ + ツーリング
 
-#### コネクタ認可レイヤー（データレベルRBAC）
+- [ ] **Connector Progressive Disclosure Phase 3-4** — 統一された `ConnectorExecutor` (API/DB/MCP); `jsonschema` アクション検証; プロトコル非依存の discover/execute
+- [ ] **YAML/JSON connector config** — プラットフォームが自動生成する MCP サーバー
+- [ ] **Database connectors Phase 4** — Oracle (`oracledb`)、SQL Server (`aioodbc`)、GBase (`aioodbc` + GBase ODBC)。DM8 / KingbaseES / HighGo は v0.8.5 で提供
+- [ ] **MCP Connection Pooling** — STDIO をプール化し、ユーザーごとの環境分離を実現; SSE/HTTP 用に `httpx.AsyncClient` を共有。ウォームスタート ≤100 ms、サーバーあたり O(1) HTTP 接続を目標
 
-既存のRBAC制御は**リソース可視性**（誰がコネクタを見られるか）を制御しますが、**実行時認可**（呼び出し元がそれを通じて何ができるか）は制御しません。管理者が高権限認証情報を使用してDB/APIを設定すると、そのコネクタを使用する組織のすべてのメンバーが管理者の影響範囲を継承します。このセクションでは、3つの異なるアップストリーム機能層にわたってこのギャップを埋めます：
+#### フックシステム {/* dev: dev/hook-system.md */}
 
-- [ ] **Tier 1 — DBモード（フル管理者+基本/レガシー）**: 管理者は単一のDB認証情報（rootまたは最小権限サービスアカウント）を提供します。ほとんどのレガシーシステムはユーザーごとのDBアカウントを発行できないためです。強制は`ConnectorScopeGuard`を介して接続**上**で発生します。これは`PreToolUse`フックで、呼び出し元のアイデンティティごとに`query` / `execute`呼び出しをフィルタリングします。機能：破壊的な動詞（DROP、TRUNCATE、スコープなしのDELETE/UPDATE）をブロック；テーブルレベルの許可/拒否リスト；`pii=true`セマンティックアノテーションによるカラム編集；スコープ述語の自動注入（例：すべての`SELECT`に`AND dept_id = :caller_dept`を追加）。設定はコネクタ上の`scope_rules` JSONフィールドで、ロールベースのマッチング；デフォルトは曖昧な場合は拒否です。
-- [ ] **Tier 2 — Open APIモード（ユーザーごとのAPIキー）**: 推奨パス。ユーザーは独自のAPIキーを持参します（v0.8で出荷 — `connector_credentials` + `allow_fallback=false`）；アップストリームシステムのネイティブ認可がスコープを自然に強制します。残りの作業：ユーザーごとの認証情報を**要求**するコネクタごとの管理UI（管理者フォールバックをグローバルに無効化）と、どの組織メンバーがまだ独自のキーをバインドしていないかを示すヘルスダッシュボード。
-- [ ] **Tier 3 — 中間層（ログインチケット交換）**: ユーザースコープのAPIキーがないフロントエンド/バックエンド分割システム向け。システムのログインエンドポイントをユーザー提供の認証情報で呼び出し、返された短命チケットをキャッシュし、有効期限時に自動更新します。APIキー / OAuth と並んで新しい`LoginTicketCredential`タイプ；コネクタ仕様は`auth_type: login_ticket`を`login_endpoint`、`ticket_field`、および`refresh_strategy`で宣言します。アダプタレイヤーはリクエストごとにチケットをアウトバウンド認可ヘッダーに変換します。
-- [ ] **クロスティア監査可能性**: すべてのツール呼び出しに`caller_user_id`、`effective_credential_source`（ユーザー / 管理者フォールバック / チケット）、および`scope_rules_applied`を`ConnectorCallLog`にスタンプするため、オペレーションは事後に「実際に誰が何を誰として実行したのか」に答えることができます。
+- [ ] フックごとの設定パススルー（`{"name": ..., "config": {...}}` スキーマ）
+- [ ] DAG `tools_used` 精度（ステップ完了コールバック経由の実際のツール名から ReAct）
+- [ ] `CallAgentTool` + ワークフロー `AGENT` ノードのフック継承（セキュリティデフォルト対柔軟性デフォルト）
+- [ ] 組み込みフック：`ConnectorCallLog` 自動記録、読み取り専用モードブロック、DB 結果切り詰め、コネクタごとのレート制限
+- [ ] `SessionStart` フックポイント + ユーザー定義 YAML フック
+- [x] ~~スケルトン + FeishuGateHook + 承認プレイグラウンド + ReAct/DAG ランタイム~~ *(v0.8.5 でリリース)*
 
-#### チャネル → 統合プロモーション
+#### IM チャネル統合 {/* dev: dev/im-channels.md */}
 
-現在、Feishuは**チャネル + コネクタ**ペアとして構成されています — 配信パイプとAPIサーフェス。エンタープライズロールアウトには3番目のロールが必要です：**統合**（同じサードパーティバインディングがSSOと組織グラフ同期も提供します）。v0.9に登場します。既存のFeishuバインディングが必要な4つのファセットのうち3つをすでにカバーしており、アイデンティティストーリーが上記のTier-2認可のブロックを解除するため（ユーザーはログイン時に独自の上流トークンを取得でき、APIキーを手動でプロビジョニングする必要がなくなります）。
+- [ ] チャネル: WeCom、Slack、Email、Teams アウトバウンド
+- [ ] アウトバウンドパターン: 障害アラート、予算警告、スケジュール済みダイジェスト、エスカレーション、監査レシート、承認エスカレーション
+- [ ] フェーズ 2 — インバウンドトリガー (IM グループで @mention エージェント)
+- [x] ~~Feishu チャネル (フェーズ 1 サブセット) + タスク完了通知~~ *(v0.8.5 でリリース)*
 
-- [ ] **チャネル → 統合モデル**：`Channel`を「アウトバウンドのみの配信」から`ThirdPartyIntegration`親に昇格させ、3つのオプトイン機能を備えます — (a) **配信**（既存のチャネル動作：カードを送信、確認をゲート）；(b) **ログイン**（OIDC / カスタムSSO；「Feishuでログイン」はFIMセッションと上流プラットフォームトークンの両方を生成）；(c) **組織グラフ同期**（上流の部門/メンバーをFIM組織構造にミラーリング；スケジュール済みまたはWebhook駆動）。管理者はバインディングごとに各機能を切り替えます。
-- [ ] **Feishu SSOを統合機能として**：既存のFeishuアプリバインディング（app_id/secretはすでにチャネル上にあります）を再利用して、「Feishuでログイン」をFeishuテナントが組織にバインドされているすべてのユーザーに公開します。ログイン時に取得されたトークンは、ユーザーのFeishuコネクタのデフォルト認証情報になります — Tier-2強制のための「独自のAPIキーを取得する」という摩擦を排除します。
-- [ ] **組織グラフ同期（Feishu → FIM組織）**：Feishuの部門+メンバーをFIMにプル；Feishuテナント管理者/部門長/メンバーロールをFIM所有者/管理者/メンバーにマップ。次のWeComとDingTalk、およびv1.0のKingdee / Yonyou / SAP ERP-OAアダプタの基盤。
+#### コネクタ認可レイヤー {/* dev: dev/connector-rbac/00-overview.md */}
 
-#### パブリックAPI（フェーズ2）
+- [ ] Tier 1 — DBモード（`ConnectorScopeGuard` PreToolUse フック：動詞ブロッキング、テーブル許可/拒否、列の難読化、スコープ述語インジェクション）
+- [ ] Tier 2 — Open API モード（ユーザーごとの認証情報を要求する管理UI；キーバインディングヘルスダッシュボード）
+- [ ] Tier 3 — ログインチケット交換（ユーザースコープAPIキーを持たないフロントエンド/バックエンド分割システム用の `LoginTicketCredential`）
+- [ ] クロスティア監査可能性（`ConnectorCallLog` の `caller_user_id`、`effective_credential_source`、`scope_rules_applied`）
 
-フェーズ1（リリース済み）：APIキー認証ミドルウェア、スコープサポート、キュレーション済みOpenAPI仕様、インタラクティブプレイグラウンド付きMintlify APIリファレンス。
+#### Channel → Integration Promotion {/* dev: dev/channel-integration-sso.md */}
 
-- [ ] **キーごとのレート制限** — APIキーごとに設定可能なリクエスト/分およびリクエスト/日の制限；`X-RateLimit-*`ヘッダー付きの`429 Too Many Requests`レスポンス
-- [ ] **キーごとの使用量クォータ** — 月間トークン/リクエスト予算、管理ダッシュボード、閾値アラート
-- [ ] **エンドポイントごとのスコープ強制** — すべての保護されたエンドポイントに`require_scope("chat")`依存性；`scopes=chat`を持つキーはチャット関連APIのみにアクセス可能
-- [ ] **APIバージョニング**（`/v1/...`） — 安定したバージョン付きAPIコントラクト；サンセットエンドポイント用の廃止予定ヘッダー
-- [ ] **Webhookコールバック** — APIキーごとにWebhook URLを登録；会話完了、エージェントエラー、非同期タスク結果のPOSト通知を受信
-- [ ] **SDK生成** — OpenAPI仕様から自動生成されたPythonおよびTypeScriptクライアントSDK；PyPIおよびnpmに公開
-- [ ] **デベロッパーポータル** — Mintlifyドキュメント内のインタラクティブな「試す」パネル；キー所有者に表示される使用分析
-- [ ] **APIキーローテーション** — ワンクリックキーローテーション、グレースピリオド付き（ローテーション後24時間は古いキーが有効）
-- [ ] **バッチ/非同期API** — 最大100クエリを受け入れる`POST /api/batch`；結果をポーリングするための`batch_id`を返す；KB一括クエリまたはマルチエージェントオーケストレーションに有用
-- [ ] **外部依存関係ごとのサーキットブレーカー** — ダウンストリームLLMプロバイダーまたはコネクタが利用できない場合のカスケード障害を防止；自動フォールバックと復旧
+- [ ] `ThirdPartyIntegration` モデル — Channel を Delivery + Login + Org-graph-sync サブ機能に昇格
+- [ ] Feishu SSO ("Feishu でログイン" は FIM セッション + アップストリーム トークンを生成し、Tier-2 のユーザーごとの API キー の摩擦を排除)
+- [ ] Org グラフ同期 (Feishu 部門 → FIM org ツリー); WeCom + DingTalk は次
 
-#### 可観測性とエージェントランタイム
+#### Public API Phase 2 {/* dev: dev/public-api-phase2.md */}
 
-- [ ] **Agent Trace Layer (Observability++)**: アプリケーションレベルの実行/トレース/スレッド階層によるエージェントデバッグ — 各会話 → `Trace`、各LLM呼び出し/ツール呼び出し/DAGステップ → 入出力/トークン/タイミング付きの`Span`。タイムラインと展開可能なLLM呼び出しペイロードを備えたフロントエンドトレースビューア。これはOTel（インフラストラクチャレベル）を超えて、開発者とエンタープライズクライアント向けの実用的なエージェントループデバッグを提供します。OpenTelemetryエクスポートをデータシンクオプションとして利用可能。LangSmithの実行/トレース/スレッド概念に基づいてモデル化 — エージェント可観測性の業界検証済みパターン。
-- [ ] **Metrics dashboard**: レイテンシ、成功率、トークン使用量、コネクタ呼び出し分析 — エージェント単位、ユーザー単位、組織単位の内訳
-- [x] ~~**Circuit breaker**: 3状態マシン（closed/open/half-open）、コネクタ単位の障害追跡、5xx検出、監視エンドポイント~~ *(v0.8で早期出荷)*
-- [x] ~~**Workflow実行保持クリーンアップ**: 設定可能な最大経過時間と最大カウント、ワークフロー単位のオーバーライド、手動トリガー用の管理エンドポイント付きバックグラウンドクリーンアップタスク~~ *(v0.8.1で出荷)*
-- [x] ~~**Workflow バージョン変更サマリー**: `compute_blueprint_diff()`がバージョン保存時にブループリント差分から人間が読める形のサマリーを自動生成~~ *(v0.8.1で出荷)*
-- [x] ~~**DAG品質オーバーホール**: 非高速ステップのデフォルトモデルアップグレード、計画時のスキル自動検出、法律/医療/金融ドメイン向けの引用検証者、構造化コンテンツコンテキスト保持、ルータでのドメイン分類とドメイン対応モデル選択~~ *(v0.8.1で出荷)*
-- [x] ~~**ReActでのドメインモデルエスカレーション**: 専門ドメインが推論モデルに自動エスカレーション、必須のウェブ検索と引用検証付き~~ *(v0.8.1で出荷)*
-- [x] ~~**モデル単位のネイティブ関数呼び出しトグル**: `tool_choice_enabled`設定により、モデルは強制ツール選択をスキップしてJSON Modeに直接移行可能~~ *(v0.8.1で出荷)*
-- [x] ~~**DatabaseMetaTool（DBコネクタの段階的開示）**: 単一の`database`メタツール（`list_tables`/`discover`/`query`サブコマンド付き）がデータベースコネクタあたり3Nの個別ツールを置き換え、`DATABASE_TOOL_MODE`環境変数で設定可能（デフォルト`progressive`、フォールバック`legacy`）~~ *(v0.8.1で出荷)*
-- [x] ~~**`request_tools`メタツール経由のオンデマンドツール読み込み**: スマート選択後に12を超えるツールが利用可能な場合、LLMは会話中に動的に追加ツールを読み込み可能、JSONとネイティブ関数呼び出しの両モードで動作~~ *(v0.8.1で出荷)*
-- [x] ~~**MCPServerMetaTool（MCPの段階的開示）**: 単一の`mcp`メタツール（`discover`/`call`サブコマンド付き）がN*Mの個別MCPツールを置き換え、`MCP_TOOL_MODE`環境変数で設定可能（デフォルト`progressive`、フォールバック`legacy`）~~ *(v0.8.1で出荷)*
-- [x] ~~**Workflow接続依存関係自動サブスクライブ**: Market購読カスケードをWorkflowの接続依存関係（APIコネクタ、MCPサーバー）に自動サブスクライブするよう拡張。Workflowノードはコネクタ、MCPサーバー、エージェント（さらに多くの依存関係を再帰的に参照）、サブワークフローを参照可能 — 完全なツリー内のすべての接続依存関係はサブスクライブ時に自動サブスクライブされ、アンサブスクライブ時にカスケードクリーンアップされる必要があります。サイクル検出を伴う再帰的サブワークフロー解決により、Skill/Agentより複雑。Solution（Skill/Agent）接続依存関係自動サブスクライブの対応物~~ *(v0.8.1で出荷)*
-- [x] ~~**Workflow実エグゼキューター**: MCPおよびBuiltinToolノードエグゼキュータースタブを完全な実装に置き換え（MCPサーバー検出+ツール呼び出し、ToolRegistry統合）~~ *(v0.8.1で出荷)*
-- [ ] **Agent Hook System**: LLMループの**外側で実行される**決定的な強制レイヤー — フックはツールイベントで自動実行され、エージェント指示によってバイパスできません。3つのフックポイント: `PreToolUse`（実行前の検証/ブロック）、`PostToolUse`（実行後の副作用）、`SessionStart`（動的コンテキスト注入）。組み込みフック: すべてのコネクタ呼び出しで`ConnectorCallLog`を自動書き込み（現在は手動）、組織が読み取り専用モード時の書き込み操作をブロック、エージェントに到達する前に過度に大きいDBクエリ結果を自動切り詰め、コネクタ単位の呼び出し頻度をレート制限。ユーザー定義フック: エージェント単位のYAML設定（`hooks:`フィールド）で、マッチするツールイベントでトリガーされるシェルコマンドまたはPythonコーラブルを宣言 — 最新のエージェントフレームワーク全体で共有されるフックベースの強制パターン。主要な設計原則: **フックは「常に発生する必要がある」ロジック用で、LLMがそれを実行することを覚えておくことに依存すべきではありません**。指示は「すべての呼び出しを記録する」と言う、フックは実際に記録する。指示は「読み取り専用モードで書き込まない」と言う、フックは実際にそれをブロックする。
-  - [x] **Hook System スケルトン + FeishuGateHook** — クラスベースの`PreToolUseHook`/`PostToolUseHook`抽象化がReActループ下に配線、最初の具体的なフックは`FeishuGateHook`で、`requires_confirmation=True`とフラグ付けされたツールをインターセプトし、承認を組織のFeishuチャネル経由でルーティング。完全なフックライフサイクル（ユーザー定義YAMLフック、組み込み監査/ブロック/切り詰めフック、`SessionStart`）はv0.9スコープのままです。2026-04-24ロードショー向けに早期出荷。
-  - [x] **Hook Approval Playground** — UI駆動のラウンドトリップテスター: チャネル詳細シートが実際の`ConfirmationRequest`行を作成するダイアログを起動し、本番カードをFeishuに送信し、決定をライブでポーリング。本番フックが使用する正確なコードパスを実行し、ロールアウト前のリハーサルとデモを忠実にします。
-  - [x] **Hook System ReAct + DAGランタイムでライブ** — `build_hook_registry_for_agent`が各チャットセッションで`agent.model_config_json.hooks.class_hooks`を解決、ReActとDAGエントリポイント両方がツールディスパッチ前にフックをインスタンス化。ツールアダプタは`requires_confirmation`を公開プロパティとして公開し、フック述語がアダプタカップリングなしでダックタイプできるようにします。本番エージェントループを通じた承認/拒否パスをカバーするエンドツーエンドスモークスクリプト（`scripts/smoke_feishu_gate.py`）と組み合わせ。
-  - [ ] **フック単位の設定パススルー** — スキーマレベルの`{"name": ..., "config": {...}}`により、エージェント単位の`FeishuGateHook`オーバーライド（タイムアウト、ポーリング間隔、コールバックURL）が機能、ベア文字列`class_hooks`エントリはまだサポート
-  - [ ] **DAG `tools_used`精度** — 完了通知カードは現在プランナーヒントから`tools_used`を導出、DAGエグゼキューターステップ完了コールバック経由の実際のツール名をステップごとのReActから表示
-  - [ ] **委譲されたサブエージェント + Workflow `AGENT`ノードのフック継承** — 現在`CallAgentTool`子とWorkflow `AGENT`ノードは空のフックレジストリで新しいReActAgentをスピンアップ、委譲された機密呼び出しで`feishu_gate`をサイレントにバイパス。デフォルトで継承（セキュア）対明示的なオプトイン（柔軟）を決定、Eval Centerは常にオプトアウト（自動化は人間のブロックに対応できない）
-- [ ] **Agent Workspace（永続エージェントデスクトップ）**: 3つのレイヤー: (1) **ツール出力オフロード** — 過度に大きいツール応答（>8K文字）を`workspace://`ファイルに自動保存、切り詰められたプレビュー+URIを返す、組み込みツール`read_workspace_file`、`list_workspace_files`、`write_workspace_file`で選択的アクセスとエージェント生成アーティファクト。(2) **ハンドオフノート** — コンテキスト遷移用の`write_handoff(summary)`（圧縮/セッション切り替え）。(3) **Workspace UI** — 会話ごとのフロントエンドファイルブラウザパネル（テキスト/JSON/CSVプレビュー、ダウンロード、削除/名前変更）、クロスセッションファイル保持、ユーザー単位のストレージクォータ統合。アダプタの`truncate_tool_output()`と`GET /api/conversations/{id}/workspace`エンドポイントを拡張
-- [x] **スマートファイルコンテンツ注入 + `read_uploaded_file`ツール**: 小さいアップロードファイル（`<32K`文字）はLLMコンテキストに自動インライン、大きいファイルはメタデータ+ツールヒント。デュアルモード`read_uploaded_file`ツール（ページネーション読み込み+正規表現検索）。`GET /api/files/{file_id}/content`エンドポイント、`.content`サイドカーストレージ、ファイルAPIレスポンスの`content_length`
-- [x] ~~**インテリジェントドキュメント処理（ビジョン対応）**: 適応型ドキュメント処理 — PDFページはビジョン対応モデル（GPT-4o、Claude 3/4、Gemini）向けにPyMuPDFでレンダリング、テキストのみフォールバックはpdfplumber経由。管理者でのモデル単位の`supports_vision`フラグ。`DOCUMENT_PROCESSING_MODE`環境変数で設定可能な2つのモード（ビジョン/テキスト）。スマートPDF処理: テキストリッチページはテキスト+埋め込み画像を抽出（トークン効率的）、スキャンページは全ページPNGをレンダリング。DOCX/PPTX埋め込み画像抽出。マルチターンビジョン永続性。事前構築サンドボックスイメージ（`Dockerfile.sandbox`）。`.pages/`サイドカーを使用したキャッシュページレンダリング。~~ *(v0.8.2で出荷)*
-- [x] ~~**ユニバーサルドキュメント変換（`convert_to_markdown` + OCR）** — Microsoft MarkItDownをラップする組み込みエージェントツール、すべてのエージェントでデフォルトで利用可能。PDF、Word、Excel、PowerPoint、HTML、JSON、CSV、XML、ZIP、EPUB、Outlook .msg、画像、オーディオ、YouTubeURL、データURIを会話内でクリーンなMarkdownに変換。Office ファイルとスキャンPDFページの埋め込み画像は公式`markitdown-ocr`プラグイン経由で自動OCR（DB優先、ENV フォールバック）。同じ変換カーネルはRAG取り込みパイプラインで共有され
-#### Prompt Cache + Reasoning Follow-ups (Batch A MVPs から)
+- [ ] キーごとのレート制限（`X-RateLimit-*` ヘッダー、429）
+- [ ] キーごとの使用量クォータ（月間トークン/リクエスト予算）
+- [ ] エンドポイントごとのスコープ強制
+- [ ] API バージョニング（`/v1/...`）+ 廃止予定ヘッダー
+- [ ] Webhook コールバック（キーごと）
+- [ ] SDK 生成（Python + TypeScript）
+- [ ] Developer Portal（Try-it パネル + キーごとの分析）
+- [ ] API キーローテーション（24時間猶予期間）
+- [ ] バッチ / 非同期 API（`POST /api/batch`）
+- [ ] 外部依存ごとのサーキットブレーカー
 
-これらの項目は Batch A で出荷された部分的な作業 (Conversation Recovery、System Prompt Registry、Thinking Blocks) を完成させ、キャッシュ対象を残りのプロバイダーファミリーに拡張します。
+#### 可観測性 {/* dev: dev/agent-trace-layer.md */}
 
-- [ ] **Gemini Context Cache Adapter**: Google Gemini は Anthropic が使用するインライン `cache_control` マーカーではなく、別の REST API (`POST /v1beta/cachedContents` → `cacheName` を返す → 後続の `generateContent` 呼び出しで `cachedContent: "<cacheName>"` で参照) を使用します。ライフサイクル管理 (プリフィックスの事前登録 → cacheName の参照 → TTL 対応の無効化) を備えた `GeminiCacheAdapter` が必要で、`OpenAICompatibleLLM` の Gemini パスまたは LiteLLM の Gemini プロバイダーに統合されます。読み取り割引は約 0.25×、最小プリフィックスは 32,768 token (Gemini Pro) / 4,096 (Flash) — 主な受益者は長いコンテキストの KB/RAG 智能体とドキュメント集約的なワークフローです。
-- [ ] **Prompt registry を planner / verifier / domain classifier に拡張**: `PromptRegistry` + `DYNAMIC_BOUNDARY` パターンを ReAct から残りの LLM 呼び出しサイトに拡張します: `DAGPlanner`、`PlanAnalyzer`、`StepVerifier`、`CitationVerifier`、`DomainClassifier`、`ExecutionModeRouter`、`CompactUtils`。現在、これらは呼び出しのたびにプロンプトをゼロから再構築しています。ReAct より呼び出し頻度が低いため ROI は低いですが、キャッシュの全体像を完成させます。
-- [ ] **エージェント単位の `cache_ttl` 設定**: エージェント所有者が `ephemeral` (5 分、デフォルト、安価な書き込み) と `extended` (1 時間、書き込みコストは 2 倍ですがバッチ/スケジュール済みワークフロー向け) の間で選択できるようにします。Agent モデルのフィールドとして表示し、サポートされている場所で `cache_control: {"type": "...", "ttl": "..."}` を通じて渡します。
-- [ ] **DAG ステップレベルのチェックポイントテーブル**: 現在の A1 Conversation Recovery MVP は合成 tool_results とキャッシュされた SSE イベントを永続化しますが、DAG 中間ステップの状態はメモリ内にのみ存在します。新しい `dag_execution_step` テーブルは各ステップの tool_calls、results、artifact 参照をスナップショットするため、DAG 途中の切断は完了したステップを再実行せずに再開できます。フロントエンドの `useSseResume` フックと組み合わせてエンドツーエンドの連続性を実現します。
-- [ ] **Message の専用 `tool_call_id` カラム**: 現在 `tool_call_id` は `metadata_` JSON に存在し、孤立した tool-use クエリに対して `json_extract(...)` / `::json->>` ルックアップが必要です。トラフィックが多いデプロイメントでは、第一級のインデックス付きカラムにより、recovery パスが O(n) スキャンではなく O(log n) で実行できます。スケールが必要になるまでは低優先度です。
-- [ ] **ストリーム中の thinking token 再構築**: 現在の再開の粒度は「次の完全な SSE イベント」です — ドロップが thinking デルタ内で発生した場合、クライアントは次のイベントから再開します。token レベルの再開には、進行中の thinking ブロックのバッファリングされた token を再発行する必要があります。ニッチな改善で、ユーザーが不安定な接続で thinking UX のちらつきを報告した場合にのみ追求する価値があります。
-- [ ] **API relay キャッシュ正確性プローブ**: 各設定済みリレーを通じて 2 つの同一 Claude リクエストを送信し、実際に課金された入力と `cache_read_input_tokens` を比較し、`cache_control` マーカーを削除するか 0.10× 割引を通じないリレーにフラグを立てるバックグラウンドツール (管理者トリガーまたはスケジュール済み)。Workspace レベルの「relay health」シグナルとして表示されます — 中国の API プロキシを通じてルーティングするエンタープライズ向けの有用な運用ツール。
+- [ ] **Agent Trace Layer** — Trace/Span model、フロントエンドタイムラインビューア、OTel エクスポート（LangSmith スタイルのアプリケーションレベルの run/trace/thread）
+- [ ] **Metrics dashboard** — レイテンシ、成功率、トークン使用量、コネクタ分析（エージェント/ユーザー/組織ごと）
+
+#### エージェント ワークスペース {/* dev: dev/agent-workspace.md */}
+
+- [ ] ツール出力オフロード — 8K以上のレスポンス用の `workspace://` URI + `read/list/write_workspace_file` ツール
+- [ ] ハンドオフノート — `write_handoff(summary)` はコンパクション後も保持
+- [ ] ワークスペース UI — 会話ごとのファイルブラウザ、セッション間の保持、ユーザーごとのストレージクォータ
+- [ ] セッション間会話リコール — `list_conversations`、`search_conversations`、`read_conversation` ツール
+
+#### プロンプトキャッシュ + 推理フォローアップ {/* dev: dev/prompt-cache-followups.md */}
+
+- [ ] Gemini Context Cache Adapter（REST キャッシュライフサイクル vs Anthropic インラインマーカーの分離）
+- [ ] プロンプトレジストリ拡張（プランナー / ベリファイア / ドメイン分類器 / コンパクト）
+- [ ] エージェント単位の `cache_ttl`（一時的 5 分 vs 拡張 1 時間）
+- [ ] DAG ステップレベルのチェックポイントテーブル（DAG 中盤からの再開用）
+- [ ] 専用 `tool_call_id` メッセージカラム（スケール時のインデックス付きオーファンクエリ検索）
+- [ ] ストリーム中の思考トークン再構築（完全な SSE イベントより細かい再開粒度）
+- [ ] API リレーキャッシュ正直性プローブ（管理者トリガー：リレーが `cache_control` を削除していないか検出）
 
 #### 信頼性フォローアップ（Agent Core優先度マトリックス）
 
-Agent Core統合ブループリント（Phase 0–3、I.1–I.16）の大部分はv0.8.2およびv0.8.3で提供されました。以下の項目は、まだ対応が必要な並列優先度マトリックスからのものです。
+- [ ] コンテンツ置換状態の永続化（ストリーミング不変条件 #2：「一度見たら、運命は確定」）
+- [ ] アタッチメントコンテキストルーター（重複排除、予算集約、生存性チェック；Workspaceオフロードと連携）
+- [ ] サイドクエリワーカー（メインレート制限予算との競合を避けるため、リコール/分類/要約用の専用プール）
 
-- [ ] **コンテンツ置換状態の永続化**（ストリーミング不変量#2）：「一度表示されたら、運命は確定」— クライアントに既に送信されたメッセージコンテンツは、再開/リロード時に遡及的に変更されてはいけません。A1のSSEカーソルに合わせた置換台帳が必要です。実際のユーザーに見える不具合の理解に基づいてブロックされています。アクティブな苦情はありません。
-- [ ] **添付ファイルコンテキストルーター**：`alreadySurfaced` + `readFileState`重複排除、添付ファイル予算の集約、およびライブネスチェックを使用したスマートな添付ファイル注入。毎ターン同じ50KB PDFエクスプレクトを再送信することを防ぎます。ワークスペースファイルオフロード（既にv0.9計画に含まれている）と連携します。
-- [ ] **サイドクエリワーカー（プロンプトワーカープール）**：リコール/分類/要約/セッションメモリクエリ用の専用軽量プール。メインエージェントLLM呼び出しとレート制限予算を競合させません。前提条件：プロンプトレジストリの拡張（上記）。
+#### エコシステム + スケーリング
 
-#### エコシステム & スケーリング
+- [ ] **スケジュール済みジョブ + イベントトリガー型エージェント** — `scheduled_jobs` + `job_runs` + APScheduler; cron + webhook-inbound。Hub モード向けの非同期サブエージェント使用例
+- [ ] **ワークフロートリガー ID 可観測性** — `ExecutionContext.trigger_source`（`webhook | cron | manual | batch | sub`）が 5 つの WorkflowEngine サイト全体で入力され、実行パネルとコネクタログに表示される
+- [ ] **ワークフロー単位の `credential_policy` オーバーライド**（`owner` / `caller` / `auto`）— デフォルトの `trigger_source → identity` マッピングをオーバーライド
+- [ ] **DB スキーマ高度なビルダー** — 1K～7K+ テーブルデプロイメント向けの AI 駆動アノテーション（選択性 + ビジネスコンテキスト推論）
+- [ ] サンドボックス強化（v2 コード実行分離）
+- [ ] パフォーマンステスト（並行負荷ベンチマーク）
+- [ ] 内部ハーネスベンチマーク（Eval Center 経由でハーネスパラメータ変更を定量化）
 
-- [ ] **スケジュール済みジョブ + イベントトリガー型智能体 (Loop)**: cron風のバックグラウンドタスクトリガー; `scheduled_jobs` + `job_runs` DBテーブル; APScheduler統合; ジョブ CRUD API + ジョブ履歴 UI; メッセージプッシュコネクタ経由の結果通知。スコープはタイムトリガー (cron) とイベントトリガー (webhook インバウンド) の両パターンをカバー — バックグラウンドで非同期実行される智能体は Hub モードの非同期サブ智能体ユースケースです。
-- [x] ~~**プリビルトソリューションテンプレート (Market シード コンテンツ)**: 初回ユーザー登録時に Market に公開される 8 つの即座に使用可能な業種別ソリューション — Financial Audit、Contract Review、Data Reporting、IT Helpdesk、HR Onboarding、Sales Assistant、Content Writer、Meeting Summary。各テンプレートは智能体 + スキルを中国語 SOP とともにバンドル; `ensure_solution_templates()` 経由でべき等にブートストラップ、Market org に公開してマーケットプレイスの即座の利用可能性を実現~~ *(v0.8.1 でリリース)*
-- [ ] **DB スキーマ高度なビルダー**: 大規模データベース向けの AI 駆動スキーマ管理智能体 — 戦略的なテーブルアノテーション (パターンベース、SQL 実行インフォームド)、ドメインプレフィックス別の一括可視性管理、1K～7K+ テーブルデプロイメント向けの反復的マルチラウンドアノテーション; 既存のバッチアノテーションジョブを補完し、選択性とビジネスコンテキスト推理を提供
-- [x] ~~**リソースフォーク (パッケージフェーズ 1 — v1.0 パッケージシステムの前提条件)**: すべてのリソースごとのフォークエンドポイント実装 — MCP Server、Skill、Agent、Connector、Workflow。KB フォークは削除 (本質的にユーザーローカル)。各 `POST /api/{type}/{id}/fork` はユーザー所有の深いコピーを `forked_from` 系統追跡とともに作成~~ *(v0.8.1 で完了)*
-- [ ] **ワークフロー単位の `credential_policy` オーバーライド** (`owner` | `caller` | `auto`): 5 つのワークフロートリガーパスは現在、コネクタアクションを実行する ID をハードコード — webhook/cron は `wf.user_id` (オーナー) を渡し、manual/batch は `current_user.id` (呼び出し元) を渡します。これは一般的な「オートメーションはオーナーとして実行、手動実行は呼び出し元として実行」という期待に合致していますが、エンタープライズデプロイメントではワークフロー単位でオーバーライドが必要な場合があります (例: 現在のオンコール エンジニアの下で実行する必要がある cron、または手動実行でもオーナーの認証情報を借用する必要がある共有テンプレート)。Workflow モデルに `credential_policy` フィールドを追加し、Schedule / API-Key 設定の隣の UI に表示して、デフォルトの `trigger_source → identity` マッピングをオーバーライドします。前提条件: 上記の `trigger_source` 可観測性。
+#### 既に早期にリリース済み
 
-**インパクト**: FIM One を自信を持ってスケールで実行します。4 つの柱: **トレースレイヤー** (何が起こったかを確認)、**フックシステム** (何が起こる必要があるかを強制)、**智能体ワークスペース** (永続的なファイル管理 + ハンドオフ)、**IM チャネル** (智能体がユーザーが働く場所に存在)。プリビルトソリューションテンプレートはコールドスタートを排除; ダッシュボード拡張は運用上の健全性を表示します。「智能体が従う可能性のある指示」と「システムが強制する保証」の間のギャップは閉じられます — デモと本番エンタープライズツールの違いです。
+- [x] ~~Circuit breaker、Workflow run retention cleanup、Workflow version diff summaries~~ *(v0.8 / v0.8.1)*
+- [x] ~~DAG quality overhaul、Domain model escalation、Per-model NFC toggle~~ *(v0.8.1)*
+- [x] ~~DatabaseMetaTool、MCPServerMetaTool、On-demand `request_tools`~~ *(v0.8.1)*
+- [x] ~~Workflow Connection Dep Auto-Subscribe、Workflow real executors~~ *(v0.8.1)*
+- [x] ~~ReAct Cycle Detection、Completion Checklist~~ *(v0.8.1)*
+- [x] ~~Prebuilt Solution Templates（8 vertical bundles）、Resource Fork（MCP/Skill/Agent/Connector/Workflow）~~ *(v0.8.1)*
+- [x] ~~Vision document processing（PDF / DOCX / PPTX）、MarkItDown OCR~~ *(v0.8.2 / v0.8.3)*
+- [x] ~~Smart File Content Injection + `read_uploaded_file`~~ *(v0.8)*
+- [x] ~~Agent Core Phase 3: Conversation Recovery MVP、Compact Work Card、Turn Profiler、Per-user Rate Limiting~~ *(v0.8.3)*
+- [x] ~~Conversation resume MVP、System prompt registry + cache、Thinking-block persistence、Reasoning replay policy、Cache observability~~ *(v0.8.4)*
 
 ### v1.0 — ホットプラグ + 埋め込み可能
 

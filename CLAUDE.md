@@ -137,18 +137,22 @@ Communication only — doesn't replace automated tests.
   2. **Insert new** significant items under fitting planned version; `- [x]` if just shipped, `- [ ]` if spawns follow-up.
   3. **Never touch** shipped (date-stamped) versions.
   4. **Deferred items** → `- [ ]` under right version. Internal planning docs are scratchpads, not a substitute.
+  5. **Roadmap is an INDEX, not a blueprint.** Each entry is **one line, ≤150 chars** — names what ships and the user benefit. **No multi-sentence implementation prose, no nested sub-bullets describing schema/tradeoffs/rationale.** If you need to write more, you need a `dev/` file.
+  6. **Detail goes to `dev/<topic>.md`** (single-topic) or `dev/<topic>/` (multi-file design). `dev/` is **not** shipped to Mintlify, so roadmap pointers MUST use a JSX comment: append ` {/* dev: dev/<topic>.md */}` to the section heading (e.g. `#### Hook System {/* dev: dev/hook-system.md */}`). Mintlify strips JSX comments at compile time → public docs stay clean; Claude reading the file source sees the pointer and can pick up the companion design doc on the next pass. **Never** use a visible bracketed link like `[详见 dev/...]` — that leaks internal structure to public readers. Existing dev/ companions: `dev/hook-system.md`, `dev/im-channels.md`, `dev/connector-rbac/`, `dev/agent-workspace.md`, `dev/public-api-phase2.md`, `dev/prompt-cache-followups.md`, `dev/channel-integration-sso.md`, `dev/agent-trace-layer.md`. **Rule applies forward** — don't audit/rewrite already-terse entries; existing verbose entries stay until they ship and get archived.
+  7. **`dev/<topic>.md` is a planning-time artifact, not a per-commit artifact.** Create or extend it when **adding** a complex roadmap item (incremental planning — "let's do X in v0.9, here's the design"). When **checking off** an existing item at commit time (`[ ]` → `[x]`), do NOT touch the dev/ file. Implementation may have diverged from the design doc and that's fine — the source of truth is the code. After the version ships and the item is archived, the matching dev/ file may be moved to `dev/archive/` in a follow-up cleanup, but that's optional and never blocks a ship commit.
 - [ ] *(feat only)* **`example.env`** — new env keys with placeholder + comment; sync `docs/configuration/environment-variables.mdx` table.
 - [ ] *(feat only)* **`README.md`** — update Key Features / Project Structure if needed.
 - [ ] **Chinese sync** — pre-commit hook handles `docs/zh/` + `README.zh.md`. Commit EN + ZH together.
 
 ## Cut Release (triggered by "what's next" / "接下来做什么")
 
+**Version source chain**: About dialog (frontend) → `GET /api/version` → `fim_one.__version__` (`src/fim_one/__init__.py`) → must equal `pyproject.toml::version` → must equal highest ROADMAP **Shipped** version → must equal latest archived CHANGELOG version. **All five must agree at all times.** When they drift, fix in the same commit that surfaced the drift.
+
 BEFORE answering:
 
-1. **Archive** `CHANGELOG [Unreleased]` → `[vX.Y] (YYYY-MM-DD)`.
+1. **Archive** `CHANGELOG [Unreleased]` → `[vX.Y] - YYYY-MM-DD`. Add a fresh empty `[Unreleased]` above it.
 2. **Mark shipped**: ROADMAP version heading gets date, moved under **Shipped Versions**.
-3. **Bump version**: `pyproject.toml::version` AND `src/fim_one/__init__.py::__version__` match new shipped version. Both feed `/api/version` (About dialog). Never drift.
-4. **Fresh** empty `[Unreleased]` in CHANGELOG.
-5. Then answer with next priorities from first unfinished version's `- [ ]`.
+3. **Bump version**: `pyproject.toml::version` AND `src/fim_one/__init__.py::__version__` match new shipped version.
+4. Then answer with next priorities from first unfinished version's `- [ ]`.
 
-**Version Sync Invariant (always, not just at cut-release)**: `pyproject.toml::version` = `__version__` = highest ROADMAP **Shipped** version. Fix drift in the same commit as the work that surfaced it.
+**Roadmap vs Changelog (don't conflate them)**: Roadmap = capability index (per-version one-liners; trajectory + headline of what shipped). Changelog = release notes (per-version Added/Changed/Fixed prose; what a developer auditing the diff needs to know). Both are mandatory; they target different readers and different organizing dimensions. Cut-release writes both.

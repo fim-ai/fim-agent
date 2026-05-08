@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -185,6 +186,48 @@ def _restore_code_blocks(text: str, blocks: list[str]) -> str:
         ]:
             if variant in text:
                 text = text.replace(variant, restored, 1)
+                break
+    return text
+
+
+_JSX_COMMENT_RE = re.compile(r"\{/\*.*?\*/\}", flags=re.DOTALL)
+
+
+def _shield_jsx_comments(text: str) -> tuple[str, list[str]]:
+    """Extract `{/* ... */}` JSX comments, replacing with <!--JSX_N--> placeholders.
+
+    JSX comments are used in MDX files (e.g. `docs/roadmap.mdx`) as invisible
+    pointers to internal `dev/` companion files. Mintlify strips them at compile
+    time so end-users never see them, but Claude reading the file source picks
+    them up to find related design docs. Translation must preserve them
+    verbatim — otherwise the LLM treats them as natural-language text and
+    happily translates the path / hint into other languages, breaking the
+    invisible-pointer contract.
+    """
+    comments: list[str] = []
+
+    def _sub(match: re.Match[str]) -> str:
+        comments.append(match.group(0))
+        return f"<!--JSX_{len(comments) - 1}-->"
+
+    shielded = _JSX_COMMENT_RE.sub(_sub, text)
+    return shielded, comments
+
+
+def _restore_jsx_comments(text: str, comments: list[str]) -> str:
+    """Re-insert original JSX comments from placeholders."""
+    for i, comment in enumerate(comments):
+        placeholder = f"<!--JSX_{i}-->"
+        if placeholder in text:
+            text = text.replace(placeholder, comment, 1)
+            continue
+        for variant in [
+            f"<!-- JSX_{i} -->",
+            f"<!--JSX_{i} -->",
+            f"<!-- JSX_{i}-->",
+        ]:
+            if variant in text:
+                text = text.replace(variant, comment, 1)
                 break
     return text
 
@@ -811,14 +854,27 @@ def _translate_sections(
         max_attempts = 3 if validate_fn else 1
 
         def _translate_one(idx: int, section: str) -> tuple[int, str | None]:
-            # Shield code blocks: extract them before LLM sees the content,
-            # so the LLM can't translate or break bash comments / fence structure.
+            # Shield code blocks first (fenced ``` blocks may themselves contain
+            # JSX-comment-looking text we shouldn't touch), then JSX comments
+            # (invisible dev/-pointer hints in MDX files).
             shielded, code_blocks = _shield_code_blocks(section)
+            shielded, jsx_comments = _shield_jsx_comments(shielded)
             content_to_translate = shielded
-            if code_blocks:
+            if code_blocks or jsx_comments:
+                notes: list[str] = []
+                if code_blocks:
+                    notes.append(
+                        "<!--CODE_BLOCK_N--> placeholders represent pre-extracted code blocks"
+                    )
+                if jsx_comments:
+                    notes.append(
+                        "<!--JSX_N--> placeholders represent pre-extracted JSX comments "
+                        "(invisible MDX hints to internal dev/ docs — must stay verbatim "
+                        "in the translated output)"
+                    )
                 content_to_translate = (
-                    "IMPORTANT: <!--CODE_BLOCK_N--> placeholders represent pre-extracted "
-                    "code blocks. Preserve each placeholder exactly as-is on its own line. "
+                    "IMPORTANT: " + "; ".join(notes) + ". "
+                    "Preserve each placeholder exactly as-is. "
                     "Do NOT translate, modify, or remove them.\n\n"
                     + shielded
                 )
@@ -836,7 +892,9 @@ def _translate_sections(
                             + content_to_translate
                         )
                     translated = llm_chat(config, system_prompt, prompt_for_attempt)
-                    # Restore code blocks from placeholders
+                    # Restore in reverse shield order: JSX comments first, then code blocks
+                    if jsx_comments:
+                        translated = _restore_jsx_comments(translated, jsx_comments)
                     if code_blocks:
                         translated = _restore_code_blocks(translated, code_blocks)
                     # Preserve trailing whitespace from original section.

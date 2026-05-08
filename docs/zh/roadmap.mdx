@@ -260,119 +260,109 @@ flowchart LR
 
 ## 计划版本
 
-### v0.9 — 可观测性 + 生产强化
+### v0.9 — 可观测性 + 生产级加固
 
-**目标**: 生产级运维、调试和监控。引入**Hook 系统** — 一个确定性执行层，位于智能体指令下方，LLM 无法覆盖。
+**目标**：生产级运维 + 四大支柱缩小"智能体可能遵循的指令"与"系统强制执行的保证"之间的差距——追踪层（查看发生了什么）· 钩子系统（强制执行必须发生的事）· 智能体工作区（持久化文件 + 交接）· IM通道（智能体存在于用户工作的地方）。
 
-- [ ] **连接器渐进式披露（第 3-4 阶段）**: 统一的 `ConnectorExecutor` 接口（API/DB/MCP 在一个抽象后面）；使用 `jsonschema` 进行操作参数验证；协议无关的发现/执行
-- [ ] **YAML/JSON 连接器配置**: 平台自动生成 MCP 服务器
-- [ ] **数据库连接器第 4 阶段**: 企业驱动 — Oracle (`oracledb`)、SQL Server (`aioodbc`)、[x] 达梦 DM8（原生 `dmPython`）、[x] 人大金仓 KingbaseES + 瀚高 HighGo（PG 兼容，复用 `asyncpg`）、南大通用 GBase（`aioodbc` + GBase ODBC）
-- [ ] **IM 频道集成（双向）**: **第 1 阶段 — 出站推送**: Lark、WeCom、Slack、Email、Teams 来自智能体/工作流结果的通知操作。**第 2 阶段 — 入站触发**: 用户在 IM 群聊中 @mention 智能体以触发任务，无需打开 Portal；每个频道的 webhook 接收器；每个 IM 频道建模为具有双向操作的连接器（发送 + 接收）。Hub 模式杀手级功能
-  - [x] **飞书频道（第 1 阶段子集）** — 组织范围的 `Channel` 资源，带 Fernet 加密凭证；`FeishuChannel` 实现支持交互式卡片发送 + 回调（签名验证 + URL 挑战）；与确认门集成，使写操作批准作为批准/拒绝卡片落地在配置的飞书群聊中；设置 → 频道管理 UI。为 2026-04-24 路演提前发布。剩余：WeCom、Slack、Email、Teams 出站 + 第 2 阶段入站触发。
-  - [ ] **出站通知模式（通用，可跨频道类型复用）**: 相同的 `BaseChannel` 抽象支持超越批准门控的出站用例目录。每个模式针对 `BaseChannel` 实现一次，自动适用于每个具体频道（今天是飞书；Slack/WeCom/Teams/Email 随后推出）。
-    - [x] **任务完成通知**: 当长时间运行的 DAG / 工作流 / 计划智能体完成时，向组织频道（或用户选择的频道）发布包含结果片段 + 工件链接的摘要卡片。最小可行的"频道出站"产品 — `FeishuGateHook` 之后的第一个消费者
-    - [ ] **异常 / 失败告警**: 智能体推理失败、LLM 提供商出错、连接器抛出 5xx、DAG 计划耗尽重新规划预算 → 向运维频道推送包含 trace ID 和重试选项的诊断卡片
-    - [ ] **成本 / 预算警告**: 按用户或按智能体的 token/请求预算达到 80% / 100% 阈值 → 推送到管理员频道（或 @-mention 智能体所有者），显示当前使用量与上限
-    - [ ] **计划摘要**: 智能体或工作流发出定期（每日 / 每周）摘要卡片 — KPI 汇总、未解决工单分类、合同续期列表 — 直接进入频道，无需用户打开 Portal
-    - [ ] **卡住的智能体升级**: 智能体连续 N 次迭代没有取得可观测的进展（检测到循环，或超过 `max_iterations`）→ 发布卡片要求人工操作员接管，包含当前上下文和"使用您的备注恢复"操作
-    - [ ] **敏感工具调用的审计收据**: 独立于批准门控 — 每次调用标记为 `audit=true` 的工具都会向合规频道发出只读收据卡片（谁 / 什么 / 何时 / 参数），在数据库外提供持久审计跟踪
-    - [ ] **批准升级**: 如果 `feishu_gate` 批准卡片在 N 分钟内未收到响应，自动 @-mention 群组所有者或将卡片转发到更高层级频道；可按工具/连接器配置
+#### 连接器 + 工具
 
-#### 连接器授权层（数据级 RBAC）
+- [ ] **连接器渐进式披露第3-4阶段** — 统一的 `ConnectorExecutor`（API/DB/MCP）；`jsonschema` 操作验证；协议无关的发现/执行
+- [ ] **YAML/JSON 连接器配置** — 平台自动生成 MCP 服务器
+- [ ] **数据库连接器第4阶段** — Oracle（`oracledb`）、SQL Server（`aioodbc`）、GBase（`aioodbc` + GBase ODBC）。DM8 / KingbaseES / HighGo 已在 v0.8.5 中发布
+- [ ] **MCP 连接池** — 使用按用户环境隔离的 STDIO 池；为 SSE/HTTP 共享 `httpx.AsyncClient`。目标 ≤100 ms 热启动，每个服务器 O(1) HTTP 连接
 
-现有的 RBAC 控制**资源可见性**（谁可以看到连接器），而非**执行时授权**（调用者通过它可以做什么）。当管理员用高权限凭证连接 DB/API 时，每个使用该连接器的组织成员都会继承管理员的风险范围。本小节通过三个不同的上游能力层来弥补这一差距：
+#### 钩子系统 {/* dev: dev/hook-system.md */}
 
-- [ ] **Tier 1 — DB 模式（完全管理员 + 基础/遗留）**：管理员提供单个 DB 凭证（root 或最小权限服务账户），因为大多数遗留系统无法颁发按用户的 DB 账户。强制执行发生在连接**之上**，通过 `ConnectorScopeGuard` —— 一个 `PreToolUse` 钩子，根据调用者身份过滤 `query` / `execute` 调用。能力：阻止破坏性动词（DROP、TRUNCATE、无范围的 DELETE/UPDATE）；表级允许/拒绝列表；由 `pii=true` 语义注解驱动的列隐藏；自动注入范围谓词（例如，向每个 `SELECT` 追加 `AND dept_id = :caller_dept`）。配置是连接器上的 `scope_rules` JSON 字段，支持基于角色的匹配；默认为有歧义时拒绝。
-- [ ] **Tier 2 — Open API 模式（按用户 API 密钥）**：首选路径。用户自带 API 密钥（在 v0.8 中发布 —— `connector_credentials` + `allow_fallback=false`）；上游系统的原生授权自然强制范围。剩余工作：按连接器的管理员 UI 来**要求**按用户凭证（全局禁用管理员回退），以及显示哪些组织成员仍未绑定自己密钥的健康仪表板。
-- [ ] **Tier 3 — 中间层（登录票证交换）**：用于前端/后端分离系统，没有用户范围的 API 密钥。用用户提供的凭证调用系统的登录端点，缓存返回的短期票证，在过期时自动刷新。新的 `LoginTicketCredential` 类型与 API 密钥 / OAuth 并行；连接器规范声明 `auth_type: login_ticket`，包含 `login_endpoint`、`ticket_field` 和 `refresh_strategy`。适配器层根据每个请求将票证转换为出站认证头。
-- [ ] **跨层可审计性**：每个工具调用都在 `ConnectorCallLog` 中标记 `caller_user_id`、`effective_credential_source`（user / admin-fallback / ticket）和 `scope_rules_applied`，以便运维可以在事件后回答"谁实际上以谁的身份运行了什么"。
+- [ ] 每个钩子的配置传递（`{"name": ..., "config": {...}}` 模式）
+- [ ] DAG `tools_used` 准确性（通过步骤完成回调从每步 ReAct 获取真实工具名称）
+- [ ] `CallAgentTool` + Workflow `AGENT` 节点的钩子继承（安全默认值与灵活性默认值）
+- [ ] 内置钩子：`ConnectorCallLog` 自动记录、只读模式阻止、数据库结果截断、每个连接器速率限制
+- [ ] `SessionStart` 钩子点 + 用户定义的 YAML 钩子
+- [x] ~~骨架 + FeishuGateHook + 审批演练场 + ReAct/DAG 运行时~~ *（在 v0.8.5 中发布）*
 
-#### Channel → Integration 升级
+#### IM 通道集成 {/* dev: dev/im-channels.md */}
 
-目前 Feishu 被设计为 **Channel + Connector** 对——交付管道和 API 接口。企业部署需要第三个角色：**Integration**（同一个第三方绑定还提供 SSO 和组织图同步）。在 v0.9 中实现，因为现有的 Feishu 绑定已覆盖 4 个必需方面中的 3 个，身份认证方案解锁了上层 Tier-2 授权（用户可在登录时获取自己的上游 token，而不是手动配置 API 密钥）。
+- [ ] 通道：WeCom、Slack、Email、Teams 出站
+- [ ] 出站模式：失败告警、预算警告、定时摘要、升级、审计收据、审批升级
+- [ ] 第 2 阶段——入站触发（在 IM 群组中 @mention 智能体）
+- [x] ~~Feishu 通道（第 1 阶段子集）+ 任务完成通知~~ *(在 v0.8.5 中发布)*
 
-- [ ] **Channel → Integration 模型**：将 `Channel` 从"仅出站交付"升级为 `ThirdPartyIntegration` 父类，包含三个可选的子功能——(a) **Delivery**（现有 Channel 行为：发送卡片、门控确认）；(b) **Login**（OIDC / 自定义 SSO；"使用 Feishu 登录"同时产生 FIM 会话和上游平台 token）；(c) **Org graph sync**（将上游部门/成员镜像到 FIM 组织结构；计划驱动或 webhook 驱动）。管理员可按绑定切换各功能。
-- [ ] **Feishu SSO 作为 Integration 功能**：复用现有 Feishu 应用绑定（app_id/secret 已在 Channel 上）向每个 Feishu 租户已绑定到组织的用户公开"使用 Feishu 登录"。登录时获得的 token 成为用户对 Feishu Connector 的默认凭证——消除 Tier-2 强制执行中"去获取你自己的 API 密钥"的摩擦。
-- [ ] **Org graph sync（Feishu → FIM org）**：将 Feishu 部门 + 成员拉入 FIM；将 Feishu 租户管理员 / 部门负责人 / 成员角色映射到 FIM owner/admin/member。为下一步的 WeCom 和 DingTalk，以及 v1.0 中的 Kingdee / Yonyou / SAP ERP-OA 适配器奠定基础。
+#### 连接器授权层 {/* dev: dev/connector-rbac/00-overview.md */}
 
-#### 公开 API（第 2 阶段）
+- [ ] 第1层——数据库模式（`ConnectorScopeGuard` PreToolUse 钩子：动词阻止、表允许/拒绝、列脱敏、作用域谓词注入）
+- [ ] 第2层——开放API模式（管理员UI要求按用户凭证；密钥绑定健康仪表板）
+- [ ] 第3层——登录票证交换（`LoginTicketCredential` 用于前后端分离系统，无用户范围API密钥）
+- [ ] 跨层可审计性（`ConnectorCallLog` 中的 `caller_user_id`、`effective_credential_source`、`scope_rules_applied`）
 
-第 1 阶段（已发布）：API 密钥认证中间件、作用域支持、精选 OpenAPI 规范、Mintlify API 参考文档及交互式演练场。
+#### 通道→集成推广 {/* dev: dev/channel-integration-sso.md */}
 
-- [ ] **按密钥速率限制** — 每个 API 密钥可配置的请求/分钟和请求/天限制；`429 Too Many Requests` 响应包含 `X-RateLimit-*` 标头
-- [ ] **按密钥使用配额** — 月度令牌/请求预算，包含管理员仪表板和阈值告警
-- [ ] **按端点的作用域强制执行** — 所有受保护端点上的 `require_scope("chat")` 依赖；具有 `scopes=chat` 的密钥只能访问聊天相关 API
-- [ ] **API 版本控制** (`/v1/...`) — 稳定的版本化 API 契约；日落端点的弃用标头
-- [ ] **Webhook 回调** — 为每个 API 密钥注册 webhook URL；接收对话完成、智能体错误和异步任务结果的 POST 通知
-- [ ] **SDK 生成** — 从 OpenAPI 规范自动生成 Python 和 TypeScript 客户端 SDK；发布到 PyPI 和 npm
-- [ ] **开发者门户** — Mintlify 文档中的交互式"试用"面板；密钥所有者可见的使用分析
-- [ ] **API 密钥轮换** — 一键密钥轮换，包含宽限期（轮换后旧密钥有效期为 24 小时）
-- [ ] **批量/异步 API** — `POST /api/batch` 接受最多 100 个查询；返回 `batch_id` 用于轮询结果；适用于批量知识库查询或多智能体编排
-- [ ] **外部依赖的断路器** — 防止下游 LLM 提供商或连接器不可用时的级联故障；自动回退和恢复
+- [ ] `ThirdPartyIntegration` 模型——将通道提升为交付+登录+组织图同步子功能
+- [ ] Feishu SSO（"使用Feishu登录"生成FIM会话+上游令牌，消除Tier-2的按用户API密钥摩擦）
+- [ ] 组织图同步（Feishu部门→FIM组织树）；WeCom+DingTalk下一步
 
-#### 可观测性与智能体运行时
+#### Public API Phase 2 {/* dev: dev/public-api-phase2.md */}
 
-- [ ] **智能体追踪层（可观测性++）**：应用级运行/追踪/线程层级，用于智能体调试——每个对话 → `Trace`，每个LLM调用/工具调用/DAG步骤 → `Span`，包含输入/输出/令牌/时序。前端追踪查看器，具有时间线和可展开的LLM调用负载。这超越了OTel（基础设施级）的范围，为开发者和企业客户提供可操作的智能体循环调试。OpenTelemetry导出作为数据接收选项。参考LangSmith的运行/追踪/线程概念——行业验证的智能体可观测性模式。
-- [ ] **指标仪表板**：延迟、成功率、令牌使用、连接器调用分析——按智能体、按用户、按组织的细分
-- [x] ~~**断路器**：三态机（关闭/打开/半开），具有按连接器故障跟踪、5xx检测和监控端点~~ *（已在v0.8提前发布）*
-- [x] ~~**工作流运行保留清理**：后台清理任务，具有可配置的最大年龄和每个工作流的最大计数；按工作流覆盖；管理员端点用于手动触发~~ *（已在v0.8.1发布）*
-- [x] ~~**工作流版本变更摘要**：`compute_blueprint_diff()`在版本保存时从蓝图差异自动生成人类可读的摘要~~ *（已在v0.8.1发布）*
-- [x] ~~**DAG质量大修**：非快速步骤的默认模型升级；规划中的技能自动发现；法律/医疗/金融领域的引文验证器；结构化内容上下文保留；路由器中的领域分类，具有领域感知的模型选择~~ *（已在v0.8.1发布）*
-- [x] ~~**ReAct中的领域模型升级**：专家领域自动升级到推理模型，具有强制网络搜索和引文验证~~ *（已在v0.8.1发布）*
-- [x] ~~**按模型原生函数调用切换**：`tool_choice_enabled`设置让模型跳过强制工具选择，直接进入JSON模式~~ *（已在v0.8.1发布）*
-- [x] ~~**DatabaseMetaTool（DB连接器的渐进式披露）**：单个`database`元工具，具有`list_tables`/`discover`/`query`子命令，替代每个数据库连接器的3N个单独工具；通过`DATABASE_TOOL_MODE`环境变量配置（`progressive`默认，`legacy`回退）~~ *（已在v0.8.1发布）*
-- [x] ~~**通过`request_tools`元工具按需工具加载**：当智能选择后有>12个工具可用时，LLM可以在对话中动态加载额外工具；在JSON和原生函数调用模式中都有效~~ *（已在v0.8.1发布）*
-- [x] ~~**MCPServerMetaTool（MCP的渐进式披露）**：单个`mcp`元工具，具有`discover`/`call`子命令，替代N*M个单独的MCP工具；通过`MCP_TOOL_MODE`环境变量配置（`progressive`默认，`legacy`回退）~~ *（已在v0.8.1发布）*
-- [x] ~~**工作流连接依赖自动订阅**：扩展市场订阅级联以自动订阅工作流的连接依赖（API连接器、MCP服务器）。工作流节点可以引用连接器、MCP服务器、智能体（递归引用更多依赖）和子工作流——完整树中的所有连接依赖必须在订阅时自动订阅，并在取消订阅时级联清理。由于递归子工作流解析和循环检测，比技能/智能体更复杂。解决方案（技能/智能体）连接依赖自动订阅的对应物~~ *（已在v0.8.1发布）*
-- [x] ~~**工作流真实执行器**：用完整实现替换MCP和BuiltinTool节点执行器存根（MCP服务器发现+工具调用；ToolRegistry集成）~~ *（已在v0.8.1发布）*
-- [ ] **智能体钩子系统**：一个在**LLM循环外**运行的确定性强制层——钩子在工具事件上自动执行，无法被智能体指令绕过。三个钩子点：`PreToolUse`（执行前验证/阻止）、`PostToolUse`（执行后副作用）、`SessionStart`（注入动态上下文）。内置钩子：在每个连接器调用时自动写入`ConnectorCallLog`（目前手动）；当组织处于只读模式时阻止写操作；在智能体看到之前自动截断超大DB查询结果；按连接器调用频率进行速率限制。用户定义的钩子：按智能体YAML配置（`hooks:`字段）声明在匹配工具事件上触发的shell命令或Python可调用对象——一个在现代智能体框架中共享的基于钩子的强制模式。关键设计原则：**钩子用于"必须始终发生"的逻辑，不应依赖LLM记住执行它**。指令说"记录所有调用"；钩子实际记录它们。指令说"不要在只读模式下写入"；钩子实际阻止它。
-  - [x] **钩子系统框架+FeishuGateHook**——基于类的`PreToolUseHook`/`PostToolUseHook`抽象，连接在ReAct循环下方；第一个具体钩子是`FeishuGateHook`，它拦截标记为`requires_confirmation=True`的工具，并通过组织的Feishu通道路由审批。完整钩子生命周期（用户定义的YAML钩子、内置审计/阻止/截断钩子、`SessionStart`）仍在v0.9范围内。为2026-04-24路演提前发布。
-  - [x] **钩子审批演练场**——UI驱动的往返测试器：通道详情表现在启动一个对话框，创建真实的`ConfirmationRequest`行，将生产卡发送到Feishu，并实时轮询决定。执行生产钩子会采用的确切代码路径，使预发布排练和演示忠实。
-  - [x] **钩子系统在ReAct+DAG运行时中实时**——`build_hook_registry_for_agent`在每个聊天会话上解析`agent.model_config_json.hooks.class_hooks`；ReAct和DAG入口点都在工具分发前实例化钩子。工具适配器将`requires_confirmation`公开为公共属性，以便钩子谓词可以鸭子类型，无需适配器耦合。配对一个端到端烟雾脚本（`scripts/smoke_feishu_gate.py`），覆盖通过真实智能体循环的批准/拒绝路径。
-  - [ ] **按钩子配置传递**——模式级`{"name": ..., "config": {...}}`，以便按智能体`FeishuGateHook`覆盖（超时、轮询间隔、回调URL）有效；裸字符串`class_hooks`条目仍受支持
-  - [ ] **DAG`tools_used`准确性**——完成通知卡目前从规划器提示派生`tools_used`；通过DAG执行器步骤完成回调从按步骤ReAct表面实际工具名称
-  - [ ] **委托子智能体+工作流`AGENT`节点的钩子继承**——今天`CallAgentTool`子项和工作流`AGENT`节点使用空钩子注册表启动新的ReActAgent，无声地绕过委托敏感调用上的`feishu_gate`。决定默认继承（安全）vs显式选择加入（灵活）；评估中心始终选择退出（自动化无法阻止人类）
-- [ ] **智能体工作区（持久智能体桌面）**：三层：（1）**工具输出卸载**——自动保存超大工具响应（>8K字符）到`workspace://`文件，返回截断预览+URI；内置工具`read_workspace_file`、`list_workspace_files`、`write_workspace_file`用于选择性访问和智能体生成的工件。（2）**交接笔记**——`write_handoff(summary)`用于压缩/会话切换的上下文转换。（3）**工作区UI**——前端文件浏览器面板，每个对话（预览文本/JSON/CSV、下载、删除/重命名）；跨会话文件保留；按用户存储配额集成。扩展适配器中的`truncate_tool_output()`+`GET /api/conversations/{id}/workspace`端点
-- [x] **智能文件内容注入+`read_uploaded_file`工具**：小上传文件（`<32K`字符）自动内联到LLM上下文；大文件获取元数据+工具提示。双模式`read_uploaded_file`工具（分页读取+正则表达式搜索）。`GET /api/files/{file_id}/content`端点、`.content`边车存储、文件API响应中的`content_length`
-- [x] ~~**智能文档处理（视觉感知）**：自适应文档处理——PDF页面通过PyMuPDF为视觉能力模型（GPT-4o、Claude 3/4、Gemini）渲染为图像；通过pdfplumber的纯文本回退。Admin中的按模型`supports_vision`标志。两种模式（视觉/文本）通过`DOCUMENT_PROCESSING_MODE`环境变量配置。智能PDF处理：文本丰富的页面提取文本+嵌入图像（令牌高效），扫描页面渲染为全页PNG。DOCX/PPTX嵌入图像提取。多轮视觉持久性。预构建沙箱镜像（`Dockerfile.sandbox`）。缓存页面渲染，带`.pages/`边车。~~ *（已在v0.8.2发布）*
-- [x] ~~**通用文档转换（`convert_to_markdown`+OCR）**——内置智能体工具，包装Microsoft MarkItDown，默认对每个智能体可用。将PDF、Word、Excel、PowerPoint、HTML、JSON、CSV、XML、ZIP、EPUB、Outlook .msg、图像、音频、YouTube URL和数据URI转换为对话中的干净Markdown。Office文件和扫描PDF页面中的嵌入图像通过官方`markitdown-ocr`插件使用工作区的视觉能力LLM（DB优先、ENV回退）自动进行OCR。相同的转换内核由RAG摄取管道共享，因此聊天时转换和知识库摄取生成字节相同的Markdown。非OpenAI提供商（Claude、Gemini、Bedrock、Azure）通过`LiteLLMOpenAIShim`透明支持，该垫片将任何FIM One LLM呈现为openai-SDK形状的客户端，然后通过LiteLLM路由。零回归回退：当没有视觉模型可用时，纯文本提取继续完全如前。~~ *（已在v0.8.3发布）*
-- [ ] **跨会话文件管理**：文件浏览器UI、存储配额、自动过期清理
-- [ ] **会话级文件关联**：跟踪哪些文件在哪些对话中使用
-- [ ] **跨会话对话回忆**：智能体工具列出、搜索和读取过去的对话历史——`list_conversations`、`search_conversations`（跨历史的关键字/正则表达式）、`read_conversation`（检索完整线程）。启用"我们上次讨论了什么"和"找到我上周要求的API变更"工作流。配对跨会话文件管理以形成完整的长期智能体内存层
-- [ ] **沙箱强化**：代码执行隔离的v2改进
-- [ ] **性能测试**：并发负载基准
-- [ ] **MCP连接池**：按请求STDIO子进程生成不可扩展——100个并发用户=每个MCP服务器100个子进程。使用按用户环境隔离的池STDIO连接（由`(server_id, env_hash)`键入）；SSE/HTTP传输共享`httpx.AsyncClient`会话。目标：池化STDIO的`≤100 ms`热启动，无论用户数如何，每个MCP服务器O(1)HTTP连接
-- [ ] **内部工具基准**——使用EVAL CENTER基础设施量化工具参数变化（系统提示、自反思频率、工具选择阈值）的内置测试套件
-- [ ] **工作流触发身份可观测性**：添加`ExecutionContext.trigger_source`（`"webhook" | "cron" | "manual" | "batch" | "sub"`），在五个`WorkflowEngine`实例化站点（`trigger_workflow`、`run_workflow`、`batch_run_workflow`、`scheduler`、`sub_workflow`）的每一个处填充。今天这些路径隐含地混合所有者身份（`wf.user_id`——webhook/cron）与调用者身份（`current_user.id`——手动/批处理）；默认值是合理的，但约定未记录，所以401类故障（"为什么我的cron没有借用我的令牌？"）需要反向工程触发
-#### Prompt Cache + 推理 Follow-ups（来自 Batch A MVPs）
+- [ ] 按密钥速率限制（`X-RateLimit-*` 头部、429）
+- [ ] 按密钥使用配额（月度令牌/请求预算）
+- [ ] 按端点的作用域强制
+- [ ] API 版本控制（`/v1/...`）+ 弃用头部
+- [ ] Webhook 回调（按密钥）
+- [ ] SDK 生成（Python + TypeScript）
+- [ ] 开发者门户（试用面板 + 按密钥分析）
+- [ ] API 密钥轮换（24小时宽限期）
+- [ ] 批量/异步 API（`POST /api/batch`）
+- [ ] 按外部依赖熔断器
 
-这些项目完成了 Batch A 中已发货的部分工作（对话恢复、系统提示词注册表、思考块）并将缓存覆盖范围扩展到剩余的提供商系列。
+#### 可观测性 {/* dev: dev/agent-trace-layer.md */}
 
-- [ ] **Gemini Context Cache Adapter**：Google Gemini 使用单独的 REST API（`POST /v1beta/cachedContents` → 返回 `cacheName` → 在后续 `generateContent` 调用中通过 `cachedContent: "<cacheName>"` 引用），而不是 Anthropic 使用的内联 `cache_control` 标记。需要一个 `GeminiCacheAdapter` 来进行生命周期管理（预注册前缀 → 引用 cacheName → TTL 感知失效），集成到 `OpenAICompatibleLLM` 的 Gemini 路径或 LiteLLM 的 Gemini 提供商中。读取折扣约 0.25×，最小前缀 32,768 tokens（Gemini Pro）/ 4,096（Flash）— 主要受益者是长上下文 KB/RAG 智能体和文档密集型工作流。
-- [ ] **提示词注册表扩展到规划器 / 验证器 / 域分类器**：将 `PromptRegistry` + `DYNAMIC_BOUNDARY` 模式从 ReAct 扩展到剩余的 LLM 调用点：`DAGPlanner`、`PlanAnalyzer`、`StepVerifier`、`CitationVerifier`、`DomainClassifier`、`ExecutionModeRouter`、`CompactUtils`。目前这些在每次调用时都从头重建提示词。频率低于 ReAct，因此 ROI 较低，但完成了缓存故事。
-- [ ] **按智能体 `cache_ttl` 配置**：让智能体所有者在 `ephemeral`（5 分钟，默认，写入成本低）和 `extended`（1 小时，写入成本高 2 倍但更适合批处理 / 计划工作流）之间选择。在 Agent 模型上显示为一个字段，并在支持的地方通过 `cache_control: {"type": "...", "ttl": "..."}` 传递。
-- [ ] **DAG 步骤级检查点表**：当前 A1 对话恢复 MVP 持久化合成 tool_results 和缓存的 SSE 事件，但 DAG 中间步骤状态仅存在于内存中。新的 `dag_execution_step` 表快照每个步骤的 tool_calls、结果和工件引用，以便 DAG 中途断开连接可以恢复而无需重新执行已完成的步骤。与前端 `useSseResume` hook 配对以实现端到端连续性。
-- [ ] **Message 上的专用 `tool_call_id` 列**：目前 `tool_call_id` 存在于 `metadata_` JSON 中，需要 `json_extract(...)` / `::json->>` 查找来进行孤立工具使用查询。对于高流量部署，一级索引列将使恢复传递以 O(log n) 而不是 O(n) 扫描运行。在规模需求之前优先级较低。
-- [ ] **中流思考 token 重建**：当前恢复粒度是"下一个完整 SSE 事件"— 如果断开发生在思考 delta 内，客户端从以下事件重新启动。Token 级恢复需要重新发出飞行中思考块的缓冲 tokens。小众改进；仅当用户在不稳定连接上报告思考 UX 抖动时才值得追求。
-- [ ] **API 中继缓存诚实性探针**：后台工具（管理员触发或计划）通过每个配置的中继发送两个相同的 Claude 请求，比较实际计费输入与 `cache_read_input_tokens`，并标记剥离 `cache_control` 标记或不传递 0.10× 折扣的中继。显示为工作区级别的"中继健康"信号 — 对于通过中文 API 代理路由的企业来说是有用的运营工具。
+- [ ] **智能体追踪层** — 追踪/跨度模型、前端时间线查看器、OTel导出（LangSmith风格的应用级运行/追踪/线程）
+- [ ] **指标仪表板** — 延迟、成功率、令牌使用、连接器分析（按智能体/用户/组织）
 
-#### 可靠性后续工作（智能体核心优先级矩阵）
+#### Agent Workspace {/* dev: dev/agent-workspace.md */}
 
-智能体核心集成蓝图（第0–3阶段，I.1–I.16）的主体已在v0.8.2和v0.8.3中发布。下面的项目来自仍需关注的并行优先级矩阵。
+- [ ] 工具输出卸载——用于 >8K 响应的 `workspace://` URI 和 `read/list/write_workspace_file` 工具
+- [ ] 交接笔记——`write_handoff(summary)` 在压缩后保留
+- [ ] Workspace UI——每个对话的文件浏览器；跨会话保留；按用户存储配额
+- [ ] 跨会话对话回忆——`list_conversations`、`search_conversations`、`read_conversation` 工具
 
-- [ ] **内容替换状态持久化**（流式传输不变量#2）："一旦看到，命运冻结"——已经发送给客户端的消息内容在恢复/重新加载时不得进行逆向变更。需要与A1的SSE游标对齐的替换账本。被阻止在理解实际用户可见的故障上；没有主动投诉。
-- [ ] **附件上下文路由器**：使用`alreadySurfaced` + `readFileState`去重、聚合附件预算和活跃性检查的更智能的附件注入。防止在每个回合上重新发送相同的50KB PDF提取。与工作区文件卸载耦合（已在v0.9计划中）。
-- [ ] **辅助查询工作线程（提示词工作线程池）**：用于召回/分类/摘要/会话记忆查询的专用轻量级池，以便它们不与主智能体LLM调用争夺速率限制预算。前提条件：提示词注册表扩展（上述）。
+#### 提示词缓存 + 推理后续跟进 {/* dev: dev/prompt-cache-followups.md */}
 
-#### 生态系统与扩展
+- [ ] Gemini Context Cache Adapter（独立的REST缓存生命周期与Anthropic内联标记）
+- [ ] 提示词注册表扩展至规划器/验证器/域分类器/紧凑型
+- [ ] 按智能体`cache_ttl`（临时5分钟与扩展1小时）
+- [ ] DAG步骤级检查点表用于DAG中途恢复
+- [ ] 专用`tool_call_id`消息列（大规模孤立查询索引查找）
+- [ ] 中途思考令牌重建（恢复粒度细于完整SSE事件）
+- [ ] API中继缓存诚实性探针（管理员触发：检测中继是否剥离`cache_control`）
 
-- [ ] **定时任务 + 事件触发的智能体（Loop）**: 类似 cron 的后台任务触发；`scheduled_jobs` + `job_runs` 数据库表；APScheduler 集成；任务 CRUD API + 任务历史 UI；通过消息推送连接器进行结果通知。范围涵盖时间触发（cron）和事件触发（webhook 入站）两种模式 — 在后台异步运行的智能体就是 Hub 模式下的异步子智能体用例。
-- [x] ~~**预构建解决方案模板（市场种子内容）**: 首次用户注册时发布到市场的 8 个开箱即用的垂直解决方案 — 财务审计、合同审查、数据报告、IT 帮助台、人力资源入职、销售助手、内容写手、会议总结。每个方案都捆绑了一个智能体 + 技能，包含中文操作流程；通过 `ensure_solution_templates()` 幂等引导，发布到市场组织以实现即时市场可用性~~ *（已在 v0.8.1 中发布）*
-- [ ] **数据库架构高级构建器**: 用于大规模数据库的 AI 驱动架构管理智能体 — 战略性表注释（基于模式、SQL 执行信息）、按域前缀进行批量可见性管理、针对 1K–7K+ 表部署的迭代多轮注释；补充现有批量注释任务，提供选择性和业务上下文推理
-- [x] ~~**资源分支（包装阶段 1 — v1.0 包装系统的前置条件）**: 所有按资源分支端点已实现 — MCP Server、技能、智能体、连接器、工作流。知识库分支已移除（本质上是用户本地的）。每个 `POST /api/{type}/{id}/fork` 创建一个用户拥有的深层副本，带有 `forked_from` 血统跟踪。~~ *（已在 v0.8.1 中完成）*
-- [ ] **按工作流 `credential_policy` 覆盖**（`owner` | `caller` | `auto`）: 五个工作流触发路径当前硬编码了谁的身份运行连接器操作 — webhook/cron 传递 `wf.user_id`（所有者），manual/batch 传递 `current_user.id`（调用者）。这符合常见的"自动化以所有者身份运行，手动运行以调用者身份运行"的预期，但企业部署有时需要按工作流覆盖（例如必须在当前值班工程师身份下运行的 cron，或必须借用所有者凭证的共享模板，即使在手动运行时）。在工作流模型上添加 `credential_policy` 字段，在 UI 中与计划 / API 密钥配置一起显示，覆盖默认的 `trigger_source → identity` 映射。前置条件：上述 `trigger_source` 可观测性。
+#### 可靠性后续跟进（智能体核心优先级矩阵）
 
-**影响**: 自信地大规模运行 FIM One。四大支柱：**追踪层**（查看发生了什么）、**钩子系统**（强制必须发生的事）、**智能体工作区**（持久文件管理 + 交接）、**IM 频道**（智能体存在于用户工作的地方）。预构建解决方案模板消除冷启动；仪表板增强显示运营健康状况。"智能体可能遵循的指令"和"系统强制执行的保证"之间的差距被消除 — 这是演示和生产企业工具之间的区别。
+- [ ] 内容替换状态持久化（流式不变量 #2："一旦看到，命运冻结"）
+- [ ] 附件上下文路由器（去重、聚合预算、活跃性检查；与工作区卸载配对）
+- [ ] 侧查询工作线程（为召回/分类/摘要专用池，以免与主速率限制预算竞争）
+
+#### 生态系统 + 扩展
+
+- [ ] **定时任务 + 事件触发的智能体** — `scheduled_jobs` + `job_runs` + APScheduler；cron + webhook-inbound。Hub 模式的异步子智能体用例
+- [ ] **工作流触发身份可观测性** — `ExecutionContext.trigger_source`（`webhook | cron | manual | batch | sub`）在全部 5 个 WorkflowEngine 站点中填充；在运行面板和连接器日志中显示
+- [ ] **按工作流 `credential_policy` 覆盖** （`owner` / `caller` / `auto`）— 覆盖默认的 `trigger_source → identity` 映射
+- [ ] **数据库架构高级构建器** — AI 驱动的注解，用于 1K-7K+ 表部署（选择性 + 业务上下文推理）
+- [ ] 沙箱加固（v2 代码执行隔离）
+- [ ] 性能测试（并发负载基准测试）
+- [ ] 内部工具基准测试（通过评估中心量化工具参数变化）
+
+#### 已提前发货
+
+- [x] ~~断路器、工作流运行保留清理、工作流版本差异摘要~~ *(v0.8 / v0.8.1)*
+- [x] ~~DAG质量改进、域模型升级、按模型NFC切换~~ *(v0.8.1)*
+- [x] ~~DatabaseMetaTool、MCPServerMetaTool、按需`request_tools`~~ *(v0.8.1)*
+- [x] ~~工作流连接依赖自动订阅、工作流真实执行器~~ *(v0.8.1)*
+- [x] ~~ReAct循环检测、完成清单~~ *(v0.8.1)*
+- [x] ~~预构建解决方案模板（8个垂直套餐）、资源分叉（MCP/技能/智能体/连接器/工作流）~~ *(v0.8.1)*
+- [x] ~~视觉文档处理（PDF / DOCX / PPTX）、MarkItDown OCR~~ *(v0.8.2 / v0.8.3)*
+- [x] ~~智能文件内容注入 + `read_uploaded_file`~~ *(v0.8)*
+- [x] ~~智能体核心第3阶段：对话恢复MVP、紧凑工作卡、转向分析器、按用户速率限制~~ *(v0.8.3)*
+- [x] ~~对话恢复MVP、系统提示注册表 + 缓存、思维块持久化、推理重放策略、缓存可观测性~~ *(v0.8.4)*
 
 ### v1.0 — 热插拔 + 可嵌入
 

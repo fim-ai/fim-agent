@@ -261,125 +261,107 @@ Tracked bugs that are reproducible in production but not yet fixed. Each entry n
 
 ### v0.9 — Observability + Production Hardening
 
-**Goal**: Production-grade operations, debugging, and monitoring. Introduces the **Hook System** — a deterministic enforcement layer that sits below agent instructions and cannot be overridden by the LLM.
+**Goal**: Production-grade operations + four pillars closing the gap between "instructions the agent might follow" and "guarantees the system enforces" — Trace Layer (see what happened) · Hook System (enforce what must happen) · Agent Workspace (persistent files + handoff) · IM Channel (agents live where users work).
 
-- [ ] **Connector Progressive Disclosure (Phase 3-4)**: unified `ConnectorExecutor` interface (API/DB/MCP behind one abstraction); action parameter validation with `jsonschema`; protocol-agnostic discover/execute
-- [ ] **YAML/JSON connector config**: platform auto-generates MCP server
-- [ ] **Database connectors Phase 4**: enterprise drivers — Oracle (`oracledb`), SQL Server (`aioodbc`), [x] 达梦 DM8 (native `dmPython`), [x] 人大金仓 KingbaseES + 瀚高 HighGo (PG-compatible, reuse `asyncpg`), 南大通用 GBase (`aioodbc` + GBase ODBC)
-- [ ] **IM Channel Integration (Bidirectional)**: **Phase 1 — Outbound push**: Lark, WeCom, Slack, Email, Teams notification actions from Agent/Workflow results. **Phase 2 — Inbound trigger**: users @mention Agent in IM group chats to trigger tasks without opening Portal; webhook receiver per channel; each IM channel modeled as a Connector with bidirectional actions (send + receive). Hub mode killer feature
-  - [x] **Feishu Channel (Phase 1 subset)** — Org-scoped `Channel` resource with Fernet-encrypted credentials; `FeishuChannel` implementation supporting interactive card send + callback (signature verification + URL challenge); integrates with confirmation gate so write-operation approvals land as Approve/Reject cards in the configured Feishu group chat; Settings → Channels management UI. Shipped early for 2026-04-24 roadshow. Remaining: WeCom, Slack, Email, Teams outbound + Phase 2 inbound triggers.
-  - [ ] **Outbound notification patterns (generic, reusable across channel types)**: The same `BaseChannel` abstraction supports a catalog of outbound use cases beyond approval gating. Each pattern is implemented once against `BaseChannel` and automatically works for every concrete channel (Feishu today; Slack/WeCom/Teams/Email as they land).
-    - [x] **Task completion notification**: when a long-running DAG / Workflow / scheduled agent finishes, post a summary card to the org channel (or a user-chosen channel) with result snippet + artifact links. The minimum viable "Channel outbound" product — first consumer after `FeishuGateHook`
-    - [ ] **Exception / failure alerts**: agent inference fails, an LLM provider errors out, a connector raises a 5xx, a DAG plan exhausts re-plan budget → push a diagnostic card to the ops channel with trace ID and retry affordance
-    - [ ] **Cost / budget warnings**: per-user or per-agent token/request budget reaches 80% / 100% thresholds → push to the admin channel (or @-mention the agent owner) with current usage vs. cap
-    - [ ] **Scheduled digests**: agents or workflows emit periodic (daily / weekly) summary cards — KPI rollup, open-ticket triage, contract renewal list — directly into the channel without requiring users to open Portal
-    - [ ] **Escalation on stuck agent**: agent has made no observable progress for N consecutive iterations (cycle detected, or `max_iterations` exceeded) → post a card asking a human operator to take over, with current context and "resume with your note" action
-    - [ ] **Audit receipts for sensitive tool calls**: independent of the approval gate — every call to a tool tagged `audit=true` emits a read-only receipt card to the compliance channel (who / what / when / args), providing a durable audit trail outside the database
-    - [ ] **Approval escalation**: if a `feishu_gate` approval card receives no response within N minutes, automatically @-mention the group owner or forward the card to a higher-tier channel; configurable per tool/connector
+#### Connector + tooling
 
-#### Connector Authorization Layers (Data-level RBAC)
+- [ ] **Connector Progressive Disclosure Phase 3-4** — unified `ConnectorExecutor` (API/DB/MCP); `jsonschema` action validation; protocol-agnostic discover/execute
+- [ ] **YAML/JSON connector config** — platform auto-generates MCP server
+- [ ] **Database connectors Phase 4** — Oracle (`oracledb`), SQL Server (`aioodbc`), GBase (`aioodbc` + GBase ODBC). DM8 / KingbaseES / HighGo shipped in v0.8.5
+- [ ] **MCP Connection Pooling** — pool STDIO with per-user env isolation; share `httpx.AsyncClient` for SSE/HTTP. Target ≤100 ms warm-start, O(1) HTTP connections per server
 
-Existing RBAC controls **resource visibility** (who can see a Connector), not **execution-time authorization** (what the caller can do through it). When an admin wires up a DB/API with a high-privilege credential, every org member using that Connector inherits the admin's blast radius. This subsection closes the gap across three distinct upstream capability tiers:
+#### Hook System {/* dev: dev/hook-system.md */}
 
-- [ ] **Tier 1 — DB mode (full-admin + basic/legacy)**: admin supplies a single DB credential (root or a least-privileged service account) because most legacy systems cannot issue per-user DB accounts. Enforcement happens **above** the connection via `ConnectorScopeGuard` — a `PreToolUse` hook that filters `query` / `execute` calls per caller identity. Capabilities: block destructive verbs (DROP, TRUNCATE, unscoped DELETE/UPDATE); table-level allow/deny lists; column redaction driven by `pii=true` semantic annotations; auto-injection of scope predicates (e.g., append `AND dept_id = :caller_dept` to every `SELECT`). Config is a `scope_rules` JSON field on the Connector with role-based matching; default is deny-if-ambiguous.
-- [ ] **Tier 2 — Open API mode (per-user API key)**: the preferred path. Users bring their own API key (shipped in v0.8 — `connector_credentials` + `allow_fallback=false`); upstream system's native authz enforces scope naturally. Remaining work: per-connector admin UI to **require** per-user credentials (disable admin-fallback globally) and a health dashboard showing which org members still haven't bound their own key.
-- [ ] **Tier 3 — Middle tier (login-ticket exchange)**: for frontend/backend-split systems with no user-scoped API key. Call the system's login endpoint with user-provided credentials, cache the returned short-lived ticket, auto-refresh on expiry. New `LoginTicketCredential` type alongside API key / OAuth; connector spec declares `auth_type: login_ticket` with `login_endpoint`, `ticket_field`, and `refresh_strategy`. Adapter layer converts the ticket into the outbound auth header per request.
-- [ ] **Cross-tier auditability**: every tool call stamped with `caller_user_id`, `effective_credential_source` (user / admin-fallback / ticket), and `scope_rules_applied` in `ConnectorCallLog`, so ops can answer "who actually ran what as whom" after an incident.
+- [ ] Per-hook config pass-through (`{"name": ..., "config": {...}}` schema)
+- [ ] DAG `tools_used` accuracy (real tool names from per-step ReAct via step-completion callback)
+- [ ] Hook inheritance for `CallAgentTool` + Workflow `AGENT` nodes (security default vs flexibility default)
+- [ ] Built-in hooks: `ConnectorCallLog` autorecord, read-only-mode block, DB result truncation, per-connector rate-limit
+- [ ] `SessionStart` hook point + user-defined YAML hooks
+- [x] ~~Skeleton + FeishuGateHook + Approval Playground + ReAct/DAG runtime~~ *(shipped in v0.8.5)*
 
-#### Channel → Integration Promotion
+#### IM Channel Integration {/* dev: dev/im-channels.md */}
 
-Today Feishu is wired as a **Channel + Connector** pair — delivery pipe and API surface. Enterprise rollouts need a third role: **Integration** (the same third-party binding also provides SSO and org-graph sync). Landing in v0.9 because the existing Feishu binding already covers 3 of the 4 required facets, and the identity story unblocks Tier-2 authorization above (users can obtain their own upstream token at login instead of manually provisioning API keys).
+- [ ] Channels: WeCom, Slack, Email, Teams outbound
+- [ ] Outbound patterns: failure alerts, budget warnings, scheduled digests, escalation, audit receipts, approval escalation
+- [ ] Phase 2 — Inbound trigger (@mention agent in IM group)
+- [x] ~~Feishu Channel (Phase 1 subset) + Task completion notification~~ *(shipped in v0.8.5)*
 
-- [ ] **Channel → Integration model**: promote `Channel` from "outbound-only delivery" into a `ThirdPartyIntegration` parent with three opt-in sub-capabilities — (a) **Delivery** (existing Channel behavior: send cards, gate confirmations); (b) **Login** (OIDC / custom SSO; "Login with Feishu" yields both a FIM session and the upstream platform token); (c) **Org graph sync** (mirror upstream departments/members into FIM org structure; scheduled or webhook-driven). Admins toggle each capability per binding.
-- [ ] **Feishu SSO as Integration capability**: reuse the existing Feishu app binding (app_id/secret already on the Channel) to expose "Login with Feishu" to every user whose Feishu tenant is bound to an org. The token obtained at login becomes the user's default credential for the Feishu Connector — removing the "go get your own API key" friction for Tier-2 enforcement.
-- [ ] **Org graph sync (Feishu → FIM org)**: pull Feishu departments + members into FIM; map Feishu tenant-admin / department-head / member roles to FIM owner/admin/member. Foundation for WeCom and DingTalk next, and for Kingdee / Yonyou / SAP ERP-OA adapters in v1.0.
+#### Connector Authorization Layers {/* dev: dev/connector-rbac/00-overview.md */}
 
-#### Public API (Phase 2)
+- [ ] Tier 1 — DB mode (`ConnectorScopeGuard` PreToolUse hook: verb blocking, table allow/deny, column redaction, scope predicate injection)
+- [ ] Tier 2 — Open API mode (admin UI to require per-user credentials; key-binding health dashboard)
+- [ ] Tier 3 — Login-ticket exchange (`LoginTicketCredential` for frontend/backend-split systems with no user-scoped API key)
+- [ ] Cross-tier auditability (`caller_user_id`, `effective_credential_source`, `scope_rules_applied` in `ConnectorCallLog`)
 
-Phase 1 (shipped): API key authentication middleware, scope support, curated OpenAPI spec, Mintlify API Reference with interactive playground.
+#### Channel → Integration Promotion {/* dev: dev/channel-integration-sso.md */}
 
-- [ ] **Per-key rate limiting** — Configurable requests/minute and requests/day limits per API key; `429 Too Many Requests` responses with `X-RateLimit-*` headers
-- [ ] **Per-key usage quota** — Monthly token/request budgets with admin dashboard and threshold alerts
-- [ ] **Scope enforcement per endpoint** — `require_scope("chat")` dependency on all protected endpoints; keys with `scopes=chat` can only access chat-related APIs
-- [ ] **API versioning** (`/v1/...`) — Stable versioned API contract; deprecation headers for sunset endpoints
-- [ ] **Webhook callbacks** — Register webhook URLs per API key; receive POST notifications for conversation completion, agent errors, and async task results
-- [ ] **SDK generation** — Auto-generated Python and TypeScript client SDKs from OpenAPI spec; published to PyPI and npm
-- [ ] **Developer Portal** — Interactive "Try it" panels in Mintlify docs; usage analytics visible to key owners
-- [ ] **API key rotation** — One-click key rotation with grace period (old key valid for 24h after rotation)
-- [ ] **Batch / async API** — `POST /api/batch` accepting up to 100 queries; returns a `batch_id` for polling results; useful for bulk KB queries or multi-agent orchestration
-- [ ] **Circuit breaker per external dependency** — Prevent cascading failures when downstream LLM providers or connectors are unavailable; automatic fallback and recovery
+- [ ] `ThirdPartyIntegration` model — promote Channel into Delivery + Login + Org-graph-sync sub-capabilities
+- [ ] Feishu SSO ("Login with Feishu" yields FIM session + upstream token, removes per-user API-key friction for Tier-2)
+- [ ] Org graph sync (Feishu departments → FIM org tree); WeCom + DingTalk next
 
-#### Observability & Agent Runtime
+#### Public API Phase 2 {/* dev: dev/public-api-phase2.md */}
 
-- [ ] **Agent Trace Layer (Observability++)**: Application-level run/trace/thread hierarchy for agent debugging — each conversation → `Trace`, each LLM call / tool call / DAG step → `Span` with input/output/tokens/timing. Frontend trace viewer with timeline and expandable LLM call payloads. This goes beyond OTel (infrastructure-level) to provide actionable agent-loop debugging for developers and enterprise clients. OpenTelemetry export as a data sink option. Modeled after LangSmith's run/trace/thread concepts — the industry-validated pattern for agent observability.
-- [ ] **Metrics dashboard**: latency, success rate, token usage, connector call analytics — per-agent, per-user, per-org breakdowns
-- [x] ~~**Circuit breaker**: three-state machine (closed/open/half-open) with per-connector failure tracking, 5xx detection, and monitoring endpoints~~ *(shipped early — implemented in v0.8)*
-- [x] ~~**Workflow run retention cleanup**: background cleanup task with configurable max age and max count per workflow; per-workflow overrides; admin endpoint for manual trigger~~ *(shipped in v0.8.1)*
-- [x] ~~**Workflow version change summaries**: `compute_blueprint_diff()` auto-generates human-readable summaries from blueprint diffs on version save~~ *(shipped in v0.8.1)*
-- [x] ~~**DAG quality overhaul**: default model upgrade for non-fast steps; skill auto-discovery in planning; citation verifier for legal/medical/financial domains; structured content context preservation; domain classification in router with domain-aware model selection~~ *(shipped in v0.8.1)*
-- [x] ~~**Domain model escalation in ReAct**: specialist domains auto-escalate to reasoning model with mandatory web search and citation verification~~ *(shipped in v0.8.1)*
-- [x] ~~**Per-model Native Function Calling toggle**: `tool_choice_enabled` setting lets models skip forced tool selection and go directly to JSON Mode~~ *(shipped in v0.8.1)*
-- [x] ~~**DatabaseMetaTool (Progressive Disclosure for DB connectors)**: single `database` meta-tool with `list_tables`/`discover`/`query` subcommands replaces 3N individual tools per database connector; configurable via `DATABASE_TOOL_MODE` env var (`progressive` default, `legacy` fallback)~~ *(shipped in v0.8.1)*
-- [x] ~~**On-demand tool loading via `request_tools` meta-tool**: when >12 tools are available after smart selection, LLM can dynamically load additional tools mid-conversation; works in both JSON and native function-calling modes~~ *(shipped in v0.8.1)*
-- [x] ~~**MCPServerMetaTool (Progressive Disclosure for MCP)**: single `mcp` meta-tool with `discover`/`call` subcommands replaces N*M individual MCP tools; configurable via `MCP_TOOL_MODE` env var (`progressive` default, `legacy` fallback)~~ *(shipped in v0.8.1)*
-- [x] ~~**Workflow Connection Dep Auto-Subscribe**: Extend Market subscription cascade to auto-subscribe Workflow's connection dependencies (API Connectors, MCP Servers). Workflow nodes can reference Connectors, MCP Servers, Agents (which recursively reference more deps), and sub-Workflows — all connection deps in the full tree must be auto-subscribed on subscribe and cascade-cleaned on unsubscribe. More complex than Skill/Agent due to recursive sub-workflow resolution with cycle detection. Counterpart to Solution (Skill/Agent) connection dep auto-subscribe~~ *(shipped in v0.8.1)*
-- [x] ~~**Workflow real executors**: replaced MCP and BuiltinTool node executor stubs with full implementations (MCP server discovery + tool calling; ToolRegistry integration)~~ *(shipped in v0.8.1)*
-- [ ] **Agent Hook System**: A deterministic enforcement layer that runs **outside the LLM loop** — hooks execute automatically on tool events and cannot be bypassed by agent instructions. Three hook points: `PreToolUse` (validate / block before execution), `PostToolUse` (side effects after execution), `SessionStart` (inject dynamic context). Built-in hooks: auto-write `ConnectorCallLog` on every connector call (currently manual); block write operations when org is in read-only mode; auto-truncate oversized DB query results before they hit the agent; rate-limit per-connector call frequency. User-defined hooks: per-agent YAML config (`hooks:` field) declaring shell commands or Python callables triggered on matching tool events — a hook-based enforcement pattern shared across modern agent frameworks. Key design principle: **hooks are for "must always happen" logic that should never depend on the LLM remembering to do it**. Instructions say "record all calls"; hooks actually record them. Instructions say "don't write in read-only mode"; hooks actually block it.
-  - [x] **Hook System skeleton + FeishuGateHook** — Class-based `PreToolUseHook` / `PostToolUseHook` abstractions wired below the ReAct loop; first concrete hook is `FeishuGateHook`, which intercepts tools flagged `requires_confirmation=True` and routes approval through the org's Feishu Channel. Full hook lifecycle (user-defined YAML hooks, built-in audit/block/truncate hooks, `SessionStart`) remains v0.9 scope. Shipped early for 2026-04-24 roadshow.
-  - [x] **Hook Approval Playground** — UI-driven round-trip tester: Channels details sheet now launches a dialog that creates a real `ConfirmationRequest` row, sends the production card to Feishu, and polls the decision live. Exercises the exact code path a production hook would, making pre-rollout rehearsals and demos faithful.
-  - [x] **Hook System live in ReAct + DAG runtime** — `build_hook_registry_for_agent` resolves `agent.model_config_json.hooks.class_hooks` on every chat session; ReAct and DAG entry points both instantiate hooks before tool dispatch. Tool adapter exposes `requires_confirmation` as a public property so hook predicates can duck-type without adapter coupling. Paired with an end-to-end smoke script (`scripts/smoke_feishu_gate.py`) covering approve / reject paths through the real agent loop.
-  - [ ] **Per-hook config pass-through** — schema-level `{"name": ..., "config": {...}}` so per-agent `FeishuGateHook` overrides (timeout, poll interval, callback URL) work; bare-string `class_hooks` entries still supported
-  - [ ] **DAG `tools_used` accuracy** — completion-notification cards currently derive `tools_used` from planner hints; surface actual tool names from per-step ReAct via DAG executor step-completion callback
-  - [ ] **Hook inheritance for delegated sub-agents + Workflow `AGENT` nodes** — today `CallAgentTool` children and Workflow `AGENT` nodes spin up fresh ReActAgents with empty hook registry, silently bypassing `feishu_gate` on delegated sensitive calls. Decide inherit-by-default (secure) vs explicit opt-in (flexible); Eval Center always opts out (automation can't block on humans)
-- [ ] **Agent Workspace (Persistent Agent Desktop)**: Three layers: (1) **Tool Output Offloading** — auto-save oversized tool responses (>8K chars) to `workspace://` files, return truncated preview + URI; builtin tools `read_workspace_file`, `list_workspace_files`, `write_workspace_file` for selective access and agent-generated artifacts. (2) **Handoff Notes** — `write_handoff(summary)` for context transitions across compression/session switches. (3) **Workspace UI** — frontend file browser panel per conversation (preview text/JSON/CSV, download, delete/rename); cross-session file retention; per-user storage quota integration. Extends `truncate_tool_output()` in adapters + `GET /api/conversations/{id}/workspace` endpoint
-- [x] **Smart File Content Injection + `read_uploaded_file` tool**: Small uploaded files (`<32K` chars) auto-inlined into LLM context; large files get metadata + tool hint. Dual-mode `read_uploaded_file` tool (paginated reading + regex search). `GET /api/files/{file_id}/content` endpoint, `.content` sidecar storage, `content_length` in file API responses
-- [x] ~~**Intelligent Document Processing (Vision-Aware)**: Adaptive document handling — PDF pages rendered as images via PyMuPDF for vision-capable models (GPT-4o, Claude 3/4, Gemini); text-only fallback via pdfplumber. Per-model `supports_vision` flag in Admin. Two modes (vision/text) configurable via `DOCUMENT_PROCESSING_MODE` env var. Smart PDF processing: text-rich pages extract text + embedded images (token-efficient), scanned pages render as full-page PNG. DOCX/PPTX embedded image extraction. Multi-turn vision persistence. Pre-built sandbox image (`Dockerfile.sandbox`). Cached page rendering with `.pages/` sidecar.~~ *(shipped in v0.8.2)*
-- [x] ~~**Universal Document Conversion (`convert_to_markdown` + OCR)** — Built-in Agent tool wrapping Microsoft MarkItDown, available to every agent by default. Converts PDF, Word, Excel, PowerPoint, HTML, JSON, CSV, XML, ZIP, EPUB, Outlook .msg, images, audio, YouTube URLs, and data URIs into clean Markdown in-conversation. Embedded images in Office files and scanned PDF pages are OCR'd automatically via the official `markitdown-ocr` plugin using the workspace's vision-capable LLM (DB-first, ENV fallback). The same conversion kernel is shared by the RAG ingestion pipeline, so chat-time conversion and knowledge-base ingestion produce byte-identical Markdown. Non-OpenAI providers (Claude, Gemini, Bedrock, Azure) are supported transparently via a `LiteLLMOpenAIShim` that presents any FIM One LLM as an openai-SDK-shaped client, then routes through LiteLLM. Zero-regression fallback: when no vision model is available, text-only extraction continues exactly as before.~~ *(shipped in v0.8.3)*
-- [ ] **Cross-session file management**: file browser UI, storage quotas, auto-expiration cleanup
-- [ ] **Session-level file associations**: track which files were used in which conversations
-- [ ] **Cross-session conversation recall**: agent tools to list, search, and read past conversation history — `list_conversations`, `search_conversations` (keyword/regex across history), `read_conversation` (retrieve full thread). Enables "what did we discuss last time" and "find the API change I asked for last week" workflows. Paired with cross-session file management to form a complete long-term agent memory layer
-- [ ] **Sandbox hardening**: v2 improvements to code execution isolation
-- [ ] **Performance testing**: concurrent load benchmarks
-- [ ] **MCP Connection Pooling**: per-request STDIO subprocess spawning doesn't scale — 100 concurrent users = 100 subprocesses per MCP server. Pool STDIO connections with per-user env isolation (keyed by `(server_id, env_hash)`); SSE/HTTP transports share `httpx.AsyncClient` sessions. Target: `≤100 ms` warm-start for pooled STDIO, O(1) HTTP connections per MCP server regardless of user count
-- [ ] **Internal Harness Benchmark** — Built-in test suite for quantifying harness parameter changes (system prompt, self-reflection frequency, tool selection threshold) using EVAL CENTER infrastructure
-- [ ] **Workflow trigger identity observability**: Add `ExecutionContext.trigger_source` (`"webhook" | "cron" | "manual" | "batch" | "sub"`) populated at each of the five `WorkflowEngine` instantiation sites (`trigger_workflow`, `run_workflow`, `batch_run_workflow`, `scheduler`, `sub_workflow`). Today those paths implicitly mix owner-identity (`wf.user_id` — webhook/cron) with caller-identity (`current_user.id` — manual/batch); the defaults are sensible but the convention is undocumented, so 401-class failures ("why did my cron not borrow my token?") require reverse-engineering the trigger path. Surface `trigger_source` in connector call logs, run metadata, and the run panel so each run declares its own identity policy. Pairs with the `credential_policy` override below.
-- [x] ~~**ReAct Cycle Detection** — Deterministic duplicate tool call detection with configurable threshold; prevents agent loops without relying on LLM self-awareness~~ *(shipped in v0.8.1)*
-- [x] ~~**ReAct Completion Checklist** — One-time pre-answer verification prompt when tools were used; reduces premature conclusions~~ *(shipped in v0.8.1)*
-- [x] ~~**Agent Core Phase 3 — Runtime Invariant Hardening**: four bug-fixes / observability upgrades addressing CC's runtime invariants — (I.14) Conversation Recovery: detect and repair dangling `tool_use` blocks from interrupted turns in `DbMemory.get_messages()` to prevent HTTP 400 trajectory errors; (I.15) Structured Compact Work Card: parse 9-section compact output into a typed `WorkCard` and merge across successive compactions so errors/pending tasks survive multiple rounds; (I.16) Turn Profiler: per-turn phase-level timing logs (`memory_load`/`compact`/`tool_schema_build`/`llm_first_token`/`llm_total`/`tool_exec`) gated by `REACT_TURN_PROFILE_ENABLED`; (I.17) Per-user Rate Limiting: fix process-global rate limiter to per-user keyed buckets via `ContextVar` plumbing, gated by `LLM_RATE_LIMIT_PER_USER`. Prerequisite foundation for Agent Trace Layer.~~ *(shipped in v0.8.3)*
-- [x] ~~**Conversation Recovery (partial — MVP)**: synthetic `tool_result` rows persisted as durable `role="tool"` DB rows; `POST /chat/resume` replays cached SSE events after a monotonic cursor; frontend playground auto-reconnects via `useSseResume` hook with exponential backoff~~ *(shipped in v0.8.4)*
-- [x] ~~**System prompt section registry — memoized sections + cache breakpoints (MVP: ReAct only)**: `fim_one.core.prompt` module with `PromptRegistry`, `PromptSection`, `DYNAMIC_BOUNDARY`; ReAct JSON / native / synthesis paths split into static prefix + dynamic suffix; cache-capable providers receive `cache_control: {"type": "ephemeral"}` on the prefix. 91.9%–95.9% cache ratio on Claude 4 turns~~ *(shipped in v0.8.4)*
-- [x] ~~**Thinking-block persistence with signature (correctness fix)**: assistant messages persist `reasoning_content` + `signature` in `metadata_["thinking"]` and replay on subsequent turns. Fixes Claude 4 HTTP 400 signature mismatch on multi-turn. `is_thinking_capable()` gate covers Claude 4, Anthropic proxies, DeepSeek R1, Qwen QwQ, o-series, GPT-5, Gemini 2.x thinking~~ *(shipped in v0.8.4)*
-- [x] ~~**Provider-aware reasoning replay policy (modelless hardening)**: centralized `reasoning_replay_policy(model_id)` in `core/prompt/reasoning.py` returning `anthropic_thinking` / `informational_only` / `unsupported`. Single choke point at `OpenAICompatibleLLM._build_request_kwargs()`. 50-test cross-provider matrix with reverse assertions~~ *(shipped in v0.8.4)*
-- [x] ~~**Prompt cache observability**: `UsageSummary` tracks `cache_read_input_tokens` / `cache_creation_input_tokens`; `TurnProfiler.add_cache_hit()` emits a `turn_cache` log line per turn; `done_payload.cache` surfaces it to frontend. Doubles as an API relay cache-honesty probe~~ *(shipped in v0.8.4)*
-#### Prompt Cache + Reasoning Follow-ups (from Batch A MVPs)
+- [ ] Per-key rate limiting (`X-RateLimit-*` headers, 429)
+- [ ] Per-key usage quota (monthly token/request budget)
+- [ ] Scope enforcement per endpoint
+- [ ] API versioning (`/v1/...`) + deprecation headers
+- [ ] Webhook callbacks (per-key)
+- [ ] SDK generation (Python + TypeScript)
+- [ ] Developer Portal (Try-it panels + per-key analytics)
+- [ ] API key rotation (24h grace)
+- [ ] Batch / async API (`POST /api/batch`)
+- [ ] Per-external-dep circuit breaker
 
-These items complete partial work shipped in Batch A (Conversation Recovery, System Prompt Registry, Thinking Blocks) and extend cache coverage to the remaining provider families.
+#### Observability {/* dev: dev/agent-trace-layer.md */}
 
-- [ ] **Gemini Context Cache Adapter**: Google Gemini uses a separate REST API (`POST /v1beta/cachedContents` → returns `cacheName` → referenced via `cachedContent: "<cacheName>"` in subsequent `generateContent` calls) rather than the inline `cache_control` marker Anthropic uses. Requires a `GeminiCacheAdapter` with lifecycle management (pre-register prefix → reference cacheName → TTL-aware invalidation), integrated into the Gemini path of `OpenAICompatibleLLM` or LiteLLM's Gemini provider. Read discount ~0.25×, minimum prefix 32,768 tokens (Gemini Pro) / 4,096 (Flash) — primary beneficiaries are long-context KB/RAG agents and document-heavy workflows.
-- [ ] **Prompt registry expansion to planner / verifier / domain classifier**: extend the `PromptRegistry` + `DYNAMIC_BOUNDARY` pattern from ReAct to the remaining LLM call sites: `DAGPlanner`, `PlanAnalyzer`, `StepVerifier`, `CitationVerifier`, `DomainClassifier`, `ExecutionModeRouter`, `CompactUtils`. Currently these rebuild prompts from scratch on every invocation. Lower frequency than ReAct, so lower ROI, but completes the cache story.
-- [ ] **Per-agent `cache_ttl` config**: let agent owners choose between `ephemeral` (5 min, default, cheap write) and `extended` (1 hour, 2× write cost but better for batch / scheduled workflows). Surface as a field on the Agent model and pass through `cache_control: {"type": "...", "ttl": "..."}` where supported.
-- [ ] **DAG step-level checkpoint table**: current A1 Conversation Recovery MVP persists synthetic tool_results and cached SSE events but DAG intermediate step state lives in memory only. New `dag_execution_step` table snapshots each step's tool_calls, results, and artifact references so a mid-DAG disconnect can resume without re-executing completed steps. Paired with the frontend `useSseResume` hook for end-to-end continuity.
-- [ ] **Dedicated `tool_call_id` column on Message**: today `tool_call_id` lives in `metadata_` JSON, requiring `json_extract(...)` / `::json->>` lookups for orphan-tool-use queries. For high-traffic deployments a first-class indexed column would let the recovery pass run O(log n) instead of O(n) scans. Low priority until scale demands it.
-- [ ] **Mid-stream thinking token reconstruction**: current resume granularity is "next complete SSE event" — if the drop happens inside a thinking delta, the client restarts from the following event. Token-level resume would require re-emitting the in-flight thinking block's buffered tokens. Niche improvement; only worth pursuing if users report thinking UX jitter on flaky connections.
-- [ ] **API relay cache-honesty probe**: background tool (admin-triggered or scheduled) that sends two identical Claude requests through each configured relay, compares actual billed input vs `cache_read_input_tokens`, and flags relays that strip the `cache_control` marker or don't pass through the 0.10× discount. Surfaced as a Workspace-level "relay health" signal — useful operational tool for enterprises routing through Chinese API proxies.
+- [ ] **Agent Trace Layer** — Trace/Span model, frontend timeline viewer, OTel export (LangSmith-style application-level run/trace/thread)
+- [ ] **Metrics dashboard** — latency, success rate, token usage, connector analytics (per-agent / user / org)
 
-#### Reliability Follow-ups (Agent Core Priority Matrix)
+#### Agent Workspace {/* dev: dev/agent-workspace.md */}
 
-Bulk of the Agent Core integration blueprint (Phase 0–3, I.1–I.16) shipped across v0.8.2 and v0.8.3. The items below are from the parallel Priority Matrix that still need attention.
+- [ ] Tool Output Offloading — `workspace://` URIs for >8K responses + `read/list/write_workspace_file` tools
+- [ ] Handoff Notes — `write_handoff(summary)` survives compaction
+- [ ] Workspace UI — file browser per conversation; cross-session retention; per-user storage quota
+- [ ] Cross-session conversation recall — `list_conversations`, `search_conversations`, `read_conversation` tools
 
-- [ ] **Content replacement state persistence** (streaming invariant #2): "once seen, fate frozen" — message content that was already emitted to the client must not be retroactively mutated across resume / reload. Requires a replacement ledger aligned with the SSE cursor from A1. Blocked on understanding actual user-visible glitches; no active complaint.
-- [ ] **Attachment context router**: smarter attachment injection with `alreadySurfaced` + `readFileState` dedup, aggregate attachment budget, and liveness checks. Prevents resending the same 50KB PDF extract on every turn. Couples with workspace file offloading (already on v0.9 plan).
-- [ ] **Side query workers (prompt worker pool)**: dedicated lightweight pools for recall / classification / summary / session-memory queries so they don't contend with the main agent LLM call for rate-limit budget. Prerequisite: prompt registry expansion (above).
+#### Prompt cache + reasoning follow-ups {/* dev: dev/prompt-cache-followups.md */}
 
-#### Ecosystem & Scaling
+- [ ] Gemini Context Cache Adapter (separate REST cache lifecycle vs Anthropic inline marker)
+- [ ] Prompt registry expansion to planner / verifier / domain classifier / compact
+- [ ] Per-agent `cache_ttl` (ephemeral 5min vs extended 1h)
+- [ ] DAG step-level checkpoint table for mid-DAG resume
+- [ ] Dedicated `tool_call_id` Message column (indexed orphan-query lookup at scale)
+- [ ] Mid-stream thinking token reconstruction (resume granularity finer than complete SSE event)
+- [ ] API relay cache-honesty probe (admin-triggered: detects relays stripping `cache_control`)
 
-- [ ] **Scheduled jobs + Event-triggered Agents (Loop)**: cron-like background task triggers; `scheduled_jobs` + `job_runs` DB tables; APScheduler integration; job CRUD API + job history UI; result notification via message push connectors. Scope covers both time-triggered (cron) and event-triggered (webhook inbound) patterns — an agent running asynchronously in the background IS the async sub-agent use case for Hub mode.
-- [x] ~~**Prebuilt Solution Templates (Market Seed Content)**: 8 ready-to-use vertical Solutions published to Market on first-user registration — Financial Audit, Contract Review, Data Reporting, IT Helpdesk, HR Onboarding, Sales Assistant, Content Writer, Meeting Summary. Each bundles an Agent + Skill with Chinese SOPs; bootstrapped idempotently via `ensure_solution_templates()`, published to Market org for immediate marketplace availability~~ *(shipped in v0.8.1)*
-- [ ] **DB Schema Advanced Builder**: AI-driven schema management agent for large-scale databases — strategic table annotation (pattern-based, SQL-execution-informed), bulk visibility management by domain prefix, iterative multi-round annotation for 1K–7K+ table deployments; complements existing batch-annotation job with selectivity and business-context reasoning
-- [x] ~~**Resource Fork (Package Phase 1 — prerequisite for v1.0 Package System)**: All per-resource fork endpoints implemented — MCP Server, Skill, Agent, Connector, Workflow. KB fork removed (inherently user-local). Each `POST /api/{type}/{id}/fork` creates a user-owned deep copy with `forked_from` lineage tracking.~~ *(completed in v0.8.1)*
-- [ ] **Per-workflow `credential_policy` override** (`owner` | `caller` | `auto`): The five workflow trigger paths currently hardcode whose identity runs connector actions — webhook/cron pass `wf.user_id` (owner), manual/batch pass `current_user.id` (caller). This matches the common "automations run as owner, manual runs as caller" expectation, but enterprise deployments occasionally need to override per workflow (e.g. a cron that must run under the current on-call engineer, or a shared template that must borrow the owner's credentials even on manual run). Add a `credential_policy` field on the Workflow model, surfaced in the UI next to Schedule / API-Key config, that overrides the default `trigger_source → identity` mapping. Prerequisite: `trigger_source` observability above.
+#### Reliability follow-ups (Agent Core Priority Matrix)
 
-**Impact**: Run FIM One at scale with confidence. Four pillars: **Trace Layer** (see what happened), **Hook System** (enforce what must happen), **Agent Workspace** (persistent file management + handoff), **IM Channel** (agents live where users work). Prebuilt Solution Templates eliminate cold-start; Dashboard Enhancement surfaces operational health. The gap between "instructions the agent might follow" and "guarantees the system enforces" is closed — the difference between a demo and a production enterprise tool.
+- [ ] Content replacement state persistence (streaming invariant #2: "once seen, fate frozen")
+- [ ] Attachment context router (dedup, aggregate budget, liveness checks; pairs with Workspace offloading)
+- [ ] Side query workers (dedicated pools for recall / classify / summary so they don't contend for main rate-limit budget)
+
+#### Ecosystem + scaling
+
+- [ ] **Scheduled jobs + Event-triggered Agents** — `scheduled_jobs` + `job_runs` + APScheduler; cron + webhook-inbound. Async sub-agent use case for Hub mode
+- [ ] **Workflow trigger identity observability** — `ExecutionContext.trigger_source` (`webhook | cron | manual | batch | sub`) populated at all 5 WorkflowEngine sites; surfaced in run panel and connector logs
+- [ ] **Per-workflow `credential_policy` override** (`owner` / `caller` / `auto`) — overrides default `trigger_source → identity` mapping
+- [ ] **DB Schema Advanced Builder** — AI-driven annotation for 1K-7K+ table deployments (selectivity + business-context reasoning)
+- [ ] Sandbox hardening (v2 code execution isolation)
+- [ ] Performance testing (concurrent load benchmarks)
+- [ ] Internal Harness Benchmark (quantify harness parameter changes via Eval Center)
+
+#### Already shipped early
+
+- [x] ~~Circuit breaker, Workflow run retention cleanup, Workflow version diff summaries~~ *(v0.8 / v0.8.1)*
+- [x] ~~DAG quality overhaul, Domain model escalation, Per-model NFC toggle~~ *(v0.8.1)*
+- [x] ~~DatabaseMetaTool, MCPServerMetaTool, On-demand `request_tools`~~ *(v0.8.1)*
+- [x] ~~Workflow Connection Dep Auto-Subscribe, Workflow real executors~~ *(v0.8.1)*
+- [x] ~~ReAct Cycle Detection, Completion Checklist~~ *(v0.8.1)*
+- [x] ~~Prebuilt Solution Templates (8 vertical bundles), Resource Fork (MCP/Skill/Agent/Connector/Workflow)~~ *(v0.8.1)*
+- [x] ~~Vision document processing (PDF / DOCX / PPTX), MarkItDown OCR~~ *(v0.8.2 / v0.8.3)*
+- [x] ~~Smart File Content Injection + `read_uploaded_file`~~ *(v0.8)*
+- [x] ~~Agent Core Phase 3: Conversation Recovery MVP, Compact Work Card, Turn Profiler, Per-user Rate Limiting~~ *(v0.8.3)*
+- [x] ~~Conversation resume MVP, System prompt registry + cache, Thinking-block persistence, Reasoning replay policy, Cache observability~~ *(v0.8.4)*
 
 ### v1.0 — Hot-Plug + Embeddable
 
