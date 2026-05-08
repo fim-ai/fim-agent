@@ -1216,7 +1216,9 @@
       "freeTier": "Gratuit",
       "tokensSuffix": "tokens / mois",
       "freeQuotaSyncedHint": "Synchronisé depuis Paramètres système → Quota de jetons mensuel par défaut.",
-      "freeQuotaEditLink": "Modifier là →"
+      "freeQuotaEditLink": "Modifier là →",
+      "stripePriceMissing": "Prix Stripe introuvable",
+      "stripePriceMissingHint": "Stripe n'a pas pu résoudre cet ID de prix. Mettez-le à jour sur ce plan ou créez un prix correspondant dans votre tableau de bord Stripe."
     },
     "subscriptions": {
       "title": "Abonnements",

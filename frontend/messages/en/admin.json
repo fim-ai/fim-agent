@@ -1217,7 +1217,9 @@
         "stripePriceTaken": "A plan is already using this Stripe Price ID."
       },
       "freeTier": "Free",
-      "tokensSuffix": "tokens / month"
+      "tokensSuffix": "tokens / month",
+      "stripePriceMissing": "Stripe price not found",
+      "stripePriceMissingHint": "Stripe couldn't resolve this Price ID. Update it on this plan or create a matching Price in your Stripe Dashboard."
     },
     "subscriptions": {
       "title": "Subscriptions",

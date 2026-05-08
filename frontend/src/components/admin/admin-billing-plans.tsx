@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import {
+  AlertCircle,
   Loader2,
   Plus,
   MoreHorizontal,
@@ -411,7 +412,17 @@ export function AdminBillingPlans() {
                   <td className="px-4 py-3 font-mono text-xs text-foreground">{p.slug}</td>
                   <td className="px-4 py-3 text-foreground">{p.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {formatPriceDisplay(p, t("freeTier"))}
+                    {p.stripe_price_id && !p.price_display ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-destructive"
+                        title={t("stripePriceMissingHint")}
+                      >
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {t("stripePriceMissing")}
+                      </span>
+                    ) : (
+                      formatPriceDisplay(p, t("freeTier"))
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                     {formatTokens(p.monthly_token_quota)}{" "}

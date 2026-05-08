@@ -1216,7 +1216,9 @@
       "deleteConfirmDescription": "This soft-deletes the plan by toggling Active off. Existing subscriptions keep their plan history, but new users won't see it.",
       "deleteBlocked": "{count} active subscriptions prevent deletion. Migrate or cancel them before disabling this plan.",
       "freeQuotaSyncedHint": "Synchronisiert aus Systemeinstellungen → Standard-Monatsquota für Token.",
-      "freeQuotaEditLink": "Dort bearbeiten →"
+      "freeQuotaEditLink": "Dort bearbeiten →",
+      "stripePriceMissing": "Stripe-Preis nicht gefunden",
+      "stripePriceMissingHint": "Stripe konnte diese Preis-ID nicht auflösen. Aktualisieren Sie sie in diesem Plan oder erstellen Sie einen entsprechenden Preis in Ihrem Stripe Dashboard."
     },
     "subscriptions": {
       "title": "Abonnements",

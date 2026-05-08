@@ -207,7 +207,7 @@
     "conversationDeleted": "对话已删除",
     "view": "查看",
     "viewTitle": "对话消息",
-    "viewSubtitle": "{title} -- {username}",
+    "viewSubtitle": "{title} —— {username}",
     "messageRole": {
       "user": "用户",
       "assistant": "助手",
@@ -1216,7 +1216,9 @@
       "deleteConfirmTitle": "停用套餐「{slug}」？",
       "deleteConfirmDescription": "这将通过关闭「活跃」状态来软删除套餐。现有订阅将保留其套餐历史，但新用户将看不到它。",
       "freeQuotaSyncedHint": "从「系统设置」→「默认月度 Token 配额」同步。",
-      "freeQuotaEditLink": "在那里编辑 →"
+      "freeQuotaEditLink": "在那里编辑 →",
+      "stripePriceMissing": "未找到Stripe价格",
+      "stripePriceMissingHint": "Stripe无法解析此价格ID。请在此套餐中更新它，或在您的Stripe仪表板中创建匹配的价格。"
     },
     "subscriptions": {
       "title": "订阅",

@@ -1216,7 +1216,9 @@
       "freeTier": "無料",
       "tokensSuffix": "トークン / 月",
       "freeQuotaSyncedHint": "システム設定 → デフォルト月間トークンクォータから同期されています。",
-      "freeQuotaEditLink": "そこで編集 →"
+      "freeQuotaEditLink": "そこで編集 →",
+      "stripePriceMissing": "Stripe価格が見つかりません",
+      "stripePriceMissingHint": "Stripeがこの価格IDを解決できませんでした。このプランで更新するか、Stripe ダッシュボードで一致する価格を作成してください。"
     },
     "subscriptions": {
       "title": "サブスクリプション",
