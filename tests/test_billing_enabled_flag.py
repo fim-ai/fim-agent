@@ -176,7 +176,7 @@ class TestActivation:
         self, session: AsyncSession, stripe_env: None
     ) -> None:
         # Legacy install: default_token_quota was previously set via the
-        # admin UI. Activation should mirror that onto Free.
+        # admin UI. Activation should seed Free directly from it.
         session.add(SystemSetting(key="default_token_quota", value="250000"))
         await session.commit()
 
@@ -188,6 +188,81 @@ class TestActivation:
             )
         ).scalar_one()
         assert free.monthly_token_quota == 250_000
+
+    @pytest.mark.asyncio
+    async def test_activation_self_heals_dangling_default_pointer(
+        self, session: AsyncSession, stripe_env: None
+    ) -> None:
+        # Operator left a stale pointer behind — e.g. an old Free row
+        # that was hard-deleted out-of-band, or a soft-deleted row that
+        # the pointer was never refreshed past. Re-activation should
+        # detect the dangling target and re-bind the pointer to the
+        # current Free row.
+        session.add(
+            SystemSetting(key=SETTING_DEFAULT_PLAN_ID, value="9999")
+        )
+        await session.commit()
+
+        await activate_billing(session)
+
+        free = (
+            await session.execute(
+                select(BillingPlan).where(BillingPlan.slug == "free")
+            )
+        ).scalar_one()
+        ptr = (
+            await session.execute(
+                select(SystemSetting.value).where(
+                    SystemSetting.key == SETTING_DEFAULT_PLAN_ID
+                )
+            )
+        ).scalar_one()
+        assert ptr == str(free.id)
+
+    @pytest.mark.asyncio
+    async def test_activation_self_heals_pointer_to_inactive_plan(
+        self, session: AsyncSession, stripe_env: None
+    ) -> None:
+        # First activation seeds Free + sets pointer.
+        await activate_billing(session)
+        free = (
+            await session.execute(
+                select(BillingPlan).where(BillingPlan.slug == "free")
+            )
+        ).scalar_one()
+
+        # Admin soft-deletes Free and recreates it under a new id (the
+        # only path that surfaces a stale pointer in practice).
+        free.is_active = False
+        new_free = BillingPlan(
+            slug="free-replacement",
+            name="Free (recreated)",
+            stripe_price_id=None,
+            monthly_token_quota=100_000,
+            description="recreated",
+            features_json={},
+            sort_order=0,
+            is_active=True,
+        )
+        session.add(new_free)
+        await session.flush()
+        # Repoint the slug so the seed loop finds the new row.
+        free.slug = "free-old"
+        new_free.slug = "free"
+        await session.commit()
+
+        # Re-activate: the pointer still references the inactive row →
+        # self-heal kicks in and rebinds to the new Free.
+        await activate_billing(session)
+
+        ptr = (
+            await session.execute(
+                select(SystemSetting.value).where(
+                    SystemSetting.key == SETTING_DEFAULT_PLAN_ID
+                )
+            )
+        ).scalar_one()
+        assert ptr == str(new_free.id)
 
 
 # ---------------------------------------------------------------------------

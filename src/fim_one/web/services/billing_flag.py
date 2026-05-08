@@ -114,12 +114,19 @@ async def _get_setting(
 # Re-running activation against an install that already has these rows is
 # a no-op (we conflict on slug). Operators should refine the Pro
 # stripe_price_id via the admin UI before going live.
+#
+# Free's ``monthly_token_quota`` is sourced at activation time from
+# ``system_settings.default_token_quota`` when present (see
+# :func:`_resolve_free_seed_quota`), so the seed value below is only the
+# fallback for installs that never configured the legacy default.
+_FREE_FALLBACK_QUOTA = 100_000
+
 _SEED_PLANS: tuple[dict[str, Any], ...] = (
     {
         "slug": "free",
         "name": "Free",
         "stripe_price_id": None,
-        "monthly_token_quota": 100_000,
+        "monthly_token_quota": _FREE_FALLBACK_QUOTA,
         "description": "100K tokens / month, basic features",
         "sort_order": 0,
         "is_active": True,
@@ -136,6 +143,65 @@ _SEED_PLANS: tuple[dict[str, Any], ...] = (
 )
 
 _DEFAULT_TOKEN_QUOTA_KEY = "default_token_quota"
+
+
+async def _resolve_free_seed_quota(db: AsyncSession) -> int:
+    """Resolve Free's seed quota from ``default_token_quota`` if set.
+
+    Activation respects the operator's existing legacy quota knob — if a
+    pre-billing install already configured ``default_token_quota``, we
+    seed Free with that exact value rather than inserting the hardcoded
+    fallback and then immediately overwriting it.
+
+    Falls back to :data:`_FREE_FALLBACK_QUOTA` when the setting is
+    unset, empty, non-numeric, or non-positive.
+    """
+    raw = await _get_setting(db, _DEFAULT_TOKEN_QUOTA_KEY)
+    if raw is None:
+        return _FREE_FALLBACK_QUOTA
+    try:
+        n = int(raw)
+    except ValueError:
+        return _FREE_FALLBACK_QUOTA
+    return n if n > 0 else _FREE_FALLBACK_QUOTA
+
+
+async def _resolve_default_pointer_target(
+    db: AsyncSession, free_plan_id: int
+) -> int | None:
+    """Decide whether the ``default_plan_id`` pointer needs to be (re)set.
+
+    Returns the id to write when the pointer is missing OR points at a
+    row that no longer exists / has been soft-deleted (``is_active=False``).
+    Returns ``None`` when the existing pointer is still healthy.
+
+    This is the self-heal path that protects against the rare drift
+    where Free was hard-deleted out-of-band and recreated with a new id —
+    activation alone wouldn't notice without this check, so new
+    registrations would get assigned to the dangling pointer.
+    """
+    raw = await _get_setting(db, SETTING_DEFAULT_PLAN_ID)
+    if raw is None:
+        return free_plan_id
+    try:
+        ptr_id = int(raw)
+    except ValueError:
+        logger.warning(
+            "default_plan_id=%r is not an integer; resetting to free=%s",
+            raw,
+            free_plan_id,
+        )
+        return free_plan_id
+    pointed = await db.get(BillingPlan, ptr_id)
+    if pointed is None or not pointed.is_active:
+        logger.warning(
+            "default_plan_id=%s points at missing/inactive plan; "
+            "self-healing to free=%s",
+            ptr_id,
+            free_plan_id,
+        )
+        return free_plan_id
+    return None
 
 
 def _stripe_env_configured() -> tuple[bool, str | None]:
@@ -167,12 +233,15 @@ async def activate_billing(db: AsyncSession) -> dict[str, Any]:
 
     1. Verify Stripe env vars exist; raise 400 with the missing key name
        when they don't (the flag stays off).
-    2. Insert Free + Pro plans if their slug rows are absent.
-    3. Set ``system_settings.default_plan_id = free.id`` if unset.
-    4. Backfill ``users.plan_id`` to Free for any NULL rows.
-    5. If a legacy ``default_token_quota`` value exists, mirror it onto
-       Free's ``monthly_token_quota`` (covers old installs that priced
-       Free via the legacy admin knob).
+    2. Resolve Free's seed quota from ``default_token_quota`` if the
+       legacy admin knob is set, falling back to the hardcoded default.
+    3. Insert Free + Pro plans if their slug rows are absent. Free is
+       seeded with the resolved quota directly (no post-insert mirror
+       UPDATE needed).
+    4. Set ``system_settings.default_plan_id`` — points at the Free row
+       when unset, AND self-heals if the existing pointer references a
+       missing or soft-deleted plan.
+    5. Backfill ``users.plan_id`` to Free for any NULL rows.
     6. Flip ``billing_enabled = "true"``.
 
     Returns a summary dict useful for ops debugging:
@@ -188,6 +257,9 @@ async def activate_billing(db: AsyncSession) -> dict[str, Any]:
             ),
         )
 
+    # ── Resolve Free's quota from the legacy knob before seeding ─────────
+    free_seed_quota = await _resolve_free_seed_quota(db)
+
     # ── Seed plans ────────────────────────────────────────────────────────
     plans_seeded = 0
     for spec in _SEED_PLANS:
@@ -196,12 +268,20 @@ async def activate_billing(db: AsyncSession) -> dict[str, Any]:
         )
         if existing.scalar_one_or_none() is not None:
             continue
+        # Free's quota is overridden from the resolved legacy default so
+        # admins who set ``default_token_quota`` pre-billing don't see
+        # Free silently revert to 100K on first activation.
+        quota = (
+            free_seed_quota
+            if spec["slug"] == "free"
+            else spec["monthly_token_quota"]
+        )
         db.add(
             BillingPlan(
                 slug=spec["slug"],
                 name=spec["name"],
                 stripe_price_id=spec["stripe_price_id"],
-                monthly_token_quota=spec["monthly_token_quota"],
+                monthly_token_quota=quota,
                 description=spec["description"],
                 features_json={},
                 sort_order=spec["sort_order"],
@@ -220,11 +300,11 @@ async def activate_billing(db: AsyncSession) -> dict[str, Any]:
     )
     free_plan_id = free_row.scalar_one_or_none()
 
-    # ── default_plan_id pointer ──────────────────────────────────────────
+    # ── default_plan_id pointer (with self-heal) ─────────────────────────
     if free_plan_id is not None:
-        existing_pointer = await _get_setting(db, SETTING_DEFAULT_PLAN_ID)
-        if existing_pointer is None:
-            await _set_setting(db, SETTING_DEFAULT_PLAN_ID, str(free_plan_id))
+        target = await _resolve_default_pointer_target(db, free_plan_id)
+        if target is not None:
+            await _set_setting(db, SETTING_DEFAULT_PLAN_ID, str(target))
 
     # ── Backfill user plan_id ────────────────────────────────────────────
     users_backfilled = 0
@@ -248,20 +328,6 @@ async def activate_billing(db: AsyncSession) -> dict[str, Any]:
                 update(User)
                 .where(User.plan_id.is_(None))
                 .values(plan_id=free_plan_id)
-            )
-
-    # ── Legacy default_token_quota → Free plan quota ─────────────────────
-    legacy_quota = await _get_setting(db, _DEFAULT_TOKEN_QUOTA_KEY)
-    if legacy_quota is not None and free_plan_id is not None:
-        try:
-            quota_int = int(legacy_quota)
-        except ValueError:
-            quota_int = 0
-        if quota_int > 0:
-            await db.execute(
-                update(BillingPlan)
-                .where(BillingPlan.slug == "free")
-                .values(monthly_token_quota=quota_int)
             )
 
     # ── Flip the flag ────────────────────────────────────────────────────
