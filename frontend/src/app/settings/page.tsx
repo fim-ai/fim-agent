@@ -159,24 +159,19 @@ function SettingsContent() {
 
         {/* Right content */}
         <div className="flex-1 overflow-y-auto">
-          {activeTab === "billing" ? (
-            // BillingPage owns its own header / scroll container so it
-            // renders at the same width as the rest of the tabs.
-            <BillingPage />
-          ) : (
-            <div className="p-6">
-              {activeTab === "general" && <GeneralSettings />}
-              {activeTab === "account" && <AccountSettings />}
-              {activeTab === "appearance" && <AppearanceSettings />}
-              {activeTab === "organizations" && <OrganizationSettings />}
-              {activeTab === "api-keys" && <ApiKeysSettings />}
-              {activeTab === "credentials" && <CredentialsSettings />}
-              {activeTab === "channels" && <ChannelsSettings />}
-              {activeTab === "usage" && <UsageSettings />}
-              {activeTab === "notifications" && <NotificationsSettings />}
-              {activeTab === "subscriptions" && <SubscriptionsSettings />}
-            </div>
-          )}
+          <div className="p-6">
+            {activeTab === "general" && <GeneralSettings />}
+            {activeTab === "account" && <AccountSettings />}
+            {activeTab === "appearance" && <AppearanceSettings />}
+            {activeTab === "organizations" && <OrganizationSettings />}
+            {activeTab === "api-keys" && <ApiKeysSettings />}
+            {activeTab === "credentials" && <CredentialsSettings />}
+            {activeTab === "channels" && <ChannelsSettings />}
+            {activeTab === "usage" && <UsageSettings />}
+            {activeTab === "billing" && <BillingPage />}
+            {activeTab === "notifications" && <NotificationsSettings />}
+            {activeTab === "subscriptions" && <SubscriptionsSettings />}
+          </div>
         </div>
       </div>
     </div>

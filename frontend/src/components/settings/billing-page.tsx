@@ -8,7 +8,6 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
-  CreditCard,
   ExternalLink,
   Loader2,
   Sparkles,
@@ -17,13 +16,6 @@ import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -325,84 +317,76 @@ export function BillingPage() {
   if (authLoading || !user) return null
 
   return (
-    // BillingPage now renders as a Settings tab body — the parent
-    // page (`/settings`) provides the chrome (left nav + header), so
-    // this component just supplies the tab content.
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-4xl space-y-6 p-6">
-        <div>
-          <h2 className="flex items-center gap-2 text-base font-semibold">
-            <CreditCard className="h-4 w-4" />
-            {t("page.title")}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {t("page.description")}
-          </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-base font-semibold">{t("page.title")}</h2>
+        <p className="text-sm text-muted-foreground">
+          {t("page.description")}
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
+      ) : billingDisabled ? (
+        <NotConfiguredCard />
+      ) : (
+        <>
+          {/* Banners (past_due / pending cancellation) — always at the
+              top so the user can react before scrolling. */}
+          {showPastDueBanner && (
+            <Banner
+              tone="destructive"
+              title={t("banner.pastDueTitle")}
+              body={t("banner.pastDueBody")}
+            />
+          )}
+          {showCanceledBanner && subscription && (
+            <Banner
+              tone="warning"
+              title={t("banner.canceledTitle")}
+              body={t("banner.canceledBody", {
+                date: formatLongDate(subscription.current_period_end, locale),
+              })}
+            />
+          )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : billingDisabled ? (
-          <NotConfiguredCard />
-        ) : (
-          <>
-            {/* Banners (past_due / pending cancellation) — always at the
-                top so the user can react before scrolling. */}
-            {showPastDueBanner && (
-              <Banner
-                tone="destructive"
-                title={t("banner.pastDueTitle")}
-                body={t("banner.pastDueBody")}
-              />
-            )}
-            {showCanceledBanner && subscription && (
-              <Banner
-                tone="warning"
-                title={t("banner.canceledTitle")}
-                body={t("banner.canceledBody", {
-                  date: formatLongDate(subscription.current_period_end, locale),
-                })}
-              />
-            )}
-
-            {/* Top row: current plan + usage side-by-side on wide screens.
-                Each card stays self-contained on mobile. The Usage card is
-                deliberately a thin progress + reset summary; deep
-                per-agent breakdowns live on the Usage tab to avoid
-                duplicating the same data twice in the same page. */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <CurrentPlanCard plan={currentPlan} locale={locale} />
-              <UsageCard
-                usage={usage}
-                percent={usagePercent}
-                subscription={subscription}
-                locale={locale}
-              />
-            </div>
-
-            <SubscriptionStatusCard
+          {/* Top row: current plan + usage side-by-side on wide screens.
+              Each card stays self-contained on mobile. The Usage card is
+              deliberately a thin progress + reset summary; deep
+              per-agent breakdowns live on the Usage tab to avoid
+              duplicating the same data twice in the same page. */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <CurrentPlanCard plan={currentPlan} locale={locale} />
+            <UsageCard
+              usage={usage}
+              percent={usagePercent}
               subscription={subscription}
               locale={locale}
-              onManage={handlePortal}
-              portalPending={actionPending === "portal"}
             />
+          </div>
 
-            <PlansComparison
-              plans={plans}
-              currentPlanSlug={currentPlan?.slug ?? null}
-              onCheckout={handleCheckout}
-              pendingSlug={
-                actionPending?.startsWith("checkout:")
-                  ? actionPending.slice("checkout:".length)
-                  : null
-              }
-              locale={locale}
-            />
-          </>
-        )}
-      </div>
+          <SubscriptionStatusCard
+            subscription={subscription}
+            locale={locale}
+            onManage={handlePortal}
+            portalPending={actionPending === "portal"}
+          />
+
+          <PlansComparison
+            plans={plans}
+            currentPlanSlug={currentPlan?.slug ?? null}
+            onCheckout={handleCheckout}
+            pendingSlug={
+              actionPending?.startsWith("checkout:")
+                ? actionPending.slice("checkout:".length)
+                : null
+            }
+            locale={locale}
+          />
+        </>
+      )}
 
       <CheckoutSuccessDialog
         open={celebrationOpen}
@@ -474,15 +458,13 @@ function CheckoutSuccessDialog({
 function NotConfiguredCard() {
   const t = useTranslations("billing")
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          {t("error.notConfiguredTitle")}
-        </CardTitle>
-        <CardDescription>{t("error.notConfiguredBody")}</CardDescription>
-      </CardHeader>
-    </Card>
+    <div className="rounded-md border border-border bg-muted/30 p-8 text-center">
+      <AlertCircle className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+      <p className="text-sm font-medium">{t("error.notConfiguredTitle")}</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {t("error.notConfiguredBody")}
+      </p>
+    </div>
   )
 }
 
@@ -524,42 +506,38 @@ function CurrentPlanCard({
 }) {
   const t = useTranslations("billing")
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-2 text-base">
-          <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            {t("currentPlan.title")}
-          </span>
-          {plan && (
-            <Badge variant="default" className="font-medium">
-              {t("currentPlan.currentBadge")}
-            </Badge>
-          )}
-        </CardTitle>
-        <CardDescription>{t("currentPlan.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div>
-          <p className="text-2xl font-semibold">
-            {plan?.name ?? t("currentPlan.freeFallback")}
+    <div className="rounded-md border border-border p-5 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("currentPlan.title")}
+        </p>
+        {plan && (
+          <Badge variant="default" className="font-medium">
+            {t("currentPlan.currentBadge")}
+          </Badge>
+        )}
+      </div>
+      <div>
+        <p className="text-3xl font-bold">
+          {plan?.name ?? t("currentPlan.freeFallback")}
+        </p>
+        {plan?.price_display && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {plan.price_display}
           </p>
-          {plan?.price_display && (
-            <p className="text-sm text-muted-foreground">{plan.price_display}</p>
-          )}
-        </div>
-        <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-sm">
-          <p className="text-xs font-medium text-muted-foreground">
-            {t("currentPlan.monthlyQuota")}
-          </p>
-          <p className="mt-0.5 font-medium tabular-nums">
-            {plan && plan.monthly_token_quota > 0
-              ? formatTokens(plan.monthly_token_quota, locale)
-              : t("currentPlan.unlimited")}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+        )}
+      </div>
+      <div className="border-t border-border pt-3">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("currentPlan.monthlyQuota")}
+        </p>
+        <p className="mt-1 text-sm font-medium tabular-nums">
+          {plan && plan.monthly_token_quota > 0
+            ? formatTokens(plan.monthly_token_quota, locale)
+            : t("currentPlan.unlimited")}
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -593,79 +571,70 @@ function UsageCard({ usage, percent, subscription, locale }: UsageCardProps) {
           : "bg-primary"
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("usage.title")}</CardTitle>
-        <CardDescription>{t("usage.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {usage ? (
-          <>
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatTokens(usage.total_tokens, locale)}
+    <div className="rounded-md border border-border p-5 space-y-3">
+      <p className="text-xs font-medium text-muted-foreground">
+        {t("usage.title")}
+      </p>
+      {usage ? (
+        <>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-3xl font-bold tabular-nums">
+              {formatTokens(usage.total_tokens, locale)}
+            </p>
+            {usage.quota != null && usage.quota > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t("usage.ofQuota", {
+                  quota: formatTokens(usage.quota, locale),
+                })}
               </p>
-              {usage.quota != null && usage.quota > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {t("usage.ofQuota", {
-                    quota: formatTokens(usage.quota, locale),
-                  })}
-                </p>
-              )}
-            </div>
-
-            {usage.quota != null && usage.quota > 0 && percent != null ? (
-              <div className="space-y-1.5">
-                {/*
-                  Hand-rolled progress bar — shadcn doesn't ship Progress
-                  in this codebase, and Radix Progress would be overkill
-                  for a static value display.
-                */}
-                <div
-                  role="progressbar"
-                  aria-valuenow={percent}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={t("usage.percentLabel", { percent })}
-                  className="h-2 w-full overflow-hidden rounded-full bg-muted"
-                >
-                  <div
-                    className={cn("h-full transition-all", barColor)}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t("usage.percentLabel", { percent })}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t("usage.unlimited")}</p>
             )}
+          </div>
 
-            <p className="text-xs text-muted-foreground">{resetText}</p>
-
-            {/* Deep-link to the detailed Usage tab (per-agent breakdown,
-                daily history). Keeps the billing card focused on
-                "where am I in the cycle" without duplicating the data. */}
-            <div className="pt-1">
-              <Button
-                asChild
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs"
+          {usage.quota != null && usage.quota > 0 && percent != null ? (
+            <div className="space-y-1.5">
+              <div
+                role="progressbar"
+                aria-valuenow={percent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={t("usage.percentLabel", { percent })}
+                className="h-2 w-full overflow-hidden rounded-full bg-muted"
               >
-                <Link href="/settings?tab=usage">
-                  {t("usage.viewDetailed")}
-                  <ArrowRight className="ml-1 h-3 w-3" />
-                </Link>
-              </Button>
+                <div
+                  className={cn("h-full transition-all", barColor)}
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t("usage.percentLabel", { percent })}
+              </p>
             </div>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t("usage.loadFailed")}</p>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t("usage.unlimited")}
+            </p>
+          )}
+
+          <p className="text-xs text-muted-foreground">{resetText}</p>
+
+          <div className="pt-1">
+            <Button
+              asChild
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs"
+            >
+              <Link href="/settings?tab=usage">
+                {t("usage.viewDetailed")}
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t("usage.loadFailed")}</p>
+      )}
+    </div>
   )
 }
 
@@ -686,55 +655,49 @@ function SubscriptionStatusCard({
 
   if (!subscription) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("subscription.title")}</CardTitle>
-          <CardDescription>{t("subscription.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{t("subscription.noSubscription")}</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">{t("subscription.title")}</h3>
+        <div className="rounded-md border border-border p-5">
+          <p className="text-sm text-muted-foreground">
+            {t("subscription.noSubscription")}
+          </p>
+        </div>
+      </div>
     )
   }
 
   const badge = statusBadgeProps(subscription.status, t)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-2 text-base">
-          <span>{t("subscription.title")}</span>
-          <Badge variant={badge.variant}>{badge.label}</Badge>
-        </CardTitle>
-        <CardDescription>{t("subscription.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="text-sm">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium">{t("subscription.title")}</h3>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </div>
+      <div className="rounded-md border border-border p-5 space-y-3">
+        <div>
           <p className="text-xs font-medium text-muted-foreground">
             {t("subscription.currentPeriodEnd")}
           </p>
-          <p className="mt-0.5 font-medium">
+          <p className="mt-1 text-sm font-medium">
             {formatLongDate(subscription.current_period_end, locale)}
           </p>
         </div>
-        <div>
-          <Button onClick={onManage} disabled={portalPending} variant="outline">
-            {portalPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("action.portalLoading")}
-              </>
-            ) : (
-              <>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                {t("action.manage")}
-              </>
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        <Button onClick={onManage} disabled={portalPending} variant="outline">
+          {portalPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("action.portalLoading")}
+            </>
+          ) : (
+            <>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {t("action.manage")}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -757,36 +720,36 @@ function PlansComparison({
 
   if (!plans || plans.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("plans.title")}</CardTitle>
-          <CardDescription>{t("plans.empty")}</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">{t("plans.title")}</h3>
+        <div className="rounded-md border border-border p-5">
+          <p className="text-sm text-muted-foreground">{t("plans.empty")}</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("plans.title")}</CardTitle>
-        <CardDescription>{t("plans.description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <PlanCard
-              key={plan.slug}
-              plan={plan}
-              isCurrent={plan.slug === currentPlanSlug}
-              onCheckout={onCheckout}
-              isPending={pendingSlug === plan.slug}
-              locale={locale}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-medium">{t("plans.title")}</h3>
+        <p className="text-xs text-muted-foreground">
+          {t("plans.description")}
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.slug}
+            plan={plan}
+            isCurrent={plan.slug === currentPlanSlug}
+            onCheckout={onCheckout}
+            isPending={pendingSlug === plan.slug}
+            locale={locale}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
