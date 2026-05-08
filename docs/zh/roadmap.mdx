@@ -249,18 +249,16 @@ flowchart LR
 - **通道 + 钩子系统架构文档** — `docs/architecture/hook-system.mdx` 解释三个钩子点并端到端演示 FeishuGateHook；现有架构页面交叉链接；README 将消息通道列为一流功能
 - **加固** — 重复 Feishu 回调点击产生替换卡片而非双重决策；并发回调点击通过条件 `UPDATE ... WHERE status='pending'` 行计数检查解决；待处理审批在 `CHANNEL_CONFIRMATION_TTL_MINUTES`（默认 24 小时）后通过后台清理器自动过期；设置 → 通道尊重组织角色（成员看到只读 UI）；并行工具调用聚合器处理为每个增量重用 `index=0` 的提供商；会话过期重定向保留查询字符串
 
+### v0.8.6 (2026-05-08) — Stripe 计费 + 波兰语支持
+- [x] Stripe 计费 MVP — 免费 + 专业版套餐；结账、客户门户、webhook 生命周期；`/settings?tab=billing`；管理员计划/订阅 CRUD；配额强制执行遵守每个用户的套餐
+- [x] 管理员控制的计费功能标志 — `system_settings.billing_enabled` 控制整个 Stripe 管道，因此没有 Stripe 凭证的私有部署永远不会显示非功能性的支付 UX
+- [x] 每用户无限配额 — 空值继承全局默认值，`0` 授予无限；以前两者都折叠为同一状态
+- [x] 翻译词汇表作为单一信息源 — `scripts/translation-glossary.md` 整合每个语言环境的规则；提交前钩子无条件拒绝对生成的语言环境文件的手动编辑
+- [x] 许可证 + 管辖法律迁移至 FIM Labs Pte. Ltd.（新加坡）；SIAC 仲裁采用英文；新的顶级 `NOTICE` 文件
+- [x] 演练场后续建议已恢复，每个智能体可选择启用
+- [x] 稳定性修复 — 严格交替提供商历史、并行工具调用边界检测、无界智能体确认流、通道角色门控、重试重复抑制、拒绝后无释义
+
 ## 计划版本
-
-### v0.8.6 — 通道与钩子优化
-
-**目标**：在v0.9生产加固波到来之前，收尾v0.8.5通道+钩子发布中的遗留问题。范围刻意保持狭窄——优化而非新功能。
-
-- [ ] **逐钩子配置透传** — 当前`class_hooks`条目是裸字符串；要在逐智能体基础上覆盖`FeishuGateHook.timeout_seconds`、`poll_interval_seconds`或`callback_base_url`，架构需要接受`{"name": "feishu_gate", "config": {...}}`对象，这些对象作为kwargs转发给钩子工厂。低风险后续工作；当前默认值（120秒超时/1.5秒轮询/环境变量回调URL）暂时可接受。
-- [ ] **DAG`tools_used`准确性** — 完成通知卡片当前从`plan.steps[*].tool_hint`（规划器的建议）而非逐步ReAct循环实际选择的真实工具名称推导`tools_used`。从DAG执行器的步骤完成回调中导出实际选择的工具名称，使通知卡片反映实际运行的内容。
-- [ ] **委托子智能体和Workflow AGENT节点的钩子继承策略** — 当前`CallAgentTool`子节点和Workflow`AGENT`节点创建不继承父级钩子注册表的全新ReActAgent，因此通过委托到达的敏感工具调用会无声地绕过`feishu_gate`。决策并文档化：子智能体继承（默认安全，防止闸门绕过）还是隔离（让团队将非审批闸门工作委托给子智能体）？评估中心运行按设计保持选择退出（自动化不能阻止人工审批）。
-- [x] **演练场后续建议恢复，逐智能体选择加入** — v0.8.5后处理重构将建议生成移入即发即忘后台任务，并丢弃了`post_processing`/`suggestions` SSE事件，因此答案下方的芯片行从未出现。建议现在在`done`和`end`之间内联流式传输，并由新的逐智能体`suggest_followups`开关控制（默认关闭）——任务风格智能体保持沉默，明确选择加入的对话智能体支付一轮快速模型往返并获得芯片返回。
-
-这里的所有内容都是附加的且在现有抽象后面——无架构变更，无破坏性API变更，安全地在v0.8.5和v0.9之间分段落地。
 
 ### v0.9 — 可观测性 + 生产强化
 
@@ -314,36 +312,38 @@ flowchart LR
 
 #### 可观测性与智能体运行时
 
-- [ ] **智能体追踪层（可观测性++）**: 应用级运行/追踪/线程层级用于智能体调试 — 每个对话 → `Trace`，每个 LLM 调用/工具调用/DAG 步骤 → `Span`，包含输入/输出/token/时序。前端追踪查看器带时间线和可展开的 LLM 调用负载。这超越了 OTel（基础设施级）以为开发者和企业客户提供可操作的智能体循环调试。OpenTelemetry 导出作为数据接收选项。以 LangSmith 的运行/追踪/线程概念为模型 — 智能体可观测性的行业验证模式。
-- [ ] **指标仪表板**: 延迟、成功率、token 使用、连接器调用分析 — 按智能体、按用户、按组织分解
-- [x] ~~**断路器**: 三态机（关闭/打开/半开）带每连接器故障追踪、5xx 检测和监控端点~~ *（v0.8 提前发布）*
-- [x] ~~**工作流运行保留清理**: 后台清理任务，可配置最大年龄和每工作流最大计数；每工作流覆盖；管理员端点用于手动触发~~ *（v0.8.1 发布）*
-- [x] ~~**工作流版本变更摘要**: `compute_blueprint_diff()` 在版本保存时从蓝图差异自动生成人类可读摘要~~ *（v0.8.1 发布）*
-- [x] ~~**DAG 质量大修**: 非快速步骤的默认模型升级；规划中的技能自动发现；法律/医疗/金融领域的引用验证器；结构化内容上下文保留；路由器中的领域分类与领域感知模型选择~~ *（v0.8.1 发布）*
-- [x] ~~**ReAct 中的领域模型升级**: 专业领域自动升级到推理模型，强制网络搜索和引用验证~~ *（v0.8.1 发布）*
-- [x] ~~**每模型原生函数调用切换**: `tool_choice_enabled` 设置让模型跳过强制工具选择，直接进入 JSON 模式~~ *（v0.8.1 发布）*
-- [x] ~~**DatabaseMetaTool（数据库连接器的渐进式披露）**: 单个 `database` 元工具带 `list_tables`/`discover`/`query` 子命令替代每个数据库连接器的 3N 个单独工具；通过 `DATABASE_TOOL_MODE` 环境变量可配置（`progressive` 默认，`legacy` 回退）~~ *（v0.8.1 发布）*
-- [x] ~~**通过 `request_tools` 元工具按需工具加载**: 当智能选择后有 >12 个工具可用时，LLM 可在对话中动态加载额外工具；在 JSON 和原生函数调用模式中都有效~~ *（v0.8.1 发布）*
-- [x] ~~**MCPServerMetaTool（MCP 的渐进式披露）**: 单个 `mcp` 元工具带 `discover`/`call` 子命令替代 N*M 个单独 MCP 工具；通过 `MCP_TOOL_MODE` 环境变量可配置（`progressive` 默认，`legacy` 回退）~~ *（v0.8.1 发布）*
-- [x] ~~**工作流连接依赖自动订阅**: 扩展市场订阅级联以自动订阅工作流的连接依赖（API 连接器、MCP 服务器）。工作流节点可引用连接器、MCP 服务器、智能体（递归引用更多依赖）和子工作流 — 完整树中的所有连接依赖必须在订阅时自动订阅，在取消订阅时级联清理。由于递归子工作流解析和循环检测，比技能/智能体更复杂。解决方案（技能/智能体）连接依赖自动订阅的对应物~~ *（v0.8.1 发布）*
-- [x] ~~**工作流真实执行器**: 用完整实现替换 MCP 和 BuiltinTool 节点执行器存根（MCP 服务器发现+工具调用；ToolRegistry 集成）~~ *（v0.8.1 发布）*
-- [ ] **智能体钩子系统**: 在 **LLM 循环外** 运行的确定性强制层 — 钩子在工具事件上自动执行，无法被智能体指令绕过。三个钩子点：`PreToolUse`（执行前验证/阻止）、`PostToolUse`（执行后副作用）、`SessionStart`（注入动态上下文）。内置钩子：每个连接器调用时自动写入 `ConnectorCallLog`（当前手动）；组织处于只读模式时阻止写操作；在智能体接收前自动截断超大 DB 查询结果；按连接器调用频率限流。用户定义的钩子：每智能体 YAML 配置（`hooks:` 字段）声明在匹配工具事件上触发的 shell 命令或 Python 可调用对象 — 现代智能体框架共享的基于钩子的强制模式。关键设计原则：**钩子用于"必须始终发生"的逻辑，不应依赖 LLM 记住执行**。指令说"记录所有调用"；钩子实际记录它们。指令说"不在只读模式下写入"；钩子实际阻止它。
-  - [x] **钩子系统骨架 + FeishuGateHook** — 基于类的 `PreToolUseHook` / `PostToolUseHook` 抽象接线在 ReAct 循环下方；第一个具体钩子是 `FeishuGateHook`，它拦截标记为 `requires_confirmation=True` 的工具，并通过组织的飞书频道路由批准。完整钩子生命周期（用户定义的 YAML 钩子、内置审计/阻止/截断钩子、`SessionStart`）仍在 v0.9 范围内。为 2026-04-24 路演提前发布。
-  - [x] **钩子批准游乐场** — UI 驱动的往返测试器：频道详情表现在启动一个对话框，创建真实的 `ConfirmationRequest` 行，将生产卡发送到飞书，并实时轮询决定。执行生产钩子会采用的确切代码路径，使预发布排练和演示保真。
-  - [x] **钩子系统在 ReAct + DAG 运行时中实时** — `build_hook_registry_for_agent` 在每个聊天会话上解析 `agent.model_config_json.hooks.class_hooks`；ReAct 和 DAG 入口点都在工具分发前实例化钩子。工具适配器将 `requires_confirmation` 公开为公共属性，以便钩子谓词可以鸭子类型而无需适配器耦合。配对一个端到端烟雾脚本（`scripts/smoke_feishu_gate.py`），涵盖通过真实智能体循环的批准/拒绝路径。
-  - [ ] **每钩子配置传递** — `class_hooks` 条目今天是裸字符串；要覆盖 `FeishuGateHook.timeout_seconds`、`poll_interval_seconds` 或 `callback_base_url` 按智能体，模式需要接受 `{"name": "feishu_gate", "config": {...}}` 对象，这些对象作为 kwargs 转发给钩子工厂。低风险 v0.8.5 后续；当前默认值（120s 超时/1.5s 轮询/env-var 回调 URL）对 v0.8 可接受。
-- [ ] **智能体工作区（持久智能体桌面）**: 三层：(1) **工具输出卸载** — 自动保存超大工具响应（>8K 字符）到 `workspace://` 文件，返回截断预览 + URI；内置工具 `read_workspace_file`、`list_workspace_files`、`write_workspace_file` 用于选择性访问和智能体生成的工件。(2) **交接笔记** — `write_handoff(summary)` 用于跨压缩/会话切换的上下文转换。(3) **工作区 UI** — 前端文件浏览器面板按对话（预览文本/JSON/CSV、下载、删除/重命名）；跨会话文件保留；按用户存储配额集成。扩展适配器中的 `truncate_tool_output()` + `GET /api/conversations/{id}/workspace` 端点
-- [x] **智能文件内容注入 + `read_uploaded_file` 工具**: 小上传文件（`<32K` 字符）自动内联到 LLM 上下文；大文件获得元数据+工具提示。双模式 `read_uploaded_file` 工具（分页读取+正则搜索）。`GET /api/files/{file_id}/content` 端点、`.content` 边车存储、文件 API 响应中的 `content_length`
-- [x] ~~**智能文档处理（视觉感知）**: 自适应文档处理 — PDF 页面通过 PyMuPDF 为视觉能力模型（GPT-4o、Claude 3/4、Gemini）渲染为图像；通过 pdfplumber 的纯文本回退。Admin 中的每模型 `supports_vision` 标志。两种模式（视觉/文本）通过 `DOCUMENT_PROCESSING_MODE` 环境变量可配置。智能 PDF 处理：文本丰富页面提取文本+嵌入图像（token 高效），扫描页面渲染为全页 PNG。DOCX/PPTX 嵌入图像提取。多轮视觉持久化。预构建沙箱镜像（`Dockerfile.sandbox`）。缓存页面渲染带 `.pages/` 边车~~ *（v0.8.2 发布）*
-- [x] ~~**通用文档转换（`convert_to_markdown` + OCR）** — 内置智能体工具包装 Microsoft MarkItDown，默认对每个智能体可用。将 PDF、Word、Excel、PowerPoint、HTML、JSON、CSV、XML、ZIP、EPUB、Outlook .msg、图像、音频、YouTube URL 和数据 URI 转换为对话中的干净 Markdown。Office 文件和扫描 PDF 页面中的嵌入图像通过官方 `markitdown-ocr` 插件使用工作区的视觉能力 LLM（DB 优先，ENV 回退）自动 OCR。相同的转换内核由 RAG 摄取管道共享，因此聊天时转换和知识库摄取生成字节相同的 Markdown。非 OpenAI 提供商（Claude、Gemini、Bedrock、Azure）通过 `LiteLLMOpenAIShim` 透明支持，该 shim 将任何 FIM One LLM 呈现为 openai-SDK 形状的客户端，然后通过 LiteLLM 路由。零回归回退：当没有视觉模型可用时，纯文本提取继续完全如前~~ *（v0.8.3 发布）*
-- [ ] **跨会话文件管理**: 文件浏览器 UI、存储配额、自动过期清理
-- [ ] **会话级文件关联**: 追踪哪些文件在哪些对话中使用
-- [ ] **跨会话对话回忆**: 智能体工具列出、搜索和读取过去对话历史 — `list_conversations`、`search_conversations`（跨历史的关键字/正则表达式）、`read_conversation`（检索完整线程）。启用"我们上次讨论了什么"和"找到我上周要求的 API 变更"工作流。与跨会话文件管理配对形成完整的长期智能体记忆层
-- [ ] **沙箱强化**: v2 改进代码执行隔离
-- [ ] **性能测试**: 并发负载基准
-- [ ] **MCP 连接池**: 每请求 STDIO 子进程生成不可扩展 — 100 并发用户 = 每 MCP 服务器 100 个子进程。使用每用户环境隔离（由 `(server_id, env_hash)` 键入）池 STDIO 连接；SSE/HTTP 传输共享 `httpx.AsyncClient` 会话。目标：池 STDIO 的 `≤100 ms` 热启动，O(1) HTTP 连接每 MCP 服务器，无论用户计数
-- [ ] **内部工具基准** — 用于使用 EVAL CENTER 基础设施量化工具参数变更（系统提示词、自反思频率、工具选择阈值）的内置测试套件
-- [ ] **工作流触发身份可观测性**: 添加 `ExecutionContext.trigger_source`（`"webhook" | "cron" | "manual" | "batch" | "sub"`），在五个 `WorkflowEngine` 实例化站点（`trigger_workflow`、`run_workflow`、`batch_run_workflow`、`scheduler`、`sub_workflow`）的每一个处填充。今天这些路径隐式混合所有者身份（`wf.user_id` — webhook/cron）与调用者身份（`current_user.id` — manual/batch）；默认值合理但约定未记录，因此 401 类故障（"为
+- [ ] **智能体追踪层（可观测性++）**：应用级运行/追踪/线程层级，用于智能体调试——每个对话 → `Trace`，每个LLM调用/工具调用/DAG步骤 → `Span`，包含输入/输出/令牌/时序。前端追踪查看器，具有时间线和可展开的LLM调用负载。这超越了OTel（基础设施级）的范围，为开发者和企业客户提供可操作的智能体循环调试。OpenTelemetry导出作为数据接收选项。参考LangSmith的运行/追踪/线程概念——行业验证的智能体可观测性模式。
+- [ ] **指标仪表板**：延迟、成功率、令牌使用、连接器调用分析——按智能体、按用户、按组织的细分
+- [x] ~~**断路器**：三态机（关闭/打开/半开），具有按连接器故障跟踪、5xx检测和监控端点~~ *（已在v0.8提前发布）*
+- [x] ~~**工作流运行保留清理**：后台清理任务，具有可配置的最大年龄和每个工作流的最大计数；按工作流覆盖；管理员端点用于手动触发~~ *（已在v0.8.1发布）*
+- [x] ~~**工作流版本变更摘要**：`compute_blueprint_diff()`在版本保存时从蓝图差异自动生成人类可读的摘要~~ *（已在v0.8.1发布）*
+- [x] ~~**DAG质量大修**：非快速步骤的默认模型升级；规划中的技能自动发现；法律/医疗/金融领域的引文验证器；结构化内容上下文保留；路由器中的领域分类，具有领域感知的模型选择~~ *（已在v0.8.1发布）*
+- [x] ~~**ReAct中的领域模型升级**：专家领域自动升级到推理模型，具有强制网络搜索和引文验证~~ *（已在v0.8.1发布）*
+- [x] ~~**按模型原生函数调用切换**：`tool_choice_enabled`设置让模型跳过强制工具选择，直接进入JSON模式~~ *（已在v0.8.1发布）*
+- [x] ~~**DatabaseMetaTool（DB连接器的渐进式披露）**：单个`database`元工具，具有`list_tables`/`discover`/`query`子命令，替代每个数据库连接器的3N个单独工具；通过`DATABASE_TOOL_MODE`环境变量配置（`progressive`默认，`legacy`回退）~~ *（已在v0.8.1发布）*
+- [x] ~~**通过`request_tools`元工具按需工具加载**：当智能选择后有>12个工具可用时，LLM可以在对话中动态加载额外工具；在JSON和原生函数调用模式中都有效~~ *（已在v0.8.1发布）*
+- [x] ~~**MCPServerMetaTool（MCP的渐进式披露）**：单个`mcp`元工具，具有`discover`/`call`子命令，替代N*M个单独的MCP工具；通过`MCP_TOOL_MODE`环境变量配置（`progressive`默认，`legacy`回退）~~ *（已在v0.8.1发布）*
+- [x] ~~**工作流连接依赖自动订阅**：扩展市场订阅级联以自动订阅工作流的连接依赖（API连接器、MCP服务器）。工作流节点可以引用连接器、MCP服务器、智能体（递归引用更多依赖）和子工作流——完整树中的所有连接依赖必须在订阅时自动订阅，并在取消订阅时级联清理。由于递归子工作流解析和循环检测，比技能/智能体更复杂。解决方案（技能/智能体）连接依赖自动订阅的对应物~~ *（已在v0.8.1发布）*
+- [x] ~~**工作流真实执行器**：用完整实现替换MCP和BuiltinTool节点执行器存根（MCP服务器发现+工具调用；ToolRegistry集成）~~ *（已在v0.8.1发布）*
+- [ ] **智能体钩子系统**：一个在**LLM循环外**运行的确定性强制层——钩子在工具事件上自动执行，无法被智能体指令绕过。三个钩子点：`PreToolUse`（执行前验证/阻止）、`PostToolUse`（执行后副作用）、`SessionStart`（注入动态上下文）。内置钩子：在每个连接器调用时自动写入`ConnectorCallLog`（目前手动）；当组织处于只读模式时阻止写操作；在智能体看到之前自动截断超大DB查询结果；按连接器调用频率进行速率限制。用户定义的钩子：按智能体YAML配置（`hooks:`字段）声明在匹配工具事件上触发的shell命令或Python可调用对象——一个在现代智能体框架中共享的基于钩子的强制模式。关键设计原则：**钩子用于"必须始终发生"的逻辑，不应依赖LLM记住执行它**。指令说"记录所有调用"；钩子实际记录它们。指令说"不要在只读模式下写入"；钩子实际阻止它。
+  - [x] **钩子系统框架+FeishuGateHook**——基于类的`PreToolUseHook`/`PostToolUseHook`抽象，连接在ReAct循环下方；第一个具体钩子是`FeishuGateHook`，它拦截标记为`requires_confirmation=True`的工具，并通过组织的Feishu通道路由审批。完整钩子生命周期（用户定义的YAML钩子、内置审计/阻止/截断钩子、`SessionStart`）仍在v0.9范围内。为2026-04-24路演提前发布。
+  - [x] **钩子审批演练场**——UI驱动的往返测试器：通道详情表现在启动一个对话框，创建真实的`ConfirmationRequest`行，将生产卡发送到Feishu，并实时轮询决定。执行生产钩子会采用的确切代码路径，使预发布排练和演示忠实。
+  - [x] **钩子系统在ReAct+DAG运行时中实时**——`build_hook_registry_for_agent`在每个聊天会话上解析`agent.model_config_json.hooks.class_hooks`；ReAct和DAG入口点都在工具分发前实例化钩子。工具适配器将`requires_confirmation`公开为公共属性，以便钩子谓词可以鸭子类型，无需适配器耦合。配对一个端到端烟雾脚本（`scripts/smoke_feishu_gate.py`），覆盖通过真实智能体循环的批准/拒绝路径。
+  - [ ] **按钩子配置传递**——模式级`{"name": ..., "config": {...}}`，以便按智能体`FeishuGateHook`覆盖（超时、轮询间隔、回调URL）有效；裸字符串`class_hooks`条目仍受支持
+  - [ ] **DAG`tools_used`准确性**——完成通知卡目前从规划器提示派生`tools_used`；通过DAG执行器步骤完成回调从按步骤ReAct表面实际工具名称
+  - [ ] **委托子智能体+工作流`AGENT`节点的钩子继承**——今天`CallAgentTool`子项和工作流`AGENT`节点使用空钩子注册表启动新的ReActAgent，无声地绕过委托敏感调用上的`feishu_gate`。决定默认继承（安全）vs显式选择加入（灵活）；评估中心始终选择退出（自动化无法阻止人类）
+- [ ] **智能体工作区（持久智能体桌面）**：三层：（1）**工具输出卸载**——自动保存超大工具响应（>8K字符）到`workspace://`文件，返回截断预览+URI；内置工具`read_workspace_file`、`list_workspace_files`、`write_workspace_file`用于选择性访问和智能体生成的工件。（2）**交接笔记**——`write_handoff(summary)`用于压缩/会话切换的上下文转换。（3）**工作区UI**——前端文件浏览器面板，每个对话（预览文本/JSON/CSV、下载、删除/重命名）；跨会话文件保留；按用户存储配额集成。扩展适配器中的`truncate_tool_output()`+`GET /api/conversations/{id}/workspace`端点
+- [x] **智能文件内容注入+`read_uploaded_file`工具**：小上传文件（`<32K`字符）自动内联到LLM上下文；大文件获取元数据+工具提示。双模式`read_uploaded_file`工具（分页读取+正则表达式搜索）。`GET /api/files/{file_id}/content`端点、`.content`边车存储、文件API响应中的`content_length`
+- [x] ~~**智能文档处理（视觉感知）**：自适应文档处理——PDF页面通过PyMuPDF为视觉能力模型（GPT-4o、Claude 3/4、Gemini）渲染为图像；通过pdfplumber的纯文本回退。Admin中的按模型`supports_vision`标志。两种模式（视觉/文本）通过`DOCUMENT_PROCESSING_MODE`环境变量配置。智能PDF处理：文本丰富的页面提取文本+嵌入图像（令牌高效），扫描页面渲染为全页PNG。DOCX/PPTX嵌入图像提取。多轮视觉持久性。预构建沙箱镜像（`Dockerfile.sandbox`）。缓存页面渲染，带`.pages/`边车。~~ *（已在v0.8.2发布）*
+- [x] ~~**通用文档转换（`convert_to_markdown`+OCR）**——内置智能体工具，包装Microsoft MarkItDown，默认对每个智能体可用。将PDF、Word、Excel、PowerPoint、HTML、JSON、CSV、XML、ZIP、EPUB、Outlook .msg、图像、音频、YouTube URL和数据URI转换为对话中的干净Markdown。Office文件和扫描PDF页面中的嵌入图像通过官方`markitdown-ocr`插件使用工作区的视觉能力LLM（DB优先、ENV回退）自动进行OCR。相同的转换内核由RAG摄取管道共享，因此聊天时转换和知识库摄取生成字节相同的Markdown。非OpenAI提供商（Claude、Gemini、Bedrock、Azure）通过`LiteLLMOpenAIShim`透明支持，该垫片将任何FIM One LLM呈现为openai-SDK形状的客户端，然后通过LiteLLM路由。零回归回退：当没有视觉模型可用时，纯文本提取继续完全如前。~~ *（已在v0.8.3发布）*
+- [ ] **跨会话文件管理**：文件浏览器UI、存储配额、自动过期清理
+- [ ] **会话级文件关联**：跟踪哪些文件在哪些对话中使用
+- [ ] **跨会话对话回忆**：智能体工具列出、搜索和读取过去的对话历史——`list_conversations`、`search_conversations`（跨历史的关键字/正则表达式）、`read_conversation`（检索完整线程）。启用"我们上次讨论了什么"和"找到我上周要求的API变更"工作流。配对跨会话文件管理以形成完整的长期智能体内存层
+- [ ] **沙箱强化**：代码执行隔离的v2改进
+- [ ] **性能测试**：并发负载基准
+- [ ] **MCP连接池**：按请求STDIO子进程生成不可扩展——100个并发用户=每个MCP服务器100个子进程。使用按用户环境隔离的池STDIO连接（由`(server_id, env_hash)`键入）；SSE/HTTP传输共享`httpx.AsyncClient`会话。目标：池化STDIO的`≤100 ms`热启动，无论用户数如何，每个MCP服务器O(1)HTTP连接
+- [ ] **内部工具基准**——使用EVAL CENTER基础设施量化工具参数变化（系统提示、自反思频率、工具选择阈值）的内置测试套件
+- [ ] **工作流触发身份可观测性**：添加`ExecutionContext.trigger_source`（`"webhook" | "cron" | "manual" | "batch" | "sub"`），在五个`WorkflowEngine`实例化站点（`trigger_workflow`、`run_workflow`、`batch_run_workflow`、`scheduler`、`sub_workflow`）的每一个处填充。今天这些路径隐含地混合所有者身份（`wf.user_id`——webhook/cron）与调用者身份（`current_user.id`——手动/批处理）；默认值是合理的，但约定未记录，所以401类故障（"为什么我的cron没有借用我的令牌？"）需要反向工程触发
 #### Prompt Cache + 推理 Follow-ups（来自 Batch A MVPs）
 
 这些项目完成了 Batch A 中已发货的部分工作（对话恢复、系统提示词注册表、思考块）并将缓存覆盖范围扩展到剩余的提供商系列。
@@ -376,32 +376,32 @@ flowchart LR
 
 ### v1.0 — 热插拔 + 可嵌入
 
-**目标**：零重启连接器添加、包生态系统和嵌入式交付。
+**目标**：零重启连接器添加、套餐生态系统和嵌入式交付。
 
-- [ ] **连接器渐进式披露（第5阶段）**：**语义引导的工具选择**（从查询中提取实体 → 本体注册表查找 → 连接器集合缩减；50+连接器部署时可减少90%+令牌）；批处理/ETL连接器的规模模式；CLI风格的通用`connector <name> <action> <params>`接口
-- [ ] **跨连接器实体对齐（本体注册表）**：定义共享实体类型（Customer、Order、Asset），并在连接器间映射字段；DAGPlanner自动解析跨系统JOIN键；启用跨连接器查询（例如"Salesforce中在Shopify下单的客户"），无需硬编码字段名
+- [ ] **连接器渐进式披露（第5阶段）**：**语义引导的工具选择**（从查询中提取实体 → 本体注册表查找 → 连接器集合缩减；50+连接器部署时减少90%+令牌）；批处理/ETL连接器的规模模式；CLI风格的通用`connector <name> <action> <params>`接口
+- [ ] **跨连接器实体对齐（本体注册表）**：定义共享实体类型（Customer、Order、Asset），并在连接器间映射字段；DAGPlanner自动解析跨系统JOIN键；支持跨连接器查询（例如"Salesforce中在Shopify下单的客户"），无需硬编码字段名
 - [ ] **热插拔连接器**：上传OpenAPI规范，AI生成配置，5分钟内上线（无需重启）
-- [x] ~~**市场重设计第1阶段 — 解决方案 + 组件**~~：两层市场模型（解决方案：Agent/Skill/Workflow；组件：Connector/MCP Server）；范围选择器（全球市场/组织）；统一订阅模型（移除组织自动出现）；从市场范围移除KB；数据迁移为现有组织成员回填订阅
-- [ ] **市场包系统**：市场的可分发资源包 — 用统一打包层替代按类型的"市场"。`fim-package.yaml`清单声明：元数据（名称、版本、描述、作者、许可证、标签、`min_fim_version`）、入口点（主要Skill或Agent）、资源列表（agents、skills、connectors、KBs、MCP servers、workflows）及配置引用、包间依赖（semver范围）、所需凭证（映射到连接器引用以供安装时收集）和用户可配置变量及默认值。**两种消费模式**：（1）**install** — 批量创建所有资源 + 通过ID替换自动连接内部引用；安装链接到源以获取版本更新通知；`POST /api/market/packages/{id}/install`；（2）**fork** — 克隆为用户拥有的可编辑副本，无更新链接（这就是模板模式）；`POST /api/market/packages/{id}/fork`。额外端点：发布（`POST /api/market/packages`，带审查工作流）、卸载（`DELETE /packages/{id}/uninstall`，带依赖检查 + 修改资源确认）、版本历史（`GET /packages/{id}/versions`）、升级（`POST /packages/{id}/upgrade`，带按资源差异预览）。嵌套包需求的依赖解析器，具有冲突检测。`PackageInstallation`表跟踪每个用户的已安装包，包含用于卸载/升级的资源ID映射。**与单个资源发布共存** — 包是组合层，不是替代品；单个Connector仍可独立发布。示例依赖树：`Package: contract-review` → `Skill: contract-review`（入口点）→ `Agent: contract-analyst` + `Agent: risk-scorer` → `KB: legal-clauses` + `Connector: docusign-api` + `MCP: pdf-extractor` + `Workflow: contract-approval-flow`
-- [ ] **创作者计划**：市场变现层 — 创作者档案及作品集页面、按包分析（安装数、fork数、活跃用户、评分/评论）、当包驱动新订阅时的联盟佣金追踪。付费包层级，包含定价、购买流程和审批工作流。创作者仪表板，显示安装趋势、收入报告和用户反馈。用于程序化包发布的公共创作者API（包作者的CI/CD）。社区功能：包评论、问答、每个版本的更新日志
+- [x] ~~**市场重设计第1阶段——解决方案+组件**~~：两层市场模型（解决方案：Agent/Skill/Workflow；组件：Connector/MCP Server）；范围选择器（全球市场/组织）；统一订阅模型（移除组织自动出现）；从市场范围移除KB；数据迁移为现有组织成员回填订阅
+- [ ] **市场套餐系统**：市场的可分发资源包——用统一打包层替代按类型的"市场"。`fim-package.yaml`清单声明：元数据（名称、版本、描述、作者、许可证、标签、`min_fim_version`）、入口点（主要Skill或Agent）、资源列表（agents、skills、connectors、KBs、MCP servers、workflows）及配置引用、包间依赖关系（semver范围）、所需凭证（映射到连接器引用以供安装时收集）和用户可配置变量及默认值。**两种消费模式**：（1）**install**——批量创建所有资源+通过ID替换自动连接内部引用；安装链接到源以获取版本更新通知；`POST /api/market/packages/{id}/install`；（2）**fork**——克隆为用户拥有的可编辑副本，无更新链接（这就是模板模式）；`POST /api/market/packages/{id}/fork`。额外端点：发布（`POST /api/market/packages`带审核工作流）、卸载（`DELETE /packages/{id}/uninstall`带依赖检查+修改资源确认）、版本历史（`GET /packages/{id}/versions`）、升级（`POST /packages/{id}/upgrade`带按资源差异预览）。嵌套包需求的依赖解析器，带冲突检测。`PackageInstallation`表跟踪每个用户的已安装包及资源ID映射以供卸载/升级。**与单个资源发布共存**——Package是组合层，不是替代品；单个Connector仍可独立发布。示例依赖树：`Package: contract-review` → `Skill: contract-review`（入口点）→ `Agent: contract-analyst` + `Agent: risk-scorer` → `KB: legal-clauses` + `Connector: docusign-api` + `MCP: pdf-extractor` + `Workflow: contract-approval-flow`
+- [ ] **创作者计划**：市场变现层——创作者档案及作品集页面、按套餐分析（安装、fork、活跃用户、评分/评论）、当套餐驱动新订阅时的联盟佣金跟踪。付费套餐层级，含定价、购买流程和审批工作流。创作者仪表板，含安装趋势、收入报告和用户反馈。用于程序化套餐发布的公共创作者API（套餐作者的CI/CD）。社区功能：套餐评论、问答、每个版本的更新日志
 - [ ] **可嵌入小部件**：`<script src="fim-one.js">`注入到主机页面
 - [ ] **页面上下文注入**：小部件读取主机页面上下文（当前ID、URL、DOM选择器）
 - [ ] **高级触发器**：Webhook入站事件；计划作业增强（多时区、日历感知）
 - [ ] **批量执行**：通过DAG处理1000+项
 - [ ] **企业安全**：IP白名单、静态加密、SSO
-- [ ] **KB高级编辑器**：为管理大型知识库的高级用户提供的Builder模式agent — 批量URL摄取、重复检测、差距分析、文档生命周期管理；使用ReAct工具循环扩展现有KB AI聊天
-- [ ] **Stripe计费（v1 MVP — Pro订阅）**：免费 + Pro两层订阅，月度令牌配额。Stripe Checkout（托管）+ Customer Portal（自助）+ webhook驱动的生命周期（`checkout.session.completed` / `customer.subscription.updated|deleted` / `invoice.payment_succeeded|failed`）。在配额耗尽时软上限（HTTP 402 + 升级提示）— v1中无超额费用。仅按用户计费；Org/Team订阅推迟到v3。前置条件：
-  - [x] **数据模型 + SDK基础工作**（P1）— `billing_plans` / `subscriptions` / `stripe_webhook_events`表、ORM模型、带固定API版本的Stripe SDK单例、部分配置和密钥前缀验证器。免费 + Pro计划已种子化（Pro stripe_price_id当前是测试模式价格；生产部署需要单独的实时price_id）。
-  - [x] **后端API + webhook处理器**（P2）— `/api/billing/{plans,subscription,checkout,portal}` + `/api/webhooks/stripe`，带签名验证 + 事件幂等性。计划感知的配额强制和每小时生命周期扫描，在`current_period_end`时将已取消的订阅降级为免费。
-  - [x] **前端`/settings/billing`页面 + 402升级对话框**（P3）— 配额显示、升级CTA、`past_due`横幅；使用shadcn `<Dialog>`拦截聊天402（无原生确认）。
-  - [x] **管理员计划管理**（P4）— `admin/billing/plans`（通过`...` DropdownMenu基于对话框的CRUD）+ `admin/billing/subscriptions`（带状态/计划/电子邮件过滤器的只读）。
-  - [x] **管理员控制的计费功能标志**（P5）— `system_settings.billing_enabled`控制Stripe管道（面向用户的API、webhook、管理员CRUD），以便没有Stripe凭证的私有部署永远不会意外显示非功能性支付UX。激活流种子化计划 + 设置`default_plan_id`指针 + 恰好一次回填`users.plan_id`；后续关闭/打开是纯标志翻转，无数据副作用。当标志关闭时，配额链跳过计划层，以便旧版安装继续遵守管理员设置的`default_token_quota`。`STRIPE_BILLING_RETURN_URL`默认更新为`/settings?tab=billing`，结账重定向遵守现有查询字符串。
-  - [ ] **协调 + e2e + 上线**（P6）— 每晚`subscriptions` ↔ `stripe.Subscription.list()`协调脚本以恢复错过的webhook；全栈happy-path/期间取消/past-due回归测试；从测试模式`stripe_price_id`切换到实时`price_id`；在staging上使用真实卡进行烟雾测试。
+- [ ] **KB高级编辑器**：为管理大型知识库的高级用户提供的Builder模式智能体——批量URL摄取、重复检测、差距分析、文档生命周期管理；使用ReAct工具循环扩展现有KB AI聊天
+- [ ] **Stripe计费（v1 MVP——Pro订阅）**：免费+Pro两层订阅，含月度令牌配额。Stripe Checkout（托管）+Customer Portal（自助）+webhook驱动的生命周期（`checkout.session.completed` / `customer.subscription.updated|deleted` / `invoice.payment_succeeded|failed`）。在配额耗尽时软上限（HTTP 402+升级提示）——v1中无超额费用。仅按用户计费；组织/团队订阅推迟到v3。前置条件：
+  - [x] ~~**数据模型+SDK基础工作**（P1）——`billing_plans` / `subscriptions` / `stripe_webhook_events`表、ORM模型、Stripe SDK单例、Free+Pro种子~~ *（已在v0.8.6中发布）*
+  - [x] ~~**后端API+webhook处理程序**（P2）——`/api/billing/*` + `/api/webhooks/stripe`，含签名验证+幂等性；计划感知配额；每小时生命周期扫描~~ *（已在v0.8.6中发布）*
+  - [x] ~~**前端计费标签+402升级对话框**（P3）——`/settings?tab=billing`配额显示、升级CTA、`past_due`横幅、流中402对话框~~ *（已在v0.8.6中发布）*
+  - [x] ~~**管理员计划管理**（P4）——`admin/billing/{plans,subscriptions}` CRUD~~ *（已在v0.8.6中发布）*
+  - [x] ~~**管理员控制的计费功能标志**（P5）——`system_settings.billing_enabled`控制Stripe管道；幂等激活种子Free+Pro、设置默认计划指针、回填用户；激活后切换开/关是纯标志翻转~~ *（已在v0.8.6中发布）*
+  - [ ] **协调+端到端+上线**（P6）——每晚`subscriptions` ↔ `stripe.Subscription.list()`协调脚本以恢复错过的webhook；完整堆栈快乐路径/取消中期/逾期回归测试；从测试模式`stripe_price_id`切换到实时`price_id`；使用真实卡在staging上进行烟雾测试。
 
-- [ ] **团队计划（Stripe座位）** — 通过`stripe.Subscription.quantity`的按座位定价，与Organization成员集成。让公司订阅一个团队范围的计划，包含N个座位；配额和功能标志通过座位组而非个人用户解析。建立在v1.0 Stripe MVP和现有Organization模型之上。
-- [ ] **非计费部署的组级令牌配额** — 没有Stripe的企业/私有部署配置组织级令牌预算。配额链扩展到`override > group > plan > default`；组解析使用`max(user_quota, group_quota)`，以便个人VIP不受团队上限约束。与Team计划一起发布，以便相同的原语同时服务于计费和自托管拓扑。
+- [ ] **团队计划（Stripe座位）**——通过`stripe.Subscription.quantity`的按座位定价，与组织成员资格集成。让公司订阅一个N座位的团队范围计划；配额和功能标志通过座位组而非单个用户解析。建立在v1.0 Stripe MVP和现有组织模型基础上。
+- [ ] **非计费部署的组级令牌配额**——没有Stripe的企业/私有部署配置组织级令牌预算。配额链扩展到`override > group > plan > default`；组解析使用`max(user_quota, group_quota)`，以便单个VIP不受团队上限约束。与团队计划一起推出，以便相同的原语为计费和自托管拓扑服务。
 
-**影响**：企业在数天内从零部署FIM One到多系统编排。包系统创建创作者生态 — 解决方案作者发布复合包（Skill + Agents + Connectors + KBs + Workflows），企业一键安装，创作者从采用中获利。安装/fork二元性在单一机制中涵盖"按原样使用"和"从模板自定义"两种用例。
+**影响**：企业在数天内从零部署FIM One到多系统编排。套餐系统创建创作者生态——解决方案作者发布复合包（Skill+Agents+Connectors+KBs+Workflows），企业一键安装，创作者从采用中获利。安装/fork二元性在单一机制中涵盖"按原样使用"和"从模板自定义"两种用例。
 
 ## 冻结功能（已发布，仅维护）
 
