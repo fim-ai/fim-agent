@@ -130,7 +130,15 @@ class AdminBillingPlanUpdate(BaseModel):
 
 
 class AdminBillingPlanRead(BaseModel):
-    """Envelope for ``GET /api/admin/billing/plans[/{plan_id}]``."""
+    """Envelope for ``GET /api/admin/billing/plans[/{plan_id}]``.
+
+    The ``price_*`` fields are populated live from the Stripe Price
+    referenced by ``stripe_price_id`` (cached 5 min) so the admin table
+    shows the *same* number a paying user sees on
+    ``/settings?tab=billing``. Stripe is the source of truth — to
+    change the price or currency, point ``stripe_price_id`` at a
+    different Price object in the Stripe Dashboard.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -142,8 +150,30 @@ class AdminBillingPlanRead(BaseModel):
     price_cents: int | None = Field(
         default=None,
         description=(
-            "Optional display-only price override pulled from "
-            "``features_json.price_cents``."
+            "Deprecated: legacy display override pulled from "
+            "``features_json.price_cents``. Kept on the wire for "
+            "backwards compatibility — the admin UI now renders "
+            "``price_display`` instead."
+        ),
+    )
+    price_amount_cents: int | None = Field(
+        default=None,
+        description="Live ``unit_amount`` from the linked Stripe Price.",
+    )
+    price_currency: str | None = Field(
+        default=None,
+        description="ISO currency code from the linked Stripe Price (e.g. 'usd').",
+    )
+    price_interval: str | None = Field(
+        default=None,
+        description="Recurrence interval from the Stripe Price ('month' / 'year').",
+    )
+    price_display: str = Field(
+        default="",
+        description=(
+            "Pre-formatted price string sourced from Stripe — guaranteed "
+            "to match what users see. Empty when the Stripe lookup fails "
+            "or the plan has no ``stripe_price_id`` (Free tier)."
         ),
     )
     description: str | None = None

@@ -178,7 +178,16 @@ export interface AdminBillingPlan {
   name: string
   monthly_token_quota: number
   stripe_price_id: string | null
+  /** @deprecated Legacy display override; prefer ``price_display``. */
   price_cents: number | null
+  /** Live Stripe Price ``unit_amount`` (cents). Null for Free / Stripe miss. */
+  price_amount_cents: number | null
+  /** ISO currency code from the Stripe Price (e.g. ``"usd"``). */
+  price_currency: string | null
+  /** Recurrence interval from the Stripe Price (``"month"``/``"year"``). */
+  price_interval: string | null
+  /** Pre-formatted, Stripe-sourced price string. Same value users see. */
+  price_display: string
   description: string | null
   features: string[]
   features_json: Record<string, unknown>

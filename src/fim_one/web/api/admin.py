@@ -55,6 +55,10 @@ from fim_one.web.services.billing_flag import (
     is_billing_enabled,
     require_billing_enabled,
 )
+from fim_one.web.services.stripe_pricing import (
+    fetch_price_details as fetch_stripe_price_details,
+    format_price as format_stripe_price,
+)
 
 SETTING_REGISTRATION_ENABLED = "registration_enabled"
 
@@ -3426,14 +3430,40 @@ def _plan_to_read(plan: BillingPlan, active_count: int = 0) -> AdminBillingPlanR
     cares about two well-known keys:
 
     - ``features``: ``list[str]`` of bullet-point feature labels.
-    - ``price_cents``: integer override for display. Stripe Price stays
-      the source of truth for actual charging.
+    - ``price_cents``: legacy display override (kept for backwards
+      compat). Stripe Price is the authoritative source for the
+      ``price_*`` fields below — populated live so the admin table
+      matches the user-facing card byte-for-byte.
     """
     features_json: dict[str, Any] = plan.features_json or {}
     raw_features = features_json.get("features", [])
     features: list[str] = [str(f) for f in raw_features] if isinstance(raw_features, list) else []
     price_cents_raw = features_json.get("price_cents")
     price_cents: int | None = int(price_cents_raw) if isinstance(price_cents_raw, int) else None
+
+    # Live Stripe price — same helper the user-facing /api/billing/plans
+    # endpoint uses, so the admin display can never drift from what
+    # paying users see. Empty / None for the Free tier (no Stripe Price)
+    # or when Stripe is unreachable; the frontend renders a fallback.
+    price_amount_cents: int | None = None
+    price_currency: str | None = None
+    price_interval: str | None = None
+    price_display: str = ""
+    if plan.stripe_price_id:
+        details = fetch_stripe_price_details(plan.stripe_price_id)
+        amount = details.get("amount_cents")
+        currency = details.get("currency")
+        interval = details.get("interval")
+        if isinstance(amount, int):
+            price_amount_cents = amount
+        if isinstance(currency, str):
+            price_currency = currency
+        if isinstance(interval, str):
+            price_interval = interval
+        price_display = format_stripe_price(
+            price_amount_cents, price_currency, price_interval
+        )
+
     return AdminBillingPlanRead(
         id=plan.id,
         slug=plan.slug,
@@ -3441,6 +3471,10 @@ def _plan_to_read(plan: BillingPlan, active_count: int = 0) -> AdminBillingPlanR
         monthly_token_quota=plan.monthly_token_quota,
         stripe_price_id=plan.stripe_price_id,
         price_cents=price_cents,
+        price_amount_cents=price_amount_cents,
+        price_currency=price_currency,
+        price_interval=price_interval,
+        price_display=price_display,
         description=plan.description,
         features=features,
         features_json=features_json,

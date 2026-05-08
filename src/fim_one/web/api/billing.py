@@ -17,8 +17,6 @@ service stays bootable without Stripe credentials.
 from __future__ import annotations
 
 import logging
-import time
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -37,6 +35,11 @@ from fim_one.web.schemas.billing import (
 )
 from fim_one.web.services.billing_flag import require_billing_enabled
 from fim_one.web.services.stripe_client import billing_enabled, get_stripe
+from fim_one.web.services.stripe_pricing import (
+    fetch_price_details as _fetch_price_details,
+    format_price as _format_price,
+    reset_price_cache as _reset_price_cache,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,74 +53,6 @@ router = APIRouter(
     tags=["billing"],
     dependencies=[Depends(require_billing_enabled)],
 )
-
-# ---------------------------------------------------------------------------
-# Stripe Price cache (5 min TTL, in-process)
-# ---------------------------------------------------------------------------
-#
-# The plans listing fetches live ``stripe.Price`` objects so admins can
-# re-price by editing the Stripe Dashboard alone. Without a cache every
-# settings page hit would fan out N Stripe calls — which is both slow
-# (~150ms each) and bumps us up the rate-limit ladder.
-#
-# Redis is intentionally avoided per the P2 brief: this is a tiny, mostly
-# read-only dataset and an in-process dict beats a network hop.
-
-_PRICE_CACHE_TTL_SECONDS: float = 300.0
-_price_cache: dict[str, tuple[float, dict[str, Any]]] = {}
-
-
-def _format_price(amount_cents: int | None, currency: str | None, interval: str | None) -> str:
-    """Render a human-readable price string (``"$20.00 USD/month"``)."""
-    if amount_cents is None or currency is None:
-        return ""
-    dollars = amount_cents / 100
-    cur = currency.upper()
-    suffix = f"/{interval}" if interval else ""
-    return f"${dollars:.2f} {cur}{suffix}"
-
-
-def _fetch_price_details(stripe_price_id: str) -> dict[str, Any]:
-    """Return ``{amount_cents, currency, interval}`` for a Stripe Price.
-
-    Cached for ``_PRICE_CACHE_TTL_SECONDS``; on Stripe failure returns an
-    empty dict so the caller can render an empty ``price_display`` rather
-    than 500-ing the whole list.
-    """
-    now = time.monotonic()
-    cached = _price_cache.get(stripe_price_id)
-    if cached is not None and now - cached[0] < _PRICE_CACHE_TTL_SECONDS:
-        return cached[1]
-
-    stripe = get_stripe()
-    try:
-        price = stripe.Price.retrieve(stripe_price_id)
-    except Exception:  # noqa: BLE001 — Stripe SDK raises a wide tree
-        logger.exception(
-            "Failed to fetch Stripe Price %s; returning empty display",
-            stripe_price_id,
-        )
-        # Cache the failure briefly to avoid hammering Stripe on every
-        # request when an operator typoed a price id.
-        _price_cache[stripe_price_id] = (now, {})
-        return {}
-
-    recurring = getattr(price, "recurring", None) or {}
-    if not isinstance(recurring, dict):
-        recurring = dict(recurring) if recurring else {}
-    details: dict[str, Any] = {
-        "amount_cents": getattr(price, "unit_amount", None),
-        "currency": getattr(price, "currency", None),
-        "interval": recurring.get("interval"),
-    }
-    _price_cache[stripe_price_id] = (now, details)
-    return details
-
-
-def _reset_price_cache() -> None:
-    """Drop the price cache — used by tests."""
-    _price_cache.clear()
-
 
 def _ensure_billing_enabled() -> None:
     """Raise 503 when Stripe credentials are not configured."""

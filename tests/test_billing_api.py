@@ -209,8 +209,11 @@ async def test_plans_returns_seeded_plans_with_current_flag(
         currency="usd",
         recurring={"interval": "month"},
     )
+    # Price.retrieve runs inside the shared stripe_pricing helper —
+    # patch it where it actually lives, not at the legacy billing
+    # import site.
     with patch(
-        "fim_one.web.api.billing.get_stripe",
+        "fim_one.web.services.stripe_pricing.get_stripe",
         return_value=SimpleNamespace(
             Price=SimpleNamespace(retrieve=MagicMock(return_value=fake_price))
         ),

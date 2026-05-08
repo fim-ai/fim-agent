@@ -59,7 +59,6 @@ interface PlanFormState {
   name: string
   monthly_token_quota: string
   stripe_price_id: string
-  price_cents: string
   description: string
   features: string  // newline-separated
   sort_order: string
@@ -71,7 +70,6 @@ const EMPTY_FORM: PlanFormState = {
   name: "",
   monthly_token_quota: "",
   stripe_price_id: "",
-  price_cents: "",
   description: "",
   features: "",
   sort_order: "0",
@@ -86,7 +84,6 @@ function planToForm(p: AdminBillingPlan): PlanFormState {
     name: p.name,
     monthly_token_quota: String(p.monthly_token_quota),
     stripe_price_id: p.stripe_price_id ?? "",
-    price_cents: p.price_cents !== null && p.price_cents !== undefined ? String(p.price_cents) : "",
     description: p.description ?? "",
     features: p.features.join("\n"),
     sort_order: String(p.sort_order),
@@ -94,11 +91,21 @@ function planToForm(p: AdminBillingPlan): PlanFormState {
   }
 }
 
+/**
+ * Resolve the price string to render in the admin table.
+ *
+ * Stripe is the source of truth — the backend pre-formats
+ * ``price_display`` from ``stripe.Price.retrieve`` so this matches the
+ * user-facing card byte-for-byte. We fall through to the legacy
+ * ``price_cents`` override only when Stripe couldn't be reached and no
+ * live price was returned, so the cell is never empty.
+ */
 function formatPriceDisplay(p: AdminBillingPlan, freeLabel: string): string {
+  if (p.price_display) return p.price_display
+  if (!p.stripe_price_id) return freeLabel
   if (p.price_cents !== null && p.price_cents !== undefined) {
     return `$${(p.price_cents / 100).toFixed(2)}`
   }
-  if (!p.stripe_price_id) return freeLabel
   return "—"
 }
 
@@ -163,7 +170,6 @@ export function AdminBillingPlans() {
       form.name !== initialForm.name ||
       form.monthly_token_quota !== initialForm.monthly_token_quota ||
       form.stripe_price_id !== initialForm.stripe_price_id ||
-      form.price_cents !== initialForm.price_cents ||
       form.description !== initialForm.description ||
       form.features !== initialForm.features ||
       form.sort_order !== initialForm.sort_order ||
@@ -298,7 +304,6 @@ export function AdminBillingPlans() {
         name: form.name.trim(),
         monthly_token_quota: Number(form.monthly_token_quota),
         stripe_price_id: form.stripe_price_id.trim() || null,
-        price_cents: form.price_cents.trim() ? Number(form.price_cents) : null,
         description: form.description.trim() || null,
         features,
         sort_order: Number(form.sort_order) || 0,
@@ -560,9 +565,11 @@ export function AdminBillingPlans() {
               <DetailRow
                 label={t("fields.priceCents")}
                 value={
-                  viewTarget.price_cents !== null && viewTarget.price_cents !== undefined
-                    ? `${viewTarget.price_cents} (${(viewTarget.price_cents / 100).toFixed(2)})`
-                    : "—"
+                  viewTarget.price_display
+                    ? viewTarget.price_display
+                    : !viewTarget.stripe_price_id
+                      ? t("freeTier")
+                      : "—"
                 }
               />
               <DetailRow label={t("fields.monthlyTokenQuota")} value={formatTokens(viewTarget.monthly_token_quota)} />
@@ -707,49 +714,35 @@ function PlanFormFields({ form, setField, fieldErrors, slugReadOnly }: PlanFormF
         {fieldErrors.name && <p className="text-sm text-destructive">{fieldErrors.name}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium">
-            {t("fields.monthlyTokenQuota")} <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            type="number"
-            min={0}
-            step={1}
-            value={form.monthly_token_quota}
-            onChange={(e) => setField("monthly_token_quota", e.target.value)}
-            placeholder="5000000"
-            aria-invalid={!!fieldErrors.monthly_token_quota}
-            disabled={isFreePlan}
-          />
-          {fieldErrors.monthly_token_quota ? (
-            <p className="text-sm text-destructive">{fieldErrors.monthly_token_quota}</p>
-          ) : isFreePlan ? (
-            <p className="text-xs text-muted-foreground">
-              {t("freeQuotaSyncedHint")}{" "}
-              <Link
-                href="/admin?tab=settings"
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                {t("freeQuotaEditLink")}
-              </Link>
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">{t("fields.monthlyTokenQuotaHint")}</p>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium">{t("fields.priceCents")}</Label>
-          <Input
-            type="number"
-            min={0}
-            step={1}
-            value={form.price_cents}
-            onChange={(e) => setField("price_cents", e.target.value)}
-            placeholder="2000"
-          />
-          <p className="text-xs text-muted-foreground">{t("fields.priceCentsHint")}</p>
-        </div>
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">
+          {t("fields.monthlyTokenQuota")} <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          type="number"
+          min={0}
+          step={1}
+          value={form.monthly_token_quota}
+          onChange={(e) => setField("monthly_token_quota", e.target.value)}
+          placeholder="5000000"
+          aria-invalid={!!fieldErrors.monthly_token_quota}
+          disabled={isFreePlan}
+        />
+        {fieldErrors.monthly_token_quota ? (
+          <p className="text-sm text-destructive">{fieldErrors.monthly_token_quota}</p>
+        ) : isFreePlan ? (
+          <p className="text-xs text-muted-foreground">
+            {t("freeQuotaSyncedHint")}{" "}
+            <Link
+              href="/admin?tab=settings"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {t("freeQuotaEditLink")}
+            </Link>
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">{t("fields.monthlyTokenQuotaHint")}</p>
+        )}
       </div>
 
       <div className="space-y-1.5">
