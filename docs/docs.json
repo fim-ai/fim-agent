@@ -66,6 +66,7 @@
                   "configuration/model-management",
                   "configuration/oauth-providers",
                   "configuration/billing",
+                  "configuration/guardrails",
                   {
                     "group": "Channels",
                     "icon": "tower-broadcast",
@@ -226,6 +227,7 @@
                   "zh/configuration/model-management",
                   "zh/configuration/oauth-providers",
                   "zh/configuration/billing",
+                  "zh/configuration/guardrails",
                   {
                     "group": "渠道",
                     "icon": "tower-broadcast",
@@ -386,6 +388,7 @@
                   "ja/configuration/model-management",
                   "ja/configuration/oauth-providers",
                   "ja/configuration/billing",
+                  "ja/configuration/guardrails",
                   {
                     "group": "チャネル",
                     "icon": "tower-broadcast",
@@ -546,6 +549,7 @@
                   "ko/configuration/model-management",
                   "ko/configuration/oauth-providers",
                   "ko/configuration/billing",
+                  "ko/configuration/guardrails",
                   {
                     "group": "채널",
                     "icon": "tower-broadcast",
@@ -706,6 +710,7 @@
                   "de/configuration/model-management",
                   "de/configuration/oauth-providers",
                   "de/configuration/billing",
+                  "de/configuration/guardrails",
                   {
                     "group": "Kanäle",
                     "icon": "tower-broadcast",
@@ -866,6 +871,7 @@
                   "fr/configuration/model-management",
                   "fr/configuration/oauth-providers",
                   "fr/configuration/billing",
+                  "fr/configuration/guardrails",
                   {
                     "group": "Canaux",
                     "icon": "tower-broadcast",

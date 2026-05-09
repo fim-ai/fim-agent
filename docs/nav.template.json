@@ -31,6 +31,7 @@
             "configuration/model-management",
             "configuration/oauth-providers",
             "configuration/billing",
+            "configuration/guardrails",
             {
               "group": "Channels",
               "icon": "tower-broadcast",

@@ -271,6 +271,13 @@ flowchart LR
 - [ ] **Database connectors Phase 4** — Oracle (`oracledb`)、SQL Server (`aioodbc`)、GBase (`aioodbc` + GBase ODBC)。DM8 / KingbaseES / HighGo は v0.8.5 で提供
 - [ ] **MCP Connection Pooling** — STDIO をプール化し、ユーザーごとの環境分離を実現; SSE/HTTP 用に `httpx.AsyncClient` を共有。ウォームスタート ≤100 ms、サーバーあたり O(1) HTTP 接続を目標
 
+#### コンテンツガードレール {/* dev: dev/openai-agents-insights.md */}
+
+- [x] コンテンツガードレール（入出力、トリップワイヤーパターン）— v0 はジェイルブレイク検出器 + 最大長出力ガードレール、環境変数設定、構造化 `guardrail_tripwired` SSE イベントを搭載
+- [ ] オフトピックフィルター（分類器ベースの入力ガードレール）— 正規表現で十分な場合は v0.5 に延期
+- [ ] PII リダクター出力ガードレール（正規表現 + 分類器ハイブリッド）
+- [ ] エージェント単位のガードレール設定 UI（管理パネル）
+
 #### フックシステム {/* dev: dev/hook-system.md */}
 
 - [ ] フックごとの設定パススルー（`{"name": ..., "config": {...}}` スキーマ）

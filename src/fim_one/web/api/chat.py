@@ -14,6 +14,11 @@ Both endpoints stream Server-Sent Events with the following event names:
   render an upgrade dialog instead of misreading the early stream
   termination as a generic network error.  Always followed by the
   normal ``done`` / ``end`` events with the partial answer persisted.
+- ``guardrail_tripwired`` – Content guardrail blocked the turn.  Carries
+  ``kind`` (``"input"`` or ``"output"``), ``guardrail_name``, a
+  human-readable ``reason``, and arbitrary ``output_info`` debug payload
+  from the guardrail.  Always followed by a ``done`` event with
+  ``guardrail_tripwired: True`` and the reason as the answer.
 - ``done``           – Final result payload (answer complete, emitted immediately).
 - ``post_processing`` – Phase marker emitted between ``done`` and ``end`` while
   follow-up suggestions are being generated.  Only emitted when the agent has
@@ -59,6 +64,12 @@ from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fim_one.core.agent import ReActAgent
+from fim_one.core.agent.guardrail import (
+    InputGuardrailResult,
+    InputGuardrailTripwireTriggered,
+    OutputGuardrailResult,
+    OutputGuardrailTripwireTriggered,
+)
 from fim_one.core.memory.context_guard import ContextGuard
 from fim_one.core.model import BaseLLM
 from fim_one.core.model.fallback import FallbackLLM
@@ -104,6 +115,44 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Sensitive word check helper
 # ---------------------------------------------------------------------------
+
+
+def _build_guardrail_tripwired_payload(
+    exc: InputGuardrailTripwireTriggered | OutputGuardrailTripwireTriggered,
+) -> dict[str, Any]:
+    """Serialise a guardrail tripwire exception for the SSE stream.
+
+    Mirrors the schema the frontend renderer expects::
+
+        {
+            "kind": "input" | "output",
+            "guardrail_name": str,
+            "reason": str,           # human-readable
+            "output_info": Any | None,
+        }
+
+    Field names are part of the public SSE contract — do not rename.
+    """
+    if isinstance(exc, InputGuardrailTripwireTriggered):
+        result: InputGuardrailResult | OutputGuardrailResult = exc.result
+        kind = "input"
+        reason = (
+            f"Input was blocked by guardrail '{result.guardrail.name}'. "
+            "The agent will not run for this request."
+        )
+    else:
+        result = exc.result
+        kind = "output"
+        reason = (
+            f"Agent output was blocked by guardrail '{result.guardrail.name}'. "
+            "The original answer has been suppressed."
+        )
+    return {
+        "kind": kind,
+        "guardrail_name": result.guardrail.name,
+        "reason": reason,
+        "output_info": result.output.output_info,
+    }
 
 
 async def _check_sensitive_words(text: str, db: AsyncSession) -> list[str]:
@@ -3571,6 +3620,31 @@ async def react_endpoint(
                         await _bg_db.close()
 
             asyncio.create_task(_react_post_processing())
+        except (
+            InputGuardrailTripwireTriggered,
+            OutputGuardrailTripwireTriggered,
+        ) as exc:
+            # Content guardrail aborted the turn.  Emit a structured
+            # ``guardrail_tripwired`` event the frontend renders as a
+            # "blocked" notice, then close the stream cleanly so the
+            # response never falls through to a 500.
+            logger.info(
+                "Guardrail tripwired (%s) — aborting ReAct turn",
+                type(exc).__name__,
+            )
+            payload = _build_guardrail_tripwired_payload(exc)
+            yield _emit(sse_events, "guardrail_tripwired", payload)
+            elapsed = round(time.time() - t0, 2)
+            yield _sse(
+                "done",
+                {
+                    "answer": payload["reason"],
+                    "iterations": 0,
+                    "elapsed": elapsed,
+                    "guardrail_tripwired": True,
+                },
+            )
+            yield _sse("end", {})
         except Exception as exc:
             logger.exception("ReAct agent failed")
             elapsed = round(time.time() - t0, 2)
@@ -4755,6 +4829,31 @@ async def dag_endpoint(
                         await _bg_db.close()
 
             asyncio.create_task(_dag_post_processing())
+        except (
+            InputGuardrailTripwireTriggered,
+            OutputGuardrailTripwireTriggered,
+        ) as exc:
+            # Same handling as the ReAct branch; kept here so future DAG
+            # integrations that wire guardrails into planner steps
+            # surface a uniform SSE event.
+            logger.info(
+                "Guardrail tripwired (%s) — aborting DAG turn",
+                type(exc).__name__,
+            )
+            payload = _build_guardrail_tripwired_payload(exc)
+            yield _emit(sse_events, "guardrail_tripwired", payload)
+            elapsed = round(time.time() - t0, 2)
+            yield _sse(
+                "done",
+                {
+                    "answer": payload["reason"],
+                    "achieved": False,
+                    "confidence": 0.0,
+                    "elapsed": elapsed,
+                    "guardrail_tripwired": True,
+                },
+            )
+            yield _sse("end", {})
         except StructuredOutputError as exc:
             logger.warning(
                 "Structured output failed for model %s: %s", getattr(llm, "model_id", "?"), exc

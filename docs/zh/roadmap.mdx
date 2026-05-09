@@ -271,6 +271,13 @@ flowchart LR
 - [ ] **数据库连接器第4阶段** — Oracle（`oracledb`）、SQL Server（`aioodbc`）、GBase（`aioodbc` + GBase ODBC）。DM8 / KingbaseES / HighGo 已在 v0.8.5 中发布
 - [ ] **MCP 连接池** — 使用按用户环境隔离的 STDIO 池；为 SSE/HTTP 共享 `httpx.AsyncClient`。目标 ≤100 ms 热启动，每个服务器 O(1) HTTP 连接
 
+#### 内容护栏 {/* dev: dev/openai-agents-insights.md */}
+
+- [x] 内容护栏（输入/输出、触发器模式）——v0 版本包含越狱检测器 + 最大长度输出护栏、环境变量配置、结构化 `guardrail_tripwired` SSE 事件
+- [ ] 离题过滤器（分类器支持的输入护栏）——如果正则表达式保持充分，则推迟到 v0.5
+- [ ] PII 编辑器输出护栏（正则表达式 + 分类器混合）
+- [ ] 每个智能体护栏配置 UI（管理面板）
+
 #### 钩子系统 {/* dev: dev/hook-system.md */}
 
 - [ ] 每个钩子的配置传递（`{"name": ..., "config": {...}}` 模式）

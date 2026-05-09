@@ -172,5 +172,10 @@
     "scopeOrgMembers": "Anyone in this organization can approve.",
     "expand": "Expand",
     "collapse": "Collapse"
+  },
+  "guardrail": {
+    "inputBlocked": "Input blocked by guardrail",
+    "outputBlocked": "Response blocked by guardrail",
+    "detailsLabel": "Details"
   }
 }

@@ -112,6 +112,25 @@ export interface DagStepProgressEvent {
   }>
 }
 
+/**
+ * Emitted by the chat backend when a guardrail tripwire fires (input
+ * pre-flight check or output post-check). Frozen contract — see
+ * Guardrails v0 spec. After this event the backend emits ``done`` then
+ * ``end`` with no further ``answer`` events for the blocked turn.
+ *
+ * - ``kind === "input"``  → the user prompt was blocked before any LLM call
+ * - ``kind === "output"`` → the model's response was blocked post-generation
+ */
+export interface GuardrailTripwiredEvent {
+  kind: "input" | "output"
+  /** Stable identifier of the guardrail (e.g. ``"jailbreak_detector"``). */
+  guardrail_name: string
+  /** Human-readable explanation safe to show the end user. */
+  reason: string
+  /** Arbitrary debug payload — rendered as JSON in a collapsible panel. */
+  output_info: Record<string, unknown>
+}
+
 export interface DagDoneEvent {
   answer: string
   achieved: boolean

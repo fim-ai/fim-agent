@@ -35,7 +35,9 @@ import { UserAvatar } from "@/components/shared/user-avatar"
 import type {
   DagPhaseEvent,
   DagDoneEvent,
+  GuardrailTripwiredEvent,
 } from "@/types/api"
+import { GuardrailBlockedCard } from "@/components/chat/guardrail-blocked-card"
 import type { StepState, RoundSnapshot } from "@/hooks/use-dag-steps"
 import { DagFlowGraph } from "@/components/dag/dag-flow-graph"
 import { IterationCard, ArtifactChips } from "@/components/steps"
@@ -75,6 +77,12 @@ interface DagOutputProps {
   suggestions?: string[]
   onSuggestionSelect?: (query: string) => void
   isPostProcessing?: boolean
+  /**
+   * Most recent guardrail tripwire event observed in the stream. When
+   * present, the DAG turn was short-circuited and this destructive
+   * bubble is rendered in place of (or alongside) the answer card.
+   */
+  guardrailEvent?: GuardrailTripwiredEvent | null
 }
 
 export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function DagOutput({
@@ -93,6 +101,7 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
   suggestions,
   onSuggestionSelect,
   isPostProcessing,
+  guardrailEvent,
 }, ref) {
   const t = useTranslations("playground")
   const { user } = useAuth()
@@ -171,6 +180,18 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
           </div>
         ))}
 
+        {/* Guardrail block — terminal event; the turn ended here. Render
+            before the done card so the destructive notice is the first
+            thing the user sees on a tripped run. */}
+        {guardrailEvent && (
+          <GuardrailBlockedCard
+            kind={guardrailEvent.kind}
+            guardrailName={guardrailEvent.guardrail_name}
+            reason={guardrailEvent.reason}
+            outputInfo={guardrailEvent.output_info}
+          />
+        )}
+
         {/* Done card — always visible */}
         <DagDoneCard done={doneEvent} stepStates={stepStates} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} isPostProcessing={isPostProcessing} />
       </div>
@@ -247,6 +268,18 @@ export const DagOutput = forwardRef<DagOutputHandle, DagOutputProps>(function Da
         </Card>
       )}
       {analysisPhase && <AnalysisCard phase={analysisPhase} />}
+
+      {/* Guardrail block — terminal event; the turn ended here. Render
+          ahead of the done/streaming cards so the destructive notice is
+          the dominant signal in the in-progress view. */}
+      {guardrailEvent && (
+        <GuardrailBlockedCard
+          kind={guardrailEvent.kind}
+          guardrailName={guardrailEvent.guardrail_name}
+          reason={guardrailEvent.reason}
+          outputInfo={guardrailEvent.output_info}
+        />
+      )}
 
       {/* Done card */}
       {doneEvent && <DagDoneCard done={doneEvent} stepStates={stepStates} suggestions={suggestions} onSuggestionSelect={onSuggestionSelect} isPostProcessing={isPostProcessing} />}

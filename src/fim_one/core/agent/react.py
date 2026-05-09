@@ -34,6 +34,18 @@ from fim_one.core.prompt import is_cache_capable
 from fim_one.core.tool import ToolRegistry
 from fim_one.core.utils import extract_json
 
+from .builtin_guardrails import (
+    get_default_input_guardrails,
+    get_default_output_guardrails,
+)
+from .guardrail import (
+    InputGuardrail,
+    InputGuardrailResult,
+    InputGuardrailTripwireTriggered,
+    OutputGuardrail,
+    OutputGuardrailResult,
+    OutputGuardrailTripwireTriggered,
+)
 from .hooks import HookContext, HookPoint, HookRegistry
 from .turn_profiler import TurnProfiler, make_profiler
 from .types import Action, AgentResult, StepResult
@@ -556,6 +568,13 @@ class ReActAgent:
         Returns:
             An ``AgentResult`` containing the final answer and full step trace.
         """
+        # --- Input content guardrails -------------------------------------
+        # Run BEFORE any LLM call so a tripwire aborts the turn without
+        # spending tokens.  Guardrails run in parallel; if any one trips
+        # we raise ``InputGuardrailTripwireTriggered`` and the SSE layer
+        # surfaces a structured ``guardrail_tripwired`` event.
+        await self._run_input_guardrails(query)
+
         # --- Two-phase tool selection ---
         effective_tools = self._tools
         if len(self._tools) > TOOL_SELECTION_THRESHOLD:
@@ -585,7 +604,7 @@ class ReActAgent:
                     self._tools.register(request_tools_tool)
 
         if self._native_mode_active:
-            return await self._run_native(
+            result = await self._run_native(
                 query,
                 on_iteration,
                 image_urls=image_urls,
@@ -593,13 +612,99 @@ class ReActAgent:
                 effective_tools=effective_tools,
                 on_thinking_delta=on_thinking_delta,
             )
-        return await self._run_json(
-            query,
-            on_iteration,
-            image_urls=image_urls,
-            interrupt_queue=interrupt_queue,
-            effective_tools=effective_tools,
+        else:
+            result = await self._run_json(
+                query,
+                on_iteration,
+                image_urls=image_urls,
+                interrupt_queue=interrupt_queue,
+                effective_tools=effective_tools,
+            )
+
+        # --- Output content guardrails ------------------------------------
+        # Serial, post-hoc check on the final answer.  When a tripwire
+        # fires the AgentResult is discarded — the SSE layer translates
+        # the exception into a ``guardrail_tripwired`` event.
+        await self._run_output_guardrails(result.answer)
+        return result
+
+    def _guardrail_context(self) -> dict[str, Any]:
+        """Build the context dict passed to guardrail ``run()`` calls."""
+        return {
+            "agent_id": self._agent_id,
+            "user_id": self._user_id,
+            "org_id": self._org_id,
+        }
+
+    async def _run_input_guardrails(self, query: str) -> None:
+        """Execute all configured input guardrails in parallel.
+
+        Raises :class:`InputGuardrailTripwireTriggered` on the first guardrail
+        that flags the input.  Errors raised by individual guardrails are
+        logged and treated as a non-trip — guardrail bugs must never break
+        the chat surface.
+        """
+        guardrails: list[InputGuardrail] = get_default_input_guardrails()
+        if not guardrails:
+            return
+        context = self._guardrail_context()
+        results = await asyncio.gather(
+            *(g.run(query, context=context) for g in guardrails),
+            return_exceptions=True,
         )
+        for guardrail, result in zip(guardrails, results, strict=False):
+            if isinstance(result, BaseException):
+                logger.warning(
+                    "Input guardrail %s errored: %s",
+                    guardrail.name,
+                    result,
+                )
+                continue
+            if result.tripwire_triggered:
+                logger.info(
+                    "Input guardrail '%s' tripwired (info=%s)",
+                    guardrail.name,
+                    result.output_info,
+                )
+                raise InputGuardrailTripwireTriggered(
+                    InputGuardrailResult(guardrail=guardrail, output=result),
+                )
+
+    async def _run_output_guardrails(self, agent_output: str) -> None:
+        """Execute all configured output guardrails serially.
+
+        Output guardrails run after the final answer is available so they
+        do not race with the streaming path.  Raises
+        :class:`OutputGuardrailTripwireTriggered` on first trip; per-guardrail
+        errors are logged and treated as non-trips.
+        """
+        guardrails: list[OutputGuardrail] = get_default_output_guardrails()
+        if not guardrails or not agent_output:
+            return
+        context = self._guardrail_context()
+        for guardrail in guardrails:
+            try:
+                result = await guardrail.run(agent_output, context=context)
+            except Exception as exc:  # noqa: BLE001 — we never want a buggy guardrail to break chat
+                logger.warning(
+                    "Output guardrail %s errored: %s",
+                    guardrail.name,
+                    exc,
+                )
+                continue
+            if result.tripwire_triggered:
+                logger.info(
+                    "Output guardrail '%s' tripwired (info=%s)",
+                    guardrail.name,
+                    result.output_info,
+                )
+                raise OutputGuardrailTripwireTriggered(
+                    OutputGuardrailResult(
+                        guardrail=guardrail,
+                        agent_output=agent_output,
+                        output=result,
+                    ),
+                )
 
     async def stream_answer(
         self,

@@ -664,6 +664,7 @@ const HistoryTurn = memo(function HistoryTurn({ userContent, userMetadata, orpha
           answerDone={dagData.answerDone}
           suggestions={dagData.suggestions}
           hideDagGraph={hideDagGraph}
+          guardrailEvent={dagData.guardrailEvent}
         />
       )}
     </>

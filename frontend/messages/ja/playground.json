@@ -172,5 +172,10 @@
     "scopeInitiator": "このランを開始したユーザーのみが承認できます。",
     "scopeAgentOwner": "エージェント所有者のみが承認できます。",
     "scopeOrgMembers": "この組織内の誰でも承認できます。"
+  },
+  "guardrail": {
+    "inputBlocked": "入力がガードレールによってブロックされました",
+    "outputBlocked": "応答がガードレールによってブロックされました",
+    "detailsLabel": "詳細"
   }
 }

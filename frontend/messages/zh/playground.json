@@ -172,5 +172,10 @@
     "scopeInitiator": "只有启动此运行的用户才能批准。",
     "scopeAgentOwner": "只有智能体所有者才能批准。",
     "scopeOrgMembers": "此组织中的任何人都可以批准。"
+  },
+  "guardrail": {
+    "inputBlocked": "输入被护栏阻止",
+    "outputBlocked": "响应被护栏阻止",
+    "detailsLabel": "详情"
   }
 }

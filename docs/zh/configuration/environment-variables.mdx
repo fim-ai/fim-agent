@@ -195,6 +195,16 @@ LiteLLM 从 `LLM_BASE_URL` 自动检测提供商，并将其映射到正确的 A
 | `CONTEXT_GUARD_MAX_MSG_CHARS` | 否 | `50000` | 任何单条消息的硬字符限制。超过此限制的消息会被截断作为安全网 |
 | `CONTEXT_GUARD_KEEP_RECENT` | 否 | `4` | 压缩对话历史时保留的最近消息数 |
 
+### 内容护栏
+
+逗号分隔的护栏名称，用于检查*内容*的输入或输出。独立于工具权限闸门（`core/hooks/*`）和安全层（`core/security/*`）。详见[内容护栏](/configuration/guardrails)。
+
+| 变量 | 必需 | 默认值 | 描述 |
+|---|---|---|---|
+| `FIM_GUARDRAILS_INPUT` | 否 | `jailbreak` | 活跃的输入护栏。默认的`jailbreak`正则表达式检测器在检测到已知的提示词覆盖短语时会在花费任何LLM令牌之前中止该轮次。设置为空以禁用。未知名称会被记录并跳过 |
+| `FIM_GUARDRAILS_OUTPUT` | 否 | （空） | 活跃的输出护栏。当前包含：`max_length`（限制答案字符数）。在智能体生成最终答案后运行 |
+| `FIM_GUARDRAIL_MAX_OUTPUT_CHARS` | 否 | `50000` | `max_length`输出护栏使用的字符上限。仅当`max_length`列在`FIM_GUARDRAILS_OUTPUT`中时有效 |
+
 ### 智能体工作区
 
 | 变量 | 必需 | 默认值 | 描述 |

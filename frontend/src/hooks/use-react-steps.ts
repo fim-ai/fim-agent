@@ -103,6 +103,18 @@ export function useReactSteps(messages: SSEMessage[], isRunning: boolean): React
         })
         continue
       }
+      // guardrail_tripwired is emitted when an input/output guardrail
+      // short-circuits the conversation. Forward it as a first-class item
+      // so ReactOutput renders the destructive "blocked" bubble. Payload
+      // shape is frozen (Guardrails v0 spec) — do not normalize/reshape.
+      if (msg.event === "guardrail_tripwired") {
+        result.push({
+          event: msg.event,
+          data: msg.data,
+          timestamp: msg.timestamp,
+        })
+        continue
+      }
       // Normalize step events for backward compat with stored sse_events
       const data = msg.event === "step"
         ? normalizeStep(msg.data as ReactStepEvent)

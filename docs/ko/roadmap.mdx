@@ -270,6 +270,13 @@ flowchart LR
 - [ ] **데이터베이스 연결기 Phase 4** — Oracle (`oracledb`), SQL Server (`aioodbc`), GBase (`aioodbc` + GBase ODBC). DM8 / KingbaseES / HighGo v0.8.5에서 출시
 - [ ] **MCP 연결 풀링** — 사용자별 환경 격리를 통한 STDIO 풀; SSE/HTTP용 `httpx.AsyncClient` 공유. 목표 ≤100 ms 웜 스타트, 서버당 O(1) HTTP 연결
 
+#### 콘텐츠 가드레일 {/* dev: dev/openai-agents-insights.md */}
+
+- [x] 콘텐츠 가드레일 (입력/출력, tripwire 패턴) — v0는 jailbreak 감지기 + 최대 길이 출력 가드레일, 환경 변수 구성, 구조화된 `guardrail_tripwired` SSE 이벤트 포함
+- [ ] 주제 외 필터 (분류기 기반 입력 가드레일) — 정규식이 충분하면 v0.5로 연기
+- [ ] PII 편집기 출력 가드레일 (정규식 + 분류기 하이브리드)
+- [ ] 에이전트별 가드레일 구성 UI (관리자 패널)
+
 #### Hook System {/* dev: dev/hook-system.md */}
 
 - [ ] Hook별 설정 통과 (`{"name": ..., "config": {...}}` 스키마)

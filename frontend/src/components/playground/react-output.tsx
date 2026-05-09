@@ -29,6 +29,8 @@ import { SuggestedFollowups } from "./suggested-followups"
 import { parseEvidence, parseSimpleEvidence, mergeEvidence, type ParsedEvidence } from "@/lib/evidence-utils"
 import { EvidenceProvider } from "@/contexts/evidence-context"
 import { ConfirmationCard } from "@/components/chat/confirmation-card"
+import { GuardrailBlockedCard } from "@/components/chat/guardrail-blocked-card"
+import type { GuardrailTripwiredEvent } from "@/types/api"
 
 /**
  * Wire shape emitted by the backend for `awaiting_confirmation` SSE events.
@@ -358,6 +360,24 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
           )
         })}
 
+        {/* Guardrail tripwire bubbles — terminal events; the turn ended
+            here. We still render them in the completed-view branch in
+            case the stream raced to ``done`` with a guardrail in tow. */}
+        {items.filter((i) => i.event === "guardrail_tripwired").map((item, gi) => {
+          const originalIdx = items.indexOf(item)
+          const ev = item.data as GuardrailTripwiredEvent
+          return (
+            <div key={`guard-${gi}`} data-react-idx={originalIdx}>
+              <GuardrailBlockedCard
+                kind={ev.kind}
+                guardrailName={ev.guardrail_name}
+                reason={ev.reason}
+                outputInfo={ev.output_info}
+              />
+            </div>
+          )
+        })}
+
         {/* Answer card — shown during streaming or after done */}
         {(displayAnswer || isAnswerStreaming) && (
           <div data-react-idx={doneItem ? items.indexOf(doneItem) : undefined}>
@@ -430,6 +450,19 @@ export function ReactOutput({ items, isStreaming, streamingAnswer, suggestions, 
                 mode={ev.mode}
                 channelLabel={ev.channel_label}
                 approverScope={ev.approver_scope}
+              />
+            </div>
+          )
+        }
+        if (item.event === "guardrail_tripwired") {
+          const ev = item.data as GuardrailTripwiredEvent
+          return (
+            <div key={`guard-${idx}`} data-react-idx={idx}>
+              <GuardrailBlockedCard
+                kind={ev.kind}
+                guardrailName={ev.guardrail_name}
+                reason={ev.reason}
+                outputInfo={ev.output_info}
               />
             </div>
           )

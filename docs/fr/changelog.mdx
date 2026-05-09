@@ -13,6 +13,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 ### Ajouté
 
 - **`file_ops.apply_patch` — appliquer des correctifs au format V4A aux fichiers.** Permet aux agents d'effectuer des modifications multi-lignes avec des sections basées sur les lignes et une correspondance floue des espaces, complétant le `find_replace` existant pour les cas où la correspondance exacte de sous-chaîne est fragile.
+- **Garde-fous de contenu pour la validation des entrées et des sorties.** Une nouvelle couche `core/agent/guardrail` s'exécute aux côtés (sans remplacer) des portes de permission d'outils existantes et des vérifications de sécurité. Les garde-fous d'entrée (par défaut : détecteur de phrase de jailbreak) s'exécutent avant tout appel LLM et interrompent le tour s'il est déclenché, économisant des tokens et affichant un avis « bloqué » clair dans le chat. Les garde-fous de sortie s'exécutent après la réponse finale. Configurable via les variables d'environnement `FIM_GUARDRAILS_INPUT` / `FIM_GUARDRAILS_OUTPUT` ; la configuration par interface utilisateur par agent arrivera dans une version future.
 
 ### Modifié
 

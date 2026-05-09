@@ -197,6 +197,16 @@ Controls the automatic context window management that prevents conversations fro
 | `CONTEXT_GUARD_MAX_MSG_CHARS` | No | `50000` | Hard character limit on any single message. Messages exceeding this are truncated as a safety net |
 | `CONTEXT_GUARD_KEEP_RECENT` | No | `4` | Number of most recent messages to preserve when compacting conversation history |
 
+### Content Guardrails
+
+Comma-separated names of guardrails that inspect the *content* of input or output. Independent of the tool-permission gate (`core/hooks/*`) and the security layer (`core/security/*`). See [Content Guardrails](/configuration/guardrails) for the full picture.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `FIM_GUARDRAILS_INPUT` | No | `jailbreak` | Active input guardrails. The default `jailbreak` regex detector aborts the turn before any LLM tokens are spent when known prompt-override phrases are detected. Set to empty to disable. Unknown names are logged and skipped |
+| `FIM_GUARDRAILS_OUTPUT` | No | (empty) | Active output guardrails. Currently shipped: `max_length` (caps answer character count). Run after the agent produces its final answer |
+| `FIM_GUARDRAIL_MAX_OUTPUT_CHARS` | No | `50000` | Character cap used by the `max_length` output guardrail. Only effective when `max_length` is listed in `FIM_GUARDRAILS_OUTPUT` |
+
 ### Agent Workspace
 
 | Variable | Required | Default | Description |

@@ -271,6 +271,13 @@ Nachverfolgter Fehler, die in der Produktion reproduzierbar sind, aber noch nich
 - [ ] **Database connectors Phase 4** — Oracle (`oracledb`), SQL Server (`aioodbc`), GBase (`aioodbc` + GBase ODBC). DM8 / KingbaseES / HighGo shipped in v0.8.5
 - [ ] **MCP Connection Pooling** — pool STDIO with per-user env isolation; share `httpx.AsyncClient` for SSE/HTTP. Target ≤100 ms warm-start, O(1) HTTP connections per server
 
+#### Content Guardrails {/* dev: dev/openai-agents-insights.md */}
+
+- [x] Content guardrails (input/output, tripwire pattern) — v0 ships jailbreak detector + max-length output guardrail, env-var configuration, structured `guardrail_tripwired` SSE event
+- [ ] Off-topic filter (classifier-backed input guardrail) — defer to v0.5 if regex stays sufficient
+- [ ] PII redactor output guardrail (regex + classifier hybrid)
+- [ ] Per-agent guardrail configuration UI (admin panel)
+
 #### Hook System {/* dev: dev/hook-system.md */}
 
 - [ ] Per-Hook-Konfiguration Pass-Through (`{"name": ..., "config": {...}}` Schema)

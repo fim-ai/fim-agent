@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 ### Added
 
 - **`file_ops.apply_patch` — apply V4A-format diff patches to files.** Lets agents make multi-line edits with line-based hunks and fuzzy whitespace matching, complementing the existing `find_replace` for cases where exact substring match is brittle.
+- **Content guardrails for input and output validation.** A new `core/agent/guardrail` layer runs alongside (not replacing) existing tool-permission gates and security checks. Input guardrails (default: jailbreak phrase detector) run before any LLM call and abort the turn if triggered, saving tokens and surfacing a clear "blocked" notice in chat. Output guardrails run after the final answer. Configurable via `FIM_GUARDRAILS_INPUT` / `FIM_GUARDRAILS_OUTPUT` env vars; per-agent UI configuration coming in a future release.
 
 ### Changed
 

@@ -172,5 +172,10 @@
     "scopeInitiator": "Seul l'utilisateur qui a lancé cette exécution peut approuver.",
     "scopeAgentOwner": "Seul le propriétaire de l'agent peut approuver.",
     "scopeOrgMembers": "Tout membre de cette organisation peut approuver."
+  },
+  "guardrail": {
+    "inputBlocked": "Entrée bloquée par la barrière de sécurité",
+    "outputBlocked": "Réponse bloquée par la barrière de sécurité",
+    "detailsLabel": "Détails"
   }
 }

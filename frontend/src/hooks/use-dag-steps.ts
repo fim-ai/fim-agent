@@ -5,6 +5,7 @@ import type {
   DagStepProgressEvent,
   DagDoneEvent,
   AnswerEvent,
+  GuardrailTripwiredEvent,
 } from "@/types/api"
 
 export interface StepState {
@@ -63,6 +64,13 @@ export interface DagStepsResult {
   title: string | null
   /** True when post_processing event has been received but end event has not yet arrived. */
   isPostProcessing: boolean
+  /**
+   * Most recent guardrail tripwire event observed in the stream. When
+   * present, the turn was short-circuited before reaching ``done``;
+   * UI should render the destructive "blocked" bubble instead of the
+   * normal answer card.
+   */
+  guardrailEvent: GuardrailTripwiredEvent | null
 }
 
 export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStepsResult {
@@ -80,6 +88,7 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
     let suggestions: string[] = []
     let title: string | null = null
     let isPostProcessing = false
+    let guardrailEvent: GuardrailTripwiredEvent | null = null
 
     for (const msg of messages) {
       // Handle answer events (streamed before done)
@@ -119,6 +128,13 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
       // It carries no plan/step data — swallow it so downstream rendering
       // isn't disrupted while we're recovering from a disconnect.
       if (msg.event === "resume_done") {
+        continue
+      }
+      // guardrail_tripwired short-circuits the turn — surface to UI so
+      // the destructive "blocked" bubble can be rendered in place of the
+      // would-be answer card. Frozen payload shape (Guardrails v0 spec).
+      if (msg.event === "guardrail_tripwired") {
+        guardrailEvent = msg.data as GuardrailTripwiredEvent
         continue
       }
       if (msg.event === "phase") {
@@ -349,6 +365,7 @@ export function useDagSteps(messages: SSEMessage[], isRunning: boolean): DagStep
       suggestions,
       title,
       isPostProcessing,
+      guardrailEvent,
     }
   }, [messages, isRunning])
 }

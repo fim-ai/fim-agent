@@ -195,6 +195,16 @@ Steuert die automatische Verwaltung des Kontextfensters, die verhindert, dass Ge
 | `CONTEXT_GUARD_MAX_MSG_CHARS` | Nein | `50000` | Hartes Zeichenlimit für jede einzelne Nachricht. Nachrichten, die diesen Wert überschreiten, werden als Sicherheitsmaßnahme gekürzt |
 | `CONTEXT_GUARD_KEEP_RECENT` | Nein | `4` | Anzahl der neuesten Nachrichten, die bei der Komprimierung des Gesprächsverlaufs beibehalten werden |
 
+### Content Guardrails
+
+Kommagetrennte Namen von Guardrails, die den *Inhalt* von Ein- oder Ausgabe überprüfen. Unabhängig vom Tool-Berechtigungsgate (`core/hooks/*`) und der Sicherheitsschicht (`core/security/*`). Siehe [Content Guardrails](/configuration/guardrails) für das vollständige Bild.
+
+| Variable | Erforderlich | Standard | Beschreibung |
+|---|---|---|---|
+| `FIM_GUARDRAILS_INPUT` | Nein | `jailbreak` | Aktive Input-Guardrails. Der Standard-`jailbreak`-Regex-Detektor bricht den Turn ab, bevor LLM-Token ausgegeben werden, wenn bekannte Prompt-Override-Phrasen erkannt werden. Auf leer setzen zum Deaktivieren. Unbekannte Namen werden protokolliert und übersprungen |
+| `FIM_GUARDRAILS_OUTPUT` | Nein | (leer) | Aktive Output-Guardrails. Derzeit enthalten: `max_length` (begrenzt die Zeichenanzahl der Antwort). Wird ausgeführt, nachdem der Agent seine endgültige Antwort produziert hat |
+| `FIM_GUARDRAIL_MAX_OUTPUT_CHARS` | Nein | `50000` | Zeichenlimit, das vom `max_length`-Output-Guardrail verwendet wird. Nur wirksam, wenn `max_length` in `FIM_GUARDRAILS_OUTPUT` aufgelistet ist |
+
 ### Agent-Arbeitsbereich
 
 | Variable | Erforderlich | Standard | Beschreibung |

@@ -193,6 +193,16 @@ Contrôle la gestion automatique de la fenêtre de contexte qui empêche les con
 | `CONTEXT_GUARD_MAX_MSG_CHARS` | Non | `50000` | Limite de caractères stricte pour tout message unique. Les messages dépassant cette limite sont tronqués comme filet de sécurité |
 | `CONTEXT_GUARD_KEEP_RECENT` | Non | `4` | Nombre de messages les plus récents à conserver lors de la compaction de l'historique de conversation |
 
+### Garde-fous de contenu
+
+Noms de garde-fous séparés par des virgules qui inspectent le *contenu* des entrées ou sorties. Indépendants de la porte de permission d'outil (`core/hooks/*`) et de la couche de sécurité (`core/security/*`). Voir [Garde-fous de contenu](/configuration/guardrails) pour l'image complète.
+
+| Variable | Requis | Par défaut | Description |
+|---|---|---|---|
+| `FIM_GUARDRAILS_INPUT` | Non | `jailbreak` | Garde-fous d'entrée actifs. Le détecteur regex `jailbreak` par défaut interrompt le tour avant que des jetons LLM ne soient dépensés lorsque des phrases de dépassement d'invite connues sont détectées. Définir sur vide pour désactiver. Les noms inconnus sont enregistrés et ignorés |
+| `FIM_GUARDRAILS_OUTPUT` | Non | (vide) | Garde-fous de sortie actifs. Actuellement fournis : `max_length` (limite le nombre de caractères de la réponse). Exécutés après que l'agent produit sa réponse finale |
+| `FIM_GUARDRAIL_MAX_OUTPUT_CHARS` | Non | `50000` | Limite de caractères utilisée par le garde-fou de sortie `max_length`. Effectif uniquement lorsque `max_length` est listé dans `FIM_GUARDRAILS_OUTPUT` |
+
 ### Espace de travail de l'agent
 
 | Variable | Requis | Par défaut | Description |
