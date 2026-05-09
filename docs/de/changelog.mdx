@@ -10,6 +10,10 @@ Das Format folgt [Keep a Changelog](https://keepachangelog.com/). Versionen ents
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **`file_ops.apply_patch` — V4A-Format-Diff-Patches auf Dateien anwenden.** Ermöglicht Agenten, mehrzeilige Bearbeitungen mit zeilenbasierten Hunks und unscharfer Whitespace-Anpassung durchzuführen und ergänzt das vorhandene `find_replace` für Fälle, in denen exakte Substring-Übereinstimmung fehleranfällig ist.
+
 ### Geändert
 
 - **`/settings?tab=billing` wird jetzt in voller Breite angezeigt und ist visuell konsistent mit den anderen Einstellungs-Tabs.** Die `max-w-4xl` Breitenbegrenzung und der redundante äußere Scroll-Container wurden entfernt; das Seitentitel-Symbol wurde gelöscht; die Karten für Plan / Nutzung / Abonnement / Plan-Vergleich wurden umgeschrieben, um das gleiche schlanke Bordered-Div-Muster (kompakte Labels + `tabular-nums` Zahlen) wie der Nutzungs-Tab zu verwenden. Das alte Layout sah aus wie eine eigenständige Seite, die versehentlich in den Einstellungsrahmen eingeklemmt wurde.

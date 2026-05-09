@@ -36,3 +36,12 @@ This product includes third-party open-source software. Each such
 component retains its original copyright and is distributed under its
 own license. See the respective project sources and the dependency
 manifests (pyproject.toml, frontend/package.json) for details.
+
+
+Vendored Components
+~~~~~~~~~~~~~~~~~~~
+
+The V4A diff parser at src/fim_one/core/tool/patch/v4a.py is vendored from
+OpenAI Agents SDK Python (https://github.com/openai/openai-agents-python),
+licensed under the MIT License, Copyright (c) 2025 OpenAI. The full license
+text is included as a header in that source file.

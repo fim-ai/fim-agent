@@ -74,7 +74,9 @@ class FileOpsTool(BaseTool):
             '"write_json" — validate and write content as a pretty-printed JSON file; '
             '"read_csv" — read a CSV file and return as a formatted Markdown table; '
             '"write_csv" — write a CSV file from a JSON array of row arrays; '
-            '"find_replace" — find and replace text in a file (requires old_text and new_text). '
+            '"find_replace" — find and replace text in a file (requires old_text and new_text); '
+            '"apply_patch" — apply a V4A-format diff patch to an existing file (requires patch); '
+            "update mode only — to create a new file, use the write operation. "
             "All paths are relative to the workspace root."
         )
 
@@ -88,7 +90,7 @@ class FileOpsTool(BaseTool):
                     "enum": [
                         "read", "write", "append", "delete", "list", "mkdir",
                         "exists", "get_info", "read_json", "write_json",
-                        "read_csv", "write_csv", "find_replace",
+                        "read_csv", "write_csv", "find_replace", "apply_patch",
                     ],
                     "description": "The file operation to perform.",
                 },
@@ -113,6 +115,14 @@ class FileOpsTool(BaseTool):
                     "type": "string",
                     "description": "Replacement text. Required for find_replace.",
                 },
+                "patch": {
+                    "type": "string",
+                    "description": (
+                        "V4A-format patch body. Required for apply_patch. Hunks "
+                        "use '@@' anchors with ' ' (context), '-' (delete), and "
+                        "'+' (insert) line prefixes."
+                    ),
+                },
             },
             "required": ["operation", "path"],
         }
@@ -127,6 +137,7 @@ class FileOpsTool(BaseTool):
         content: str = kwargs.get("content", "")
         old_text: str = kwargs.get("old_text", "")
         new_text: str = kwargs.get("new_text", "")
+        patch: str = kwargs.get("patch", "")
 
         if not operation:
             return "[Error] No operation specified."
@@ -171,6 +182,8 @@ class FileOpsTool(BaseTool):
                 return self._maybe_register_artifact(result, resolved)
             elif operation == "find_replace":
                 return await asyncio.to_thread(self._find_replace, resolved, old_text, new_text)
+            elif operation == "apply_patch":
+                return await asyncio.to_thread(self._apply_patch, resolved, patch)
             else:
                 return f"[Error] Unknown operation: {operation}"
         except Exception as exc:
@@ -418,6 +431,51 @@ class FileOpsTool(BaseTool):
         updated = raw.replace(old_text, new_text)
         self._write(path, updated)
         return f"Replaced {count} occurrence(s) in {path.relative_to(self._workspace_dir)}"
+
+    def _apply_patch(self, path: Path, patch: str) -> str:
+        """Apply a V4A-format diff *patch* to an existing file (update mode only).
+
+        Returns a success string with the fuzz score, or a ``[Error] ...``
+        string on parse/apply failure. Does **not** raise.
+        """
+        if not patch:
+            return "[Error] patch is required for apply_patch"
+
+        workspace = self._workspace_dir
+        rel = path.relative_to(workspace)
+        if not path.exists():
+            return f"[Error] File not found: {rel}"
+        if not path.is_file():
+            return f"[Error] Not a file: {rel}"
+
+        size = path.stat().st_size
+        if size > _MAX_READ_BYTES:
+            return (
+                f"[Error] File too large for apply_patch ({size:,} bytes > "
+                f"{_MAX_READ_BYTES:,} byte limit): {rel}"
+            )
+
+        try:
+            original = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return "[Error] File is not valid UTF-8 text."
+
+        from ..patch import apply_diff
+        from ..patch.v4a import _parse_update_diff, _normalize_diff_lines, _normalize_text_newlines
+
+        # We need both the applied result and the fuzz score; apply_diff()
+        # returns only the result, so parse separately to read fuzz.
+        try:
+            updated = apply_diff(original, patch, mode="default")
+            parsed = _parse_update_diff(
+                _normalize_diff_lines(patch),
+                _normalize_text_newlines(original),
+            )
+        except ValueError as exc:
+            return f"[Error] Patch parse/apply failed: {exc}"
+
+        path.write_text(updated, encoding="utf-8")
+        return f"Patch applied to {rel} (fuzz={parsed.fuzz})"
 
 
 # ------------------------------------------------------------------

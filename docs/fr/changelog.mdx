@@ -10,6 +10,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/). Les versions cor
 
 ## [Non publié]
 
+### Ajouté
+
+- **`file_ops.apply_patch` — appliquer des correctifs au format V4A aux fichiers.** Permet aux agents d'effectuer des modifications multi-lignes avec des sections basées sur les lignes et une correspondance floue des espaces, complétant le `find_replace` existant pour les cas où la correspondance exacte de sous-chaîne est fragile.
+
 ### Modifié
 
 - **`/settings?tab=billing` s'affiche désormais en pleine largeur et visuellement cohérent avec les autres onglets des Paramètres.** Suppression du plafond de largeur `max-w-4xl` et du conteneur de défilement externe redondant ; suppression de l'icône du titre de la page ; réécriture des cartes plan / utilisation / abonnement / comparaison des plans pour utiliser le même motif de div bordée épurée (étiquettes compactes + nombres `tabular-nums`) que l'onglet Utilisation. L'ancienne mise en page ressemblait à une page autonome accidentellement coincée dans le cadre des paramètres.

@@ -10,6 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions corresp
 
 ## [Unreleased]
 
+### Added
+
+- **`file_ops.apply_patch` — apply V4A-format diff patches to files.** Lets agents make multi-line edits with line-based hunks and fuzzy whitespace matching, complementing the existing `find_replace` for cases where exact substring match is brittle.
+
 ### Changed
 
 - **`/settings?tab=billing` now renders full-width and visually consistent with the rest of the Settings tabs.** Removed the `max-w-4xl` width cap and the redundant outer scroll container; dropped the page-title icon; rewrote the plan / usage / subscription / plans-comparison cards to use the same lean bordered-div pattern (compact labels + `tabular-nums` numbers) as the Usage tab. Old layout looked like a standalone page accidentally wedged into the settings frame.
