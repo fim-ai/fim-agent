@@ -124,34 +124,43 @@ cd frontend && pnpm install && cd ..
 
 #### Planung & Ausführung
 - **Dynamische DAG-Planung** — LLM zerlegt Ziele zur Laufzeit in Abhängigkeitsgraphen. Keine hartcodierten Workflows.
-- **Parallele Ausführung** — Unabhängige Schritte laufen parallel über asyncio; automatische Neuplanung bis zu 3 Runden.
-- **ReAct-Agent** — Strukturierte Reasoning- und Acting-Schleife mit automatischer Fehlerwiederherstellung.
-- **Agent-Harness** — Produktionsreife Ausführungsumgebung: ContextGuard für 5-schichtige Token-Budget-Verwaltung, progressive-disclosure Meta-Tools zur Beherrschung der Tool-Oberfläche und Self-Reflection-Schleifen zur Bekämpfung von Zieldrift.
-- **Hook-System** — Deterministische Durchsetzung, die außerhalb der LLM-Schleife läuft. Erste Implementierung: `FeishuGateHook` sperrt sensitive Tool-Aufrufe hinter einer menschlichen Genehmigungskarte, die in eine Feishu-Gruppe gepostet wird. Erweiterbar auf Audit-Logging, Read-Only-Mode-Guards und Rate Limits (v0.9).
-- **Auto-Routing** — Klassifiziert Anfragen und leitet zum optimalen Modus weiter (ReAct oder DAG). Konfigurierbar über `AUTO_ROUTING`.
+- **Parallele Ausführung** — Unabhängige Schritte laufen parallel via asyncio; automatische Neuplanung bis zu 3 Runden.
+- **ReAct-Agent** — Strukturierte Reasoning-and-Acting-Schleife mit automatischer Fehlerwiederherstellung.
+- **Agent-Harness** — Produktionsreife Ausführungsumgebung: ContextGuard für 5-schichtige Token-Budget-Verwaltung, Progressive-Disclosure-Meta-Tools zur Kontrolle der Tool-Oberfläche und Self-Reflection-Schleifen zur Bekämpfung von Zieldrift.
+- **Hook-System** — Deterministische Durchsetzung außerhalb der LLM-Schleife. Erste Implementierung: `FeishuGateHook` sperrt sensible Tool-Aufrufe hinter einer manuellen Genehmigungskarte, die in eine Feishu-Gruppe gepostet wird. Erweiterbar auf Audit-Logging, Read-Only-Mode-Guards und Rate Limits (v0.9).
+- **Content-Guardrails** — Dreischichtige Sicherheit: Tool-Permission-Hooks (Aktionen), Credential-/SSRF-/MCP-Auth-Checks (Protokolle) und Content-Guardrails (Ein-/Ausgabetext). Standard-Jailbreak-Phrase-Detektor bricht die Runde ab, bevor der LLM aufgerufen wird, spart Token und zeigt eine klare Blockierungsmitteilung im Chat. Output-Guardrails optional via `FIM_GUARDRAILS_OUTPUT`.
+- **Auto-Routing** — Klassifiziert Anfragen und leitet zum optimalen Modus weiter (ReAct oder DAG). Konfigurierbar via `AUTO_ROUTING`.
 - **Extended Thinking** — Chain-of-Thought für OpenAI o-Serie, Gemini 2.5+, Claude.
+- **Prompt-Cache-Observability** — Anthropic Prompt-Cache `read/create` Token-Zählungen pro Runde erfasst, in der Chat-`done`-Payload angezeigt und protokolliert, damit Operatoren Cache-Hits verifizieren und Relaystationen erkennen können, die den Rabatt nicht berücksichtigen.
 
 #### Workflow & Tools
-- **Visual workflow editor** — 12 Knotentypen, Drag-and-Drop-Canvas (React Flow v12), Import/Export als JSON.
-- **Smart file handling** — Hochgeladene Dateien werden automatisch in den Kontext eingefügt (klein) oder bei Bedarf über das `read_uploaded_file` Tool lesbar gemacht. Intelligente Dokumentverarbeitung: PDF-, DOCX- und PPTX-Dateien erhalten Vision-aware-Verarbeitung mit Extraktion eingebetteter Bilder, wenn das Modell Vision unterstützt. Der Smart-PDF-Modus extrahiert Text aus textreichen Seiten und rendert gescannte Seiten als Bilder.
+- **Visual workflow editor** — 12 node types, drag-and-drop canvas (React Flow v12), import/export as JSON.
+- **Smart file handling** — Hochgeladene Dateien werden automatisch in den Kontext eingebunden (klein) oder können bei Bedarf über das Tool `read_uploaded_file` gelesen werden. Intelligente Dokumentverarbeitung: PDF-, DOCX- und PPTX-Dateien erhalten Vision-fähige Verarbeitung mit Extraktion eingebetteter Bilder, wenn das Modell Vision unterstützt. Der intelligente PDF-Modus extrahiert Text aus textreichen Seiten und rendert gescannte Seiten als Bilder.
+- **Universal document conversion** — Das integrierte Tool `convert_to_markdown` konvertiert PDF / Word / Excel / PowerPoint / HTML / Bilder / Audio / Outlook `.msg` / EPUB / YouTube-Transkripte in sauberes Markdown über Microsoft MarkItDown. Vision-fähige LLMs führen OCR auf eingebetteten Bildern und gescannten Seiten durch — funktioniert mit Claude, Gemini, Bedrock und jedem von LiteLLM unterstützten Provider, ohne Provider-spezifischen Adapter-Code.
 - **Pluggable tools** — Python, Node.js, Shell-Ausführung mit optionalem Docker-Sandbox (`CODE_EXEC_BACKEND=docker`).
-- **Full RAG pipeline** — Jina-Embedding + LanceDB + Hybrid-Retrieval + Reranker + Inline-`[N]`-Zitate.
-- **Tool artifacts** — Rich Outputs (HTML-Vorschau, Dateien) im Chat gerendert.
+- **V4A patch editing** — Über `find_replace` hinaus können Agenten Zeilen-Hunk-Patches mit unscharfer Whitespace-Anpassung über `file_ops.apply_patch` anwenden — robust für mehrzeilige Änderungen, wo exakte Substring-Übereinstimmung fehleranfällig wäre.
+- **Full RAG pipeline** — Jina embedding + LanceDB + hybrid retrieval + reranker + inline `[N]` citations. Vision-fähige Ingestion leitet gescannte PDFs und in Office eingebettete Bilder durch das Standard-Vision-LLM des Arbeitsbereichs zur OCR.
+- **Tool artifacts** — Rich outputs (HTML previews, files) rendered in-chat.
 
 #### Messaging Channels (v0.8)
-- **Org-scoped IM bridge** — `BaseChannel` Abstraktion für ausgehende Nachrichten über Slack, Microsoft Teams, Discord, Feishu (Lark), WeCom und DingTalk. Erste Implementierung wird mit Feishu ausgeliefert; Slack / Teams / WeCom / Email stehen als nächstes auf der v0.9 Roadmap.
-- **Fernet-verschlüsselte Anmeldedaten** — App-Secrets und Verschlüsselungsschlüssel sind im Ruhezustand verschlüsselt; jede eingehende Callback-Signatur wird verifiziert.
-- **Interaktive Genehmigungskarten** — Channel-native `GateHook` (heute Feishu, nächstes Slack/Teams) postet eine Approve / Reject Karte in Ihre Gruppe, wenn ein sensitiver Tool-Aufruf ausgelöst wird; das Tool blockiert, bis ein Gruppenmitglied ein Urteil bestätigt. Human-in-the-Loop-Genehmigung ohne benutzerdefinierten Workflow-Engine.
-- **Browse-and-pick UI** — Keine Notwendigkeit, rohe Channel-IDs aus der Vendor-Konsole zu kopieren; das Portal ruft die API der IM-Plattform auf und zeigt einen Gruppenwähler.
+- **Org-scoped IM bridge** — `BaseChannel` Abstraktion für ausgehende Nachrichten über Slack, Microsoft Teams, Discord, Feishu (Lark), WeCom und DingTalk. Erste Implementierung wird mit Feishu ausgeliefert; Slack / Teams / WeCom / Email stehen auf der v0.9 Roadmap.
+- **Fernet-verschlüsselte Anmeldedaten** — App-Secrets und Verschlüsselungsschlüssel sind im Ruhezustand verschlüsselt; jeder eingehende Callback ist signaturverifiziert.
+- **Interaktive Genehmigungskarten** — Channel-native `GateHook` (heute Feishu, nächstes Slack/Teams) postet eine Approve / Reject Karte in Ihre Gruppe, wenn ein sensitiver Tool-Aufruf ausgelöst wird; das Tool blockiert, bis ein Gruppenmitglied ein Urteil bestätigt. Human-in-the-Loop-Genehmigung ohne Custom-Workflow-Engine.
+- **Konfigurierbare Genehmigungsweiterleitung pro Agent** — Drei Modi (Auto / Inline only / Channel only) mit Approver-Scope-Selector (initiator / agent owner / any org member). Ein Audit-Pfad speichert `approver_user_id` und `decided_at`, unabhängig davon, ob das Urteil aus dem Chat oder aus dem Channel kam. Der Auto-Modus fällt auf Inline zurück, wenn kein Channel verknüpft ist, sodass Agents immer eine echte Genehmigungserfahrung erhalten.
+- **Task-Completion-Benachrichtigungen** — Langfristig laufende ReAct- oder DAG-Agents können eine Zusammenfassungskarte an den Channel der Organisation pushen, wenn die Arbeit abgeschlossen ist. Konfigurierbar pro Agent in Settings → Agent → Notifications.
+- **Browse-and-Pick UI** — Keine rohen Channel-IDs aus der Vendor-Konsole kopieren; das Portal ruft die API der IM-Plattform auf und zeigt einen Gruppenpicker.
 
 #### Plattform
-- **Multi-Mandanten** — JWT-Authentifizierung, Organisationsisolation, Admin-Panel mit Nutzungsanalytics und Connector-Metriken.
-- **Marketplace** — Veröffentlichen und abonnieren Sie Agenten, Connectors, KBs, Skills und Workflows.
+- **Multi-Mandant** — JWT-Authentifizierung, Organisationsisolation, Admin-Panel mit Nutzungsanalytics und Connector-Metriken. Multi-Worker-Unterstützung via `WORKERS=N` mit Redis-Interrupt-Broker für Worker-übergreifendes Relay.
+- **Marketplace** — Intelligente Systeme, Connectors, Knowledge Bases, Skills und Workflows veröffentlichen und abonnieren.
 - **Globale Skills (SOPs)** — Wiederverwendbare Betriebsverfahren, die für jeden Benutzer geladen werden; progressiver Modus reduziert Tokens um ~80%.
-- **6 Sprachen** — EN, ZH, JA, KO, DE, FR. Übersetzungen sind [vollständig automatisiert](https://docs.fim.ai/quickstart#internationalization).
+- **Stripe-Abrechnung & Pro-Benutzer-Kontingente** — Optionales Pro-Plan-Upgrade via Stripe Checkout + Customer Portal. Kontingent-Kette (Pro-Benutzer-Überschreibung → Plan-Tier → Systemstandard) mit `0` für unbegrenzt. Admin-Feature-Flag steuert die gesamte Pipeline; private Bereitstellungen ohne Stripe bleiben sauber.
+- **Evaluation Center** — Test-Dataset-Verwaltung, parallele Eval-Läufe mit LLM-bewerteten Urteilen, Pro-Fall-Viewer für Bestanden/Nicht bestanden/Latenz/Token-Ergebnisse mit Auto-Polling.
+- **Gesprächswiederherstellung** — Synthetische `tool_result`-Zeilen bleiben nach unterbrochenen Turns erhalten; Clients verbinden sich automatisch wieder mit unterbrochenen SSE-Streams via `/chat/resume` mit exponentiellem Backoff und einem „Verbindung wird wiederhergestellt…"-Indikator.
+- **6 Sprachen** — EN, ZH, JA, KO, DE, FR. Übersetzungen sind [vollständig automatisiert](https://docs.fim.ai/quickstart#internationalization) — ein einziges Glossar steuert jeden LLM-Übersetzungsaufruf (JSON, MDX, README), Pre-Commit-Hook lehnt manuelle Änderungen an generierten Locale-Dateien ab.
 - **Assistent für die erste Einrichtung**, dunkles/helles Design, Befehlspalette, Streaming SSE, DAG-Visualisierung.
 
-> Tiefergehende Informationen: [Architektur](https://docs.fim.ai/architecture/system-overview) · [Hook-System](https://docs.fim.ai/architecture/hook-system) · [Kanäle](https://docs.fim.ai/configuration/channels/overview) · [Ausführungsmodi](https://docs.fim.ai/concepts/execution-modes) · [Warum FIM One](https://docs.fim.ai/why) · [Wettbewerbslandschaft](https://docs.fim.ai/strategy/competitive-landscape)
+> Tiefere Einblicke: [Architektur](https://docs.fim.ai/architecture/system-overview) · [Hook-System](https://docs.fim.ai/architecture/hook-system) · [Channels](https://docs.fim.ai/configuration/channels/overview) · [Ausführungsmodi](https://docs.fim.ai/concepts/execution-modes) · [Warum FIM One](https://docs.fim.ai/why) · [Wettbewerbslandschaft](https://docs.fim.ai/strategy/competitive-landscape)
 
 ## Architektur
 

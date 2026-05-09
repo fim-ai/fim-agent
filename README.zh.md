@@ -123,35 +123,44 @@ cd frontend && pnpm install && cd ..
 - **三种构建方式** — 导入OpenAPI规范、AI聊天构建器或直接连接MCP服务器。
 
 #### 规划与执行
-- **动态 DAG 规划** — LLM 在运行时将目标分解为依赖图。无硬编码工作流。
-- **并发执行** — 独立步骤通过 asyncio 并行运行；自动重新规划最多 3 轮。
-- **ReAct 智能体** — 结构化推理与行动循环，具有自动错误恢复。
-- **智能体框架** — 生产级执行环境：ContextGuard 用于 5 层 token 预算管理，渐进式披露元工具以保持工具表面的可控性，以及自反思循环以对抗目标漂移。
-- **Hook 系统** — 在 LLM 循环外运行的确定性强制执行。首次发布：`FeishuGateHook` 在 Feishu 群组中通过人工审批卡片来控制敏感工具调用。可扩展至审计日志、只读模式保护和速率限制（v0.9）。
-- **自动路由** — 对查询进行分类并路由到最优模式（ReAct 或 DAG）。通过 `AUTO_ROUTING` 配置。
-- **扩展思考** — OpenAI o 系列、Gemini 2.5+、Claude 的思维链。
+- **动态DAG规划** — LLM在运行时将目标分解为依赖图。无硬编码工作流。
+- **并发执行** — 独立步骤通过asyncio并行运行；自动重新规划最多3轮。
+- **ReAct智能体** — 结构化的推理与行动循环，具有自动错误恢复。
+- **智能体框架** — 生产级执行环境：ContextGuard提供5层令牌预算管理，渐进式披露元工具保持工具表面可控，自反思循环对抗目标漂移。
+- **钩子系统** — 在LLM循环外运行的确定性强制执行。首个发布版本：`FeishuGateHook`将敏感工具调用置于人工审批卡后，发布到Feishu群组。可扩展至审计日志、只读模式保护和速率限制（v0.9）。
+- **内容护栏** — 三层安全防护：工具权限钩子（操作）、凭证/SSRF/MCP认证检查（协议）和内容护栏（输入/输出文本）。默认越狱短语检测器在LLM调用前中止轮次，节省令牌并在聊天中显示清晰的阻止通知。输出护栏可选，通过`FIM_GUARDRAILS_OUTPUT`启用。
+- **自动路由** — 分类查询并路由到最优模式（ReAct或DAG）。可通过`AUTO_ROUTING`配置。
+- **扩展思考** — OpenAI o系列、Gemini 2.5+、Claude的思维链。
+- **提示词缓存可观测性** — Anthropic提示词缓存`read/create`令牌计数按轮次捕获，在聊天`done`负载中显示并记录，以便操作员验证缓存命中并检测不遵守折扣的中继站。
 
 #### 工作流与工具
-- **可视化工作流编辑器** — 12 种节点类型、拖放画布（React Flow v12）、JSON 格式的导入/导出功能。
-- **智能文件处理** — 上传的文件自动内联到上下文中（小文件）或通过 `read_uploaded_file` 工具按需读取。智能文档处理：PDF、DOCX 和 PPTX 文件获得视觉感知处理，当模型支持视觉功能时提取嵌入图像。智能 PDF 模式从文本丰富的页面提取文本，并将扫描页面呈现为图像。
-- **可插拔工具** — Python、Node.js、shell 执行，支持可选的 Docker 沙箱（`CODE_EXEC_BACKEND=docker`）。
-- **完整 RAG 管道** — Jina 嵌入 + LanceDB + 混合检索 + 重排器 + 内联 `[N]` 引用。
-- **工具制品** — 丰富的输出（HTML 预览、文件）在聊天中呈现。
+- **可视化工作流编辑器** — 12种节点类型、拖放画布（React Flow v12）、JSON格式的导入/导出。
+- **智能文件处理** — 上传的文件自动内联到上下文（小文件）或通过 `read_uploaded_file` 工具按需读取。智能文档处理：PDF、DOCX和PPTX文件在模型支持视觉能力时进行视觉感知处理，并提取嵌入的图像。智能PDF模式从富文本页面提取文本，将扫描页面渲染为图像。
+- **通用文档转换** — 内置 `convert_to_markdown` 工具通过Microsoft MarkItDown将PDF/Word/Excel/PowerPoint/HTML/图像/音频/Outlook `.msg`/EPUB/YouTube转录内容转换为清晰的Markdown。具有视觉能力的LLM可对嵌入的图像和扫描页面进行OCR——支持Claude、Gemini、Bedrock以及任何LiteLLM支持的提供商，无需针对各提供商的适配器代码。
+- **可插拔工具** — Python、Node.js、shell执行，支持可选的Docker沙箱（`CODE_EXEC_BACKEND=docker`）。
+- **V4A补丁编辑** — 超越 `find_replace`，智能体可通过 `file_ops.apply_patch` 应用带有模糊空白匹配的行块补丁——对于精确子字符串匹配过于脆弱的多行编辑具有鲁棒性。
+- **完整RAG管道** — Jina嵌入+LanceDB+混合检索+重排器+内联 `[N]` 引用。视觉感知摄取将扫描PDF和Office嵌入图像通过工作区的默认视觉LLM进行OCR处理。
+- **工具产物** — 丰富的输出（HTML预览、文件）在聊天中渲染。
 
 #### 消息通道 (v0.8)
-- **组织范围的 IM 桥接** — `BaseChannel` 抽象，支持跨 Slack、Microsoft Teams、Discord、Feishu (Lark)、WeCom 和 DingTalk 的出站消息。首个发布实现是 Feishu；Slack / Teams / WeCom / Email 在 v0.9 路线图中排在后续。
+- **组织范围的即时通讯桥接** — `BaseChannel` 抽象，支持跨 Slack、Microsoft Teams、Discord、Feishu (Lark)、WeCom 和 DingTalk 的出站消息。首个发布实现是 Feishu；Slack / Teams / WeCom / Email 在 v0.9 路线图中。
 - **Fernet 加密凭证** — 应用密钥和加密密钥在静态时加密；每个入站回调都经过签名验证。
-- **交互式审批卡片** — 通道原生 `GateHook`（目前支持 Feishu，Slack/Teams 即将推出）在敏感工具调用触发时向你的群组发送 Approve / Reject 卡片；工具会阻塞直到群组成员点击审批结果。无需自定义工作流引擎的人工审批循环。
-- **浏览并选择 UI** — 无需从供应商控制台复制原始通道 ID；门户调用 IM 平台的 API 并显示群组选择器。
+- **交互式审批卡片** — 通道原生 `GateHook`（目前支持 Feishu，Slack/Teams 即将推出）在敏感工具调用触发时向你的群组发送审批/拒绝卡片；工具会阻塞直到群组成员点击决议。无需自定义工作流引擎即可实现人工审批。
+- **可配置的每个智能体审批路由** — 三种模式（自动 / 仅内联 / 仅通道）配合审批人范围选择器（发起人 / 智能体所有者 / 任何组织成员）。单一审计路径记录 `approver_user_id` 和 `decided_at`，无论决议来自聊天还是通道。自动模式在未链接通道时回退到内联，因此智能体始终获得真实的审批体验。
+- **任务完成通知** — 长时间运行的 ReAct 或 DAG 智能体可在工作完成时向组织通道推送摘要卡片。在"设置 → 智能体 → 通知"中按智能体配置。
+- **浏览并选择 UI** — 无需从供应商控制台复制原始通道 ID；门户调用即时通讯平台的 API 并显示群组选择器。
 
 #### 平台
-- **多租户** — JWT 认证、组织隔离、管理面板（包含使用情况分析和连接器指标）。
+- **多租户** — JWT 认证、组织隔离、带有使用分析和连接器指标的管理面板。通过 `WORKERS=N` 支持多工作进程，使用 Redis 中断代理进行跨工作进程中继。
 - **应用市场** — 发布和订阅智能体、连接器、知识库、技能、工作流。
-- **全局技能（SOP）** — 为每个用户加载的可复用操作流程；渐进模式可减少约 80% 的 token 消耗。
-- **6 种语言** — EN、ZH、JA、KO、DE、FR。翻译[完全自动化](https://docs.fim.ai/quickstart#internationalization)。
+- **全局技能（SOP）** — 为每个用户加载的可复用操作流程；渐进模式可减少约 80% 的令牌消耗。
+- **Stripe 计费和按用户配额** — 可选的 Pro 计划升级，通过 Stripe Checkout + Customer Portal。配额链（按用户覆盖 → 计划层级 → 系统默认值），`0` 表示无限制。管理员功能标志控制整个流程；不使用 Stripe 的私有部署保持清洁。
+- **评估中心** — 测试数据集管理、并行评估运行，使用 LLM 评分判断，每个案例的通过/失败/延迟/令牌结果查看器，支持自动轮询。
+- **对话恢复** — 合成 `tool_result` 行在中断的轮次后持久化；客户端通过 `/chat/resume` 自动重连断开的 SSE 流，支持指数退避和"重新连接中…"指示器。
+- **6 种语言** — EN、ZH、JA、KO、DE、FR。翻译完全自动化——单一词汇表驱动每个 LLM 翻译调用（JSON、MDX、README），提交前钩子拒绝手动编辑生成的语言环境文件。
 - **首次运行设置向导**、深色/浅色主题、命令面板、流式 SSE、DAG 可视化。
 
-> 深入了解：[架构](https://docs.fim.ai/architecture/system-overview) · [Hook 系统](https://docs.fim.ai/architecture/hook-system) · [通道](https://docs.fim.ai/configuration/channels/overview) · [执行模式](https://docs.fim.ai/concepts/execution-modes) · [为什么选择 FIM One](https://docs.fim.ai/why) · [竞争格局](https://docs.fim.ai/strategy/competitive-landscape)
+> 深入了解：[架构](https://docs.fim.ai/architecture/system-overview) · [钩子系统](https://docs.fim.ai/architecture/hook-system) · [通道](https://docs.fim.ai/configuration/channels/overview) · [执行模式](https://docs.fim.ai/concepts/execution-modes) · [为什么选择 FIM One](https://docs.fim.ai/why) · [竞争格局](https://docs.fim.ai/strategy/competitive-landscape)
 
 ## 架构
 

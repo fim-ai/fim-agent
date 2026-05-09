@@ -124,32 +124,41 @@ cd frontend && pnpm install && cd ..
 
 #### Planification et exécution
 - **Planification DAG dynamique** — L'LLM décompose les objectifs en graphes de dépendances à l'exécution. Aucun workflow codé en dur.
-- **Exécution concurrente** — Les étapes indépendantes s'exécutent en parallèle via asyncio ; re-planification automatique jusqu'à 3 tours.
+- **Exécution concurrente** — Les étapes indépendantes s'exécutent en parallèle via asyncio ; replanification automatique jusqu'à 3 tours.
 - **Agent ReAct** — Boucle structurée de raisonnement et d'action avec récupération automatique des erreurs.
-- **Harnais d'agent** — Environnement d'exécution de qualité production : ContextGuard pour la gestion des budgets de tokens à 5 niveaux, méta-outils à divulgation progressive pour maintenir la surface d'outils tractable, et boucles d'auto-réflexion pour contrer la dérive d'objectifs.
-- **Système de hooks** — Application déterministe qui s'exécute en dehors de la boucle LLM. Premier livré : `FeishuGateHook` contrôle les appels d'outils sensibles derrière une carte d'approbation humaine affichée dans un groupe Feishu. Extensible à la journalisation d'audit, aux garde-fous en mode lecture seule et aux limites de débit (v0.9).
+- **Harnais d'agent** — Environnement d'exécution de qualité production : ContextGuard pour la gestion des budgets de tokens sur 5 couches, méta-outils à divulgation progressive pour maintenir la surface des outils traitable, et boucles d'auto-réflexion pour contrer la dérive des objectifs.
+- **Système de hooks** — Application déterministe qui s'exécute en dehors de la boucle LLM. Premier livré : `FeishuGateHook` place les appels d'outils sensibles derrière une carte d'approbation humaine affichée dans un groupe Feishu. Extensible à la journalisation d'audit, aux gardes en mode lecture seule et aux limites de débit (v0.9).
+- **Garde-fous de contenu** — Sécurité sur trois couches : hooks de permission d'outils (actions), vérifications de credentials / SSRF / authentification MCP (protocoles), et garde-fous de contenu (texte d'entrée/sortie). Le détecteur de phrases de jailbreak par défaut interrompt le tour avant l'invocation de l'LLM, économisant des tokens et affichant un avis de blocage clair dans le chat. Garde-fous de sortie optionnels via `FIM_GUARDRAILS_OUTPUT`.
 - **Routage automatique** — Classe les requêtes et les achemine vers le mode optimal (ReAct ou DAG). Configurable via `AUTO_ROUTING`.
-- **Pensée étendue** — Chaîne de pensée pour OpenAI o-series, Gemini 2.5+, Claude.
+- **Réflexion étendue** — Chaîne de pensée pour OpenAI o-series, Gemini 2.5+, Claude.
+- **Observabilité du cache de prompts** — Les comptages de tokens `read/create` du cache de prompts Anthropic sont capturés par tour, affichés dans la charge utile `done` du chat et enregistrés pour que les opérateurs puissent vérifier les accès au cache et détecter les relais qui n'honorent pas la réduction.
 
 #### Flux de travail et outils
-- **Éditeur de flux de travail visuel** — 12 types de nœuds, canevas glisser-déposer (React Flow v12), import/export en JSON.
+- **Éditeur de flux visuel** — 12 types de nœuds, canevas glisser-déposer (React Flow v12), import/export en JSON.
 - **Gestion intelligente des fichiers** — Les fichiers téléchargés sont automatiquement intégrés au contexte (petits) ou lisibles à la demande via l'outil `read_uploaded_file`. Traitement intelligent des documents : les fichiers PDF, DOCX et PPTX bénéficient d'un traitement compatible avec la vision avec extraction d'images intégrées lorsque le modèle supporte la vision. Le mode PDF intelligent extrait le texte des pages riches en texte et affiche les pages numérisées sous forme d'images.
-- **Outils enfichables** — Python, Node.js, exécution shell avec bac à sable Docker optionnel (`CODE_EXEC_BACKEND=docker`).
-- **Pipeline RAG complet** — Intégration Jina + LanceDB + récupération hybride + reclassement + citations en ligne `[N]`.
-- **Artefacts d'outils** — Les sorties enrichies (aperçus HTML, fichiers) sont rendues dans le chat.
+- **Conversion universelle de documents** — L'outil intégré `convert_to_markdown` convertit PDF / Word / Excel / PowerPoint / HTML / images / audio / Outlook `.msg` / EPUB / transcriptions YouTube en Markdown propre via Microsoft MarkItDown. Les LLM compatibles avec la vision effectuent la reconnaissance optique de caractères sur les images intégrées et les pages numérisées — fonctionne avec Claude, Gemini, Bedrock et tout fournisseur compatible LiteLLM, sans code d'adaptateur par fournisseur.
+- **Outils enfichables** — Exécution Python, Node.js, shell avec bac à sable Docker optionnel (`CODE_EXEC_BACKEND=docker`).
+- **Édition de correctifs V4A** — Au-delà de `find_replace`, les agents peuvent appliquer des correctifs de lignes avec correspondance floue des espaces via `file_ops.apply_patch` — robuste pour les modifications multi-lignes où une correspondance de sous-chaîne exacte serait fragile.
+- **Pipeline RAG complet** — Intégration Jina + LanceDB + récupération hybride + réclassement + citations intégrées `[N]`. L'ingestion compatible avec la vision achemine les PDF numérisés et les images intégrées Office via le LLM de vision par défaut de l'espace de travail pour la reconnaissance optique de caractères.
+- **Artefacts d'outils** — Sorties enrichies (aperçus HTML, fichiers) rendus dans le chat.
 
-#### Canaux de Messagerie (v0.8)
-- **Pont IM étendu à l'organisation** — abstraction `BaseChannel` pour la messagerie sortante sur Slack, Microsoft Teams, Discord, Feishu (Lark), WeCom et DingTalk. La première implémentation livrée est Feishu ; Slack / Teams / WeCom / Email sont les prochains sur la feuille de route v0.9.
+#### Canaux de messagerie (v0.8)
+- **Pont IM étendu à l'organisation** — Abstraction `BaseChannel` pour la messagerie sortante sur Slack, Microsoft Teams, Discord, Feishu (Lark), WeCom et DingTalk. La première implémentation livrée est Feishu ; Slack / Teams / WeCom / Email sont les prochains sur la feuille de route v0.9.
 - **Identifiants chiffrés avec Fernet** — Les secrets d'application et les clés de chiffrement sont chiffrés au repos ; chaque signature de rappel entrant est vérifiée.
-- **Cartes d'approbation interactives** — `GateHook` natif du canal (Feishu aujourd'hui, Slack/Teams ensuite) publie une carte Approuver / Rejeter dans votre groupe lorsqu'un appel d'outil sensible se déclenche ; l'outil se bloque jusqu'à ce qu'un membre du groupe appuie sur un verdict. Approbation avec intervention humaine sans moteur de flux de travail personnalisé.
+- **Cartes d'approbation interactives** — `GateHook` natif du canal (Feishu aujourd'hui, Slack/Teams ensuite) affiche une carte Approuver / Rejeter à votre groupe quand un appel d'outil sensible se déclenche ; l'outil se bloque jusqu'à ce qu'un membre du groupe appuie sur un verdict. Approbation humaine dans la boucle sans moteur de flux de travail personnalisé.
+- **Routage d'approbation configurable par agent** — Trois modes (Auto / Inline uniquement / Canal uniquement) avec un sélecteur de portée approbateur (initiateur / propriétaire de l'agent / tout membre de l'organisation). Un chemin d'audit horodate `approver_user_id` et `decided_at` que le verdict provienne du chat ou du canal. Le mode Auto revient à inline si aucun canal n'est lié, donc les agents obtiennent toujours une véritable expérience d'approbation.
+- **Notifications de fin de tâche** — Les agents ReAct ou DAG de longue durée peuvent envoyer une carte récapitulative au canal de l'organisation quand le travail se termine. Configurable par agent dans Paramètres → Agent → Notifications.
 - **Interface de navigation et sélection** — Pas besoin de copier les ID de canal bruts depuis la console du fournisseur ; le portail appelle l'API de la plateforme IM et affiche un sélecteur de groupe.
 
 #### Plateforme
-- **Multi-locataire** — Authentification JWT, isolation des organisations, panneau d'administration avec analytique d'utilisation et métriques des connecteurs.
-- **Marketplace** — Publiez et abonnez-vous à des agents, connecteurs, bases de connaissances, compétences, workflows.
-- **Compétences globales (POS)** — Procédures opérationnelles réutilisables chargées pour chaque utilisateur ; le mode progressif réduit les tokens d'environ 80 %.
-- **6 langues** — EN, ZH, JA, KO, DE, FR. Les traductions sont [entièrement automatisées](https://docs.fim.ai/quickstart#internationalization).
-- **Assistant de configuration à la première exécution**, thème sombre/clair, palette de commandes, SSE en continu, visualisation DAG.
+- **Multi-tenant** — Authentification JWT, isolation des organisations, panneau d'administration avec analytique d'utilisation et métriques des connecteurs. Support multi-worker via `WORKERS=N` avec un courtier d'interruption Redis pour le relais inter-worker.
+- **Marketplace** — Publier et s'abonner à des agents, connecteurs, bases de connaissances, compétences, workflows.
+- **Compétences globales (SOP)** — Procédures d'exploitation réutilisables chargées pour chaque utilisateur ; le mode progressif réduit les tokens d'environ 80 %.
+- **Facturation Stripe et quotas par utilisateur** — Mise à niveau optionnelle du plan Pro via Stripe Checkout + Customer Portal. Chaîne de quotas (remplacement par utilisateur → niveau de plan → défaut système) avec `0` pour illimité. Le drapeau de fonctionnalité administrateur contrôle l'ensemble du pipeline ; les déploiements privés sans Stripe restent propres.
+- **Centre d'évaluation** — Gestion des ensembles de test, exécutions d'évaluation parallèles avec jugements notés par LLM, visionneuse de résultats par cas (réussite/échec/latence/tokens) avec interrogation automatique.
+- **Récupération de conversation** — Les lignes `tool_result` synthétiques persistent après les tours interrompus ; les clients se reconnectent automatiquement aux flux SSE abandonnés via `/chat/resume` avec backoff exponentiel et un indicateur « Reconnexion en cours… ».
+- **6 langues** — EN, ZH, JA, KO, DE, FR. Les traductions sont [entièrement automatisées](https://docs.fim.ai/quickstart#internationalization) — un glossaire unique pilote chaque appel de traduction LLM (JSON, MDX, README), le hook de pré-commit refuse les modifications manuelles des fichiers de locale générés.
+- **Assistant de configuration au premier lancement**, thème sombre/clair, palette de commandes, SSE en streaming, visualisation DAG.
 
 > Approfondissement : [Architecture](https://docs.fim.ai/architecture/system-overview) · [Système de hooks](https://docs.fim.ai/architecture/hook-system) · [Canaux](https://docs.fim.ai/configuration/channels/overview) · [Modes d'exécution](https://docs.fim.ai/concepts/execution-modes) · [Pourquoi FIM One](https://docs.fim.ai/why) · [Paysage concurrentiel](https://docs.fim.ai/strategy/competitive-landscape)
 
